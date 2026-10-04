@@ -1,0 +1,16 @@
+{
+  "name": "ongarage",
+  "private": true,
+  "description": "OnGarage monorepo: vehicle-owner app, garage app and shared code.",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "user": "npm run start --workspace @ongarage/user",
+    "user:web": "npm run web --workspace @ongarage/user",
+    "garage": "npm run start --workspace @ongarage/garage",
+    "garage:web": "npm run web --workspace @ongarage/garage",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  }
+}

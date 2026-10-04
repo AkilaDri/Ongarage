@@ -1,0 +1,50 @@
+{
+  "expo": {
+    "name": "OnGarage Garage",
+    "slug": "ongarage-garage",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "ongaragegarage",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "bundleIdentifier": "com.ongarage.garage",
+      "supportsTabletMode": false
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#030712",
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "backgroundImage": "./assets/images/android-icon-background.png",
+        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "package": "com.ongarage.garage"
+    },
+    "web": {
+      "output": "static",
+      "favicon": "./assets/images/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "OnGarage Garage uses your location to receive nearby SOS requests and share your route with the customer."
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#030712",
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 76
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": false
+    }
+  }
+}

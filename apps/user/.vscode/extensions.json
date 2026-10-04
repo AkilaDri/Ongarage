@@ -1,0 +1,11 @@
+{
+  "recommendations": [
+    "expo.vscode-expo-tools",
+    "dsznajder.es7-react-js-snippets",
+    "ms-vscode.vscode-typescript-next",
+    "esbenp.prettier-vscode",
+    "dbaeumer.vscode-eslint",
+    "msjsdiag.debugger-for-react-native",
+    "WallabyJs.wallaby-vscode"
+  ]
+}

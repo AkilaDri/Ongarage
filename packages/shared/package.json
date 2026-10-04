@@ -1,0 +1,17 @@
+{
+  "name": "@ongarage/shared",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Types, theme, UI kit, maps helpers and service taxonomy shared by the OnGarage apps.",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "@react-native-async-storage/async-storage": "*",
+    "react": "*",
+    "react-native": "*",
+    "react-native-svg": "*"
+  }
+}
