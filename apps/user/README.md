@@ -1,56 +1,30 @@
-# Welcome to your Expo app 👋
+# OnGarage: vehicle-owner app
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
-
-## Get started
-
-1. Install dependencies
-
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+The app vehicle owners use to get roadside help, collect repair bids and find garages. It's part of the [OnGarage monorepo](../../README.md); setup, the `.env` and the run commands are described there.
 
 ```bash
-npm run reset-project
+# from the repository root
+npm run user        # dev server (a / i / w, or scan with Expo Go)
+npm run user:web    # in the browser
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## Screens
 
-### Other setup steps
+| Screen | File | Purpose |
+|---|---|---|
+| Home | `src/screens/HomeScreen.tsx` | Greeting with the vehicle showcase, SOS banner, entry points for posting a job, service categories, nearest garage |
+| SOS location | `src/screens/SOSMapPickerScreen.tsx` | Pick the breakdown spot: GPS, tap on map, place search |
+| SOS flow | `src/screens/SOSFlowScreen.tsx` | The 11-step SOS loop, from confirmation to rating |
+| Post a job | `src/screens/PostJobScreen.tsx` | Job form with OnGarage Buddy diagnosis and the bid timer |
+| My Bids | `src/screens/BidsScreen.tsx` | Received / Pending / Expired bids, accepting and republishing |
+| Category browse | `src/screens/ServiceBrowseScreen.tsx` | Map plus a three-position sheet of garage cards |
+| Activity | `src/screens/ActivityScreen.tsx` | Current bookings and completed services |
+| Profile | `src/screens/ProfileScreen.tsx` | Account, vehicles, adding a vehicle, light/dark switch |
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+## How it fits together
 
-## Learn more
+- `src/App.tsx` holds the bottom-tab state and opens the SOS, post-job and category flows as full-screen modals. There is no stack navigation.
+- Data stores live in `src/context`: `LocationContext` (GPS and address), `VehiclesContext` (your vehicles; added ones are saved on the device) and `BidsContext` (posted jobs and the simulated garage bids).
+- Mock data lives in `src/constants/mockData.ts`. The theme, UI kit, types, maps helpers and service categories come from `@ongarage/shared`.
 
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+Garage behaviour is simulated until there's a backend: bids arrive a few seconds after a job is posted, and SOS acceptance and tracking are animated.
