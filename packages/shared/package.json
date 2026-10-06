@@ -12,6 +12,7 @@
     "@react-native-async-storage/async-storage": "*",
     "react": "*",
     "react-native": "*",
-    "react-native-svg": "*"
+    "react-native-svg": "*",
+    "react-native-qrcode-svg": "*"
   }
 }

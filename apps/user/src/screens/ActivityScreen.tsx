@@ -1,22 +1,45 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Colors, themedStyles } from '@ongarage/shared';
 import { FONTS } from '@ongarage/shared';
 import { MOCK_SERVICE_HISTORY } from '../constants/mockData';
 import { SERVICE_CATEGORIES } from '@ongarage/shared';
 import { useVehicles } from '../context/VehiclesContext';
-import { EmptyState, GlassIcon } from '@ongarage/shared';
+import { EmptyState, GlassIcon, SwipeCard } from '@ongarage/shared';
+import { OwnerDetailView, type OwnerDetailTarget } from '../components/OwnerDetailView';
 import { useBids } from '../context/BidsContext';
 import { useUserLocation } from '../context/LocationContext';
 import { directionsUrl } from '@ongarage/shared';
+import { useBookings } from '../context/BookingsContext';
+import { DirectBookingCard } from '../components/DirectBookingCard';
+import { money } from '../utils/format';
+import type { DirectBooking } from '../types';
 
 const MONTHS = ['ජන.', 'පෙබ.', 'මාර්තු', 'අප්‍රේල්', 'මැයි', 'ජූනි', 'ජූලි', 'අගෝ.', 'සැප්.', 'ඔක්.', 'නොවැ.', 'දෙසැ.'];
 
 const formatDate = (d: Date) => `${d.getFullYear()} ${MONTHS[d.getMonth()]} ${d.getDate()}`;
-const money = (n: number) => `රු. ${n.toLocaleString()}`;
 
-export const ActivityScreen: React.FC<{ onOpenBids: () => void }> = ({ onOpenBids }) => {
+export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b: DirectBooking) => void }> = ({ onOpenBids, onBookAgain }) => {
   const { jobs } = useBids();
+  const { bookings } = useBookings();
+  const liveBookings = bookings.filter((b) => b.status === 'requested' || b.status === 'proposed' || b.status === 'confirmed');
+  const endedBookings = bookings.filter((b) => !liveBookings.includes(b));
+  // Swipe a booking for everything about it (follows the live record).
+  const [detail, setDetail] = useState<{ kind: 'job' | 'booking'; id: string } | null>(null);
+  const detailTarget: OwnerDetailTarget | null = (() => {
+    if (!detail) return null;
+    if (detail.kind === 'booking') {
+      const b = bookings.find((x) => x.id === detail.id);
+      return b ? { kind: 'booking', booking: b } : null;
+    }
+    const j = jobs.find((x) => x.id === detail.id);
+    return j ? { kind: 'job', job: j } : null;
+  })();
+  const bookingCard = (b: (typeof bookings)[number]) => (
+    <SwipeCard key={b.id} style={styles.swipeWrap} onOpen={() => setDetail({ kind: 'booking', id: b.id })}>
+      <DirectBookingCard booking={b} onBookAgain={onBookAgain} onOpen={() => setDetail({ kind: 'booking', id: b.id })} />
+    </SwipeCard>
+  );
   const { findVehicle } = useVehicles();
   const vehicleName = (id: string) => findVehicle(id).name;
   const user = useUserLocation();
@@ -30,20 +53,17 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void }> = ({ onOpenBid
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>ක්‍රියාකාරකම්</Text>
-        <Text style={styles.sub}>ඔබගේ වෙන් කිරීම් සහ සේවා ඉතිහාසය</Text>
-      </View>
-
       <ScrollView style={styles.flex1} contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
         <View style={styles.statsRow}>
-          <Stat value={String(ongoing.length)} label="දැනට පවතින" color={Colors.warning} />
+          <Stat value={String(ongoing.length + liveBookings.length)} label="දැනට පවතින" color={Colors.warning} />
           <Stat value={String(MOCK_SERVICE_HISTORY.length)} label="සම්පූර්ණ කළ" color={Colors.success} />
           <Stat value={money(totalSpent)} label="මුළු වියදම" color={Colors.primary} />
         </View>
 
         <Text style={styles.sectionLabel}>දැනට පවතින වෙන් කිරීම්</Text>
-        {ongoing.length === 0 ? (
+        {(liveBookings.length > 0 || ongoing.length > 0) && <Text style={styles.swipeHint}>⇆ සම්පූර්ණ විස්තර සඳහා කාඩ්පතක් පැත්තට ස්වයිප් කරන්න</Text>}
+        {liveBookings.map(bookingCard)}
+        {ongoing.length === 0 && liveBookings.length === 0 ? (
           <View style={styles.card}>
             <EmptyState icon="📅" title="සක්‍රීය වෙන් කිරීම් නැත" text="ලංසුවක් පිළිගත් විට ඔබගේ වෙන් කිරීම මෙහි පෙන්වනු ඇත." />
             <Pressable onPress={onOpenBids} style={styles.selfCenter}>
@@ -54,8 +74,8 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void }> = ({ onOpenBid
           ongoing.map(({ job, bid }) => {
             const cat = SERVICE_CATEGORIES.find((c) => c.id === job.categoryId);
             return (
-              <View key={job.id} style={[styles.card, styles.cardOngoing]}>
-                <View style={styles.row}>
+              <SwipeCard key={job.id} style={[styles.card, styles.cardOngoing]} onOpen={() => setDetail({ kind: 'job', id: job.id })}>
+                <Pressable style={styles.row} onPress={() => setDetail({ kind: 'job', id: job.id })} accessibilityLabel={`${cat?.name ?? 'Job'} booking details`}>
                   <GlassIcon emoji={cat?.icon ?? '🔧'} />
                   <View style={styles.flex1}>
                     <Text style={styles.title}>{cat?.name ?? 'Service'}</Text>
@@ -70,7 +90,7 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void }> = ({ onOpenBid
                       <Text style={[styles.statusText, { color: Colors.warning }]}>● වෙන් කළා</Text>
                     </View>
                   </View>
-                </View>
+                </Pressable>
                 <View style={styles.divider} />
                 <View style={styles.rowBetween}>
                   <Text style={styles.sub}>
@@ -80,10 +100,12 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void }> = ({ onOpenBid
                     <Text style={styles.link}>🗺️ දිශාවන්</Text>
                   </Pressable>
                 </View>
-              </View>
+              </SwipeCard>
             );
           })
         )}
+
+        {endedBookings.map(bookingCard)}
 
         <Text style={styles.sectionLabel}>සම්පූර්ණ කළ සේවා</Text>
         {MOCK_SERVICE_HISTORY.map((h) => (
@@ -105,6 +127,7 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void }> = ({ onOpenBid
           </View>
         ))}
       </ScrollView>
+      <OwnerDetailView target={detailTarget} onClose={() => setDetail(null)} />
     </View>
   );
 };
@@ -120,12 +143,12 @@ const Stat: React.FC<{ value: string; label: string; color: string }> = ({ value
 
 const styles = themedStyles(() => StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.bgBody },
+  swipeWrap: { borderRadius: 18 },
+  swipeHint: { fontSize: 10.5, fontFamily: FONTS.bodyMedium, color: Colors.textMuted, textAlign: 'center' },
   flex1: { flex: 1 },
   selfCenter: { alignSelf: 'center' },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
-  header: { paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: Colors.borderColor },
-  headerTitle: { fontSize: 18, fontFamily: FONTS.titleBold, color: Colors.textMain },
   body: { padding: 16, gap: 12, paddingBottom: 100 },
   statsRow: { flexDirection: 'row', gap: 8 },
   stat: {

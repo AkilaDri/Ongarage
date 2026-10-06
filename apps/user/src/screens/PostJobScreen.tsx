@@ -13,7 +13,9 @@ import { ActionButton, GlassIcon, glassStyle } from '@ongarage/shared';
 import { Slider } from '@ongarage/shared';
 import { useUserLocation } from '../context/LocationContext';
 import { useBids } from '../context/BidsContext';
-import type { JobDraft } from '@ongarage/shared';
+import type { JobDraft, VoiceNote } from '@ongarage/shared';
+import { MediaAttachments } from '../components/MediaAttachments';
+import { SPARE_PARTS } from '../constants/labels';
 
 type Question = { id: string; question: string; options: string[] };
 type Profile = {
@@ -116,13 +118,6 @@ const VOICE_SAMPLES = [
   'එන්ජිම රත් වෙලා බොනට් එකෙන් හුමාලය එනවා.',
 ];
 
-const SPARE_PARTS = [
-  { id: 'Genuine', label: 'ජෙනුයින් (Original)' },
-  { id: 'OEM', label: 'OEM / Aftermarket' },
-  { id: 'Recon', label: 'රීකන්ඩිෂන්' },
-  { id: 'GarageChoice', label: 'ගරාජයේ තේරීම' },
-];
-
 const hits = (text: string, keyword: string) =>
   /^[a-z/ ]+$/.test(keyword) ? new RegExp(`\\b${keyword.replace('/', '\\/')}\\b`).test(text) : text.includes(keyword);
 
@@ -163,7 +158,8 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, openBuddy, 
   const [biddingHours, setBiddingHours] = useState<number | null>(null);
   const [doorstep, setDoorstep] = useState(false);
   const [showVehiclePicker, setShowVehiclePicker] = useState(false);
-  const [comingSoon, setComingSoon] = useState<string | null>(null);
+  const [photos, setPhotos] = useState<string[]>([]);
+  const [voiceNotes, setVoiceNotes] = useState<VoiceNote[]>([]);
   const vehicleRef = useRef<View>(null);
 
   const [buddy, setBuddy] = useState<BuddyMode>(openBuddy ? 'input' : 'idle');
@@ -249,6 +245,8 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, openBuddy, 
       address: user.address,
       coords: user.coords,
       replacesJobId: draft?.replacesJobId,
+      photos,
+      voiceNotes,
     });
     onSubmitted();
   };
@@ -448,25 +446,8 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, openBuddy, 
           onChangeText={setDescription}
         />
 
-        <Pressable style={styles.voiceCard} onPress={() => setComingSoon('හඬ සටහන්')}>
-          <Text style={styles.voiceText}>🎙️ හඬ සටහනක් පටිගත කරන්න (තත්. 30)</Text>
-          <Text style={styles.hint}>ඔබා අල්ලාගෙන සිටින්න</Text>
-        </Pressable>
-
-        <Text style={styles.sectionLabel}>මාධ්‍ය උඩුගත කරන්න (විකල්ප)</Text>
-        <View style={styles.uploadRow}>
-          {[
-            { icon: '📷', label: 'ඡායාරූප' },
-            { icon: '🎥', label: 'වීඩියෝ' },
-            { icon: '📄', label: 'DTC ස්කෑන්' },
-          ].map((u) => (
-            <Pressable key={u.label} style={styles.uploadTile} onPress={() => setComingSoon(u.label)}>
-              <Text style={styles.uploadIcon}>{u.icon}</Text>
-              <Text style={styles.cardSub}>{u.label}</Text>
-            </Pressable>
-          ))}
-        </View>
-        {comingSoon && <Text style={styles.hint}>{comingSoon} උඩුගත කිරීම ඉක්මනින් පැමිණේ.</Text>}
+        <Text style={styles.sectionLabel}>ඡායාරූප සහ හඬ සටහන් (විකල්ප)</Text>
+        <MediaAttachments photos={photos} voiceNotes={voiceNotes} onPhotos={setPhotos} onVoiceNotes={setVoiceNotes} />
 
         <View style={styles.rowBetween}>
           <Text style={styles.sectionLabel}>කැමති අමතර කොටස් වර්ගය</Text>
@@ -650,30 +631,6 @@ const styles = themedStyles(() => StyleSheet.create({
     fontFamily: FONTS.bodyRegular,
     textAlignVertical: 'top',
   },
-  voiceCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 12,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    borderColor: 'rgba(239, 68, 68, 0.6)',
-  },
-  voiceText: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.errorText },
-  uploadRow: { flexDirection: 'row', gap: 10 },
-  uploadTile: {
-    flex: 1,
-    alignItems: 'center',
-    gap: 4,
-    paddingVertical: 12,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    borderColor: Colors.subtleBorder,
-    backgroundColor: Colors.bgCard,
-  },
-  uploadIcon: { fontSize: 20 },
   choiceGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   choice: {
     width: '48.5%',

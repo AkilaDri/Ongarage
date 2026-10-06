@@ -7,14 +7,14 @@ import { useVehicles } from '../context/VehiclesContext';
 import { vehicleIcon } from '@ongarage/shared';
 import { AddVehicleSheet } from '../components/AddVehicleSheet';
 import { Gradient, GRADIENTS } from '@ongarage/shared';
-import { ActionButton, GlassIcon, ModalCard, glassStyle } from '@ongarage/shared';
+import { GlassIcon, glassStyle } from '@ongarage/shared';
+import { AppSettingsSheet } from '../components/AppSettingsSheet';
 import { useUserLocation } from '../context/LocationContext';
 import { useTheme } from '@ongarage/shared';
 import { ThemeToggle } from '@ongarage/shared';
 
+// Payment methods and warranties appear here once those features exist.
 const MENU = [
-  { icon: '💳', label: 'ගෙවීම් ක්‍රම / කාඩ්පත්', sub: 'කාඩ්පත් සහ ගෙවීම් විකල්ප කළමනාකරණය' },
-  { icon: '🛡️', label: 'සක්‍රීය ඩිජිටල් වගකීම්', sub: 'ඔබගේ අලුත්වැඩියා සඳහා වගකීම් පත්‍ර' },
   { icon: '⚙️', label: 'යෙදුම් සැකසුම්', sub: 'දැනුම්දීම්, භාෂාව සහ පෞද්ගලිකත්වය' },
 ];
 
@@ -26,7 +26,7 @@ interface ProfileScreenProps {
 export const ProfileScreen: React.FC<ProfileScreenProps> = ({ activeVehicle, onVehicleChange }) => {
   const { locality } = useUserLocation();
   const { isDark, toggle } = useTheme();
-  const [comingSoon, setComingSoon] = useState<string | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [adding, setAdding] = useState(false);
   const { vehicles, findVehicle } = useVehicles();
   const drive = useRef(new Animated.Value(0)).current;
@@ -46,11 +46,6 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ activeVehicle, onV
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>පැතිකඩ</Text>
-        <Text style={styles.sub}>ඔබගේ ගිණුම සහ වාහන</Text>
-      </View>
-
       <ScrollView style={styles.flex1} contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
         <View style={[styles.card, styles.row]}>
           <View>
@@ -137,7 +132,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ activeVehicle, onV
             <Pressable
               key={m.label}
               style={({ pressed }) => [styles.menuItem, i < MENU.length - 1 && styles.menuDivider, pressed && { backgroundColor: Colors.bgCardHover }]}
-              onPress={() => setComingSoon(m.label)}
+              onPress={() => setSettingsOpen(true)}
             >
               <GlassIcon emoji={m.icon} small />
               <View style={styles.flex1}>
@@ -161,11 +156,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ activeVehicle, onV
         }}
       />
 
-      {comingSoon && (
-        <ModalCard icon="🚧" tone="primary" title={comingSoon} body="මෙම විශේෂාංගය ඉක්මනින් පැමිණේ.">
-          <ActionButton label="හරි" variant="primary" compact onPress={() => setComingSoon(null)} />
-        </ModalCard>
-      )}
+      <AppSettingsSheet visible={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </View>
   );
 };
@@ -175,8 +166,6 @@ const styles = themedStyles(() => StyleSheet.create({
   flex1: { flex: 1 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  header: { paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: Colors.borderColor },
-  headerTitle: { fontSize: 18, fontFamily: FONTS.titleBold, color: Colors.textMain },
   body: { padding: 16, gap: 14, paddingBottom: 100 },
   card: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.borderColor, borderRadius: 18, padding: 16, gap: 12 },
   avatar: {

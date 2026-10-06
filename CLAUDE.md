@@ -37,14 +37,14 @@ The garage app is the counterpart of every user-app flow: SOS request → accept
 
 ```bash
 npm install            # installs every workspace
-npm run user           # Expo dev server for the owner app   (npm run user:web for web)
-npm run garage         # Expo dev server for the garage app  (npm run garage:web)
-npm run parts          # Expo dev server for the parts app   (npm run parts:web)
-npm run tech           # Expo dev server for the technician app (npm run tech:web)
+npm run user           # owner app dev server,      port 8091 (npm run user:web for web)
+npm run garage         # garage app dev server,     port 8092 (npm run garage:web)
+npm run parts          # parts shop app dev server, port 8093 (npm run parts:web)
+npm run tech           # technician app dev server, port 8094 (npm run tech:web)
 npm run typecheck      # tsc --noEmit in every workspace
 ```
 
-Run the apps at once on different ports, e.g. `npm run start -w @ongarage/user -- --port 8083`, `npm run start -w @ongarage/garage -- --port 8084`, `npm run start -w @ongarage/parts -- --port 8085` and `npm run start -w @ongarage/tech -- --port 8086`. Add a dependency to one app with `npm install <pkg> -w @ongarage/user` (keep versions identical across apps so React/React Native are hoisted once). Clear Metro's cache with `-- --clear` after moving files between packages.
+Each app's port is fixed in its `package.json` scripts (owner 8091, garage 8092, parts 8093, technician 8094), so all four run at once with no extra flags; keep those ports unique when adding an app. Add a dependency to one app with `npm install <pkg> -w @ongarage/user` (keep versions identical across apps so React/React Native are hoisted once). Clear Metro's cache with `-- --clear` after moving files between packages.
 
 ## Rules that span the repo
 

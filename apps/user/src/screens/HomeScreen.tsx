@@ -1,36 +1,34 @@
-import React from 'react';
-import { View, ScrollView, Text, Pressable, StyleSheet, Alert, Linking } from 'react-native';
+import React, { useState } from 'react';
+import { View, ScrollView, Text, Pressable, StyleSheet, Linking } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { Colors, themedStyles } from '@ongarage/shared';
 import { FONTS } from '@ongarage/shared';
 import { MOCK_GARAGES } from '../constants/mockData';
 import { SERVICE_CATEGORIES } from '@ongarage/shared';
-import { Header } from '../components/Header';
 import { ServiceCard } from '../components/ServiceCard';
+import { AllServicesSheet } from '../components/AllServicesSheet';
 import { GarageCard } from '@ongarage/shared';
 import { Gradient, GRADIENTS, Pulse } from '@ongarage/shared';
 import { useUserLocation } from '../context/LocationContext';
 import { directionsUrl, distanceKm } from '@ongarage/shared';
-import type { ServiceCategory } from '@ongarage/shared';
+import type { Garage, ServiceCategory } from '@ongarage/shared';
 
 interface HomeScreenProps {
   onSOSPress: () => void;
   onPostJob: (withBuddy: boolean) => void;
   onServicePress: (service: ServiceCategory) => void;
-  activeVehicle: string;
-  onVehicleChange: (vehicleId: string) => void;
+  onBookGarage: (garage: Garage) => void;
 }
 
-export const HomeScreen: React.FC<HomeScreenProps> = ({ onSOSPress, onPostJob, onServicePress, activeVehicle, onVehicleChange }) => {
+export const HomeScreen: React.FC<HomeScreenProps> = ({ onSOSPress, onPostJob, onServicePress, onBookGarage }) => {
   const user = useUserLocation();
+  const [allServices, setAllServices] = useState(false);
   const featured = MOCK_GARAGES.map((g) => ({ ...g, distance: Number(distanceKm(user.coords, g.coords).toFixed(1)) })).sort(
     (a, b) => a.distance - b.distance
   )[0];
 
   return (
     <View style={styles.container}>
-      <Header activeVehicle={activeVehicle} onVehicleChange={onVehicleChange} />
-
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* SOS Banner */}
         <Pressable style={[styles.banner, styles.sosBanner]} onPress={onSOSPress}>
@@ -88,7 +86,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onSOSPress, onPostJob, o
         {/* Services */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionLabel}>වාහන සේවා අංශ (Categories)</Text>
-          <Pressable onPress={() => Alert.alert('සියලු සේවා')}>
+          <Pressable onPress={() => setAllServices(true)} hitSlop={6}>
             <Text style={styles.viewAllLink}>සියල්ල බලන්න</Text>
           </Pressable>
         </View>
@@ -115,11 +113,12 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onSOSPress, onPostJob, o
           garage={featured}
           variant="home"
           thumbColor="#10b981"
-          onCall={() => Alert.alert(`ඇමතුමක් ලබා දෙයි: ${featured.phone}`)}
+          onCall={() => Linking.openURL(`tel:${featured.phone.replace(/\s/g, '')}`)}
           onDirections={() => Linking.openURL(directionsUrl(featured.coords, user.coords))}
-          onBook={() => Alert.alert('බුක් කිරීමේ පෝරමය විවෘත විය!')}
+          onBook={() => onBookGarage(featured)}
         />
       </ScrollView>
+      <AllServicesSheet visible={allServices} onClose={() => setAllServices(false)} onSelect={onServicePress} />
     </View>
   );
 };

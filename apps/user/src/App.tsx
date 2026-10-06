@@ -15,6 +15,11 @@ import { ThemeProvider, useTheme } from '@ongarage/shared';
 import { VehiclesProvider } from './context/VehiclesContext';
 import { LocationProvider } from './context/LocationContext';
 import { BidsProvider } from './context/BidsContext';
+import { NoticeProvider } from './context/NoticeContext';
+import { BookingsProvider } from './context/BookingsContext';
+import { Header } from './components/Header';
+import { Toast } from './components/Toast';
+import { DirectBookingSheet } from './components/DirectBookingSheet';
 import { HomeScreen } from './screens/HomeScreen';
 import { SOSMapPickerScreen } from './screens/SOSMapPickerScreen';
 import { SOSFlowScreen } from './screens/SOSFlowScreen';
@@ -25,7 +30,7 @@ import { ActivityScreen } from './screens/ActivityScreen';
 import { ProfileScreen } from './screens/ProfileScreen';
 import { BottomNav } from '@ongarage/shared';
 import { USER_TABS, type TabId } from './constants/tabs';
-import type { JobDraft, PickedLocation, ServiceCategory } from '@ongarage/shared';
+import { categoryInfo, type Garage, type JobDraft, type PickedLocation, type ServiceCategory } from '@ongarage/shared';
 
 type SOSStage = 'closed' | 'map' | 'flow';
 
@@ -34,9 +39,13 @@ SplashScreen.preventAutoHideAsync();
 export default function App() {
   return (
     <ThemeProvider>
-      <VehiclesProvider>
-        <AppShell />
-      </VehiclesProvider>
+      <NoticeProvider>
+        <VehiclesProvider>
+          <BookingsProvider>
+            <AppShell />
+          </BookingsProvider>
+        </VehiclesProvider>
+      </NoticeProvider>
     </ThemeProvider>
   );
 }
@@ -74,6 +83,8 @@ function AppShell() {
   const [selectedService, setSelectedService] = useState<ServiceCategory | null>(null);
   const [postJob, setPostJob] = useState<{ draft: JobDraft | null; buddy: boolean } | null>(null);
   const [bidsTab, setBidsTab] = useState<BidsTab>('received');
+  // Booking a garage directly (from Home, a service list, or "book again").
+  const [booking, setBooking] = useState<{ garage: Garage; categoryId?: string } | null>(null);
 
   const closeSOS = useCallback(() => setSOSStage('closed'), []);
 
@@ -93,13 +104,14 @@ function AppShell() {
     <SafeAreaProvider>
       <StatusBar style={isDark ? "light" : "dark"} />
       <SafeAreaView style={styles.container} edges={['top']}>
+        {/* One header on every tab, like the garage, parts and technician apps. */}
+        <Header activeVehicle={selectedVehicle} onVehicleChange={setSelectedVehicle} />
         {activeTab === 'home' ? (
           <HomeScreen
             onSOSPress={() => setSOSStage('map')}
             onPostJob={(buddy) => setPostJob({ draft: null, buddy })}
             onServicePress={setSelectedService}
-            activeVehicle={selectedVehicle}
-            onVehicleChange={setSelectedVehicle}
+            onBookGarage={(garage) => setBooking({ garage })}
           />
         ) : activeTab === 'bids' ? (
           <BidsScreen
@@ -110,7 +122,7 @@ function AppShell() {
             onViewActivity={() => setActiveTab('activity')}
           />
         ) : activeTab === 'activity' ? (
-          <ActivityScreen onOpenBids={() => setActiveTab('bids')} />
+          <ActivityScreen onOpenBids={() => setActiveTab('bids')} onBookAgain={(b) => setSelectedService(categoryInfo(b.categoryId))} />
         ) : (
           <ProfileScreen activeVehicle={selectedVehicle} onVehicleChange={setSelectedVehicle} />
         )}
@@ -118,6 +130,7 @@ function AppShell() {
         <View style={styles.bottomNavContainer}>
           <BottomNav items={USER_TABS} activeTab={activeTab} onTabChange={setActiveTab} />
         </View>
+        <Toast />
       </SafeAreaView>
 
       <Modal visible={sosStage !== 'closed'} animationType="fade" statusBarTranslucent onRequestClose={closeSOS}>
@@ -140,6 +153,7 @@ function AppShell() {
             onClose={closeSOS}
           />
         )}
+        <Toast topOffset={84} />
       </Modal>
 
       <Modal visible={postJob !== null} animationType="slide" statusBarTranslucent onRequestClose={() => setPostJob(null)}>
@@ -160,11 +174,25 @@ function AppShell() {
             }}
           />
         )}
+        <Toast topOffset={84} />
       </Modal>
 
       <Modal visible={selectedService !== null} animationType="slide" statusBarTranslucent onRequestClose={() => setSelectedService(null)}>
-        {selectedService && <ServiceBrowseScreen service={selectedService} onClose={() => setSelectedService(null)} />}
+        {selectedService && (
+          <ServiceBrowseScreen service={selectedService} onClose={() => setSelectedService(null)} onBook={(garage) => setBooking({ garage, categoryId: selectedService.id })} />
+        )}
+        <Toast topOffset={84} />
       </Modal>
+      <DirectBookingSheet
+        garage={booking?.garage ?? null}
+        categoryId={booking?.categoryId}
+        defaultVehicleId={selectedVehicle}
+        onClose={() => setBooking(null)}
+        onBooked={() => {
+          setSelectedService(null);
+          setActiveTab('activity');
+        }}
+      />
       <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: fadeColor, opacity: fade }]} />
     </SafeAreaProvider>
     </BidsProvider>

@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, Pressable, StyleSheet, TextInput, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, Pressable, StyleSheet, TextInput, ActivityIndicator } from 'react-native';
+import { useNotice } from '../context/NoticeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, getThemeMode, themedStyles } from '@ongarage/shared';
 import { LOCATION_SUGGESTIONS } from '../constants/mockData';
@@ -32,6 +33,7 @@ const offlineSuggestions = (query: string): PlaceSuggestion[] =>
   }));
 
 export const SOSMapPickerScreen: React.FC<SOSMapPickerScreenProps> = ({ initialLocation, onConfirm, onClose }) => {
+  const { notify } = useNotice();
   const user = useUserLocation();
   const [searchText, setSearchText] = useState('');
   const [center, setCenter] = useState<LatLng>(initialLocation?.coords ?? user.coords);
@@ -93,7 +95,7 @@ export const SOSMapPickerScreen: React.FC<SOSMapPickerScreenProps> = ({ initialL
       const place = await placeDetails(s.placeId);
       moveTo(place.coords, place.address);
     } catch {
-      Alert.alert('ස්ථානය ලබා ගැනීමට නොහැකි විය. නැවත උත්සාහ කරන්න.');
+      notify({ icon: '📍', title: 'ස්ථානය ලබා ගත නොහැකි විය', body: 'නැවත උත්සාහ කරන්න.', tone: 'danger' });
     }
   };
 
@@ -101,14 +103,14 @@ export const SOSMapPickerScreen: React.FC<SOSMapPickerScreenProps> = ({ initialL
     const val = searchText.trim();
     setShowSuggestions(false);
     if (!val) {
-      Alert.alert('කරුණාකර සෙවීමට ස්ථානයක් ඇතුළත් කරන්න.');
+      notify({ icon: '🔍', title: 'ස්ථානයක් ඇතුළත් කරන්න', body: 'සෙවීමට නගරයක් හෝ ලිපිනයක් ටයිප් කරන්න.', tone: 'primary' });
       return;
     }
     try {
       const result = await geocodeAddress(val);
       moveTo(result.coords, result.address);
     } catch {
-      Alert.alert('එම ස්ථානය සිතියමේ සොයා ගත නොහැකි විය: ' + val);
+      notify({ icon: '🗺️', title: 'ස්ථානය හමු නොවීය', body: val, tone: 'danger' });
     }
   };
 

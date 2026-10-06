@@ -39,6 +39,13 @@ export const GARAGE_PHOTOS = [
   'https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=300&q=80',
 ];
 
+// Stand-ins for photos an owner attaches, until camera / gallery access in the native build.
+export const SAMPLE_UPLOAD_PHOTOS = [
+  'https://images.unsplash.com/photo-1625047509248-ec889cbff17f?auto=format&fit=crop&w=900&q=80',
+  'https://images.unsplash.com/photo-1517524008697-84bbe3c3fd98?auto=format&fit=crop&w=900&q=80',
+  'https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=900&q=80',
+];
+
 export const MOCK_GARAGES: Garage[] = [
   {
     id: '1',

@@ -99,26 +99,19 @@ The key needs **Maps Static API**, **Geocoding API** and **Places API (New)** en
 
 Run these from the repository root:
 
-| Command | Starts |
-|---|---|
-| `npm run user` | Owner app dev server (press `a` Android, `i` iOS, `w` web, or scan the QR code with Expo Go) |
-| `npm run user:web` | Owner app in the browser |
-| `npm run garage` | Garage app dev server |
-| `npm run garage:web` | Garage app in the browser |
-| `npm run parts` | Parts shop app dev server |
-| `npm run parts:web` | Parts shop app in the browser |
-| `npm run tech` | Technician app dev server |
-| `npm run tech:web` | Technician app in the browser |
-| `npm run typecheck` | TypeScript checks for all workspaces |
+| Command | Starts | Port |
+|---|---|---|
+| `npm run user` | Owner app dev server (press `a` Android, `i` iOS, `w` web, or scan the QR code with Expo Go) | 8091 |
+| `npm run user:web` | Owner app in the browser | 8091 |
+| `npm run garage` | Garage app dev server | 8092 |
+| `npm run garage:web` | Garage app in the browser | 8092 |
+| `npm run parts` | Parts shop app dev server | 8093 |
+| `npm run parts:web` | Parts shop app in the browser | 8093 |
+| `npm run tech` | Technician app dev server | 8094 |
+| `npm run tech:web` | Technician app in the browser | 8094 |
+| `npm run typecheck` | TypeScript checks for all workspaces | — |
 
-To run the apps at once, give them different ports:
-
-```bash
-npm run start -w @ongarage/user   -- --port 8083
-npm run start -w @ongarage/garage -- --port 8084
-npm run start -w @ongarage/parts  -- --port 8085
-npm run start -w @ongarage/tech   -- --port 8086
-```
+Each app has its own fixed port (set in its `package.json` scripts), so all four can run at once — start each in its own terminal and open http://localhost:8091 (owner), 8092 (garage), 8093 (parts shop) and 8094 (technician) in the browser. Add `-- --clear` to clear Metro's cache, e.g. `npm run garage -- --clear`.
 
 Add a dependency to one app with `npm install <package> -w @ongarage/user`. Keep shared dependency versions identical across the apps so React and React Native are installed once.
 

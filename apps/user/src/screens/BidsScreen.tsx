@@ -5,9 +5,10 @@ import { FONTS } from '@ongarage/shared';
 import { SERVICE_CATEGORIES } from '@ongarage/shared';
 import { useVehicles } from '../context/VehiclesContext';
 import { Icon, type IconName } from '@ongarage/shared';
-import { GoogleMap } from '@ongarage/shared';
-import { Gradient, GRADIENTS } from '@ongarage/shared';
-import { ActionButton, EmptyState, GlassIcon, ModalCard } from '@ongarage/shared';
+import { GoogleMap, zoomToFit } from '@ongarage/shared';
+import { ActionButton, EmptyState, GlassIcon, ModalCard, SwipeCard } from '@ongarage/shared';
+import { OwnerDetailView } from '../components/OwnerDetailView';
+import { money } from '../utils/format';
 import { biddingEndsAt, isExpired, lowestBidId, useBids } from '../context/BidsContext';
 import { useUserLocation } from '../context/LocationContext';
 import { directionsUrl } from '@ongarage/shared';
@@ -15,7 +16,6 @@ import type { Bid, JobDraft, RepairJob } from '@ongarage/shared';
 
 export type BidsTab = 'received' | 'pending' | 'expired';
 
-const money = (n: number) => `රු. ${n.toLocaleString()}`;
 const pad = (n: number) => String(n).padStart(2, '0');
 
 const countdown = (ms: number) => {
@@ -48,6 +48,9 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, onPost
   const [now, setNow] = useState(Date.now());
   const [confirming, setConfirming] = useState<{ job: RepairJob; bid: Bid } | null>(null);
   const [booked, setBooked] = useState<{ job: RepairJob; bid: Bid } | null>(null);
+  // Swipe (or tap the header of) a job card for everything about it.
+  const [detailId, setDetailId] = useState<string | null>(null);
+  const detailJob = jobs.find((j) => j.id === detailId) ?? null;
 
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 1000);
@@ -61,15 +64,16 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, onPost
 
   const tabs: { id: BidsTab; label: string; icon: IconName; count: number }[] = [
     { id: 'received', label: 'ලැබුණු', icon: 'check-circle', count: received.length },
-    { id: 'pending', label: 'බලාපොරොත්තු', icon: 'clock', count: pending.length },
+    { id: 'pending', label: 'රැඳී ඇති', icon: 'clock', count: pending.length },
     { id: 'expired', label: 'කල් ඉකුත්', icon: 'alert-triangle', count: expired.length },
   ];
 
   const jobHeader = (job: RepairJob, badge: React.ReactNode) => {
     const cat = SERVICE_CATEGORIES.find((c) => c.id === job.categoryId);
     const vehicle = findVehicle(job.vehicleId);
+    const media = [job.photos?.length && `📷 ${job.photos.length}`, job.voiceNotes?.length && `🎙️ ${job.voiceNotes.length}`].filter(Boolean).join('  ');
     return (
-      <View style={styles.jobHead}>
+      <Pressable style={styles.jobHead} onPress={() => setDetailId(job.id)} accessibilityLabel={`${cat?.name ?? 'Job'} details`}>
         <GlassIcon emoji={cat?.icon ?? '🔧'} small />
         <View style={styles.flex1}>
           <Text style={styles.cardTitle}>{cat?.name ?? 'Service'}</Text>
@@ -79,9 +83,12 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, onPost
           <Text style={styles.desc} numberOfLines={2}>
             {job.description}
           </Text>
+          <Text style={styles.detailsLink}>
+            {media ? `${media} · ` : ''}විස්තර ›
+          </Text>
         </View>
         {badge}
-      </View>
+      </Pressable>
     );
   };
 
@@ -148,7 +155,7 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, onPost
           <GoogleMap
             style={styles.map}
             center={user.coords}
-            zoom={13}
+            zoom={zoomToFit(Math.max(...mapBids.map(({ bid }) => bid.distanceKm)) * 2.4, user.coords.latitude, 210)}
             renderOverlay={(project) => (
               <>
                 {mapBids.map(({ bid, lowest }) => {
@@ -177,7 +184,7 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, onPost
         received.map((job) => {
           const shown = job.acceptedBidId ? job.bids.filter((b) => b.id === job.acceptedBidId) : [...job.bids].sort((a, b) => a.price - b.price);
           return (
-            <View key={job.id} style={styles.card}>
+            <SwipeCard key={job.id} style={styles.card} onOpen={() => setDetailId(job.id)}>
               {jobHeader(
                 job,
                 <View style={[styles.badge, job.acceptedBidId ? styles.badgeSuccess : styles.badgePrimary]}>
@@ -193,7 +200,7 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, onPost
               {job.acceptedBidId && job.bids.length > 1 && (
                 <Text style={styles.hint}>අනෙකුත් ලංසු {job.bids.length - 1}ක් වසා දමන ලදී.</Text>
               )}
-            </View>
+            </SwipeCard>
           );
         })
       )}
@@ -212,7 +219,7 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, onPost
         const left = biddingEndsAt(job) - now;
         const isPending = kind === 'pending';
         return (
-          <View key={job.id} style={[styles.card, !isPending && styles.cardExpired]}>
+          <SwipeCard key={job.id} style={[styles.card, !isPending && styles.cardExpired]} onOpen={() => setDetailId(job.id)}>
             {jobHeader(
               job,
               <View style={[styles.badge, styles.badgeRow, isPending ? styles.badgePrimary : styles.badgeDanger]}>
@@ -234,24 +241,13 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, onPost
               variant={isPending ? 'primary' : 'sos'}
               onPress={() => onRepublish(draftFor(job))}
             />
-          </View>
+          </SwipeCard>
         );
       })
     );
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.flex1}>
-          <Text style={styles.headerTitle}>මගේ ලංසු</Text>
-          <Text style={styles.cardSub}>ඔබගේ අලුත්වැඩියා රැකියා සහ ලැබුණු ලංසු</Text>
-        </View>
-        <Pressable style={styles.newJobBtn} onPress={onPostJob}>
-          <Gradient stops={GRADIENTS.cta} />
-          <Text style={styles.newJobText}>＋ නව රැකියාවක්</Text>
-        </Pressable>
-      </View>
-
       <View style={styles.tabBar}>
         {tabs.map((t) => {
           const active = tab === t.id;
@@ -272,10 +268,21 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, onPost
       </View>
 
       <ScrollView style={styles.flex1} contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
+        <Pressable style={({ pressed }) => [styles.newJobBtn, pressed && { opacity: 0.75 }]} onPress={onPostJob}>
+          <Text style={styles.newJobText}>＋ නව අලුත්වැඩියා රැකියාවක් පළ කරන්න</Text>
+        </Pressable>
+        {jobs.length > 0 && <Text style={styles.swipeHint}>⇆ ලංසු, ඡායාරූප සහ සම්පූර්ණ විස්තර සඳහා රැකියා කාඩ්පතක් පැත්තට ස්වයිප් කරන්න</Text>}
         {tab === 'received' && renderReceived()}
         {tab === 'pending' && renderWaiting(pending, 'pending')}
         {tab === 'expired' && renderWaiting(expired, 'expired')}
       </ScrollView>
+
+      <OwnerDetailView
+        target={detailJob ? { kind: 'job', job: detailJob } : null}
+        onClose={() => setDetailId(null)}
+        onAcceptBid={(job, bid) => setConfirming({ job, bid })}
+        onRepublish={(job) => onRepublish(draftFor(job))}
+      />
 
       {confirming && (
         <ModalCard
@@ -332,19 +339,12 @@ const styles = themedStyles(() => StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.bgBody },
   flex1: { flex: 1 },
   rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.borderColor,
-  },
-  headerTitle: { fontSize: 18, fontFamily: FONTS.titleBold, color: Colors.textMain },
-  newJobBtn: { paddingHorizontal: 14, paddingVertical: 9, borderRadius: 12, overflow: 'hidden' },
-  newJobText: { fontSize: 12, fontFamily: FONTS.bodyBold, color: '#fff' },
-  tabBar: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingVertical: 10 },
+  // Same "add" button as the garage app's Parts tab.
+  newJobBtn: { alignItems: 'center', paddingVertical: 12, borderRadius: 14, borderWidth: 1, borderStyle: 'dashed', borderColor: Colors.primary, backgroundColor: 'rgba(56, 189, 248, 0.08)' },
+  newJobText: { fontSize: 12.5, fontFamily: FONTS.bodyBold, color: Colors.primary },
+  swipeHint: { fontSize: 10.5, fontFamily: FONTS.bodyMedium, color: Colors.textMuted, textAlign: 'center' },
+  detailsLink: { fontSize: 10.5, fontFamily: FONTS.bodySemiBold, color: Colors.primary, marginTop: 4 },
+  tabBar: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 6 },
   tab: {
     flex: 1,
     flexDirection: 'row',
