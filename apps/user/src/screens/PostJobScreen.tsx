@@ -7,7 +7,7 @@ import { MOCK_GARAGES } from '../constants/mockData';
 import { SERVICE_CATEGORIES } from '@ongarage/shared';
 import { useVehicles } from '../context/VehiclesContext';
 import { VehiclePicker } from '../components/Header';
-import { GoogleMap } from '../components/GoogleMap';
+import { GoogleMap } from '@ongarage/shared';
 import { Gradient, GRADIENTS } from '@ongarage/shared';
 import { ActionButton, GlassIcon, glassStyle } from '@ongarage/shared';
 import { Slider } from '@ongarage/shared';

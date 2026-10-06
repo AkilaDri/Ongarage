@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { View, Text, Pressable, StyleSheet, ScrollView, Image, Alert } from 'react-native';
-import { Colors, getThemeMode, themedStyles } from '@ongarage/shared';
-import type { Garage } from '@ongarage/shared';
-import { Gradient, GRADIENTS } from '@ongarage/shared';
+import { Colors, getThemeMode, themedStyles } from '../theme/colors';
+import { type Garage } from '../types';
+import { Gradient, GRADIENTS } from './Visuals';
 
 interface GarageCardProps {
   garage: Garage;

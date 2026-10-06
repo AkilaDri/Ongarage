@@ -23,7 +23,8 @@ import { PostJobScreen } from './screens/PostJobScreen';
 import { BidsScreen, type BidsTab } from './screens/BidsScreen';
 import { ActivityScreen } from './screens/ActivityScreen';
 import { ProfileScreen } from './screens/ProfileScreen';
-import { BottomNav, TabId } from './components/BottomNav';
+import { BottomNav } from '@ongarage/shared';
+import { USER_TABS, type TabId } from './constants/tabs';
 import type { JobDraft, PickedLocation, ServiceCategory } from '@ongarage/shared';
 
 type SOSStage = 'closed' | 'map' | 'flow';
@@ -115,7 +116,7 @@ function AppShell() {
         )}
 
         <View style={styles.bottomNavContainer}>
-          <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
+          <BottomNav items={USER_TABS} activeTab={activeTab} onTabChange={setActiveTab} />
         </View>
       </SafeAreaView>
 

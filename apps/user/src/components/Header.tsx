@@ -3,7 +3,8 @@ import { View, Text, StyleSheet, Pressable, Modal, Animated, Easing, useWindowDi
 import { Colors, getThemeMode, themedStyles } from '@ongarage/shared';
 import { FONTS } from '@ongarage/shared';
 import { MOCK_USER } from '../constants/mockData';
-import { useVehicles, vehicleIcon } from '../context/VehiclesContext';
+import { useVehicles } from '../context/VehiclesContext';
+import { vehicleIcon } from '@ongarage/shared';
 import { Gradient, GRADIENTS } from '@ongarage/shared';
 import { useUserLocation } from '../context/LocationContext';
 import { VehicleTurntable } from './VehicleTurntable';

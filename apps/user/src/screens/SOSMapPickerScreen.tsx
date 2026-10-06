@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, getThemeMode, themedStyles } from '@ongarage/shared';
 import { LOCATION_SUGGESTIONS } from '../constants/mockData';
 import { Gradient, GRADIENTS } from '@ongarage/shared';
-import { GoogleMap } from '../components/GoogleMap';
+import { GoogleMap } from '@ongarage/shared';
 import { useUserLocation } from '../context/LocationContext';
 import {
   autocompletePlaces,

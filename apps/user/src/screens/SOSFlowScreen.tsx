@@ -6,8 +6,9 @@ import QRCode from 'react-native-qrcode-svg';
 import { Colors, themedStyles } from '@ongarage/shared';
 import { FONTS } from '@ongarage/shared';
 import { useVehicles } from '../context/VehiclesContext';
+import { BREAKDOWN_TYPES } from '@ongarage/shared';
 import { VehiclePicker } from '../components/Header';
-import { GoogleMap, type Project } from '../components/GoogleMap';
+import { GoogleMap, type Project } from '@ongarage/shared';
 import { Gradient, GRADIENTS, Pulse } from '@ongarage/shared';
 import { ActionButton, GlassIcon, ModalCard, glassStyle as glass } from '@ongarage/shared';
 import { etaMinutes, kmToMapPixels, offsetCoordinate, zoomToFit } from '@ongarage/shared';
@@ -38,18 +39,6 @@ const STEPS: { key: Step; label: string }[] = [
   { key: 'repairCompleteNotice', label: 'අවසන් බව දැනුම්දීම' },
   { key: 'qrScan', label: 'QR ස්කෑන්' },
   { key: 'rating', label: 'ශ්‍රේණිගත කිරීම' },
-];
-
-const BREAKDOWN_TYPES = [
-  { id: 'mechanical', icon: '⚙️', label: 'එන්ජින් දෝෂය' },
-  { id: 'battery', icon: '🔋', label: 'බැටරි ජම්ප්ස්ටාර්ට්' },
-  { id: 'tire', icon: '🛞', label: 'ටයර් පන්චර්' },
-  { id: 'fuel', icon: '⛽', label: 'ඉන්ධන ගෙන්වීම' },
-  { id: 'towing', icon: '🛻', label: 'ටෝ කිරීම' },
-  { id: 'lockout', icon: '🔑', label: 'යතුර / අගුල' },
-  { id: 'overheating', icon: '🌡️', label: 'එන්ජිම රත්වීම' },
-  { id: 'winching', icon: '⛓️', label: 'වින්ච් සහාය' },
-  { id: 'accident', icon: '🚑', label: 'අනතුරු සහාය' },
 ];
 
 type WorkshopSeed = {
@@ -104,6 +93,8 @@ const SOS_WORKSHOPS: WorkshopSeed[] = [
 
 const INITIAL_RADIUS_KM = 1;
 const RADIUS_STEP_KM = 1;
+// Call-out fee paid to the technician for travelling to the breakdown (OnGarage
+// approved); due even if no repair is needed. A wider search means farther travel.
 const BASE_FEE = 500;
 const SURCHARGE_STEP = 250;
 const CYCLE_MS = 6000;
@@ -534,8 +525,8 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
           <Text style={styles.statLabel}>සෙවුම් කලාපය</Text>
         </View>
         <View style={styles.statBox}>
-          <Text style={[styles.statValue, { color: Colors.errorText }]}>{money(surcharge)}</Text>
-          <Text style={styles.statLabel}>SOS ගාස්තුව</Text>
+          <Text style={[styles.statValue, { color: Colors.warning }]}>{money(surcharge)}</Text>
+          <Text style={styles.statLabel}>පැමිණීමේ ගාස්තුව</Text>
         </View>
         <View style={styles.statBox}>
           <Text style={[styles.statValue, { color: Colors.success }]}>{responders.length}</Text>
@@ -746,7 +737,7 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
           <Text style={styles.detailText}>{money(job.bid)}</Text>
         </View>
         <View style={styles.rowBetween}>
-          <Text style={styles.detailText}>SOS සේවා ගාස්තුව</Text>
+          <Text style={styles.detailText}>යාන්ත්‍රිකයාගේ පැමිණීමේ ගාස්තුව</Text>
           <Text style={styles.detailText}>{money(surcharge)}</Text>
         </View>
         <View style={styles.divider} />
@@ -926,7 +917,7 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
           icon="⚠️"
           tone="danger"
           title="SOS ඉල්ලීම තහවුරු කරන්න"
-          body={`ඔබගේ ස්ථානයේ සිට කි.මී. ${INITIAL_RADIUS_KM} ක් ඇතුළත ලියාපදිංචි ගරාජ වෙත දැනුම් දෙනු ලැබේ. වේගවත් ප්‍රතිචාරයක් සඳහා ${money(BASE_FEE)} ක සේවා ගාස්තුවක් ඔබගේ අවසන් බිලට එකතු වේ.`}
+          body={`ඔබගේ ස්ථානයේ සිට කි.මී. ${INITIAL_RADIUS_KM} ක් ඇතුළත ලියාපදිංචි ගරාජ වෙත දැනුම් දෙනු ලැබේ. ඔබ වෙත පැමිණීමේ ගමන් වියදම වෙනුවෙන් OnGarage අනුමත ${money(BASE_FEE)} ක පැමිණීමේ ගාස්තුවක් යාන්ත්‍රිකයාට ගෙවිය යුතුය — අලුත්වැඩියාවක් අවශ්‍ය නොවුණත් මෙය අදාළ වේ.`}
         >
           <ActionButton label="අවලංගු" variant="ghost" compact onPress={() => setStep('confirm')} />
           <ActionButton label="මම එකඟයි" variant="sos" compact onPress={startSearch} />
@@ -938,7 +929,7 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
           icon="📡"
           tone="primary"
           title="සෙවුම් කලාපය පුළුල් කරමින්"
-          body={`තවම කිසිදු ගරාජයක් ප්‍රතිචාර දක්වා නැත. සෙවුම් කලාපය කි.මී. ${radius + RADIUS_STEP_KM} දක්වා වැඩි කර, වැඩි ගරාජ ආකර්ෂණය කර ගැනීමට ${money(SURCHARGE_STEP)} ක අමතර ගාස්තුවක් එකතු කෙරේ.`}
+          body={`තවම කිසිදු ගරාජයක් ප්‍රතිචාර දක්වා නැත. සෙවුම් කලාපය කි.මී. ${radius + RADIUS_STEP_KM} දක්වා වැඩි කෙරේ. වැඩි දුරක් ගමන් කරන යාන්ත්‍රිකයාට පැමිණීමේ ගාස්තුවට ${money(SURCHARGE_STEP)} ක් එකතු වේ.`}
         >
           <ActionButton label="අවලංගු" variant="ghost" compact onPress={() => setShowCancel(true)} />
           <ActionButton

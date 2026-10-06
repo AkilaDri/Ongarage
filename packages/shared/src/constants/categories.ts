@@ -15,3 +15,14 @@ export const SERVICE_CATEGORIES: ServiceCategory[] = [
   { id: '11', name: 'Batteries', icon: '🔋', color: '#eab308', subcategories: ['Battery Replacement', 'Terminal Cleaning', 'Charging Check'] },
   { id: '12', name: 'Towing', icon: '🛻', color: '#f97316', subcategories: ['Flatbed Towing', 'Recovery Winch', 'Emergency Transport'] },
 ];
+
+// Typical price (LKR) of a job in each category: the owner app seeds simulated bids
+// from it, the garage app uses it to suggest a competitive bid.
+const MARKET_PRICE: Record<string, number> = {
+  '1': 4500, '2': 3500, '3': 6500, '4': 3000, '5': 2500, '6': 2000,
+  '7': 3800, '8': 9000, '9': 2500, '10': 12000, '11': 8000, '12': 3500,
+};
+
+export const marketPrice = (categoryId: string) => MARKET_PRICE[categoryId] ?? 4000;
+
+export const categoryInfo = (categoryId: string) => SERVICE_CATEGORIES.find((c) => c.id === categoryId) ?? SERVICE_CATEGORIES[0];

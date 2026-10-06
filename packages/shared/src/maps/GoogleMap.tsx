@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Image, Pressable, StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
-import { DotGrid } from '@ongarage/shared';
-import { GOOGLE_MAPS_API_KEY, mapPointToLatLng, projectToMap, staticMapUrl } from '@ongarage/shared';
-import type { LatLng } from '@ongarage/shared';
-import { Colors, themedStyles } from '@ongarage/shared';
+import { DotGrid } from '../ui/Visuals';
+import { GOOGLE_MAPS_API_KEY, mapPointToLatLng, projectToMap, staticMapUrl } from './googleMaps';
+import { type LatLng } from '../types';
+import { Colors, themedStyles } from '../theme/colors';
 
 export type Project = (point: LatLng) => { x: number; y: number } | null;
 

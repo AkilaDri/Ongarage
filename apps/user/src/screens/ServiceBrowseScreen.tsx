@@ -3,8 +3,8 @@ import { View, Text, Pressable, StyleSheet, ScrollView, TextInput, Alert, Animat
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, getThemeMode, themedStyles } from '@ongarage/shared';
 import { MOCK_GARAGES } from '../constants/mockData';
-import { GarageCard } from '../components/GarageCard';
-import { GoogleMap } from '../components/GoogleMap';
+import { GarageCard } from '@ongarage/shared';
+import { GoogleMap } from '@ongarage/shared';
 import { Icon } from '@ongarage/shared';
 import { useUserLocation } from '../context/LocationContext';
 import { directionsUrl, distanceKm } from '@ongarage/shared';

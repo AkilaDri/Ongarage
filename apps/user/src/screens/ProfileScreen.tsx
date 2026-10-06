@@ -3,7 +3,8 @@ import { Animated, Easing, Pressable, ScrollView, StyleSheet, Text, View } from 
 import { Colors, themedStyles } from '@ongarage/shared';
 import { FONTS } from '@ongarage/shared';
 import { MOCK_USER } from '../constants/mockData';
-import { useVehicles, vehicleIcon } from '../context/VehiclesContext';
+import { useVehicles } from '../context/VehiclesContext';
+import { vehicleIcon } from '@ongarage/shared';
 import { AddVehicleSheet } from '../components/AddVehicleSheet';
 import { Gradient, GRADIENTS } from '@ongarage/shared';
 import { ActionButton, GlassIcon, ModalCard, glassStyle } from '@ongarage/shared';

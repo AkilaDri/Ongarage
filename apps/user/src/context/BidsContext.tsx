@@ -1,6 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { DEFAULT_COORDS } from '../constants/mockData';
-import { offsetCoordinate } from '@ongarage/shared';
+import { offsetCoordinate, marketPrice } from '@ongarage/shared';
 import type { Bid, RepairJob } from '@ongarage/shared';
 
 const MIN = 60 * 1000;
@@ -12,17 +12,12 @@ const BIDDING_GARAGES = [
   { garageName: 'Lanka Auto Diagnostics', rating: 4.8, reviews: 76, distanceKm: 2.1, bearing: 160, warrantyMonths: 2, estHours: 3 },
 ];
 
-// Rough market price per service category, keyed by SERVICE_CATEGORIES id.
-const BASE_PRICE: Record<string, number> = {
-  '1': 4500, '2': 3500, '3': 6500, '4': 3000, '5': 2500, '6': 2000,
-  '7': 3800, '8': 9000, '9': 2500, '10': 12000, '11': 8000, '12': 3500,
-};
 const PRICE_FACTORS = [1.0, 0.82, 1.18];
 const SIMULATED_BID_DELAYS_MS = [6000, 14000, 24000];
 
 const makeBid = (job: Pick<RepairJob, 'categoryId' | 'coords'>, index: number, submittedAt: number): Bid => {
   const g = BIDDING_GARAGES[index % BIDDING_GARAGES.length];
-  const base = BASE_PRICE[job.categoryId] ?? 4000;
+  const base = marketPrice(job.categoryId);
   return {
     id: `bid-${submittedAt}-${index}`,
     garageName: g.garageName,

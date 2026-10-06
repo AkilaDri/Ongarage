@@ -7,7 +7,7 @@ import { MOCK_GARAGES } from '../constants/mockData';
 import { SERVICE_CATEGORIES } from '@ongarage/shared';
 import { Header } from '../components/Header';
 import { ServiceCard } from '../components/ServiceCard';
-import { GarageCard } from '../components/GarageCard';
+import { GarageCard } from '@ongarage/shared';
 import { Gradient, GRADIENTS, Pulse } from '@ongarage/shared';
 import { useUserLocation } from '../context/LocationContext';
 import { directionsUrl, distanceKm } from '@ongarage/shared';

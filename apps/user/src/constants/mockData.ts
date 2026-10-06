@@ -34,7 +34,7 @@ export const MOCK_VEHICLES: Vehicle[] = [
 
 
 export const GARAGE_PHOTOS = [
-  'https://images.unsplash.com/photo-1486006920555-c77dce18193b?auto=format&fit=crop&w=300&q=80',
+  'https://images.unsplash.com/photo-1625047509248-ec889cbff17f?auto=format&fit=crop&w=300&q=80',
   'https://images.unsplash.com/photo-1517524008697-84bbe3c3fd98?auto=format&fit=crop&w=300&q=80',
   'https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=300&q=80',
 ];

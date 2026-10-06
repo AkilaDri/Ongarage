@@ -5,7 +5,7 @@ import { FONTS } from '@ongarage/shared';
 import { SERVICE_CATEGORIES } from '@ongarage/shared';
 import { useVehicles } from '../context/VehiclesContext';
 import { Icon, type IconName } from '@ongarage/shared';
-import { GoogleMap } from '../components/GoogleMap';
+import { GoogleMap } from '@ongarage/shared';
 import { Gradient, GRADIENTS } from '@ongarage/shared';
 import { ActionButton, EmptyState, GlassIcon, ModalCard } from '@ongarage/shared';
 import { biddingEndsAt, isExpired, lowestBidId, useBids } from '../context/BidsContext';
