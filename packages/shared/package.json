@@ -6,12 +6,17 @@
   "main": "src/index.ts",
   "types": "src/index.ts",
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "node test/run.cjs"
   },
   "peerDependencies": {
     "@react-native-async-storage/async-storage": "*",
     "react": "*",
     "react-native": "*",
-    "react-native-svg": "*"
+    "react-native-svg": "*",
+    "react-native-qrcode-svg": "*"
+  },
+  "devDependencies": {
+    "typescript": "~6.0.3"
   }
 }

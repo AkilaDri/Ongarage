@@ -2,12 +2,12 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Easing, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle, Line } from 'react-native-svg';
-import QRCode from 'react-native-qrcode-svg';
-import { Colors, themedStyles } from '@ongarage/shared';
+import { CloseCode, Colors, makeCloseCode, RATING_DIMENSIONS, themedStyles, type DimensionRating } from '@ongarage/shared';
 import { FONTS } from '@ongarage/shared';
 import { useVehicles } from '../context/VehiclesContext';
+import { BREAKDOWN_TYPES } from '@ongarage/shared';
 import { VehiclePicker } from '../components/Header';
-import { GoogleMap, type Project } from '../components/GoogleMap';
+import { GoogleMap, type Project } from '@ongarage/shared';
 import { Gradient, GRADIENTS, Pulse } from '@ongarage/shared';
 import { ActionButton, GlassIcon, ModalCard, glassStyle as glass } from '@ongarage/shared';
 import { etaMinutes, kmToMapPixels, offsetCoordinate, zoomToFit } from '@ongarage/shared';
@@ -38,18 +38,6 @@ const STEPS: { key: Step; label: string }[] = [
   { key: 'repairCompleteNotice', label: 'අවසන් බව දැනුම්දීම' },
   { key: 'qrScan', label: 'QR ස්කෑන්' },
   { key: 'rating', label: 'ශ්‍රේණිගත කිරීම' },
-];
-
-const BREAKDOWN_TYPES = [
-  { id: 'mechanical', icon: '⚙️', label: 'එන්ජින් දෝෂය' },
-  { id: 'battery', icon: '🔋', label: 'බැටරි ජම්ප්ස්ටාර්ට්' },
-  { id: 'tire', icon: '🛞', label: 'ටයර් පන්චර්' },
-  { id: 'fuel', icon: '⛽', label: 'ඉන්ධන ගෙන්වීම' },
-  { id: 'towing', icon: '🛻', label: 'ටෝ කිරීම' },
-  { id: 'lockout', icon: '🔑', label: 'යතුර / අගුල' },
-  { id: 'overheating', icon: '🌡️', label: 'එන්ජිම රත්වීම' },
-  { id: 'winching', icon: '⛓️', label: 'වින්ච් සහාය' },
-  { id: 'accident', icon: '🚑', label: 'අනතුරු සහාය' },
 ];
 
 type WorkshopSeed = {
@@ -104,6 +92,8 @@ const SOS_WORKSHOPS: WorkshopSeed[] = [
 
 const INITIAL_RADIUS_KM = 1;
 const RADIUS_STEP_KM = 1;
+// Call-out fee paid to the technician for travelling to the breakdown (OnGarage
+// approved); due even if no repair is needed. A wider search means farther travel.
 const BASE_FEE = 500;
 const SURCHARGE_STEP = 250;
 const CYCLE_MS = 6000;
@@ -157,6 +147,8 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
   onClose,
 }) => {
   const [step, setStep] = useState<Step>('confirm');
+  // The owner's closing code: the technician scans the QR or types these six digits.
+  const [closeCode] = useState(makeCloseCode);
   const [breakdown, setBreakdown] = useState<string | null>(null);
   const [radius, setRadius] = useState(INITIAL_RADIUS_KM);
   const [surcharge, setSurcharge] = useState(BASE_FEE);
@@ -167,6 +159,9 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
   const [repairP, setRepairP] = useState(0);
   const [rating, setRating] = useState(0);
   const [submitted, setSubmitted] = useState(false);
+  // The garage is rated on the same four dimensions as a workshop job (its trust score).
+  const [dims, setDims] = useState<DimensionRating>({ quality: 0, pricing: 0, onTime: 0, communication: 0 });
+  const dimsDone = RATING_DIMENSIONS.every((d) => dims[d.id] > 0);
   const [reward, setReward] = useState(REWARDS[0]);
   const [showCancel, setShowCancel] = useState(false);
   const [showVehiclePicker, setShowVehiclePicker] = useState(false);
@@ -534,8 +529,8 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
           <Text style={styles.statLabel}>සෙවුම් කලාපය</Text>
         </View>
         <View style={styles.statBox}>
-          <Text style={[styles.statValue, { color: Colors.errorText }]}>{money(surcharge)}</Text>
-          <Text style={styles.statLabel}>SOS ගාස්තුව</Text>
+          <Text style={[styles.statValue, { color: Colors.warning }]}>{money(surcharge)}</Text>
+          <Text style={styles.statLabel}>පැමිණීමේ ගාස්තුව</Text>
         </View>
         <View style={styles.statBox}>
           <Text style={[styles.statValue, { color: Colors.success }]}>{responders.length}</Text>
@@ -736,9 +731,7 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
         <Text style={styles.heroTitle}>QR කේතය ස්කෑන් කරන්න</Text>
         <Text style={styles.heroText}>රැකියාව අවසන් කිරීමට ගරාජ කාර්මිකයාගේ උපාංගයෙන් මෙම QR කේතය ස්කෑන් කරන්න.</Text>
       </View>
-      <View style={styles.qrCard}>
-        <QRCode value={`ongarage:sos:${job.id}:${vehicle.plate}`} size={190} color="#030712" backgroundColor="#ffffff" />
-      </View>
+      <CloseCode code={closeCode} size={190} caption="ස්කෑන් කළ නොහැකි නම් මෙම ඉලක්කම් 6 කාර්මිකයාට කියන්න." />
       <View style={styles.card}>
         <Text style={styles.label}>බිල්පත් සාරාංශය</Text>
         <View style={styles.rowBetween}>
@@ -746,7 +739,7 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
           <Text style={styles.detailText}>{money(job.bid)}</Text>
         </View>
         <View style={styles.rowBetween}>
-          <Text style={styles.detailText}>SOS සේවා ගාස්තුව</Text>
+          <Text style={styles.detailText}>යාන්ත්‍රිකයාගේ පැමිණීමේ ගාස්තුව</Text>
           <Text style={styles.detailText}>{money(surcharge)}</Text>
         </View>
         <View style={styles.divider} />
@@ -791,6 +784,22 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
           ))}
         </View>
         <Text style={[styles.detailStrong, { color: rating >= 4 ? Colors.success : Colors.textMuted }]}>{ratingLabel(rating)}</Text>
+      </View>
+
+      <View style={styles.card}>
+        <Text style={styles.detailStrong}>🛠️ {job.name} — ගරාජය</Text>
+        {RATING_DIMENSIONS.map((d) => (
+          <View key={d.id} style={styles.rowBetween}>
+            <Text style={styles.detailText}>{d.label}</Text>
+            <View style={styles.dimStars}>
+              {[1, 2, 3, 4, 5].map((n) => (
+                <Pressable key={n} onPress={() => !submitted && setDims((p) => ({ ...p, [d.id]: n }))} hitSlop={4} accessibilityLabel={`Rate ${d.id} ${n}`}>
+                  <Text style={[styles.dimStar, dims[d.id] >= n && styles.dimStarOn]}>★</Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+        ))}
       </View>
 
       {submitted && (
@@ -851,7 +860,7 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
         );
       case 'rating':
         return submitted ? null : (
-          <ActionButton label="ශ්‍රේණිගත කිරීම යවන්න" icon="✓" variant="primary" disabled={rating === 0} onPress={submitRating} />
+          <ActionButton label="ශ්‍රේණිගත කිරීම යවන්න" icon="✓" variant="primary" disabled={rating === 0 || !dimsDone} onPress={submitRating} />
         );
       default:
         return null;
@@ -926,7 +935,7 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
           icon="⚠️"
           tone="danger"
           title="SOS ඉල්ලීම තහවුරු කරන්න"
-          body={`ඔබගේ ස්ථානයේ සිට කි.මී. ${INITIAL_RADIUS_KM} ක් ඇතුළත ලියාපදිංචි ගරාජ වෙත දැනුම් දෙනු ලැබේ. වේගවත් ප්‍රතිචාරයක් සඳහා ${money(BASE_FEE)} ක සේවා ගාස්තුවක් ඔබගේ අවසන් බිලට එකතු වේ.`}
+          body={`ඔබගේ ස්ථානයේ සිට කි.මී. ${INITIAL_RADIUS_KM} ක් ඇතුළත ලියාපදිංචි ගරාජ වෙත දැනුම් දෙනු ලැබේ. ඔබ වෙත පැමිණීමේ ගමන් වියදම වෙනුවෙන් OnGarage අනුමත ${money(BASE_FEE)} ක පැමිණීමේ ගාස්තුවක් යාන්ත්‍රිකයාට ගෙවිය යුතුය — අලුත්වැඩියාවක් අවශ්‍ය නොවුණත් මෙය අදාළ වේ.`}
         >
           <ActionButton label="අවලංගු" variant="ghost" compact onPress={() => setStep('confirm')} />
           <ActionButton label="මම එකඟයි" variant="sos" compact onPress={startSearch} />
@@ -938,7 +947,7 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
           icon="📡"
           tone="primary"
           title="සෙවුම් කලාපය පුළුල් කරමින්"
-          body={`තවම කිසිදු ගරාජයක් ප්‍රතිචාර දක්වා නැත. සෙවුම් කලාපය කි.මී. ${radius + RADIUS_STEP_KM} දක්වා වැඩි කර, වැඩි ගරාජ ආකර්ෂණය කර ගැනීමට ${money(SURCHARGE_STEP)} ක අමතර ගාස්තුවක් එකතු කෙරේ.`}
+          body={`තවම කිසිදු ගරාජයක් ප්‍රතිචාර දක්වා නැත. සෙවුම් කලාපය කි.මී. ${radius + RADIUS_STEP_KM} දක්වා වැඩි කෙරේ. වැඩි දුරක් ගමන් කරන යාන්ත්‍රිකයාට පැමිණීමේ ගාස්තුවට ${money(SURCHARGE_STEP)} ක් එකතු වේ.`}
         >
           <ActionButton label="අවලංගු" variant="ghost" compact onPress={() => setShowCancel(true)} />
           <ActionButton
@@ -1141,7 +1150,6 @@ const styles = themedStyles(() => StyleSheet.create({
   callBtn: { width: 42, height: 42, borderRadius: 21, backgroundColor: Colors.success, justifyContent: 'center', alignItems: 'center' },
   callBtnText: { fontSize: 18 },
 
-  qrCard: { ...glass(), alignSelf: 'center', padding: 16, borderRadius: 22, backgroundColor: '#fff', borderColor: 'rgba(255, 255, 255, 0.6)' },
 
   starsRow: { flexDirection: 'row', gap: 8 },
   star: { fontSize: 40, color: Colors.subtleBorder },
@@ -1161,4 +1169,7 @@ const styles = themedStyles(() => StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: Colors.borderColor,
   },
+  dimStars: { flexDirection: 'row', gap: 3 },
+  dimStar: { fontSize: 20, color: Colors.subtleBorder },
+  dimStarOn: { color: Colors.warning },
 }));

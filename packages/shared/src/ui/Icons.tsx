@@ -2,7 +2,7 @@ import React from 'react';
 import Svg, { Circle, Line, Path, Polyline } from 'react-native-svg';
 
 // Minimal stroke icons (Feather geometry) so status icons share one weight and tint.
-export type IconName = 'check-circle' | 'clock' | 'alert-triangle' | 'chevron-down' | 'x';
+export type IconName = 'check-circle' | 'clock' | 'alert-triangle' | 'chevron-down' | 'x' | 'inbox' | 'tag' | 'calendar';
 
 export const Icon: React.FC<{ name: IconName; size?: number; color: string; strokeWidth?: number }> = ({
   name,
@@ -24,6 +24,26 @@ export const Icon: React.FC<{ name: IconName; size?: number; color: string; stro
       </>
     )}
     {name === 'chevron-down' && <Polyline points="6 9 12 15 18 9" />}
+    {name === 'inbox' && (
+      <>
+        <Polyline points="22 12 16 12 14 15 10 15 8 12 2 12" />
+        <Path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" />
+      </>
+    )}
+    {name === 'tag' && (
+      <>
+        <Path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+        <Line x1="7" y1="7" x2="7.01" y2="7" />
+      </>
+    )}
+    {name === 'calendar' && (
+      <>
+        <Path d="M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z" />
+        <Line x1="16" y1="2" x2="16" y2="6" />
+        <Line x1="8" y1="2" x2="8" y2="6" />
+        <Line x1="3" y1="10" x2="21" y2="10" />
+      </>
+    )}
     {name === 'x' && (
       <>
         <Line x1="18" y1="6" x2="6" y2="18" />

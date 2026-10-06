@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { Animated, Modal, StyleSheet, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
@@ -10,73 +10,53 @@ import {
   NotoSansSinhala_600SemiBold,
   NotoSansSinhala_700Bold,
 } from '@expo-google-fonts/noto-sans-sinhala';
-import { Colors, FONTS, GlassIcon, ThemeProvider, ThemeToggle, themedStyles, useTheme } from '@ongarage/shared';
-
-type TabId = 'sos' | 'jobs' | 'schedule' | 'profile';
-
-// Each tab is the garage-side counterpart of a step in the vehicle-owner app.
-const TABS: { id: TabId; icon: string; label: string; title: string; planned: string[] }[] = [
-  {
-    id: 'sos',
-    icon: '🚨',
-    label: 'SOS',
-    title: 'හදිසි SOS ඉල්ලීම්',
-    planned: [
-      'ඔබගේ කලාපය තුළ ලැබෙන SOS ඇඟවීම් (බ්‍රේක්ඩවුන් වර්ගය, වාහනය, දුර)',
-      'ඉල්ලීම පිළිගැනීම සහ මිල ගණන් යැවීම',
-      'යාන්ත්‍රිකයා / වෑන් පැවරීම සහ සජීවී ස්ථානය බෙදා ගැනීම',
-      'පැමිණියා → අලුත්වැඩියාව → අවසන් ලෙස සලකුණු කිරීම',
-      'පාරිභෝගිකයාගේ QR කේතය ස්කෑන් කර රැකියාව වසා දැමීම',
-    ],
-  },
-  {
-    id: 'jobs',
-    icon: '🔨',
-    label: 'රැකියා',
-    title: 'රැකියා සහ ලංසු',
-    planned: [
-      'ඔබ ලබා දෙන සේවා සහ දුර අනුව පෙරූ රැකියා ලැයිස්තුව',
-      'Buddy රෝග විනිශ්චය, අමතර කොටස් කැමැත්ත, නිවසටම පැමිණීම',
-      'ලංසුවක් යැවීම: මිල, වගකීම, ඇස්තමේන්තු කාලය',
-      'අවසන් වීමට පෙර ලංසුව සංස්කරණය / ඉවත් කිරීම',
-    ],
-  },
-  {
-    id: 'schedule',
-    icon: '📅',
-    label: 'කාලසටහන',
-    title: 'මගේ රැකියා',
-    planned: [
-      'පිළිගත් වෙන් කිරීම් සහ නිවසටම පැමිණීමේ කාලසටහන',
-      'සක්‍රීය සහ සම්පූර්ණ කළ රැකියා',
-      'දිනූ / පැරදුණු ලංසු සහ ආදායම',
-    ],
-  },
-  {
-    id: 'profile',
-    icon: '🏪',
-    label: 'ගරාජය',
-    title: 'ගරාජ පැතිකඩ',
-    planned: [
-      'පාරිභෝගිකයන්ට පෙනෙන ගරාජ කාඩ්පත: නම, විශේෂඥතාව, ඡායාරූප',
-      'ලබා දෙන සේවා අංශ සහ උප අංශ',
-      'විවෘත වේලාවන්, ස්ථානය, දුරකථනය, සේවා කලාපය',
-      'යාන්ත්‍රිකයන් සහ වෑන් රථ, ශ්‍රේණිගත කිරීම් සහ සමාලෝචන',
-    ],
-  },
-];
+import { BottomNav, Colors, ThemeProvider, themedStyles, useTheme } from '@ongarage/shared';
+import { GarageProvider, useGarage } from './context/GarageContext';
+import { PartsProvider, useParts } from './context/PartsContext';
+import { GARAGE_TABS, type TabId } from './constants/tabs';
+import { GarageHeader } from './components/GarageHeader';
+import { Toast } from './components/Toast';
+import { SOSInboxScreen } from './screens/SOSInboxScreen';
+import { SOSDispatchScreen } from './screens/SOSDispatchScreen';
+import { JobFeedScreen } from './screens/JobFeedScreen';
+import { ScheduleScreen } from './screens/ScheduleScreen';
+import { GarageProfileScreen } from './screens/GarageProfileScreen';
+import { PartsScreen } from './screens/PartsScreen';
 
 export default function App() {
   return (
     <ThemeProvider>
-      <AppShell />
+      <GarageProvider>
+        <PartsProvider>
+          <AppShell />
+        </PartsProvider>
+      </GarageProvider>
     </ThemeProvider>
   );
 }
 
+// Reading the theme here re-renders the whole tree on a switch (same approach as
+// the owner app), so screens pick up the new palette without remounting.
 function AppShell() {
-  const { isDark, toggle } = useTheme();
+  const { isDark } = useTheme();
+  // The open job (if any) is held by the store; several committed jobs can run at once.
+  const { dispatch, leaveDispatch, directs } = useGarage();
+  // Direct bookings wait on this garage with a deadline, so the Jobs tab shows how many.
+  const newDirects = directs.filter((d) => d.status === 'new').length;
+  // Parts: quotes waiting for a choice, or a delivery waiting to be checked in.
+  const { awaitingChoice, orders } = useParts();
+  const partsBadge = awaitingChoice.length + orders.filter((o) => o.status === 'arrived').length;
+  const tabs = GARAGE_TABS.map((t) => (t.id === 'jobs' ? { ...t, badge: newDirects } : t.id === 'parts' ? { ...t, badge: partsBadge } : t));
   const [tab, setTab] = useState<TabId>('sos');
+  // A booking card can open its parts request in the Parts tab.
+  const [partsFocus, setPartsFocus] = useState<string | null>(null);
+  const openParts = (requestId: string) => {
+    setPartsFocus(requestId);
+    setTab('parts');
+  };
+  const fade = useRef(new Animated.Value(0)).current;
+  const [fadeColor, setFadeColor] = useState(Colors.bgBody);
+  const firstRender = useRef(true);
   const [fontsLoaded] = useFonts({
     NotoSansSinhala_400Regular,
     NotoSansSinhala_500Medium,
@@ -88,59 +68,43 @@ function AppShell() {
     if (fontsLoaded) SplashScreen.hideAsync();
   }, [fontsLoaded]);
 
+  useEffect(() => {
+    if (firstRender.current) {
+      firstRender.current = false;
+      return;
+    }
+    setFadeColor(isDark ? '#f1f5f9' : '#07090e');
+    fade.setValue(0.75);
+    Animated.timing(fade, { toValue: 0, duration: 450, useNativeDriver: true }).start();
+  }, [isDark, fade]);
+
   if (!fontsLoaded) return null;
-  const current = TABS.find((t) => t.id === tab)!;
 
   return (
     <SafeAreaProvider>
       <StatusBar style={isDark ? 'light' : 'dark'} />
       <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={styles.header}>
-          <GlassIcon emoji="🛠️" small />
-          <View style={styles.flex1}>
-            <Text style={styles.brand}>OnGarage Garage</Text>
-            <Text style={styles.sub}>ගරාජ හිමිකරුවන් සඳහා</Text>
-          </View>
-          <View style={styles.devPill}>
-            <Text style={styles.devPillText}>සංවර්ධනය වෙමින්</Text>
-          </View>
+        <GarageHeader />
+        <View style={styles.flex1}>
+          {tab === 'sos' && <SOSInboxScreen />}
+          {tab === 'jobs' && <JobFeedScreen />}
+          {tab === 'schedule' && <ScheduleScreen onOpenParts={openParts} />}
+          {tab === 'parts' && <PartsScreen focusId={partsFocus} onFocusHandled={() => setPartsFocus(null)} />}
+          {tab === 'garage' && <GarageProfileScreen />}
         </View>
-
-        <ScrollView style={styles.flex1} contentContainerStyle={styles.body}>
-          <View style={[styles.card, styles.row]}>
-            <GlassIcon emoji={current.icon} />
-            <Text style={[styles.title, styles.flex1]}>{current.title}</Text>
-          </View>
-
-          <Text style={styles.section}>සැලසුම් කළ විශේෂාංග</Text>
-          {current.planned.map((p) => (
-            <View key={p} style={[styles.card, styles.row]}>
-              <View style={styles.dot} />
-              <Text style={[styles.item, styles.flex1]}>{p}</Text>
-            </View>
-          ))}
-
-          {tab === 'profile' && (
-            <View style={[styles.card, styles.row]}>
-              <GlassIcon emoji={isDark ? '🌙' : '☀️'} small />
-              <Text style={[styles.item, styles.flex1]}>{isDark ? 'අඳුරු මාදිලිය' : 'ආලෝක මාදිලිය'}</Text>
-              <ThemeToggle isDark={isDark} onToggle={toggle} />
-            </View>
-          )}
-        </ScrollView>
-
         <View style={styles.nav}>
-          {TABS.map((t) => {
-            const active = t.id === tab;
-            return (
-              <Pressable key={t.id} style={styles.navItem} onPress={() => setTab(t.id)}>
-                <Text style={[styles.navIcon, !active && styles.navIconIdle]}>{t.icon}</Text>
-                <Text style={[styles.navLabel, active && styles.navLabelActive]}>{t.label}</Text>
-              </Pressable>
-            );
-          })}
+          <BottomNav items={tabs} activeTab={tab} onTabChange={setTab} />
         </View>
+        <Toast />
       </SafeAreaView>
+
+      {/* Hardware back behaves like the dispatch header button. */}
+      <Modal visible={!!dispatch} animationType="slide" statusBarTranslucent onRequestClose={leaveDispatch}>
+        {dispatch && <SOSDispatchScreen key={dispatch.id} />}
+        <Toast topOffset={84} />
+      </Modal>
+
+      <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: fadeColor, opacity: fade }]} />
     </SafeAreaProvider>
   );
 }
@@ -149,38 +113,6 @@ const styles = themedStyles(() =>
   StyleSheet.create({
     container: { flex: 1, backgroundColor: Colors.bgBody },
     flex1: { flex: 1 },
-    row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-    header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 10,
-      paddingHorizontal: 16,
-      paddingVertical: 12,
-      borderBottomWidth: 1,
-      borderBottomColor: Colors.borderColor,
-    },
-    brand: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textMain },
-    sub: { fontSize: 11, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
-    devPill: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10, backgroundColor: 'rgba(245, 158, 11, 0.14)' },
-    devPillText: { fontSize: 10.5, fontFamily: FONTS.bodySemiBold, color: Colors.warning },
-    body: { padding: 16, gap: 10, paddingBottom: 32 },
-    card: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.borderColor, borderRadius: 18, padding: 14 },
-    title: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textMain },
-    section: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, letterSpacing: 0.5, marginTop: 6 },
-    dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: Colors.primary },
-    item: { fontSize: 12.5, fontFamily: FONTS.bodyRegular, color: Colors.textSoft, lineHeight: 19 },
-    nav: {
-      flexDirection: 'row',
-      height: 68,
-      paddingBottom: 8,
-      backgroundColor: Colors.barBg,
-      borderTopWidth: 1,
-      borderTopColor: Colors.borderColor,
-    },
-    navItem: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 3 },
-    navIcon: { fontSize: 20 },
-    navIconIdle: { opacity: 0.45 },
-    navLabel: { fontSize: 10.5, fontFamily: FONTS.bodyMedium, color: Colors.textMuted },
-    navLabelActive: { color: Colors.primary, fontFamily: FONTS.bodySemiBold },
+    nav: { position: 'absolute', left: 0, right: 0, bottom: 0 },
   })
 );

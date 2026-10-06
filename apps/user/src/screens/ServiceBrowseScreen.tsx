@@ -1,14 +1,16 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, Pressable, StyleSheet, ScrollView, TextInput, Alert, Animated, Linking, PanResponder } from 'react-native';
+import { View, Text, Pressable, StyleSheet, ScrollView, TextInput, Animated, Linking, PanResponder } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, getThemeMode, themedStyles } from '@ongarage/shared';
 import { MOCK_GARAGES } from '../constants/mockData';
-import { GarageCard } from '../components/GarageCard';
-import { GoogleMap } from '../components/GoogleMap';
+import { GarageCard } from '@ongarage/shared';
+import { GoogleMap } from '@ongarage/shared';
 import { Icon } from '@ongarage/shared';
 import { useUserLocation } from '../context/LocationContext';
+import { useNotice } from '../context/NoticeContext';
+import { GarageReviewsSheet } from '../components/GarageReviewsSheet';
 import { directionsUrl, distanceKm } from '@ongarage/shared';
-import type { ServiceCategory } from '@ongarage/shared';
+import type { Garage, ServiceCategory } from '@ongarage/shared';
 
 const COLLAPSED_HEIGHT = 420;
 // Fallback until the "Top Rated" row is measured; the minimised sheet ends just below it.
@@ -19,10 +21,14 @@ type SheetState = 'peek' | 'collapsed' | 'expanded';
 interface ServiceBrowseScreenProps {
   service: ServiceCategory;
   onClose: () => void;
+  /** Book this garage directly for this service. */
+  onBook: (garage: Garage) => void;
 }
 
-export const ServiceBrowseScreen: React.FC<ServiceBrowseScreenProps> = ({ service, onClose }) => {
+export const ServiceBrowseScreen: React.FC<ServiceBrowseScreenProps> = ({ service, onClose, onBook }) => {
   const [searchText, setSearchText] = useState('');
+  const [reviewsFor, setReviewsFor] = useState<Garage | null>(null);
+  const { notify } = useNotice();
   const [selectedSub, setSelectedSub] = useState(0);
   const [mapHeight, setMapHeight] = useState(0);
   const [sheet, setSheet] = useState<SheetState>('collapsed');
@@ -262,14 +268,17 @@ export const ServiceBrowseScreen: React.FC<ServiceBrowseScreenProps> = ({ servic
                 garage={g}
                 variant="map"
                 thumbColor={idx === 0 ? '#10b981' : '#38bdf8'}
-                onCall={() => Alert.alert(`${g.name} වෙත ඇමතුමක් ලබා දෙයි`)}
+                onCall={() => Linking.openURL(`tel:${g.phone.replace(/\s/g, '')}`)}
                 onDirections={() => Linking.openURL(directionsUrl(g.coords, user.coords))}
-                onBook={() => Alert.alert(`${g.name} සඳහා බුකින් පෝරමය විවෘත විය`)}
+                onBook={() => onBook(g)}
+                onSaveChange={(saved) => notify({ icon: saved ? '♥' : '♡', title: saved ? 'සුරැකි ගරාජ වලට එක් කළා' : 'සුරැකි ලැයිස්තුවෙන් ඉවත් කළා', body: g.name, tone: 'primary' })}
+                onReviews={() => setReviewsFor(g)}
               />
             ))}
           </Animated.ScrollView>
         </Animated.View>
       </View>
+      <GarageReviewsSheet garage={reviewsFor} onClose={() => setReviewsFor(null)} />
     </SafeAreaView>
   );
 };
@@ -397,6 +406,6 @@ const styles = themedStyles(() => StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
-  countLabel: { fontSize: 10, color: '#10b981', fontWeight: '700' },
+  countLabel: { fontSize: 10, color: Colors.successText, fontWeight: '700' },
   garageList: { gap: 12, paddingBottom: 8 },
 }));

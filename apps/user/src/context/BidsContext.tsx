@@ -1,31 +1,34 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { DEFAULT_COORDS } from '../constants/mockData';
-import { offsetCoordinate } from '@ongarage/shared';
+import { DEFAULT_COORDS, MOCK_GARAGES } from '../constants/mockData';
+import { useWorkshops } from './WorkshopContext';
+import { offsetCoordinate, marketPrice } from '@ongarage/shared';
 import type { Bid, RepairJob } from '@ongarage/shared';
 
 const MIN = 60 * 1000;
 const HOUR = 60 * MIN;
 
+// Garages that bid on posted jobs. Rating, review count and level come from their
+// profiles (MOCK_GARAGES), so a bid and the garage's page always agree.
+const profile = (name: string) => {
+  const g = MOCK_GARAGES.find((x) => x.name === name)!;
+  return { garageName: g.name, level: g.level, rating: g.rating, reviews: g.reviews };
+};
 const BIDDING_GARAGES = [
-  { garageName: 'TOPCODE Tuning & Service', rating: 4.9, reviews: 120, distanceKm: 1.2, bearing: 300, warrantyMonths: 3, estHours: 1 },
-  { garageName: 'Apex Motors & Hybrid Hub', rating: 4.6, reviews: 45, distanceKm: 3.5, bearing: 40, warrantyMonths: 1, estHours: 2 },
-  { garageName: 'Lanka Auto Diagnostics', rating: 4.8, reviews: 76, distanceKm: 2.1, bearing: 160, warrantyMonths: 2, estHours: 3 },
+  { ...profile('TOPCODE Tuning & Service'), distanceKm: 1.2, bearing: 300, warrantyMonths: 3, estHours: 1 },
+  { ...profile('Apex Motors & Hybrid Hub'), distanceKm: 3.5, bearing: 40, warrantyMonths: 1, estHours: 2 },
+  { ...profile('Lanka Auto Diagnostics'), distanceKm: 2.1, bearing: 160, warrantyMonths: 2, estHours: 3 },
 ];
 
-// Rough market price per service category, keyed by SERVICE_CATEGORIES id.
-const BASE_PRICE: Record<string, number> = {
-  '1': 4500, '2': 3500, '3': 6500, '4': 3000, '5': 2500, '6': 2000,
-  '7': 3800, '8': 9000, '9': 2500, '10': 12000, '11': 8000, '12': 3500,
-};
 const PRICE_FACTORS = [1.0, 0.82, 1.18];
 const SIMULATED_BID_DELAYS_MS = [6000, 14000, 24000];
 
 const makeBid = (job: Pick<RepairJob, 'categoryId' | 'coords'>, index: number, submittedAt: number): Bid => {
   const g = BIDDING_GARAGES[index % BIDDING_GARAGES.length];
-  const base = BASE_PRICE[job.categoryId] ?? 4000;
+  const base = marketPrice(job.categoryId);
   return {
     id: `bid-${submittedAt}-${index}`,
     garageName: g.garageName,
+    level: g.level,
     rating: g.rating,
     reviews: g.reviews,
     distanceKm: g.distanceKm,
@@ -38,7 +41,7 @@ const makeBid = (job: Pick<RepairJob, 'categoryId' | 'coords'>, index: number, s
 };
 
 const seedJobs = (now: number): RepairJob[] => {
-  const base = { sparePart: 'Genuine', doorstep: false, address: 'ගාල්ල', coords: DEFAULT_COORDS };
+  const base = { sparePart: 'Genuine' as const, doorstep: false, address: 'ගාල්ල', coords: DEFAULT_COORDS };
   const received: RepairJob = {
     ...base,
     id: 'job-seed-1',
@@ -109,7 +112,10 @@ type BidsState = {
 const BidsContext = createContext<BidsState | null>(null);
 
 export const BidsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { startWorkshop } = useWorkshops();
   const [jobs, setJobs] = useState<RepairJob[]>(() => seedJobs(Date.now()));
+  const live = useRef(jobs);
+  live.current = jobs;
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   useEffect(() => () => timers.current.forEach(clearTimeout), []);
@@ -135,9 +141,16 @@ export const BidsProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return job;
   }, []);
 
-  const acceptBid = useCallback((jobId: string, bidId: string) => {
-    setJobs((prev) => prev.map((j) => (j.id === jobId ? { ...j, acceptedBidId: bidId } : j)));
-  }, []);
+  const acceptBid = useCallback(
+    (jobId: string, bidId: string) => {
+      setJobs((prev) => prev.map((j) => (j.id === jobId ? { ...j, acceptedBidId: bidId } : j)));
+      const job = live.current.find((j) => j.id === jobId);
+      const bid = job?.bids.find((b) => b.id === bidId);
+      // The winning garage takes the vehicle in and follows the workshop steps.
+      if (job && bid) startWorkshop({ id: jobId, garageName: bid.garageName, categoryId: job.categoryId, agreedPrice: bid.price, scheduledAt: Date.now(), doorstep: job.doorstep, warrantyMonths: bid.warrantyMonths, vehicleId: job.vehicleId, partType: job.sparePart, protectedJob: bid.level === 'premier' });
+    },
+    [startWorkshop]
+  );
 
   return <BidsContext.Provider value={{ jobs, postJob, acceptBid }}>{children}</BidsContext.Provider>;
 };

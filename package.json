@@ -1,7 +1,7 @@
 {
   "name": "ongarage",
   "private": true,
-  "description": "OnGarage monorepo: vehicle-owner app, garage app and shared code.",
+  "description": "OnGarage monorepo: vehicle-owner, garage, parts shop and technician apps, and shared code.",
   "workspaces": [
     "apps/*",
     "packages/*"
@@ -11,6 +11,15 @@
     "user:web": "npm run web --workspace @ongarage/user",
     "garage": "npm run start --workspace @ongarage/garage",
     "garage:web": "npm run web --workspace @ongarage/garage",
-    "typecheck": "npm run typecheck --workspaces --if-present"
+    "parts": "npm run start --workspace @ongarage/parts",
+    "parts:web": "npm run web --workspace @ongarage/parts",
+    "tech": "npm run start --workspace @ongarage/tech",
+    "tech:web": "npm run web --workspace @ongarage/tech",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspace @ongarage/shared",
+    "e2e": "node e2e/run.cjs"
+  },
+  "devDependencies": {
+    "puppeteer-core": "^23.11.1"
   }
 }

@@ -15,7 +15,8 @@ import {
 import { Colors, themedStyles } from '@ongarage/shared';
 import { FONTS } from '@ongarage/shared';
 import { ActionButton, glassStyle } from '@ongarage/shared';
-import { normalisePlate, useVehicles, VEHICLE_TYPES } from '../context/VehiclesContext';
+import { useVehicles } from '../context/VehiclesContext';
+import { normalisePlate, VEHICLE_TYPES } from '@ongarage/shared';
 import type { Vehicle } from '@ongarage/shared';
 
 // Sri Lankan plates: optional province letters, 2–3 letters (or digits), dash, 4 digits.
