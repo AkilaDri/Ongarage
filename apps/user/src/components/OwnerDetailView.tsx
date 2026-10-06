@@ -10,6 +10,7 @@ import {
   GlassIcon,
   GoogleMap,
   Icon,
+  LevelBadge,
   PhotoStrip,
   themedStyles,
   vehicleIcon,
@@ -146,6 +147,7 @@ export const OwnerDetailView: React.FC<{
                   <View style={styles.rowBetween}>
                     <View style={styles.flex1}>
                       <Text style={styles.title}>{b.garageName}</Text>
+                      {!!b.level && <LevelBadge level={b.level} compact />}
                       <Text style={styles.sub}>
                         ★ {b.rating.toFixed(1)} ({b.reviews}) · කි.මී. {b.distanceKm} · {ago(now - b.submittedAt)}
                       </Text>

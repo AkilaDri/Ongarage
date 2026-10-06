@@ -22,6 +22,28 @@ export type Garage = {
   coords: LatLng;
   reviews_text?: string;
   photos?: string[];
+  /** The garage's level (trust ladder), shown as a badge to owners. */
+  level?: LevelId;
+  /** Per-dimension averages from owners' reviews. */
+  dimensions?: DimensionRating;
+  /** Latest reviews, with the garage's public replies. */
+  recentReviews?: GarageReview[];
+};
+
+/**
+ * An owner's review of a closed job (only jobs closed with the owner's code can be
+ * rated): overall stars, the four dimensions, the technician, and the garage's reply.
+ */
+export type GarageReview = {
+  id: string;
+  customer: string;
+  rating: number;
+  dimensions?: DimensionRating;
+  technician?: { name: string; rating: number };
+  text: string;
+  at: number;
+  /** The garage's public reply, shown under the review. */
+  reply?: { text: string; at: number };
 };
 
 export type ServiceCategory = {
@@ -43,6 +65,7 @@ export type Bid = {
   warrantyMonths: number;
   estHours: number;
   submittedAt: number;
+  level?: LevelId;
 };
 
 /** A voice note the owner recorded for a job; uri is set once real recording exists. */
@@ -53,7 +76,7 @@ export type RepairJob = {
   categoryId: string;
   description: string;
   vehicleId: string;
-  sparePart: string;
+  sparePart: PartType;
   doorstep: boolean;
   biddingHours: number;
   submittedAt: number;
@@ -370,6 +393,22 @@ export type Dispute = {
 
 export type WarrantyClaim = { id: string; text: string; photos?: string[]; raisedAt: number; status: 'open' | 'accepted' | 'rejected' | 'escalated' };
 
+/**
+ * The owner asked for Genuine but it isn't available: the garage asks to use Recon
+ * instead (cheaper). Nothing changes until the owner answers.
+ */
+export type ReconRequest = {
+  id: string;
+  /** Diagnosis / extra-work lines it applies to. */
+  lineIds: string[];
+  partNames: string[];
+  genuinePrice: number;
+  reconPrice: number;
+  askedAt: number;
+  status: 'pending' | 'approved' | 'declined';
+  decidedAt?: number;
+};
+
 /** Everything that happened on one workshop job; the garage, owner and technician apps all read it. */
 export type WorkshopProgress = {
   stage: WorkshopStage;
@@ -388,6 +427,8 @@ export type WorkshopProgress = {
   /** Warranty from the bid, counted from closing. */
   warrantyUntil?: number;
   warrantyClaim?: WarrantyClaim;
+  /** Genuine unavailable: Recon asked for (and answered) by the owner. */
+  recon?: ReconRequest[];
 };
 
 // ---------- Trust, levels and fair share ----------

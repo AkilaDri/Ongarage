@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, Pressable, StyleSheet, ScrollView, Image, Alert } from 'react-native';
+import { View, Text, Pressable, StyleSheet, ScrollView, Image } from 'react-native';
 import { Colors, getThemeMode, themedStyles } from '../theme/colors';
 import { type Garage } from '../types';
 import { Gradient, GRADIENTS } from './Visuals';
+import { LevelBadge } from './LevelBadge';
 
 interface GarageCardProps {
   garage: Garage;
@@ -11,17 +12,22 @@ interface GarageCardProps {
   onCall: () => void;
   onDirections: () => void;
   onBook: () => void;
+  /** Saved / unsaved (the app tells the user, e.g. with a toast). */
+  onSaveChange?: (saved: boolean) => void;
+  /** Open every review with the garage's replies. */
+  onReviews?: () => void;
 }
 
-export const GarageCard: React.FC<GarageCardProps> = ({ garage, variant, thumbColor, onCall, onDirections, onBook }) => {
+export const GarageCard: React.FC<GarageCardProps> = ({ garage, variant, thumbColor, onCall, onDirections, onBook, onSaveChange, onReviews }) => {
   const [isSaved, setIsSaved] = useState(false);
   const isHome = variant === 'home';
 
   const toggleSave = () => {
     const next = !isSaved;
     setIsSaved(next);
-    Alert.alert(next ? 'ගරාජය ඔබගේ සුරැකි ලැයිස්තුවට එකතු කරන ලදී!' : 'සුරැකි ලැයිස්තුවෙන් ඉවත් කරන ලදී.');
+    onSaveChange?.(next);
   };
+  const latest = garage.recentReviews?.[0];
 
   return (
     <View style={styles.card}>
@@ -32,6 +38,7 @@ export const GarageCard: React.FC<GarageCardProps> = ({ garage, variant, thumbCo
           </View>
           <View style={styles.detailsBox}>
             <Text style={styles.garageName}>{garage.name}</Text>
+            {!!garage.level && <LevelBadge level={garage.level} compact />}
             <Text style={styles.specialization}>
               {isHome ? `⚙️ විශේෂඥතාව: ${garage.specialization}` : `⚙ ${garage.specialization}`}
             </Text>
@@ -65,11 +72,17 @@ export const GarageCard: React.FC<GarageCardProps> = ({ garage, variant, thumbCo
         </ScrollView>
       )}
 
-      <View style={styles.reviewBox}>
+      <Pressable style={styles.reviewBox} onPress={onReviews} disabled={!onReviews} accessibilityLabel={`${garage.name} reviews`}>
         <Text style={styles.reviewText}>
-          <Text style={styles.reviewLabel}>පාරිභෝගික සටහන:</Text> "{garage.reviews_text}"
+          <Text style={styles.reviewLabel}>{latest ? `★${latest.rating} ${latest.customer}:` : 'පාරිභෝගික සටහන:'}</Text> "{latest?.text ?? garage.reviews_text}"
         </Text>
-      </View>
+        {!!latest?.reply && (
+          <Text style={styles.replyText} numberOfLines={2}>
+            ↳ <Text style={styles.reviewLabel}>ගරාජය:</Text> {latest.reply.text}
+          </Text>
+        )}
+        {!!onReviews && <Text style={styles.reviewsLink}>සියලු සමාලෝචන ({garage.reviews}) ›</Text>}
+      </Pressable>
 
       <View style={styles.actionsRow}>
         <Pressable style={({ pressed }) => [styles.actionBtn, styles.callBtn, pressed && styles.pressed]} onPress={onCall}>
@@ -188,6 +201,8 @@ const styles = themedStyles(() => StyleSheet.create({
   },
   reviewText: { fontSize: 11, fontWeight: '500', color: Colors.textSoft, lineHeight: 15.4 },
   reviewLabel: { fontWeight: '700', color: Colors.textMain },
+  replyText: { fontSize: 10.5, fontWeight: '500', color: Colors.textMuted, lineHeight: 15, marginTop: 4 },
+  reviewsLink: { fontSize: 10.5, fontWeight: '700', color: Colors.primary, marginTop: 4 },
   actionsRow: { flexDirection: 'row', gap: 8, paddingTop: 2 },
   actionBtn: {
     flexDirection: 'row',

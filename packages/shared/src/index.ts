@@ -32,6 +32,7 @@ export * from './ai';
 export * from './ui/BottomNav';
 export * from './ui/CloseCode';
 export * from './ui/GarageCard';
+export * from './ui/LevelBadge';
 export * from './ui/Glass';
 export * from './ui/Icons';
 export * from './ui/NoticeToast';

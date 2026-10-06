@@ -6,6 +6,7 @@ import {
   FONTS,
   INSPECTION_FEE,
   pendingExtra,
+  pendingRecon,
   PhotoStrip,
   StepProgress,
   themedStyles,
@@ -20,6 +21,9 @@ import { ApprovalSheet } from './ApprovalSheet';
 import { HandoverSheet } from './HandoverSheet';
 import { ProblemSheet, TOPIC_LABEL } from './ProblemSheet';
 import { WarrantySheet } from './WarrantySheet';
+import { ReconSheet } from './ReconSheet';
+import { RatingSheet } from './RatingSheet';
+import { ReceiptSheet } from './ReceiptSheet';
 
 /** The workshop steps as the owner reads them. */
 const OWNER_STAGE_TEXT: Record<WorkshopStage, string> = {
@@ -34,7 +38,7 @@ const OWNER_STAGE_TEXT: Record<WorkshopStage, string> = {
   disputed: 'ඔබ වාර්තා කළ ගැටලුව',
 };
 
-type SheetId = 'approve' | 'extra' | 'handover' | 'problem' | 'warranty' | null;
+type SheetId = 'approve' | 'extra' | 'recon' | 'handover' | 'problem' | 'warranty' | 'rate' | 'receipt' | null;
 
 /**
  * Where a booked repair is, and what the owner does next: approve the diagnosis, collect
@@ -42,24 +46,29 @@ type SheetId = 'approve' | 'extra' | 'handover' | 'problem' | 'warranty' | null;
  * record (diagnosis lines, bill, photos) for the details view.
  */
 export const WorkshopTracker: React.FC<{ id: string; detailed?: boolean }> = ({ id, detailed }) => {
-  const { workshops, escalate } = useWorkshops();
+  const { workshops, escalate, acknowledgeClosed } = useWorkshops();
   const [sheet, setSheet] = useState<SheetId>(null);
   const w = workshops[id];
   if (!w) return null;
   const p = w.progress;
-  const alert = p.stage === 'awaitingApproval' || p.stage === 'readyForHandover' || (p.stage === 'repairing' && !!pendingExtra(p));
+  const alert = p.stage === 'awaitingApproval' || p.stage === 'readyForHandover' || (p.stage === 'repairing' && (!!pendingExtra(p) || !!pendingRecon(p)));
   const d = p.dispute;
   const inWarranty = p.stage === 'closed' && !!p.warrantyUntil && p.warrantyUntil > Date.now();
   const claim = p.warrantyClaim;
   const bill = p.handover?.bill ?? (p.decision ? workshopBill(w.agreedPrice, p) : null);
   const close = () => setSheet(null);
   const extraAsk = pendingExtra(p);
+  const reconAsk = pendingRecon(p);
+  const warrantyOver = p.stage === 'closed' && !!p.warrantyUntil && p.warrantyUntil <= Date.now();
+  const review = w.review;
 
   const action = () => {
     switch (p.stage) {
       case 'awaitingApproval':
         return <ActionButton label="වාර්තාව බලා අනුමත කරන්න" icon="🔍" variant="primary" compact onPress={() => setSheet('approve')} />;
       case 'repairing':
+        if (reconAsk)
+          return <ActionButton label={`Recon අවසරය ඉල්ලයි · ${reconAsk.partNames.join(', ')}`} icon="📲" variant="primary" compact onPress={() => setSheet('recon')} />;
         return extraAsk ? (
           <ActionButton label={`අමතර වැඩ බලා අනුමත කරන්න · ${money(extraAsk.lines.reduce((s, l) => s + l.price, 0))}`} icon="➕" variant="primary" compact onPress={() => setSheet('extra')} />
         ) : null;
@@ -86,8 +95,38 @@ export const WorkshopTracker: React.FC<{ id: string; detailed?: boolean }> = ({ 
           </>
         );
       case 'closed':
-        if (claim) return <Text style={styles.note}>{claim.status === 'accepted' ? '✅ ගරාජය වගකීම පිළිගත්තා — නොමිලේ හදයි.' : claim.status === 'open' ? '⏳ වගකීම් ඉල්ලීම ගරාජයට යවා ඇත.' : '⚖️ වගකීම් ඉල්ලීම OnGarage සලකා බලයි.'}</Text>;
-        return inWarranty ? <ActionButton label="වගකීම් ඉල්ලීමක්" icon="🛡️" variant="ghost" compact onPress={() => setSheet('warranty')} /> : null;
+        return (
+          <>
+            {claim ? (
+              <Text style={styles.note}>{claim.status === 'accepted' ? '✅ ගරාජය වගකීම පිළිගත්තා — නොමිලේ හදයි.' : claim.status === 'open' ? '⏳ වගකීම් ඉල්ලීම ගරාජයට යවා ඇත.' : '⚖️ වගකීම් ඉල්ලීම OnGarage සලකා බලයි.'}</Text>
+            ) : (
+              inWarranty && <ActionButton label="වගකීම් ඉල්ලීමක්" icon="🛡️" variant="ghost" compact onPress={() => setSheet('warranty')} />
+            )}
+            {review ? (
+              <View style={styles.reviewBox}>
+                <Text style={styles.sub}>
+                  ⭐ ඔබ ★{review.rating} දුන්නා{review.technician ? ` · ${review.technician.name} ★${review.technician.rating}` : ''}
+                  {review.text ? ` · “${review.text}”` : ''}
+                </Text>
+                {review.reply && (
+                  <Text style={styles.sub}>
+                    ↳ <Text style={styles.replyLabel}>{w.garageName}:</Text> {review.reply.text}
+                  </Text>
+                )}
+              </View>
+            ) : null}
+            <View style={styles.links}>
+              <Pressable onPress={() => setSheet('receipt')} hitSlop={6} accessibilityLabel="Open receipt">
+                <Text style={styles.link}>🧾 රිසිට්පත</Text>
+              </Pressable>
+              {!review && (
+                <Pressable onPress={() => setSheet('rate')} hitSlop={6} accessibilityLabel="Rate this job">
+                  <Text style={styles.link}>⭐ ශ්‍රේණිගත කරන්න</Text>
+                </Pressable>
+              )}
+            </View>
+          </>
+        );
       case 'declined':
         return <Text style={styles.note}>පරීක්ෂා ගාස්තුව {money(INSPECTION_FEE)} පමණක් ගෙවිය යුතුයි.</Text>;
       default:
@@ -97,10 +136,12 @@ export const WorkshopTracker: React.FC<{ id: string; detailed?: boolean }> = ({ 
 
   return (
     <View style={styles.wrap}>
-      <StepProgress steps={WORKSHOP_STEP_LABELS} current={workshopStepIndex(p.stage)} alert={alert || p.stage === 'disputed'} />
+      {p.stage !== 'closed' && <StepProgress steps={WORKSHOP_STEP_LABELS} current={workshopStepIndex(p.stage)} alert={alert || p.stage === 'disputed'} />}
       <View style={styles.rowBetween}>
-        <Text style={[styles.stage, alert && { color: Colors.warning }]}>{OWNER_STAGE_TEXT[p.stage]}</Text>
-        {p.stage === 'closed' && p.warrantyUntil && <Text style={styles.warranty}>🛡️ {formatDate(p.warrantyUntil)} දක්වා</Text>}
+        <Text style={[styles.stage, alert && { color: Colors.warning }]}>{warrantyOver ? 'අවසන් — වගකීම කල් ඉකුත් විය' : OWNER_STAGE_TEXT[p.stage]}</Text>
+        {p.stage === 'closed' && p.warrantyUntil && (
+          <Text style={[styles.warranty, warrantyOver && { color: Colors.textMuted }]}>🛡️ {formatDate(p.warrantyUntil)}{warrantyOver ? ' දී අවසන්' : ' දක්වා'}</Text>
+        )}
       </View>
       {p.stage === 'repairing' && d?.status === 'rework' && <Text style={styles.note}>🔧 ඔබ වාර්තා කළ ගැටලුව නැවත හදමින්: “{d.text}”</Text>}
       {p.stage === 'disputed' && d && (
@@ -171,7 +212,16 @@ export const WorkshopTracker: React.FC<{ id: string; detailed?: boolean }> = ({ 
 
       <ApprovalSheet workshop={sheet === 'approve' ? w : null} onClose={close} />
       <ApprovalSheet workshop={sheet === 'extra' && extraAsk ? w : null} extraId={extraAsk?.id} onClose={close} />
-      <HandoverSheet workshop={sheet === 'handover' ? w : null} onClose={close} onProblem={() => setSheet('problem')} />
+      <ReconSheet workshop={sheet === 'recon' && reconAsk ? w : null} reconId={reconAsk?.id} onClose={close} />
+      <HandoverSheet workshop={sheet === 'handover' ? w : null} onClose={close} onProblem={() => setSheet('problem')} onRate={() => setSheet('rate')} />
+      <RatingSheet
+        workshop={sheet === 'rate' ? w : null}
+        onClose={() => {
+          close();
+          acknowledgeClosed(id);
+        }}
+      />
+      <ReceiptSheet workshop={sheet === 'receipt' ? w : null} onClose={close} />
       <ProblemSheet workshop={sheet === 'problem' ? w : null} onClose={close} />
       <WarrantySheet workshop={sheet === 'warranty' ? w : null} onClose={close} />
     </View>
@@ -185,6 +235,9 @@ const styles = themedStyles(() =>
     stage: { flex: 1, fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
     warranty: { fontSize: 10.5, fontFamily: FONTS.bodySemiBold, color: Colors.successText },
     note: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.warning, lineHeight: 17 },
+    links: { flexDirection: 'row', gap: 16, flexWrap: 'wrap' },
+    reviewBox: { padding: 10, borderRadius: 12, backgroundColor: Colors.subtleFill, gap: 3 },
+    replyLabel: { fontFamily: FONTS.bodySemiBold, color: Colors.primary },
     link: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
     label: { fontSize: 10.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, letterSpacing: 0.4 },
     sub: { flexShrink: 1, fontSize: 11, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 17 },

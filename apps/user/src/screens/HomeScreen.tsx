@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { View, ScrollView, Text, Pressable, StyleSheet, Linking } from 'react-native';
-import Svg, { Path } from 'react-native-svg';
 import { Colors, themedStyles } from '@ongarage/shared';
 import { FONTS } from '@ongarage/shared';
 import { MOCK_GARAGES } from '../constants/mockData';
@@ -10,12 +9,14 @@ import { AllServicesSheet } from '../components/AllServicesSheet';
 import { GarageCard } from '@ongarage/shared';
 import { Gradient, GRADIENTS, Pulse } from '@ongarage/shared';
 import { useUserLocation } from '../context/LocationContext';
+import { useNotice } from '../context/NoticeContext';
+import { GarageReviewsSheet } from '../components/GarageReviewsSheet';
 import { directionsUrl, distanceKm } from '@ongarage/shared';
 import type { Garage, ServiceCategory } from '@ongarage/shared';
 
 interface HomeScreenProps {
   onSOSPress: () => void;
-  onPostJob: (withBuddy: boolean) => void;
+  onPostJob: () => void;
   onServicePress: (service: ServiceCategory) => void;
   onBookGarage: (garage: Garage) => void;
 }
@@ -23,6 +24,8 @@ interface HomeScreenProps {
 export const HomeScreen: React.FC<HomeScreenProps> = ({ onSOSPress, onPostJob, onServicePress, onBookGarage }) => {
   const user = useUserLocation();
   const [allServices, setAllServices] = useState(false);
+  const [reviewsFor, setReviewsFor] = useState<Garage | null>(null);
+  const { notify } = useNotice();
   const featured = MOCK_GARAGES.map((g) => ({ ...g, distance: Number(distanceKm(user.coords, g.coords).toFixed(1)) })).sort(
     (a, b) => a.distance - b.distance
   )[0];
@@ -47,26 +50,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onSOSPress, onPostJob, o
           </Pressable>
         </Pressable>
 
-        {/* Problem Card */}
-        <Pressable
-          style={[styles.banner, styles.issueBanner]}
-          onPress={() => onPostJob(true)}
-        >
-          <Gradient stops={GRADIENTS.issue} />
-          <View style={styles.flex1}>
-            <Text style={styles.issueTitle}>ඔබගේ ගැටළුව අපට කියන්න</Text>
-            <Text style={styles.issueDesc}>වාහනයේ දෝෂය සටහන් කර විශේෂඥ උපදෙස් සහ ඇස්තමේන්තු ලබා ගන්න.</Text>
-          </View>
-          <View style={styles.issueIconBox}>
-            <Svg width={22} height={22} viewBox="0 0 24 24">
-              <Path
-                d="M20 2H4C2.9 2 2 2.9 2 4V22L6 18H20C21.1 18 22 17.1 22 16V4C22 2.9 21.1 2 20 2ZM20 16H6L4 18V4H20V16Z"
-                fill="#ffffff"
-              />
-            </Svg>
-          </View>
-        </Pressable>
-
         {/* Post Repair Bid Card */}
         <View style={styles.bidCard}>
           <Gradient stops={GRADIENTS.bid} />
@@ -76,7 +59,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onSOSPress, onPostJob, o
               ඔබේ වාහන දෝෂය සටහන් කර පිළිගත් ගරාජ කිහිපයකින් තරගකාරී මිල ගණන් ලබා ගන්න.
             </Text>
           </View>
-          <Pressable style={styles.bidBtn} onPress={() => onPostJob(false)}>
+          <Pressable style={styles.bidBtn} onPress={onPostJob}>
             <Gradient stops={GRADIENTS.cta} />
             <Text style={styles.bidBtnText}>＋</Text>
             <Text style={styles.bidBtnText}>නව අලුත්වැඩියා ඉල්ලීමක් කරන්න</Text>
@@ -116,9 +99,12 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onSOSPress, onPostJob, o
           onCall={() => Linking.openURL(`tel:${featured.phone.replace(/\s/g, '')}`)}
           onDirections={() => Linking.openURL(directionsUrl(featured.coords, user.coords))}
           onBook={() => onBookGarage(featured)}
+          onSaveChange={(saved) => notify({ icon: saved ? '♥' : '♡', title: saved ? 'සුරැකි ගරාජ වලට එක් කළා' : 'සුරැකි ලැයිස්තුවෙන් ඉවත් කළා', body: featured.name, tone: 'primary' })}
+          onReviews={() => setReviewsFor(featured)}
         />
       </ScrollView>
       <AllServicesSheet visible={allServices} onClose={() => setAllServices(false)} onSelect={onServicePress} />
+      <GarageReviewsSheet garage={reviewsFor} onClose={() => setReviewsFor(null)} />
     </View>
   );
 };
@@ -180,33 +166,6 @@ const styles = themedStyles(() => StyleSheet.create({
   },
   sosBtnEmoji: { fontSize: 16 },
   sosBtnText: { fontSize: 9.5, fontWeight: '900', color: '#dc2626', letterSpacing: 0.5 },
-  issueBanner: {
-    backgroundColor: '#0ea5e9',
-    shadowColor: '#2563eb',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    elevation: 6,
-  },
-  issueTitle: { fontSize: 15, fontFamily: FONTS.titleBold, color: '#fff', marginBottom: 3 },
-  issueDesc: { fontSize: 11, fontFamily: FONTS.bodyRegular, color: '#e0f2fe', lineHeight: 14.85 },
-  issueIconBox: {
-    width: 56,
-    height: 56,
-    backgroundColor: 'rgba(255, 255, 255, 0.12)',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.25)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    overflow: 'hidden',
-    shadowColor: 'rgba(255, 255, 255, 0.3)',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.2,
-    shadowRadius: 16,
-    elevation: 4,
-  },
-  issueIcon: { fontSize: 22 },
   bidCard: {
     backgroundColor: '#1e3a8a',
     borderWidth: 1,

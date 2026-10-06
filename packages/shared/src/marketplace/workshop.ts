@@ -68,6 +68,9 @@ export const linesToOrder = (p: WorkshopProgress) => approvedLines(p).filter((l)
  */
 export const partsStillToOrder = (p: WorkshopProgress, coveredLineIds: string[]) => linesToOrder(p).filter((l) => !coveredLineIds.includes(l.id));
 
+/** A Recon request the owner hasn't answered yet (handover waits for it). */
+export const pendingRecon = (p: WorkshopProgress) => (p.recon ?? []).find((r) => r.status === 'pending');
+
 /** Extra work sent mid-repair that the owner hasn't answered yet (handover waits for it). */
 export const pendingExtra = (p: WorkshopProgress) => (p.extras ?? []).find((x) => !x.decision);
 

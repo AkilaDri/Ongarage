@@ -8,9 +8,9 @@ const MIN = 60 * 1000;
 const HOUR = 60 * MIN;
 
 const BIDDING_GARAGES = [
-  { garageName: 'TOPCODE Tuning & Service', rating: 4.9, reviews: 120, distanceKm: 1.2, bearing: 300, warrantyMonths: 3, estHours: 1 },
-  { garageName: 'Apex Motors & Hybrid Hub', rating: 4.6, reviews: 45, distanceKm: 3.5, bearing: 40, warrantyMonths: 1, estHours: 2 },
-  { garageName: 'Lanka Auto Diagnostics', rating: 4.8, reviews: 76, distanceKm: 2.1, bearing: 160, warrantyMonths: 2, estHours: 3 },
+  { garageName: 'TOPCODE Tuning & Service', level: 'trusted' as const, rating: 4.9, reviews: 120, distanceKm: 1.2, bearing: 300, warrantyMonths: 3, estHours: 1 },
+  { garageName: 'Apex Motors & Hybrid Hub', level: 'verified' as const, rating: 4.6, reviews: 45, distanceKm: 3.5, bearing: 40, warrantyMonths: 1, estHours: 2 },
+  { garageName: 'Lanka Auto Diagnostics', level: 'verified' as const, rating: 4.8, reviews: 76, distanceKm: 2.1, bearing: 160, warrantyMonths: 2, estHours: 3 },
 ];
 
 const PRICE_FACTORS = [1.0, 0.82, 1.18];
@@ -22,6 +22,7 @@ const makeBid = (job: Pick<RepairJob, 'categoryId' | 'coords'>, index: number, s
   return {
     id: `bid-${submittedAt}-${index}`,
     garageName: g.garageName,
+    level: g.level,
     rating: g.rating,
     reviews: g.reviews,
     distanceKm: g.distanceKm,
@@ -34,7 +35,7 @@ const makeBid = (job: Pick<RepairJob, 'categoryId' | 'coords'>, index: number, s
 };
 
 const seedJobs = (now: number): RepairJob[] => {
-  const base = { sparePart: 'Genuine', doorstep: false, address: 'ගාල්ල', coords: DEFAULT_COORDS };
+  const base = { sparePart: 'Genuine' as const, doorstep: false, address: 'ගාල්ල', coords: DEFAULT_COORDS };
   const received: RepairJob = {
     ...base,
     id: 'job-seed-1',
@@ -140,7 +141,7 @@ export const BidsProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const job = live.current.find((j) => j.id === jobId);
       const bid = job?.bids.find((b) => b.id === bidId);
       // The winning garage takes the vehicle in and follows the workshop steps.
-      if (job && bid) startWorkshop({ id: jobId, garageName: bid.garageName, categoryId: job.categoryId, agreedPrice: bid.price, scheduledAt: Date.now(), doorstep: job.doorstep, warrantyMonths: bid.warrantyMonths });
+      if (job && bid) startWorkshop({ id: jobId, garageName: bid.garageName, categoryId: job.categoryId, agreedPrice: bid.price, scheduledAt: Date.now(), doorstep: job.doorstep, warrantyMonths: bid.warrantyMonths, vehicleId: job.vehicleId, partType: job.sparePart });
     },
     [startWorkshop]
   );

@@ -7,6 +7,8 @@ import { GarageCard } from '@ongarage/shared';
 import { GoogleMap } from '@ongarage/shared';
 import { Icon } from '@ongarage/shared';
 import { useUserLocation } from '../context/LocationContext';
+import { useNotice } from '../context/NoticeContext';
+import { GarageReviewsSheet } from '../components/GarageReviewsSheet';
 import { directionsUrl, distanceKm } from '@ongarage/shared';
 import type { Garage, ServiceCategory } from '@ongarage/shared';
 
@@ -25,6 +27,8 @@ interface ServiceBrowseScreenProps {
 
 export const ServiceBrowseScreen: React.FC<ServiceBrowseScreenProps> = ({ service, onClose, onBook }) => {
   const [searchText, setSearchText] = useState('');
+  const [reviewsFor, setReviewsFor] = useState<Garage | null>(null);
+  const { notify } = useNotice();
   const [selectedSub, setSelectedSub] = useState(0);
   const [mapHeight, setMapHeight] = useState(0);
   const [sheet, setSheet] = useState<SheetState>('collapsed');
@@ -267,11 +271,14 @@ export const ServiceBrowseScreen: React.FC<ServiceBrowseScreenProps> = ({ servic
                 onCall={() => Linking.openURL(`tel:${g.phone.replace(/\s/g, '')}`)}
                 onDirections={() => Linking.openURL(directionsUrl(g.coords, user.coords))}
                 onBook={() => onBook(g)}
+                onSaveChange={(saved) => notify({ icon: saved ? '♥' : '♡', title: saved ? 'සුරැකි ගරාජ වලට එක් කළා' : 'සුරැකි ලැයිස්තුවෙන් ඉවත් කළා', body: g.name, tone: 'primary' })}
+                onReviews={() => setReviewsFor(g)}
               />
             ))}
           </Animated.ScrollView>
         </Animated.View>
       </View>
+      <GarageReviewsSheet garage={reviewsFor} onClose={() => setReviewsFor(null)} />
     </SafeAreaView>
   );
 };

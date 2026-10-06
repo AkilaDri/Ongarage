@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Colors, themedStyles } from '@ongarage/shared';
+import { Colors, LevelBadge, themedStyles } from '@ongarage/shared';
 import { FONTS } from '@ongarage/shared';
 import { SERVICE_CATEGORIES } from '@ongarage/shared';
 import { useVehicles } from '../context/VehiclesContext';
@@ -107,6 +107,7 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, onPost
         <View style={styles.rowBetween}>
           <View style={styles.flex1}>
             <Text style={styles.cardTitle}>{bid.garageName}</Text>
+            {!!bid.level && <LevelBadge level={bid.level} compact />}
             <Text style={styles.cardSub}>
               ★ {bid.rating.toFixed(1)} ({bid.reviews}) · 📍 කි.මී. {bid.distanceKm} · {ago(now - bid.submittedAt)}
             </Text>

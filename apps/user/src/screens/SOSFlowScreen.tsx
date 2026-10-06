@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Easing, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle, Line } from 'react-native-svg';
-import { CloseCode, Colors, makeCloseCode, themedStyles } from '@ongarage/shared';
+import { CloseCode, Colors, makeCloseCode, RATING_DIMENSIONS, themedStyles, type DimensionRating } from '@ongarage/shared';
 import { FONTS } from '@ongarage/shared';
 import { useVehicles } from '../context/VehiclesContext';
 import { BREAKDOWN_TYPES } from '@ongarage/shared';
@@ -159,6 +159,9 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
   const [repairP, setRepairP] = useState(0);
   const [rating, setRating] = useState(0);
   const [submitted, setSubmitted] = useState(false);
+  // The garage is rated on the same four dimensions as a workshop job (its trust score).
+  const [dims, setDims] = useState<DimensionRating>({ quality: 0, pricing: 0, onTime: 0, communication: 0 });
+  const dimsDone = RATING_DIMENSIONS.every((d) => dims[d.id] > 0);
   const [reward, setReward] = useState(REWARDS[0]);
   const [showCancel, setShowCancel] = useState(false);
   const [showVehiclePicker, setShowVehiclePicker] = useState(false);
@@ -783,6 +786,22 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
         <Text style={[styles.detailStrong, { color: rating >= 4 ? Colors.success : Colors.textMuted }]}>{ratingLabel(rating)}</Text>
       </View>
 
+      <View style={styles.card}>
+        <Text style={styles.detailStrong}>🛠️ {job.name} — ගරාජය</Text>
+        {RATING_DIMENSIONS.map((d) => (
+          <View key={d.id} style={styles.rowBetween}>
+            <Text style={styles.detailText}>{d.label}</Text>
+            <View style={styles.dimStars}>
+              {[1, 2, 3, 4, 5].map((n) => (
+                <Pressable key={n} onPress={() => !submitted && setDims((p) => ({ ...p, [d.id]: n }))} hitSlop={4} accessibilityLabel={`Rate ${d.id} ${n}`}>
+                  <Text style={[styles.dimStar, dims[d.id] >= n && styles.dimStarOn]}>★</Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+        ))}
+      </View>
+
       {submitted && (
         <Animated.View style={[styles.rewardCard, { transform: [{ scale: rewardScale }] }]}>
           <Gradient stops={GRADIENTS.brand} />
@@ -841,7 +860,7 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
         );
       case 'rating':
         return submitted ? null : (
-          <ActionButton label="ශ්‍රේණිගත කිරීම යවන්න" icon="✓" variant="primary" disabled={rating === 0} onPress={submitRating} />
+          <ActionButton label="ශ්‍රේණිගත කිරීම යවන්න" icon="✓" variant="primary" disabled={rating === 0 || !dimsDone} onPress={submitRating} />
         );
       default:
         return null;
@@ -1150,4 +1169,7 @@ const styles = themedStyles(() => StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: Colors.borderColor,
   },
+  dimStars: { flexDirection: 'row', gap: 3 },
+  dimStar: { fontSize: 20, color: Colors.subtleBorder },
+  dimStarOn: { color: Colors.warning },
 }));

@@ -21,6 +21,8 @@ export const PublicProfileSheet: React.FC<{ visible: boolean; onClose: () => voi
     address: profile.address,
     coords: profile.coords,
     reviews_text: reviews[0]?.text,
+    // The latest review with your public reply, as owners see it on your card.
+    recentReviews: reviews.slice(0, 3),
     photos: profile.photos,
   };
 

@@ -6,13 +6,19 @@ import {
   newWorkshopProgress,
   partMarketPrice,
   pendingExtra,
+  pendingRecon,
+  RATING_DIMENSIONS,
   STANDARD_HANDOVER_CHECKS,
   warrantyEnd,
   workshopBill,
   type DiagnosisLine,
   type DiagnosisReport,
   type Dispute,
+  type DimensionRating,
   type DisputeTopic,
+  type GarageReview,
+  type PartType,
+  type ReconRequest,
   type ExtraWorkRequest,
   type WorkshopProgress,
 } from '@ongarage/shared';
@@ -29,6 +35,18 @@ const REPAIR_MS = 8000;
 const SCAN_MS = 5000;
 const REWORK_MS = 4000;
 const CLAIM_REPLY_MS = 5000;
+const RECON_ASK_MS = 2500;
+const REVIEW_REPLY_MS = 6000;
+const DAY = 24 * HOUR;
+
+/** The receipt number printed on a closed job (a backend would issue these). */
+const receiptNo = (closedAt: number, code: string) => {
+  const d = new Date(closedAt);
+  return `OG-${String(d.getFullYear()).slice(2)}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}-${code.slice(0, 4)}`;
+};
+
+/** Overall stars from the four dimensions, weighted like the trust score. */
+export const overallFrom = (d: DimensionRating) => Math.round(RATING_DIMENSIONS.reduce((s, x) => s + d[x.id] * x.weight, 0) * 10) / 10;
 
 /** One workshop job the owner follows: a confirmed direct booking or an accepted bid. */
 export type OwnerWorkshop = {
@@ -42,11 +60,24 @@ export type OwnerWorkshop = {
   doorstep: boolean;
   warrantyMonths: number;
   progress: WorkshopProgress;
+  /** Shown in history when it isn't the category name (e.g. a past job). */
+  title?: string;
+  icon?: string;
+  vehicleId?: string;
+  /** The part type the owner asked for (bids); Genuine may need a Recon approval. */
+  partType?: PartType;
+  /** Who did the work (the garage assigns them; rated separately). */
+  technician?: string;
   /** The owner saw the job close (it then moves to their completed list). */
   acknowledged?: boolean;
+  receiptNo?: string;
+  /** The owner's review, and later the garage's public reply. */
+  review?: GarageReview;
 };
 
-export type WorkshopStart = Omit<OwnerWorkshop, 'progress' | 'warrantyMonths' | 'acknowledged'> & { warrantyMonths?: number };
+export type WorkshopStart = Omit<OwnerWorkshop, 'progress' | 'warrantyMonths' | 'acknowledged' | 'receiptNo' | 'review' | 'technician'> & { warrantyMonths?: number };
+
+export type RatingInput = { dimensions: DimensionRating; technician?: number; text: string };
 
 type WorkshopState = {
   workshops: Record<string, OwnerWorkshop>;
@@ -56,6 +87,10 @@ type WorkshopState = {
   approveDiagnosis: (id: string, approvedLineIds: string[]) => void;
   /** Answer extra work the garage found mid-repair (none approved = carry on without it). */
   decideExtra: (id: string, extraId: string, approvedLineIds: string[]) => void;
+  /** Genuine unavailable: allow Recon (cheaper) or wait for Genuine. */
+  decideRecon: (id: string, reconId: string, approve: boolean) => void;
+  /** Rate a closed job: the garage on four dimensions, and the technician. */
+  rateJob: (id: string, input: RatingInput) => void;
   /** Decline the diagnosis: the job ends and only the inspection fee is due. */
   declineDiagnosis: (id: string) => void;
   /** The owner opened their code at handover; the garage scans it (simulated). */
@@ -83,7 +118,9 @@ const findingFor = (categoryId: string) => FINDINGS[categoryId] ?? { findings: '
 
 const simulatedDiagnosis = (w: OwnerWorkshop): DiagnosisReport => {
   const f = findingFor(w.categoryId);
-  const lines: DiagnosisLine[] = [{ id: `${w.id}-l1`, kind: 'part', name: f.part, qty: 1, partType: 'OEM', source: 'order', price: partMarketPrice(f.part, 'OEM') }];
+  // The garage quotes the type the owner asked for (garage's choice → OEM).
+  const t: PartType = w.partType && w.partType !== 'GarageChoice' ? w.partType : 'OEM';
+  const lines: DiagnosisLine[] = [{ id: `${w.id}-l1`, kind: 'part', name: f.part, qty: 1, partType: t, source: 'order', price: partMarketPrice(f.part, t) }];
   if (f.labour) lines.push({ id: `${w.id}-l2`, kind: 'labour', name: f.labour[0], qty: 1, price: f.labour[1] });
   return {
     findings: f.findings,
@@ -95,6 +132,76 @@ const simulatedDiagnosis = (w: OwnerWorkshop): DiagnosisReport => {
   };
 };
 
+/** Who the simulated garage puts on the job. */
+const technicianFor = (garageName: string) => (garageName.startsWith('TOPCODE') ? 'කසුන් ජයසිංහ' : garageName.startsWith('Speed Works') ? 'රුවන් පෙරේරා' : 'චමින්ද සිල්වා');
+
+/** Past jobs (closed with the owner's code), for history, receipts and warranty. */
+const pastJob = (o: {
+  id: string;
+  title: string;
+  icon: string;
+  garageName: string;
+  categoryId: string;
+  vehicleId: string;
+  daysAgo: number;
+  warrantyMonths: number;
+  labour: number;
+  parts: { name: string; type: PartType; price: number }[];
+  review?: GarageReview;
+}): OwnerWorkshop => {
+  const closedAt = Date.now() - o.daysAgo * DAY;
+  const base = newWorkshopProgress();
+  const lines: DiagnosisLine[] = o.parts.map((p, i) => ({ id: `${o.id}-p${i}`, kind: 'part', name: p.name, qty: 1, partType: p.type, source: 'stock', price: p.price }));
+  const progress: WorkshopProgress = {
+    ...base,
+    stage: 'closed',
+    receivedAt: closedAt - 5 * HOUR,
+    diagnosis: { findings: o.title, lines, revisedTotal: o.labour + lines.reduce((s, l) => s + l.price, 0), finishBy: closedAt, sentAt: closedAt - 4 * HOUR },
+    decision: { approvedLineIds: lines.map((l) => l.id), declinedLineIds: [], decidedAt: closedAt - 4 * HOUR },
+    closedAt,
+    warrantyUntil: warrantyEnd(closedAt, o.warrantyMonths),
+  };
+  const bill = workshopBill(o.labour, progress);
+  progress.handover = {
+    checklist: [...lines.map((l) => l.name), ...STANDARD_HANDOVER_CHECKS].map((label) => ({ label, done: true })),
+    oldPartsKept: true,
+    bill,
+    readyAt: closedAt - 30 * MIN,
+  };
+  return {
+    id: o.id,
+    title: o.title,
+    icon: o.icon,
+    garageName: o.garageName,
+    categoryId: o.categoryId,
+    vehicleId: o.vehicleId,
+    agreedPrice: o.labour,
+    scheduledAt: closedAt - 6 * HOUR,
+    doorstep: false,
+    warrantyMonths: o.warrantyMonths,
+    technician: technicianFor(o.garageName),
+    progress,
+    acknowledged: true,
+    receiptNo: receiptNo(closedAt, base.closeCode),
+    review: o.review,
+  };
+};
+
+const HISTORY: OwnerWorkshop[] = [
+  pastJob({
+    id: 'h1', title: 'සම්පූර්ණ සින්තටික් ඔයිල් මාරුව', icon: '🛢️', garageName: 'AutoTech Motors', categoryId: '1', vehicleId: 'premio',
+    daysAgo: 24, warrantyMonths: 3, labour: 4650, parts: [{ name: 'Engine oil 4L', type: 'Genuine', price: 8200 }, { name: 'Oil filter', type: 'Genuine', price: 1650 }],
+    review: {
+      id: 'rv-h1', customer: 'Akila Drishan', rating: 4.6, dimensions: { quality: 5, pricing: 4, onTime: 5, communication: 4 }, technician: { name: 'චමින්ද සිල්වා', rating: 5 },
+      text: 'ඉක්මනින් කළා, පරණ ෆිල්ටරය පෙන්නුවා.', at: Date.now() - 23 * DAY, reply: { text: 'ස්තූතියි! ඊළඟ සේවාව කි.මී. 5,000න්.', at: Date.now() - 22 * DAY },
+    },
+  }),
+  pastJob({
+    id: 'h2', title: 'ඉදිරි බ්‍රේක් පෑඩ් මාරු කිරීම', icon: '🛑', garageName: 'City Brake Center', categoryId: '7', vehicleId: 'premio',
+    daysAgo: 62, warrantyMonths: 1, labour: 2400, parts: [{ name: 'Brake pads (front)', type: 'OEM', price: 5800 }],
+  }),
+];
+
 /** Seed: a direct booking (see BookingsContext) whose diagnosis waits for the owner. */
 export const SEED_WORKSHOP_ID = 'db-seed';
 const seedWorkshop = (): OwnerWorkshop => {
@@ -102,11 +209,13 @@ const seedWorkshop = (): OwnerWorkshop => {
     id: SEED_WORKSHOP_ID,
     garageName: MOCK_GARAGES[3].name,
     categoryId: '7',
+    vehicleId: 'premio',
     agreedPrice: 3800,
     scheduledAt: Date.now() - 2 * HOUR,
     doorstep: false,
     warrantyMonths: DEFAULT_WARRANTY_MONTHS,
     progress: newWorkshopProgress(),
+    technician: technicianFor(MOCK_GARAGES[3].name),
   };
   return {
     ...base,
@@ -127,7 +236,10 @@ const seedWorkshop = (): OwnerWorkshop => {
  */
 export const WorkshopProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { notify } = useNotice();
-  const [workshops, setWorkshops] = useState<Record<string, OwnerWorkshop>>(() => ({ [SEED_WORKSHOP_ID]: seedWorkshop() }));
+  const [workshops, setWorkshops] = useState<Record<string, OwnerWorkshop>>(() => ({
+    [SEED_WORKSHOP_ID]: seedWorkshop(),
+    ...Object.fromEntries(HISTORY.map((h) => [h.id, h])),
+  }));
   const live = useRef(workshops);
   live.current = workshops;
 
@@ -142,6 +254,10 @@ export const WorkshopProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setWorkshops((prev) => (prev[id] ? { ...prev, [id]: { ...prev[id], progress: { ...prev[id].progress, ...change } } } : prev)),
     []
   );
+  const patchJob = useCallback(
+    (id: string, change: Partial<OwnerWorkshop>) => setWorkshops((prev) => (prev[id] ? { ...prev, [id]: { ...prev[id], ...change } } : prev)),
+    []
+  );
   const stageOf = (id: string) => live.current[id]?.progress.stage;
 
   /** Simulated garage: repair, then hand over with a report and the bill. */
@@ -149,7 +265,7 @@ export const WorkshopProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     (id: string) => {
       later(() => {
         const w = live.current[id];
-        if (!w || w.progress.stage !== 'repairing' || pendingExtra(w.progress)) return;
+        if (!w || w.progress.stage !== 'repairing' || pendingExtra(w.progress) || pendingRecon(w.progress)) return;
         // Simulated garage: on the seeded brake job it finds the discs scored, once.
         if (w.id === SEED_WORKSHOP_ID && !w.progress.extras?.length && !w.progress.dispute) {
           const extra: ExtraWorkRequest = {
@@ -205,12 +321,13 @@ export const WorkshopProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       later(() => {
         if (stageOf(w.id) !== 'booked') return;
         patch(w.id, { stage: 'diagnosing', receivedAt: Date.now(), checkInPhotos: SAMPLE_UPLOAD_PHOTOS.slice(1) });
+        patchJob(w.id, { technician: technicianFor(w.garageName) });
         notify({ icon: '🚗', title: `${w.garageName}: වාහනය ලැබුණා`, body: w.doorstep ? 'ගරාජය ඔබ වෙත පැමිණ පරීක්ෂාව ඇරඹුවා.' : 'තත්ත්වයේ ඡායාරූප ගෙන පරීක්ෂාව ඇරඹුවා.', tone: 'primary' });
         diagnose(w.id);
       }, Math.max(0, w.scheduledAt - Date.now()) + RECEIVE_MS);
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [diagnose, later, notify, patch]
+    [diagnose, later, notify, patch, patchJob]
   );
 
   const approveDiagnosis = useCallback(
@@ -220,9 +337,78 @@ export const WorkshopProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const declinedLineIds = w.progress.diagnosis.lines.map((l) => l.id).filter((x) => !approvedLineIds.includes(x));
       patch(id, { stage: 'repairing', decision: { approvedLineIds, declinedLineIds, decidedAt: Date.now() } });
       notify({ icon: '✅', title: 'අනුමැතිය යැව්වා', body: `${w.garageName} අලුත්වැඩියාව අරඹයි${approvedLineIds.length ? ' — අවශ්‍ය කොටස් දැන් ඇණවුම් කරයි' : ''}.`, tone: 'success' });
+      // Simulated garage: the owner asked for Genuine and the shops have none → ask for Recon.
+      const genuine = w.progress.diagnosis.lines.find((l) => approvedLineIds.includes(l.id) && l.kind === 'part' && l.source === 'order' && l.partType === 'Genuine');
+      if (w.partType === 'Genuine' && genuine)
+        later(() => {
+          const cur = live.current[id];
+          if (cur?.progress.stage !== 'repairing' || cur.progress.recon?.length) return;
+          const ask: ReconRequest = {
+            id: `rc-${id}`,
+            lineIds: [genuine.id],
+            partNames: [genuine.name],
+            genuinePrice: genuine.price,
+            reconPrice: partMarketPrice(genuine.name, 'Recon') * genuine.qty,
+            askedAt: Date.now(),
+            status: 'pending',
+          };
+          patch(id, { recon: [ask] });
+          notify({ icon: '📲', title: `${cur.garageName}: Genuine නොමැත`, body: `${genuine.name} — Recon යෙදීමට ඔබගේ අවසරය ඉල්ලයි.`, tone: 'primary' });
+        }, RECON_ASK_MS);
+      repairThenHandover(id);
+    },
+    [later, notify, patch, repairThenHandover]
+  );
+
+  const decideRecon = useCallback(
+    (id: string, reconId: string, approve: boolean) => {
+      const w = live.current[id];
+      const r = w?.progress.recon?.find((x) => x.id === reconId);
+      if (!w || !r || r.status !== 'pending') return;
+      const recon = w.progress.recon!.map((x) => (x.id === reconId ? { ...x, status: approve ? ('approved' as const) : ('declined' as const), decidedAt: Date.now() } : x));
+      // Approved: the line becomes Recon at the Recon price, so the bill drops.
+      const swap = (lines: DiagnosisLine[]) => lines.map((l) => (approve && r.lineIds.includes(l.id) ? { ...l, partType: 'Recon' as const, price: r.reconPrice } : l));
+      patch(id, {
+        recon,
+        diagnosis: w.progress.diagnosis ? { ...w.progress.diagnosis, lines: swap(w.progress.diagnosis.lines) } : undefined,
+        extras: w.progress.extras?.map((x) => ({ ...x, lines: swap(x.lines) })),
+      });
+      notify(
+        approve
+          ? { icon: '✅', title: 'Recon අනුමත කළා', body: `රු. ${(r.genuinePrice - r.reconPrice).toLocaleString()} ක් අඩු වේ · ${w.garageName} අලුත්වැඩියාව කරගෙන යයි.`, tone: 'success' }
+          : { icon: '⏳', title: 'Genuine බලාපොරොත්තුවෙන්', body: `${w.garageName} Genuine සොයා ගනී — අමතර දිනයක් ගත විය හැක.`, tone: 'primary' }
+      );
       repairThenHandover(id);
     },
     [notify, patch, repairThenHandover]
+  );
+
+  const rateJob = useCallback(
+    (id: string, input: RatingInput) => {
+      const w = live.current[id];
+      if (!w || w.progress.stage !== 'closed' || w.review) return;
+      const rating = overallFrom(input.dimensions);
+      const review: GarageReview = {
+        id: `rv-${id}`,
+        customer: 'Akila Drishan',
+        rating,
+        dimensions: input.dimensions,
+        technician: w.technician && input.technician ? { name: w.technician, rating: input.technician } : undefined,
+        text: input.text,
+        at: Date.now(),
+      };
+      patchJob(id, { review });
+      notify({ icon: '⭐', title: 'ශ්‍රේණිගත කිරීමට ස්තූතියි', body: `${w.garageName} · ★${rating}`, tone: 'success' });
+      // Simulated garage: a public reply under the review.
+      later(() => {
+        const cur = live.current[id]?.review;
+        if (!cur || cur.reply) return;
+        const text = rating >= 4 ? 'ස්තූතියි! ඔබව නැවත පිළිගැනීමට සතුටුයි.' : 'සමාවෙන්න — ඔබගේ අදහස සලකා බලා අපි වැඩිදියුණු කරනවා. කරුණාකර අපිව අමතන්න.';
+        patchJob(id, { review: { ...cur, reply: { text, at: Date.now() } } });
+        notify({ icon: '💬', title: `${w.garageName} පිළිතුරු දුන්නා`, body: text, tone: 'primary' });
+      }, REVIEW_REPLY_MS);
+    },
+    [later, notify, patchJob]
   );
 
   const decideExtra = useCallback(
@@ -259,6 +445,7 @@ export const WorkshopProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         const w = live.current[id];
         if (!w || w.progress.stage !== 'readyForHandover') return;
         const now = Date.now();
+        patchJob(id, { receiptNo: receiptNo(now, w.progress.closeCode) });
         patch(id, {
           stage: 'closed',
           closedAt: now,
@@ -268,7 +455,7 @@ export const WorkshopProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         notify({ icon: '🎉', title: 'රැකියාව අවසන්', body: `${w.garageName} ඔබගේ කේතය තහවුරු කළා · මාස ${w.warrantyMonths} වගකීම ආරම්භ විය.`, tone: 'success' });
       }, SCAN_MS);
     },
-    [later, notify, patch]
+    [later, notify, patch, patchJob]
   );
 
   const acknowledgeClosed = useCallback(
@@ -324,7 +511,7 @@ export const WorkshopProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   );
 
   return (
-    <WorkshopContext.Provider value={{ workshops, startWorkshop, approveDiagnosis, decideExtra, declineDiagnosis, showCloseCode, acknowledgeClosed, reportProblem, escalate, claimWarranty }}>
+    <WorkshopContext.Provider value={{ workshops, startWorkshop, approveDiagnosis, decideExtra, decideRecon, rateJob, declineDiagnosis, showCloseCode, acknowledgeClosed, reportProblem, escalate, claimWarranty }}>
       {children}
     </WorkshopContext.Provider>
   );

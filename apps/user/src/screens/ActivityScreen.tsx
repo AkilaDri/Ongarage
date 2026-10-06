@@ -2,8 +2,7 @@ import React, { useState } from 'react';
 import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Colors, themedStyles } from '@ongarage/shared';
 import { FONTS } from '@ongarage/shared';
-import { MOCK_SERVICE_HISTORY } from '../constants/mockData';
-import { SERVICE_CATEGORIES } from '@ongarage/shared';
+import { categoryInfo, SERVICE_CATEGORIES } from '@ongarage/shared';
 import { useVehicles } from '../context/VehiclesContext';
 import { EmptyState, GlassIcon, SwipeCard } from '@ongarage/shared';
 import { OwnerDetailView, type OwnerDetailTarget } from '../components/OwnerDetailView';
@@ -94,14 +93,18 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
     );
   };
 
-  const totalSpent = MOCK_SERVICE_HISTORY.reduce((sum, h) => sum + h.price, 0);
+  // Past jobs with no booking / post in this session: closed workshop records (receipts, warranty).
+  const history = Object.values(workshops)
+    .filter((w) => w.progress.stage === 'closed' && w.acknowledged && !bookings.some((b) => b.id === w.id) && !jobs.some((j) => j.id === w.id))
+    .sort((a, b) => (b.progress.closedAt ?? 0) - (a.progress.closedAt ?? 0));
+  const totalSpent = Object.values(workshops).reduce((s, w) => s + (w.progress.stage === 'closed' ? (w.progress.handover?.bill.total ?? 0) : 0), 0);
 
   return (
     <View style={styles.container}>
       <ScrollView style={styles.flex1} contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
         <View style={styles.statsRow}>
           <Stat value={String(ongoing.length + liveBookings.length)} label="දැනට පවතින" color={Colors.warning} />
-          <Stat value={String(MOCK_SERVICE_HISTORY.length + doneBookings.length + doneJobs.length)} label="සම්පූර්ණ කළ" color={Colors.success} />
+          <Stat value={String(history.length + doneBookings.length + doneJobs.length)} label="සම්පූර්ණ කළ" color={Colors.success} />
           <Stat value={money(totalSpent)} label="මුළු වියදම" color={Colors.primary} />
         </View>
 
@@ -124,22 +127,26 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
         <Text style={styles.sectionLabel}>සම්පූර්ණ කළ සේවා</Text>
         {doneBookings.map(bookingCard)}
         {doneJobs.map(({ job, bid }) => bidCard(job, bid))}
-        {MOCK_SERVICE_HISTORY.map((h) => (
-          <View key={h.id} style={[styles.card, styles.row]}>
-            <GlassIcon emoji={h.icon} />
-            <View style={styles.flex1}>
-              <Text style={styles.title}>{h.title}</Text>
-              <Text style={styles.sub}>
-                {h.garage} · {formatDate(new Date(h.date))}
-              </Text>
-              <Text style={styles.sub}>{vehicleName(h.vehicleId)}</Text>
-            </View>
-            <View style={styles.right}>
-              <Text style={styles.price}>{money(h.price)}</Text>
-              <View style={[styles.status, styles.statusDone]}>
-                <Text style={[styles.statusText, { color: Colors.success }]}>✓ සම්පූර්ණයි</Text>
+        {history.map((w) => (
+          <View key={w.id} style={styles.card}>
+            <View style={styles.row}>
+              <GlassIcon emoji={w.icon ?? categoryInfo(w.categoryId).icon} />
+              <View style={styles.flex1}>
+                <Text style={styles.title}>{w.title ?? categoryInfo(w.categoryId).name}</Text>
+                <Text style={styles.sub}>
+                  {w.garageName} · {formatDate(new Date(w.progress.closedAt ?? 0))}
+                </Text>
+                {!!w.vehicleId && <Text style={styles.sub}>{vehicleName(w.vehicleId)}</Text>}
+              </View>
+              <View style={styles.right}>
+                <Text style={styles.price}>{money(w.progress.handover?.bill.total ?? 0)}</Text>
+                <View style={[styles.status, styles.statusDone]}>
+                  <Text style={[styles.statusText, { color: Colors.success }]}>✓ සම්පූර්ණයි</Text>
+                </View>
               </View>
             </View>
+            <View style={styles.divider} />
+            <WorkshopTracker id={w.id} />
           </View>
         ))}
       </ScrollView>

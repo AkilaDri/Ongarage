@@ -1,5 +1,7 @@
+import type { PartType } from '@ongarage/shared';
+
 // Labels shared by the owner app's forms and detail views.
-export const SPARE_PARTS = [
+export const SPARE_PARTS: { id: PartType; label: string }[] = [
   { id: 'Genuine', label: 'ජෙනුයින් (Original)' },
   { id: 'OEM', label: 'OEM / Aftermarket' },
   { id: 'Recon', label: 'රීකන්ඩිෂන්' },

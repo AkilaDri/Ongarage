@@ -1,4 +1,14 @@
-import type { Vehicle, Garage, ServiceCategory, Mechanic, LatLng, PickedLocation } from '@ongarage/shared';
+import type { Vehicle, Garage, GarageReview, ServiceCategory, Mechanic, LatLng, PickedLocation } from '@ongarage/shared';
+
+const DAY = 24 * 60 * 60 * 1000;
+const review = (id: string, customer: string, rating: number, text: string, daysAgo: number, reply?: string): GarageReview => ({
+  id,
+  customer,
+  rating,
+  text,
+  at: Date.now() - daysAgo * DAY,
+  reply: reply ? { text: reply, at: Date.now() - (daysAgo - 0.5) * DAY } : undefined,
+});
 
 export const DEFAULT_COORDS: LatLng = { latitude: 6.0329, longitude: 80.2168 };
 
@@ -9,21 +19,6 @@ export const MOCK_USER = {
   city: 'ගාල්ල',
   phone: '+94 77 123 4567',
 };
-
-export type ServiceRecord = {
-  id: string;
-  icon: string;
-  title: string;
-  garage: string;
-  vehicleId: string;
-  date: string;
-  price: number;
-};
-
-export const MOCK_SERVICE_HISTORY: ServiceRecord[] = [
-  { id: 'h1', icon: '🛢️', title: 'සම්පූර්ණ සින්තටික් ඔයිල් මාරුව', garage: 'AutoTech Motors', vehicleId: 'premio', date: '2026-09-12', price: 14500 },
-  { id: 'h2', icon: '🛑', title: 'ඉදිරි බ්‍රේක් පෑඩ් මාරු කිරීම', garage: 'City Brake Center', vehicleId: 'premio', date: '2026-08-05', price: 8200 },
-];
 
 export const MOCK_VEHICLES: Vehicle[] = [
   { id: 'premio', name: 'Premio', plate: 'CAD-8821', type: 'Sedan' },
@@ -50,6 +45,12 @@ export const MOCK_GARAGES: Garage[] = [
   {
     id: '1',
     name: 'TOPCODE Tuning & Service',
+    level: 'trusted',
+    dimensions: { quality: 4.9, pricing: 4.6, onTime: 4.8, communication: 4.9 },
+    recentReviews: [
+      review('t1', 'දිනේෂ් කුමාර', 5, 'ECU error එක හරියටම හොයලා හදා දුන්නා. පරණ කොටස් පෙන්නුවා.', 3, 'ස්තූතියි දිනේෂ්! ඕනෑම වෙලාවක එන්න.'),
+      review('t2', 'නදීශා විජේසිංහ', 4, 'වැඩේ හොඳයි, ටිකක් පරක්කු වුණා.', 9, 'සමාවෙන්න — කොටස් ප්‍රමාද වුණා. ඊළඟ පාර කලින් දන්වනවා.'),
+    ],
     specialization: 'ECU Remapping & Performance',
     rating: 5.0,
     reviews: 89,
@@ -64,6 +65,9 @@ export const MOCK_GARAGES: Garage[] = [
   {
     id: '2',
     name: 'Apex Motors & Hybrid Hub',
+    level: 'verified',
+    dimensions: { quality: 4.8, pricing: 4.7, onTime: 4.5, communication: 4.6 },
+    recentReviews: [review('a1', 'ලහිරු බණ්ඩාර', 5, 'හයිබ්‍රිඩ් බැටරි ගැටලුව ඉක්මනින් හැදුවා, මිලත් සාධාරණයි.', 5)],
     specialization: 'Hybrid Inverter & ABS Repairs',
     rating: 4.9,
     reviews: 124,
@@ -78,6 +82,9 @@ export const MOCK_GARAGES: Garage[] = [
   {
     id: '3',
     name: 'Lanka Auto Diagnostics',
+    level: 'verified',
+    dimensions: { quality: 4.7, pricing: 4.5, onTime: 4.6, communication: 4.4 },
+    recentReviews: [review('l1', 'ශෙහාන් ගුණවර්ධන', 4, 'Wiring fault එක අල්ලා ගත්තා. බිල ටිකක් වැඩියි.', 7, 'අමතර පරීක්ෂාවක් කළ නිසා — රිසිට්පතේ විස්තරය තියෙනවා.')],
     specialization: 'Advanced Scan & Wiring',
     rating: 4.8,
     reviews: 76,
@@ -92,6 +99,9 @@ export const MOCK_GARAGES: Garage[] = [
   {
     id: '4',
     name: 'Speed Works Garage',
+    level: 'registered',
+    dimensions: { quality: 4.6, pricing: 4.4, onTime: 4.3, communication: 4.5 },
+    recentReviews: [review('s1', 'කවිෂා රත්නායක', 5, 'විශ්වාසවන්ත තැනක්. ඩිස්ක් කැපී ඇති බව ඡායාරූපයෙන් පෙන්නුවා.', 12)],
     specialization: 'Engine Overhaul & Tuning',
     rating: 4.8,
     reviews: 95,

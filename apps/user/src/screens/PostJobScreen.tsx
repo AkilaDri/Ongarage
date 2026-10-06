@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, themedStyles } from '@ongarage/shared';
 import { FONTS } from '@ongarage/shared';
 import { MOCK_GARAGES } from '../constants/mockData';
-import { SERVICE_CATEGORIES } from '@ongarage/shared';
+import { SERVICE_CATEGORIES, type PartType } from '@ongarage/shared';
 import { useVehicles } from '../context/VehiclesContext';
 import { VehiclePicker } from '../components/Header';
 import { GoogleMap } from '@ongarage/shared';
@@ -139,14 +139,13 @@ type BuddyMode = 'idle' | 'input' | 'analyzing' | 'questions' | 'result';
 
 interface PostJobScreenProps {
   draft: JobDraft | null;
-  openBuddy?: boolean;
   defaultVehicleId: string;
   onClose: () => void;
   onSubmitted: () => void;
   onOpenSOS: () => void;
 }
 
-export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, openBuddy, defaultVehicleId, onClose, onSubmitted, onOpenSOS }) => {
+export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, defaultVehicleId, onClose, onSubmitted, onOpenSOS }) => {
   const user = useUserLocation();
   const { postJob } = useBids();
   const { findVehicle } = useVehicles();
@@ -154,7 +153,7 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, openBuddy, 
   const [categoryId, setCategoryId] = useState<string | null>(draft?.categoryId ?? null);
   const [description, setDescription] = useState(draft?.description ?? '');
   // Republishing keeps the fault details but asks for parts and timer again.
-  const [sparePart, setSparePart] = useState<string | null>(null);
+  const [sparePart, setSparePart] = useState<PartType | null>(null);
   const [biddingHours, setBiddingHours] = useState<number | null>(null);
   const [doorstep, setDoorstep] = useState(false);
   const [showVehiclePicker, setShowVehiclePicker] = useState(false);
@@ -162,7 +161,7 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, openBuddy, 
   const [voiceNotes, setVoiceNotes] = useState<VoiceNote[]>([]);
   const vehicleRef = useRef<View>(null);
 
-  const [buddy, setBuddy] = useState<BuddyMode>(openBuddy ? 'input' : 'idle');
+  const [buddy, setBuddy] = useState<BuddyMode>('idle');
   const [buddyInput, setBuddyInput] = useState('');
   const [listening, setListening] = useState(false);
   const [profile, setProfile] = useState<Profile | null>(null);

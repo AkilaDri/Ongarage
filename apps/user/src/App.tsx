@@ -84,7 +84,7 @@ function AppShell() {
   const [sosLocation, setSOSLocation] = useState<PickedLocation | null>(null);
   const [selectedVehicle, setSelectedVehicle] = useState('premio');
   const [selectedService, setSelectedService] = useState<ServiceCategory | null>(null);
-  const [postJob, setPostJob] = useState<{ draft: JobDraft | null; buddy: boolean } | null>(null);
+  const [postJob, setPostJob] = useState<{ draft: JobDraft | null } | null>(null);
   const [bidsTab, setBidsTab] = useState<BidsTab>('received');
   // Booking a garage directly (from Home, a service list, or "book again").
   const [booking, setBooking] = useState<{ garage: Garage; categoryId?: string } | null>(null);
@@ -112,7 +112,7 @@ function AppShell() {
         {activeTab === 'home' ? (
           <HomeScreen
             onSOSPress={() => setSOSStage('map')}
-            onPostJob={(buddy) => setPostJob({ draft: null, buddy })}
+            onPostJob={() => setPostJob({ draft: null })}
             onServicePress={setSelectedService}
             onBookGarage={(garage) => setBooking({ garage })}
           />
@@ -120,8 +120,8 @@ function AppShell() {
           <BidsScreen
             tab={bidsTab}
             onTabChange={setBidsTab}
-            onPostJob={() => setPostJob({ draft: null, buddy: false })}
-            onRepublish={(draft) => setPostJob({ draft, buddy: false })}
+            onPostJob={() => setPostJob({ draft: null })}
+            onRepublish={(draft) => setPostJob({ draft })}
             onViewActivity={() => setActiveTab('activity')}
           />
         ) : activeTab === 'activity' ? (
@@ -163,7 +163,6 @@ function AppShell() {
         {postJob && (
           <PostJobScreen
             draft={postJob.draft}
-            openBuddy={postJob.buddy}
             defaultVehicleId={selectedVehicle}
             onClose={() => setPostJob(null)}
             onSubmitted={() => {

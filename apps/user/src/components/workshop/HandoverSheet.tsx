@@ -10,7 +10,7 @@ import { Sheet } from '../Sheet';
  * is happy do they show their code (QR + 6 digits) — that closes the job and starts the
  * warranty. Not happy → report a problem instead.
  */
-export const HandoverSheet: React.FC<{ workshop: OwnerWorkshop | null; onClose: () => void; onProblem: () => void }> = ({ workshop, onClose, onProblem }) => {
+export const HandoverSheet: React.FC<{ workshop: OwnerWorkshop | null; onClose: () => void; onProblem: () => void; onRate?: () => void }> = ({ workshop, onClose, onProblem, onRate }) => {
   const { showCloseCode, acknowledgeClosed } = useWorkshops();
   const [shown, setShown] = useState(workshop);
   const [codeShown, setCodeShown] = useState(false);
@@ -41,7 +41,14 @@ export const HandoverSheet: React.FC<{ workshop: OwnerWorkshop | null; onClose: 
       onClose={dismiss}
       footer={
         closed ? (
-          <ActionButton label="හරි" icon="✓" variant="success" onPress={dismiss} />
+          <View style={styles.row}>
+            <View style={styles.flex1}>
+              <ActionButton label="පසුව" variant="ghost" compact onPress={dismiss} />
+            </View>
+            <View style={styles.flex2}>
+              <ActionButton label="ශ්‍රේණිගත කරන්න" icon="⭐" variant="success" compact onPress={() => (onRate ? onRate() : dismiss())} />
+            </View>
+          </View>
         ) : codeShown ? undefined : (
           <View style={styles.row}>
             <View style={styles.flex1}>
@@ -86,6 +93,11 @@ export const HandoverSheet: React.FC<{ workshop: OwnerWorkshop | null; onClose: 
               </Text>
             ))}
             {h.oldPartsKept && <Text style={styles.note}>♻️ ඉවත් කළ පැරණි කොටස් ඔබට බැලීමට තබා ඇත.</Text>}
+            {(w.progress.recon ?? []).filter((r) => r.status === 'approved').map((r) => (
+              <Text key={r.id} style={styles.note}>
+                ♻️ ඔබගේ අවසරයෙන් Recon යෙදුවා: {r.partNames.join(', ')} · රු. {(r.genuinePrice - r.reconPrice).toLocaleString()} ක් අඩු විය
+              </Text>
+            ))}
           </View>
           <View style={styles.box}>
             <Row label="🔧 වැඩ ගාස්තුව" value={money(h.bill.labour)} />
