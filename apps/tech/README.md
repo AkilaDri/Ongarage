@@ -12,7 +12,7 @@ npm run tech:web    # in the browser
 
 | Tab | File | Purpose |
 |---|---|---|
-| Jobs | `src/screens/JobsScreen.tsx` | Duty state; SOS offers with an accept countdown; the SOS job in progress; workshop job cards from every linked garage (swipe or tap for `WorkshopJobSheet`: photos, voice notes, parts status, then the shared workshop steps — receive with photos, diagnosis, handover once ordered parts arrive, close with the owner's code — and notes); today's finished jobs |
+| Jobs | `src/screens/JobsScreen.tsx` | Duty state; SOS offers with an accept countdown; the SOS job in progress; workshop job cards from every linked garage (swipe or tap for `WorkshopJobSheet`: photos, voice notes, parts status, then the shared workshop steps — receive with photos, diagnosis, handover once ordered parts arrive, close with the owner's code, extra work for the owner to approve — and notes); parts pickups (`CollectTaskSheet`: the shop, directions, the pickup code, collected → handed to the garage); today's finished jobs |
 | (modal) | `src/screens/SOSJobScreen.tsx` | The SOS field steps: on the way (map, live location, directions) → arrived → inspection → manager approval when the repair charge exceeds the quote → checklist → owner confirms → QR or 6-digit code → collect payment → done |
 | Garages | `src/screens/GaragesScreen.tsx` | Invitations; joining with a garage's code; each garage's terms (employee / freelance, per-job rates, jobs done) and check-in; your own code for garages to invite you |
 | Earnings | `src/screens/EarningsScreen.tsx` | Pay for today, 7 and 30 days; the account with each garage (pay owed vs. cash collected for it) and settling it; job history with owners' ratings |

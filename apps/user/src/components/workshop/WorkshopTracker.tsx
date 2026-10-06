@@ -5,6 +5,7 @@ import {
   Colors,
   FONTS,
   INSPECTION_FEE,
+  pendingExtra,
   PhotoStrip,
   StepProgress,
   themedStyles,
@@ -33,7 +34,7 @@ const OWNER_STAGE_TEXT: Record<WorkshopStage, string> = {
   disputed: 'ඔබ වාර්තා කළ ගැටලුව',
 };
 
-type SheetId = 'approve' | 'handover' | 'problem' | 'warranty' | null;
+type SheetId = 'approve' | 'extra' | 'handover' | 'problem' | 'warranty' | null;
 
 /**
  * Where a booked repair is, and what the owner does next: approve the diagnosis, collect
@@ -46,17 +47,22 @@ export const WorkshopTracker: React.FC<{ id: string; detailed?: boolean }> = ({ 
   const w = workshops[id];
   if (!w) return null;
   const p = w.progress;
-  const alert = p.stage === 'awaitingApproval' || p.stage === 'readyForHandover';
+  const alert = p.stage === 'awaitingApproval' || p.stage === 'readyForHandover' || (p.stage === 'repairing' && !!pendingExtra(p));
   const d = p.dispute;
   const inWarranty = p.stage === 'closed' && !!p.warrantyUntil && p.warrantyUntil > Date.now();
   const claim = p.warrantyClaim;
   const bill = p.handover?.bill ?? (p.decision ? workshopBill(w.agreedPrice, p) : null);
   const close = () => setSheet(null);
+  const extraAsk = pendingExtra(p);
 
   const action = () => {
     switch (p.stage) {
       case 'awaitingApproval':
         return <ActionButton label="වාර්තාව බලා අනුමත කරන්න" icon="🔍" variant="primary" compact onPress={() => setSheet('approve')} />;
+      case 'repairing':
+        return extraAsk ? (
+          <ActionButton label={`අමතර වැඩ බලා අනුමත කරන්න · ${money(extraAsk.lines.reduce((s, l) => s + l.price, 0))}`} icon="➕" variant="primary" compact onPress={() => setSheet('extra')} />
+        ) : null;
       case 'readyForHandover':
         return (
           <>
@@ -128,6 +134,22 @@ export const WorkshopTracker: React.FC<{ id: string; detailed?: boolean }> = ({ 
               })}
             </View>
           )}
+          {(p.extras ?? []).map((x) => (
+            <View key={x.id} style={styles.box}>
+              <Text style={styles.boxTitle}>➕ {x.reason}</Text>
+              {x.lines.map((l) => {
+                const ok = x.decision?.approvedLineIds.includes(l.id);
+                return (
+                  <View key={l.id} style={styles.rowBetween}>
+                    <Text style={[styles.sub, x.decision && !ok && styles.struck]} numberOfLines={1}>
+                      {x.decision ? (ok ? '✓' : '✕') : '•'} {l.kind === 'part' ? '🔩' : '🔧'} {l.name}
+                    </Text>
+                    <Text style={[styles.sub, x.decision && !ok && styles.struck]}>{money(l.price)}</Text>
+                  </View>
+                );
+              })}
+            </View>
+          ))}
           {bill && (
             <View style={styles.box}>
               <View style={styles.rowBetween}>
@@ -148,6 +170,7 @@ export const WorkshopTracker: React.FC<{ id: string; detailed?: boolean }> = ({ 
       )}
 
       <ApprovalSheet workshop={sheet === 'approve' ? w : null} onClose={close} />
+      <ApprovalSheet workshop={sheet === 'extra' && extraAsk ? w : null} extraId={extraAsk?.id} onClose={close} />
       <HandoverSheet workshop={sheet === 'handover' ? w : null} onClose={close} onProblem={() => setSheet('problem')} />
       <ProblemSheet workshop={sheet === 'problem' ? w : null} onClose={close} />
       <WarrantySheet workshop={sheet === 'warranty' ? w : null} onClose={close} />

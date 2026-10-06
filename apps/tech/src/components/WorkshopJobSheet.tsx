@@ -11,6 +11,7 @@ import {
   FONTS,
   HandoverSheet,
   partMarketPrice,
+  pendingExtra,
   PhotoStrip,
   StepProgress,
   themedStyles,
@@ -29,7 +30,7 @@ import { Sheet } from './Sheet';
 import { Toast } from './Toast';
 import type { TechJob } from '../types';
 
-type StepSheet = 'checkIn' | 'diagnosis' | 'handover' | 'close' | null;
+type StepSheet = 'checkIn' | 'diagnosis' | 'extra' | 'handover' | 'close' | null;
 
 const DECLINE_REASONS = ['එම වේලාවේ නොහැක', 'මගේ විශේෂඥතාව නොවේ', 'දුර වැඩියි'];
 
@@ -46,7 +47,7 @@ export const PARTS_LABEL: Record<TechPartsStatus, { text: string; color: () => s
  * with the owner's QR / code.
  */
 export const WorkshopJobSheet: React.FC<{ job: TechJob | null; onClose: () => void }> = ({ job, onClose }) => {
-  const { duty, acceptJob, declineJob, receiveVehicle, sendDiagnosis, markReadyForHandover, closeWorkshopJob, setNotes } = useTech();
+  const { duty, acceptJob, declineJob, receiveVehicle, sendDiagnosis, requestExtraWork, markReadyForHandover, closeWorkshopJob, setNotes } = useTech();
   const [step, setStep] = useState<StepSheet>(null);
   const [shown, setShown] = useState<TechJob | null>(job);
   const [declining, setDeclining] = useState(false);
@@ -70,6 +71,7 @@ export const WorkshopJobSheet: React.FC<{ job: TechJob | null; onClose: () => vo
   const partsPending = w.parts === 'ordered' || w.parts === 'onTheWay';
   const bill = p ? workshopBill(w.agreedPrice, p) : { labour: w.agreedPrice, parts: 0, total: w.agreedPrice };
   const closeStep = () => setStep(null);
+  const extraWaiting = p ? pendingExtra(p) : undefined;
 
   const footer = () => {
     if (j.stage === 'offered') {
@@ -116,15 +118,22 @@ export const WorkshopJobSheet: React.FC<{ job: TechJob | null; onClose: () => vo
         return <ActionButton label="පරීක්ෂා වාර්තාව ලියන්න" icon="🔍" variant="primary" onPress={() => setStep('diagnosis')} />;
       case 'repairing':
         return (
-          <ActionButton
-            label="භාරදීමට සූදානම්"
-            icon="✓"
-            variant="success"
-            onPress={() => {
-              setNotes(j.id, notes);
-              setStep('handover');
-            }}
-          />
+          <View style={styles.actions}>
+            <View style={styles.flex1}>
+              <ActionButton label="අමතර වැඩක්" icon="➕" variant="ghost" disabled={!!extraWaiting} onPress={() => setStep('extra')} />
+            </View>
+            <View style={styles.flex2}>
+              <ActionButton
+                label="භාරදීමට සූදානම්"
+                icon="✓"
+                variant="success"
+                onPress={() => {
+                  setNotes(j.id, notes);
+                  setStep('handover');
+                }}
+              />
+            </View>
+          </View>
         );
       case 'readyForHandover':
         return <ActionButton label="අයිතිකරුගේ කේතයෙන් අවසන් කරන්න" icon="🔳" variant="success" onPress={() => setStep('close')} />;
@@ -192,6 +201,11 @@ export const WorkshopJobSheet: React.FC<{ job: TechJob | null; onClose: () => vo
               })}
             </>
           )}
+          {(p.extras ?? []).map((x) => (
+            <Text key={x.id} style={styles.sub}>
+              ➕ {x.reason} · {x.decision ? '✓ අයිතිකරු අනුමත කළා' : '⏳ අයිතිකරුගේ අනුමැතියට'}
+            </Text>
+          ))}
           {p.stage === 'repairing' && partsPending && <Text style={[styles.sub, { color: Colors.warning }]}>⏳ ඇණවුම් කළ කොටස් ලැබෙන තුරු භාරදිය නොහැක.</Text>}
           {j.stage === 'working' && (
             <TextInput
@@ -223,6 +237,18 @@ export const WorkshopJobSheet: React.FC<{ job: TechJob | null; onClose: () => vo
             samplePhotos={SAMPLE_PHOTOS}
             onSend={(r) => sendDiagnosis(j.id, r)}
           />
+          <DiagnosisSheet
+            extra
+            visible={step === 'extra'}
+            onClose={closeStep}
+            overlay={<Toast topOffset={40} />}
+            subject={subject}
+            agreedPrice={bill.total}
+            ownerPartType={w.ownerPartType}
+            priceFor={partMarketPrice}
+            samplePhotos={SAMPLE_PHOTOS}
+            onSend={(r) => requestExtraWork(j.id, { id: `x-${Date.now()}`, reason: r.findings, photos: r.photos, lines: r.lines, sentAt: Date.now() })}
+          />
           <HandoverSheet
             visible={step === 'handover'}
             onClose={closeStep}
@@ -232,6 +258,7 @@ export const WorkshopJobSheet: React.FC<{ job: TechJob | null; onClose: () => vo
             beforePhotos={p.checkInPhotos}
             samplePhotos={SAMPLE_PHOTOS}
             partsPending={partsPending}
+            blockedReason={extraWaiting ? 'අයිතිකරු අමතර වැඩ ගැන තීරණය කරන තුරු භාර දිය නොහැක.' : undefined}
             onSubmit={(r) => markReadyForHandover(j.id, r)}
           />
           <CloseJobSheet

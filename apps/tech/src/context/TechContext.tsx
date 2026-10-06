@@ -1,9 +1,10 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { checkCloseCode, type DiagnosisReport, type HandoverReport, type WorkshopProgress } from '@ongarage/shared';
+import { checkCloseCode, type DiagnosisReport, type ExtraWorkRequest, type HandoverReport, type PartsCollectTask, type WorkshopProgress } from '@ongarage/shared';
 import {
   ACCEPT_WINDOW_MS,
   APPROVAL_MS,
   AUTO_APPROVE_FACTOR,
+  COLLECT_TASKS,
   EARNINGS,
   INVITES,
   LINKS,
@@ -73,10 +74,19 @@ type TechState = {
   receiveVehicle: (id: string, photos: string[]) => void;
   /** The diagnosis goes to the owner through the garage; parts wait for their approval. */
   sendDiagnosis: (id: string, report: DiagnosisReport) => void;
+  /** Work found mid-repair goes to the owner the same way; handover waits for the answer. */
+  requestExtraWork: (id: string, extra: ExtraWorkRequest) => void;
   markReadyForHandover: (id: string, report: HandoverReport) => void;
   /** Close with the owner's QR / 6-digit code: the job is done and paid to the technician. */
   closeWorkshopJob: (id: string, code: string) => boolean;
   setNotes: (id: string, notes: string) => void;
+
+  /** Parts pickups garages sent this technician on. */
+  collects: PartsCollectTask[];
+  /** The shop checked the pickup code and handed the parts over. */
+  collectedAtCounter: (id: string) => void;
+  /** The parts reached the garage. */
+  deliverParts: (id: string) => void;
 
   settleGarage: (garageId: string) => void;
   dismissNotice: () => void;
@@ -90,6 +100,7 @@ export const TechProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [invites, setInvites] = useState<Invite[]>(INVITES);
   const [duty, setDuty] = useState<Duty>({ garageId: null, onBreak: false });
   const [jobs, setJobs] = useState<TechJob[]>(WORKSHOP_JOBS);
+  const [collects, setCollects] = useState<PartsCollectTask[]>(COLLECT_TASKS);
   const [earnings, setEarnings] = useState<EarningEntry[]>(EARNINGS);
   const [reviews, setReviews] = useState<OwnerReview[]>(REVIEWS);
   const [openId, setOpenId] = useState<string | null>(null);
@@ -385,6 +396,36 @@ export const TechProvider: React.FC<{ children: React.ReactNode }> = ({ children
     [later, notify, patch, patchProgress]
   );
 
+  const requestExtraWork = useCallback(
+    (id: string, extra: ExtraWorkRequest) => {
+      const j = find(id);
+      const p = j?.workshop?.progress;
+      if (!j || !p || p.stage !== 'repairing') return;
+      patchProgress(id, { extras: [...(p.extras ?? []), extra] });
+      notify({ icon: '📨', title: 'අමතර වැඩ ඉල්ලීම යැව්වා', body: 'අයිතිකරු අනුමත කරන තුරු එම කොටස් හෝ වැඩ ආරම්භ කරන්න එපා.', tone: 'primary' });
+      // Simulated owner: approves the extra lines; ordered parts then come as before.
+      later(() => {
+        const cur = find(id);
+        const cp = cur?.workshop?.progress;
+        const x = cp?.extras?.find((e) => e.id === extra.id);
+        if (!cur || !cp || !x || x.decision) return;
+        const decision = { approvedLineIds: x.lines.map((l) => l.id), declinedLineIds: [], decidedAt: Date.now() };
+        patchProgress(id, { extras: cp.extras!.map((e) => (e.id === extra.id ? { ...e, decision } : e)) });
+        const toOrder = x.lines.filter((l) => l.kind === 'part' && l.source === 'order');
+        notify({ icon: '✅', title: `${cur.customer.name} අමතර වැඩ අනුමත කළා`, body: toOrder.length ? 'ගරාජය කොටස් ඇණවුම් කරයි.' : 'වැඩ කරගෙන යන්න.', tone: 'success' });
+        if (toOrder.length) {
+          patch(id, (c) => (c.workshop ? { workshop: { ...c.workshop, parts: 'ordered', partsSummary: toOrder.map((l) => `${l.name} (${l.partType})`).join(' · ') } } : {}));
+          later(() => {
+            patch(id, (c) => (c.workshop ? { workshop: { ...c.workshop, parts: 'arrived' } } : {}));
+            notify({ icon: '📦', title: 'කොටස් ගරාජයට ලැබුණා', body: `${cur.title} · අමතර කොටස් ${toOrder.length} ක්`, tone: 'success' });
+          }, PARTS_ARRIVE_MS);
+        }
+      }, OWNER_APPROVE_MS);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [later, notify, patch, patchProgress]
+  );
+
   const markReadyForHandover = useCallback(
     (id: string, report: HandoverReport) => {
       patchProgress(id, { stage: 'readyForHandover', handover: report });
@@ -408,6 +449,23 @@ export const TechProvider: React.FC<{ children: React.ReactNode }> = ({ children
     [notify, patchProgress]
   );
   const setNotes = useCallback((id: string, notes: string) => patch(id, { notes }), [patch]);
+
+  // ---------- Parts pickups ----------
+  const collectedAtCounter = useCallback(
+    (id: string) => {
+      setCollects((prev) => prev.map((t) => (t.id === id && t.status === 'assigned' ? { ...t, status: 'collected', collectedAt: Date.now() } : t)));
+      notify({ icon: '🔩', title: 'කොටස් ලැබුණා', body: 'ගරාජයට ගෙන ගොස් භාර දෙන්න.', tone: 'success' });
+    },
+    [notify]
+  );
+  const deliverParts = useCallback(
+    (id: string) => {
+      const t = collects.find((x) => x.id === id);
+      setCollects((prev) => prev.map((x) => (x.id === id && x.status === 'collected' ? { ...x, status: 'delivered', deliveredAt: Date.now() } : x)));
+      if (t) notify({ icon: '📦', title: `${t.garage.name} වෙත භාර දුන්නා`, body: 'ගරාජය කොටස් පරීක්ෂා කර ලැබුණු බව සලකුණු කරයි.', tone: 'success' });
+    },
+    [collects, notify]
+  );
 
   // ---------- Money ----------
   const settleGarage = useCallback(
@@ -457,9 +515,13 @@ export const TechProvider: React.FC<{ children: React.ReactNode }> = ({ children
     collectPayment,
     receiveVehicle,
     sendDiagnosis,
+    requestExtraWork,
     markReadyForHandover,
     closeWorkshopJob,
     setNotes,
+    collects,
+    collectedAtCounter,
+    deliverParts,
     settleGarage,
     dismissNotice,
   };

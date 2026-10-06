@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { ActionButton, Colors, FONTS, INSPECTION_FEE, PhotoStrip, themedStyles } from '@ongarage/shared';
+import { ActionButton, Colors, FONTS, INSPECTION_FEE, PhotoStrip, themedStyles, workshopBill } from '@ongarage/shared';
 import { useWorkshops, type OwnerWorkshop } from '../../context/WorkshopContext';
 import { formatTime, money } from '../../utils/format';
 import { Sheet } from '../Sheet';
@@ -8,10 +8,11 @@ import { Sheet } from '../Sheet';
 /**
  * The garage's diagnosis: the owner ticks the lines they agree to (all, some or none).
  * Only ticked parts are ordered and only ticked lines are billed. Stopping here costs
- * the inspection fee only.
+ * the inspection fee only. With `extraId`, the same for extra work found mid-repair
+ * (saying no to all of it just means the garage finishes the agreed work).
  */
-export const ApprovalSheet: React.FC<{ workshop: OwnerWorkshop | null; onClose: () => void }> = ({ workshop, onClose }) => {
-  const { approveDiagnosis, declineDiagnosis } = useWorkshops();
+export const ApprovalSheet: React.FC<{ workshop: OwnerWorkshop | null; extraId?: string; onClose: () => void }> = ({ workshop, extraId, onClose }) => {
+  const { approveDiagnosis, decideExtra, declineDiagnosis } = useWorkshops();
   const [shown, setShown] = useState(workshop);
   const [picked, setPicked] = useState<string[]>([]);
   const [confirmStop, setConfirmStop] = useState(false);
@@ -19,23 +20,27 @@ export const ApprovalSheet: React.FC<{ workshop: OwnerWorkshop | null; onClose: 
   useEffect(() => {
     if (!workshop) return;
     setShown(workshop);
-    if (workshop.id !== shown?.id || !picked.length) setPicked(workshop.progress.diagnosis?.lines.map((l) => l.id) ?? []);
+    const x = extraId ? workshop.progress.extras?.find((e) => e.id === extraId) : undefined;
+    setPicked((x ? x.lines : (workshop.progress.diagnosis?.lines ?? [])).map((l) => l.id));
     setConfirmStop(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workshop?.id]);
 
   const w = workshop ?? shown;
-  const d = w?.progress.diagnosis;
+  const x = extraId ? w?.progress.extras?.find((e) => e.id === extraId) : undefined;
+  const d = x ? { findings: x.reason, photos: x.photos, lines: x.lines, finishBy: 0 } : w?.progress.diagnosis;
   if (!w || !d) return null;
+  // Extra work builds on what is already approved; a diagnosis on the agreed price.
+  const base = x ? workshopBill(w.agreedPrice, w.progress).total : w.agreedPrice;
   const extra = d.lines.filter((l) => picked.includes(l.id)).reduce((s, l) => s + l.price, 0);
-  const total = w.agreedPrice + extra;
+  const total = base + extra;
   const toggle = (id: string) => setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
 
   return (
     <Sheet
       visible={!!workshop}
-      title="පරීක්ෂා වාර්තාව"
-      subtitle={`${w.garageName} · අවසන් කිරීමට ${formatTime(d.finishBy)} පමණ`}
+      title={x ? 'අමතර වැඩ — ඔබගේ අනුමැතියට' : 'පරීක්ෂා වාර්තාව'}
+      subtitle={x ? `${w.garageName} · අලුත්වැඩියාව අතරතුර හමු විය` : `${w.garageName} · අවසන් කිරීමට ${formatTime(d.finishBy)} පමණ`}
       onClose={onClose}
       footer={
         confirmStop ? (
@@ -61,7 +66,19 @@ export const ApprovalSheet: React.FC<{ workshop: OwnerWorkshop | null; onClose: 
         ) : (
           <View style={styles.row}>
             <View style={styles.flex1}>
-              <ActionButton label="නවත්වන්න" variant="ghost" compact onPress={() => setConfirmStop(true)} />
+              {x ? (
+                <ActionButton
+                  label="කිසිවක් එපා"
+                  variant="ghost"
+                  compact
+                  onPress={() => {
+                    decideExtra(w.id, x.id, []);
+                    onClose();
+                  }}
+                />
+              ) : (
+                <ActionButton label="නවත්වන්න" variant="ghost" compact onPress={() => setConfirmStop(true)} />
+              )}
             </View>
             <View style={styles.flex2}>
               <ActionButton
@@ -70,7 +87,8 @@ export const ApprovalSheet: React.FC<{ workshop: OwnerWorkshop | null; onClose: 
                 variant="success"
                 compact
                 onPress={() => {
-                  approveDiagnosis(w.id, picked);
+                  if (x) decideExtra(w.id, x.id, picked);
+                  else approveDiagnosis(w.id, picked);
                   onClose();
                 }}
               />
@@ -108,7 +126,7 @@ export const ApprovalSheet: React.FC<{ workshop: OwnerWorkshop | null; onClose: 
       })}
 
       <View style={styles.box}>
-        <Row label="එකඟ වූ මිල" value={money(w.agreedPrice)} />
+        <Row label={x ? 'දැනට අනුමත මුළු මුදල' : 'එකඟ වූ මිල'} value={money(base)} />
         <Row label={`තෝරාගත් අමතර (${picked.length}/${d.lines.length})`} value={money(extra)} />
         <Row label="නව එකතුව" value={money(total)} strong />
       </View>

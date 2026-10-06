@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { distanceKm, type PartLine } from '@ongarage/shared';
+import { distanceKm, makeCloseCode, type PartLine } from '@ongarage/shared';
 import {
   COURIER,
   CONFIRM_MIN,
@@ -7,6 +7,8 @@ import {
   DELIVERY_MS,
   GARAGE_CHECK_MS,
   GARAGES,
+  HOLD_MS,
+  PICKUP_ARRIVE_MS,
   LATE_REQUEST,
   LATE_REQUEST_MS,
   listPrice,
@@ -67,6 +69,7 @@ const makeRequest = (seed: RequestSeed, i: number, shop: ShopProfile, stock: Sto
     otherQuotes: seed.otherQuotes,
     rivalBest: 0,
     simProblem: seed.simProblem,
+    simPickup: seed.simPickup,
   };
   // The best rival: a share of what this request costs at this shop's cheapest suitable stock price
   // (rivalFactor above 1 means quoting at stock price wins).
@@ -85,6 +88,8 @@ export type QuoteInput = {
   etaMin: number;
   warrantyMonths: number;
   note?: string;
+  /** Offer collection from the counter, ready this many minutes after confirming (parts price only). */
+  pickupReadyMin?: number;
 };
 
 type ShopState = {
@@ -115,6 +120,10 @@ type ShopState = {
   confirmStock: (orderId: string) => boolean;
   declineStock: (orderId: string) => void;
   dispatchOrder: (orderId: string, method: 'courier' | 'shop', staffId?: string) => void;
+  /** Pickup orders: packed and waiting at the counter. */
+  markReady: (orderId: string) => void;
+  /** Pickup code checked at the counter: hand the parts over and get paid. */
+  handOverPickup: (orderId: string) => void;
   acceptReturn: (orderId: string) => void;
 
   adjustQty: (itemId: string, type: QuoteType, delta: number) => void;
@@ -222,6 +231,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         warrantyMonths: input.warrantyMonths,
         delivery: input.delivery,
         courier: input.delivery === 'courier' ? COURIER : undefined,
+        pickup: input.pickupReadyMin ? { readyInMin: input.pickupReadyMin, total: partsTotal } : undefined,
         at: Date.now(),
         status: 'pending',
         note: input.note,
@@ -241,9 +251,16 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return;
         }
         setQuotes((prev) => prev.map((x) => (x.id === q.id ? { ...x, status: 'won' } : x)));
-        const order: ShopOrder = { id: `so-${Date.now()}`, quote: { ...q, status: 'won' }, status: 'confirming', placedAt: Date.now(), confirmBy: Date.now() + CONFIRM_MIN * MIN };
+        // The garage chose to collect (when this quote offers it): its pickup code comes with the order.
+        const pickup = r.simPickup && q.pickup ? { code: makeCloseCode(), collector: r.simPickup } : undefined;
+        const order: ShopOrder = { id: `so-${Date.now()}`, quote: { ...q, status: 'won' }, status: 'confirming', placedAt: Date.now(), confirmBy: Date.now() + CONFIRM_MIN * MIN, pickup };
         setOrders((prev) => [order, ...prev]);
-        notify({ icon: '🏆', title: 'ඔබගේ මිල ගණන තෝරා ගත්තා!', body: `${r.garage.name} — මිනි. ${CONFIRM_MIN}ක් ඇතුළත තොගය තහවුරු කරන්න.`, tone: 'success' });
+        notify({
+          icon: '🏆',
+          title: 'ඔබගේ මිල ගණන තෝරා ගත්තා!',
+          body: `${r.garage.name}${pickup ? ' · කවුන්ටරයෙන් එකතු කරයි' : ''} — මිනි. ${CONFIRM_MIN}ක් ඇතුළත තොගය තහවුරු කරන්න.`,
+          tone: 'success',
+        });
       }, DECISION_MS);
     },
     [later, notify]
@@ -263,7 +280,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       restock(lines, o.quote.partType, -1);
       patchOrder(orderId, { status: 'packing' });
-      notify({ icon: '✅', title: 'තොගය තහවුරු කළා', body: 'ඇසුරුම් කර බෙදාහැරීමට යවන්න.', tone: 'success' });
+      notify({ icon: '✅', title: 'තොගය තහවුරු කළා', body: o.pickup ? 'ඇසුරුම් කර කවුන්ටරයේ තබන්න — ගරාජය එකතු කරයි.' : 'ඇසුරුම් කර බෙදාහැරීමට යවන්න.', tone: 'success' });
       return true;
     },
     [notify, patchOrder, restock]
@@ -323,6 +340,39 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     [later, notify, patchOrder]
   );
 
+  const markReady = useCallback(
+    (orderId: string) => {
+      const o = live.current.orders.find((x) => x.id === orderId);
+      if (!o?.pickup || o.status !== 'packing') return;
+      patchOrder(orderId, { status: 'ready', pickup: { ...o.pickup, holdUntil: Date.now() + HOLD_MS } });
+      notify({ icon: '🏪', title: 'කවුන්ටරයේ සූදානම්', body: `${o.quote.request.garage.name} වෙත දැනුම් දුන්නා · ${o.pickup.collector} එකතු කරයි.`, tone: 'success' });
+      // Simulated: the collector reaches the counter.
+      later(() => {
+        const cur = live.current.orders.find((x) => x.id === orderId);
+        if (!cur?.pickup || cur.status !== 'ready') return;
+        patchOrder(orderId, { pickup: { ...cur.pickup, arrivedAt: Date.now() } });
+        notify({ icon: '🧑‍🔧', title: `${cur.pickup.collector} කවුන්ටරයට පැමිණියා`, body: 'පිකප් කේතය පරීක්ෂා කර කොටස් භාර දෙන්න.', tone: 'primary' });
+      }, PICKUP_ARRIVE_MS);
+    },
+    [later, notify, patchOrder]
+  );
+
+  const handOverPickup = useCallback(
+    (orderId: string) => {
+      const o = live.current.orders.find((x) => x.id === orderId);
+      if (!o?.pickup || o.status !== 'ready') return;
+      // Collected: no delivery fee, the shop is paid the parts price at the counter.
+      const payout = o.quote.partsTotal;
+      patchOrder(orderId, { status: 'received', receivedAt: Date.now(), payout });
+      notify({ icon: '💰', title: 'කොටස් භාර දුන්නා', body: `රු. ${payout.toLocaleString()} ලැබුණා · ${o.pickup.collector}`, tone: 'success' });
+      later(() => {
+        patchOrder(orderId, { rating: 5 });
+        setReviews((prev) => [{ id: `sr-${orderId}`, garage: o.quote.request.garage.name, rating: 5, text: 'කවුන්ටරයේ සූදානම් කරලා තිබ්බා, විනාඩියෙන් ගෙනිච්චා.', at: Date.now() }, ...prev]);
+      }, 3000);
+    },
+    [later, notify, patchOrder]
+  );
+
   const acceptReturn = useCallback(
     (orderId: string) => {
       const o = live.current.orders.find((x) => x.id === orderId);
@@ -371,7 +421,10 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .sort((a, b) => a.quoteUntil - b.quoteUntil),
     [requests, quotes, now, profile.deliveryRadiusKm]
   );
-  const ordersNeedingAction = useMemo(() => orders.filter((o) => o.status === 'confirming' || o.status === 'packing' || o.status === 'problem'), [orders]);
+  const ordersNeedingAction = useMemo(
+    () => orders.filter((o) => o.status === 'confirming' || o.status === 'packing' || o.status === 'problem' || (o.status === 'ready' && !!o.pickup?.arrivedAt)),
+    [orders]
+  );
 
   const value: ShopState = {
     profile: { ...profile, rating: rating.average, ratingCount: rating.count },
@@ -395,6 +448,8 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     confirmStock,
     declineStock,
     dispatchOrder,
+    markReady,
+    handOverPickup,
     acceptReturn,
     adjustQty,
     saveVariant,

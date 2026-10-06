@@ -19,6 +19,8 @@ export type IncomingRequest = PartsRequest & {
   rivalBest: number;
   /** Simulation only: the garage reports this problem on delivery. */
   simProblem?: string;
+  /** Simulation only: the garage collects from the counter instead (who comes). */
+  simPickup?: string;
   /** The shop chose not to quote. */
   passed?: boolean;
 };
@@ -33,7 +35,7 @@ export type MyQuote = PartQuote & { status: QuoteStatus; note?: string; request:
  * shop-only steps: 'packing' (garage still sees it as confirmed, not yet sent) and
  * 'returned' (a reported problem the shop has taken back).
  */
-export type ShopOrderStatus = 'confirming' | 'packing' | 'dispatched' | 'arrived' | 'received' | 'unavailable' | 'problem' | 'returned';
+export type ShopOrderStatus = 'confirming' | 'packing' | 'ready' | 'dispatched' | 'arrived' | 'received' | 'unavailable' | 'problem' | 'returned';
 
 export type ShopOrder = {
   id: string;
@@ -49,6 +51,11 @@ export type ShopOrder = {
     etaAt: number;
     trackingUrl?: string;
   };
+  /**
+   * The garage collects from the counter: whoever comes shows this code (QR / 6 digits);
+   * the shop holds the parts until holdUntil once they're ready.
+   */
+  pickup?: { code: string; collector: string; holdUntil?: number; arrivedAt?: number };
   receivedAt?: number;
   problem?: string;
   /** What the shop keeps: parts + its own delivery fee (a courier's fee goes to the courier). */

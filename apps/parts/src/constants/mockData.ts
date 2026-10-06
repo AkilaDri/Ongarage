@@ -55,13 +55,15 @@ export type RequestSeed = {
   /** Rival best total as a share of this shop's stock price (above 1: easy to win). */
   rivalFactor: number;
   simProblem?: string;
+  /** The garage collects from the counter (who comes), if this shop's quote offers pickup. */
+  simPickup?: string;
 };
 
 export const REQUEST_POOL: RequestSeed[] = [
   {
     garage: 0, categoryId: '7', vehicle: { name: 'Corolla', plate: 'CAD-9087', type: 'Sedan', chassis: 'NZE141-6012345' }, partType: 'OEM',
     lines: [line('a1', 'Brake pads (front)'), line('a2', 'Brake fluid')], note: 'ඉදිරිපස පෑඩ් සෙට් එක.', oldPartPhoto: true,
-    ageMin: 6, windowMin: 60, needInHours: 5, otherQuotes: 1, rivalFactor: 1.08,
+    ageMin: 6, windowMin: 60, needInHours: 5, otherQuotes: 1, rivalFactor: 1.08, simPickup: 'කසුන් ජයසිංහ (TOPCODE)',
   },
   {
     garage: 1, categoryId: '11', vehicle: { name: 'Axio', plate: 'CAA-3398', type: 'Sedan' }, partType: 'Genuine',
@@ -112,6 +114,11 @@ export const REVIEWS: ShopReview[] = [
 
 /** Totals of all ratings before the seeded reviews. */
 export const RATING_HISTORY = { count: 209, sum: 209 * 4.72 };
+
+/** Someone from the garage reaches the counter this long after the parts are ready (compressed). */
+export const PICKUP_ARRIVE_MS = 8000;
+/** Ready pickup orders are held at the counter this long. */
+export const HOLD_MS = 3 * 60 * 60 * 1000;
 
 /** A request reaches the shop this long after it is sent; a decision comes this long after quoting (compressed). */
 export const LATE_REQUEST_MS = 45000;

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
-import { ActionButton, Colors, FONTS, themedStyles, type PartQuote, type PartsOrder } from '@ongarage/shared';
-import { allowedTypes, linesSummary, useParts } from '../context/PartsContext';
+import { ActionButton, CloseCode, Colors, FONTS, pickupCodePayload, themedStyles, type PartQuote, type PartsOrder } from '@ongarage/shared';
+import { allowedTypes, linesSummary, orderTotal, useParts } from '../context/PartsContext';
 import { useGarage } from '../context/GarageContext';
 import { PART_TYPE_LABEL } from '../constants/parts';
 import { countdown, formatDate, formatTime, money } from '../utils/format';
@@ -16,11 +16,17 @@ const ORDER_STEPS: { id: PartsOrder['status']; label: string }[] = [
   { id: 'arrived', label: 'පැමිණියා' },
   { id: 'received', label: 'ලැබුණා' },
 ];
+const PICKUP_STEPS: { id: PartsOrder['status']; label: string }[] = [
+  { id: 'confirming', label: 'තොග තහවුරු' },
+  { id: 'ready', label: 'කවුන්ටරයේ' },
+  { id: 'arrived', label: 'ගෙනාවා' },
+  { id: 'received', label: 'ලැබුණා' },
+];
 
 /** One parts request: its quotes while open, then the order's progress. */
 export const PartsDetailSheet: React.FC<{ requestId: string | null; onClose: () => void }> = ({ requestId, onClose }) => {
   const { requests, quotes, orders, acceptQuote, askReconApproval, cancelRequest } = useParts();
-  const { bookings } = useGarage();
+  const { bookings, team } = useGarage();
   const [sort, setSort] = useState<Sort>('total');
   const [now, setNow] = useState(Date.now());
   const [lastId, setLastId] = useState(requestId);
@@ -113,7 +119,16 @@ export const PartsDetailSheet: React.FC<{ requestId: string | null; onClose: () 
             ))}
           </View>
           {sorted.map((q) => (
-            <QuoteCard key={q.id} quote={q} lines={r.lines} late={now + q.etaMin * 60000 > r.needBy} cheapest={q.total === cheapest} onChoose={() => acceptQuote(q.id)} />
+            <QuoteCard
+              key={q.id}
+              quote={q}
+              lines={r.lines}
+              late={now + q.etaMin * 60000 > r.needBy}
+              cheapest={q.total === cheapest}
+              team={team}
+              onChoose={() => acceptQuote(q.id)}
+              onPickup={(collector) => acceptQuote(q.id, { collector })}
+            />
           ))}
         </>
       )}
@@ -133,7 +148,21 @@ const Row: React.FC<{ label: string; value: string }> = ({ label, value }) => (
   </View>
 );
 
-const QuoteCard: React.FC<{ quote: PartQuote; lines: { name: string; qty: number }[]; late: boolean; cheapest: boolean; onChoose: () => void }> = ({ quote: q, lines, late, cheapest, onChoose }) => (
+type Member = { id: string; name: string; hasApp?: boolean };
+
+const QuoteCard: React.FC<{
+  quote: PartQuote;
+  lines: { name: string; qty: number }[];
+  late: boolean;
+  cheapest: boolean;
+  team: Member[];
+  onChoose: () => void;
+  /** Collect from the counter: by the garage (no collector) or a team member. */
+  onPickup: (collector?: Member) => void;
+}> = ({ quote: q, lines, late, cheapest, team, onChoose, onPickup }) => {
+  const [picking, setPicking] = useState(false);
+  const [who, setWho] = useState<string>('garage');
+  return (
   <View style={[styles.card, cheapest && styles.cardBest]}>
     <View style={styles.rowBetween}>
       <View style={styles.flex1}>
@@ -169,16 +198,55 @@ const QuoteCard: React.FC<{ quote: PartQuote; lines: { name: string; qty: number
       <Text style={styles.total}>{money(q.total)}</Text>
     </View>
     {cheapest && <Text style={styles.bestTag}>✓ අඩුම මුළු මිල</Text>}
-    <ActionButton label="මෙම මිල ගණන තෝරන්න" icon="✓" variant={cheapest ? 'success' : 'ghost'} compact onPress={onChoose} />
+    {picking && q.pickup ? (
+      <View style={styles.pickBox}>
+        <Text style={styles.sub}>
+          🏪 {q.shop.address} · මිනි. ~{q.pickup.readyInMin}කින් සූදානම් · {money(q.pickup.total)} (බෙදාහැරීම් ගාස්තුවක් නැත)
+        </Text>
+        <Text style={styles.rowLabel}>එකතු කරන්නේ කවුද?</Text>
+        <View style={styles.chips}>
+          {[{ id: 'garage', name: 'ගරාජයෙන් (මම)' } as Member, ...team].map((m) => (
+            <Pressable key={m.id} style={[styles.chip, who === m.id && styles.chipOn]} onPress={() => setWho(m.id)} accessibilityLabel={`Collector ${m.id}`}>
+              <Text style={[styles.chipText, who === m.id && styles.chipTextOn]}>
+                {m.name}
+                {m.hasApp ? ' · ඇප්' : ''}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+        <View style={styles.actions}>
+          <View style={styles.flex1}>
+            <ActionButton label="ආපසු" variant="ghost" compact onPress={() => setPicking(false)} />
+          </View>
+          <View style={styles.flex2}>
+            <ActionButton label={`එකතු කරන්න · ${money(q.pickup.total)}`} icon="🏪" variant="success" compact onPress={() => onPickup(team.find((m) => m.id === who))} />
+          </View>
+        </View>
+      </View>
+    ) : (
+      <View style={styles.actions}>
+        {q.pickup && (
+          <View style={styles.flex1}>
+            <ActionButton label={`කවුන්ටරයෙන් · ${money(q.pickup.total)}`} icon="🏪" variant="ghost" compact onPress={() => setPicking(true)} />
+          </View>
+        )}
+        <View style={styles.flex1}>
+          <ActionButton label={`ගෙන්වන්න · ${money(q.total)}`} icon="🛵" variant={cheapest ? 'success' : 'ghost'} compact onPress={onChoose} />
+        </View>
+      </View>
+    )}
   </View>
-);
+  );
+};
 
 const OrderCard: React.FC<{ order: PartsOrder; quote?: PartQuote; partType: string; now: number }> = ({ order: o, quote: q, partType, now }) => {
   const { markReceived, reportProblem, rateOrder } = useParts();
   const [problemOpen, setProblemOpen] = useState(false);
   if (!q) return null;
   const failed = o.status === 'unavailable' || o.status === 'problem';
-  const stepIndex = ORDER_STEPS.findIndex((s) => s.id === o.status);
+  const pickup = o.fulfilment === 'pickup';
+  const steps = pickup ? PICKUP_STEPS : ORDER_STEPS;
+  const stepIndex = steps.findIndex((s) => s.id === o.status);
 
   return (
     <View style={[styles.card, failed && styles.cardFailed]}>
@@ -186,7 +254,7 @@ const OrderCard: React.FC<{ order: PartsOrder; quote?: PartQuote; partType: stri
         <View style={styles.flex1}>
           <Text style={styles.title}>{q.shop.name}</Text>
           <Text style={styles.sub}>
-            {q.partType} · {money(q.total)} · ඇණවුම {formatTime(o.placedAt)}
+            {q.partType} · {money(orderTotal(o, q))} · {pickup ? `🏪 කවුන්ටරයෙන්${o.collector ? ` · ${o.collector.name}` : ''}` : '🛵 බෙදාහැරීම'} · {formatTime(o.placedAt)}
           </Text>
         </View>
         <Pressable style={styles.callBtn} onPress={() => Linking.openURL(`tel:${q.shop.phone}`)}>
@@ -198,7 +266,7 @@ const OrderCard: React.FC<{ order: PartsOrder; quote?: PartQuote; partType: stri
         <Text style={styles.failText}>{o.status === 'unavailable' ? '⛔ වෙළඳසැල ළඟ තොග නැත — ඇණවුම අවලංගු විය' : `↩️ ආපසු යවනු ලැබේ: ${o.problem}`}</Text>
       ) : (
         <View style={styles.steps}>
-          {ORDER_STEPS.map((s, i) => (
+          {steps.map((s, i) => (
             <View key={s.id} style={styles.step}>
               <View style={[styles.stepDot, i <= stepIndex && styles.stepDone]} />
               <Text style={[styles.stepText, i <= stepIndex && { color: Colors.textMain }]}>{s.label}</Text>
@@ -218,6 +286,17 @@ const OrderCard: React.FC<{ order: PartsOrder; quote?: PartQuote; partType: stri
             </Pressable>
           )}
         </View>
+      )}
+
+      {o.status === 'ready' && o.pickupCode && (
+        o.collector?.hasApp ? (
+          <Text style={styles.sub}>🧑‍🔧 {o.collector.name} ගේ ඇප් එකට පිකප් කේතය යැව්වා · {q.shop.address}. ඔවුන් කොටස් ගෙනා පසු පරීක්ෂා කරන්න.</Text>
+        ) : (
+          <>
+            <CloseCode code={o.pickupCode} size={120} payload={pickupCodePayload(o.pickupCode)} title="කවුන්ටරයේදී පෙන්වන්න" caption={`${q.shop.address}${o.holdUntil ? ` · ${formatTime(o.holdUntil)} දක්වා තබා ගනී` : ''}${o.collector ? ` · ${o.collector.name} එකතු කරයි` : ''}`} />
+            <ActionButton label="කොටස් එකතු කර පරීක්ෂා කළා" icon="✓" variant="success" compact onPress={() => markReceived(o.id)} />
+          </>
+        )
       )}
 
       {(o.status === 'arrived' || o.status === 'dispatched') && (
@@ -301,6 +380,7 @@ const styles = themedStyles(() =>
     stepText: { fontSize: 9.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
     actions: { flexDirection: 'row', gap: 8 },
     stars: { flexDirection: 'row', gap: 4 },
+    pickBox: { gap: 8, padding: 10, borderRadius: 12, backgroundColor: Colors.subtleFill },
     star: { fontSize: 20, color: Colors.subtleBorder },
     starOn: { color: Colors.warning },
     cancel: { alignItems: 'center', paddingVertical: 10 },

@@ -5,6 +5,7 @@ import {
   INSPECTION_FEE,
   newWorkshopProgress,
   partMarketPrice,
+  pendingExtra,
   STANDARD_HANDOVER_CHECKS,
   warrantyEnd,
   workshopBill,
@@ -12,6 +13,7 @@ import {
   type DiagnosisReport,
   type Dispute,
   type DisputeTopic,
+  type ExtraWorkRequest,
   type WorkshopProgress,
 } from '@ongarage/shared';
 import { useNotice } from './NoticeContext';
@@ -52,6 +54,8 @@ type WorkshopState = {
   startWorkshop: (start: WorkshopStart) => void;
   /** Approve some or all diagnosis lines (none = only the agreed work). */
   approveDiagnosis: (id: string, approvedLineIds: string[]) => void;
+  /** Answer extra work the garage found mid-repair (none approved = carry on without it). */
+  decideExtra: (id: string, extraId: string, approvedLineIds: string[]) => void;
   /** Decline the diagnosis: the job ends and only the inspection fee is due. */
   declineDiagnosis: (id: string) => void;
   /** The owner opened their code at handover; the garage scans it (simulated). */
@@ -145,7 +149,23 @@ export const WorkshopProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     (id: string) => {
       later(() => {
         const w = live.current[id];
-        if (!w || w.progress.stage !== 'repairing') return;
+        if (!w || w.progress.stage !== 'repairing' || pendingExtra(w.progress)) return;
+        // Simulated garage: on the seeded brake job it finds the discs scored, once.
+        if (w.id === SEED_WORKSHOP_ID && !w.progress.extras?.length && !w.progress.dispute) {
+          const extra: ExtraWorkRequest = {
+            id: `x-${id}`,
+            reason: 'පෑඩ් ගලවද්දී ඉදිරිපස බ්‍රේක් ඩිස්ක් දෙකම ගැඹුරට කැපී ඇති බව පෙනුණා. අලුත් පෑඩ් ඉක්මනින් ගෙවී යයි.',
+            photos: [SAMPLE_UPLOAD_PHOTOS[0]],
+            lines: [
+              { id: `x-${id}-l1`, kind: 'part', name: 'Brake disc', qty: 2, partType: 'OEM', source: 'order', price: partMarketPrice('Brake disc', 'OEM') * 2 },
+              { id: `x-${id}-l2`, kind: 'labour', name: 'Disc fitting', qty: 1, price: 1500 },
+            ],
+            sentAt: Date.now(),
+          };
+          patch(id, { extras: [extra] });
+          notify({ icon: '➕', title: `${w.garageName}: අමතර වැඩක් හමු විය`, body: 'ඔබ අනුමත කරන තුරු ඔවුන් එය කරන්නේ හෝ කොටස් ගෙන්වන්නේ නැත.', tone: 'primary' });
+          return;
+        }
         const lines = approvedLines(w.progress);
         patch(id, {
           stage: 'readyForHandover',
@@ -200,6 +220,24 @@ export const WorkshopProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const declinedLineIds = w.progress.diagnosis.lines.map((l) => l.id).filter((x) => !approvedLineIds.includes(x));
       patch(id, { stage: 'repairing', decision: { approvedLineIds, declinedLineIds, decidedAt: Date.now() } });
       notify({ icon: '✅', title: 'අනුමැතිය යැව්වා', body: `${w.garageName} අලුත්වැඩියාව අරඹයි${approvedLineIds.length ? ' — අවශ්‍ය කොටස් දැන් ඇණවුම් කරයි' : ''}.`, tone: 'success' });
+      repairThenHandover(id);
+    },
+    [notify, patch, repairThenHandover]
+  );
+
+  const decideExtra = useCallback(
+    (id: string, extraId: string, approvedLineIds: string[]) => {
+      const w = live.current[id];
+      const x = w?.progress.extras?.find((e) => e.id === extraId);
+      if (!w || !x || x.decision) return;
+      const decision = { approvedLineIds, declinedLineIds: x.lines.map((l) => l.id).filter((l) => !approvedLineIds.includes(l)), decidedAt: Date.now() };
+      patch(id, { extras: w.progress.extras!.map((e) => (e.id === extraId ? { ...e, decision } : e)) });
+      notify({
+        icon: '✅',
+        title: approvedLineIds.length ? 'අමතර වැඩ අනුමත කළා' : 'අමතර වැඩ එපා කිව්වා',
+        body: approvedLineIds.length ? `${w.garageName} එය කර අවසන් කරයි.` : `${w.garageName} එකඟ වූ වැඩ පමණක් අවසන් කරයි.`,
+        tone: 'success',
+      });
       repairThenHandover(id);
     },
     [notify, patch, repairThenHandover]
@@ -286,7 +324,7 @@ export const WorkshopProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   );
 
   return (
-    <WorkshopContext.Provider value={{ workshops, startWorkshop, approveDiagnosis, declineDiagnosis, showCloseCode, acknowledgeClosed, reportProblem, escalate, claimWarranty }}>
+    <WorkshopContext.Provider value={{ workshops, startWorkshop, approveDiagnosis, decideExtra, declineDiagnosis, showCloseCode, acknowledgeClosed, reportProblem, escalate, claimWarranty }}>
       {children}
     </WorkshopContext.Provider>
   );

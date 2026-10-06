@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { ActionButton, Colors, FONTS, GlassIcon, SERVICE_CATEGORIES, themedStyles, vehicleIcon, type PartLine, type PartType } from '@ongarage/shared';
-import { useParts } from '../context/PartsContext';
+import { ActionButton, Colors, FONTS, GlassIcon, SERVICE_CATEGORIES, themedStyles, vehicleIcon, type DiagnosisLine, type PartLine, type PartType } from '@ongarage/shared';
+import { isNamedLine, useParts } from '../context/PartsContext';
 import { DEFAULT_SUGGESTIONS, PART_SUGGESTIONS, PART_TYPE_LABEL } from '../constants/parts';
 import { formatDate, formatTime } from '../utils/format';
 import { Sheet } from './Sheet';
@@ -27,8 +27,10 @@ const needByOptions = (b: Booking) => {
 };
 
 export const PartsRequestSheet: React.FC<{ booking: Booking | null; onClose: () => void; onSent?: (requestId: string) => void }> = ({ booking, onClose, onSent }) => {
-  const { requestParts } = useParts();
+  const { requestParts, toOrderFor } = useParts();
   const [shown, setShown] = useState<Booking | null>(booking);
+  // Workshop jobs: exactly the parts the owner approved (or named in the post).
+  const [fixed, setFixed] = useState<DiagnosisLine[]>([]);
   const [lines, setLines] = useState<PartLine[]>([]);
   const [custom, setCustom] = useState('');
   const [chassis, setChassis] = useState('');
@@ -42,15 +44,19 @@ export const PartsRequestSheet: React.FC<{ booking: Booking | null; onClose: () 
   useEffect(() => {
     if (!booking) return;
     setShown(booking);
-    setLines([]);
+    const approved = toOrderFor(booking);
+    setFixed(approved);
+    setLines(approved.map((l) => ({ id: l.id, name: l.name, qty: l.qty })));
     setCustom('');
     setChassis('');
     setNote('');
     setPhoto(false);
-    setPartType(booking.job?.sparePart ?? 'GarageChoice');
+    const sameType = approved.length > 0 && approved.every((l) => l.partType === approved[0].partType);
+    setPartType(sameType ? approved[0].partType! : (booking.job?.sparePart ?? 'GarageChoice'));
     setNeedBy(needByOptions(booking)[0]?.at ?? Date.now() + 2 * HOUR);
     setWindowMin(60);
     setRadiusKm(10);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [booking]);
 
   if (!shown) return null;
@@ -58,7 +64,8 @@ export const PartsRequestSheet: React.FC<{ booking: Booking | null; onClose: () 
   const categoryId = bookingCategory(shown);
   const suggestions = (categoryId && PART_SUGGESTIONS[categoryId]) || DEFAULT_SUGGESTIONS;
   // The owner's choice binds the garage; only "garage's choice" jobs let it pick.
-  const ownerChose = !!shown.job && shown.job.sparePart !== 'GarageChoice';
+  const ownerChose = (!!shown.job && shown.job.sparePart !== 'GarageChoice') || fixed.length > 0;
+  const locked = fixed.length > 0;
 
   const add = (name: string) => {
     const n = name.trim();
@@ -74,6 +81,7 @@ export const PartsRequestSheet: React.FC<{ booking: Booking | null; onClose: () 
       vehicle: { ...shown.vehicle, chassis: chassis.trim() || undefined },
       partType,
       lines,
+      forLineIds: locked ? fixed.map((l) => l.id) : undefined,
       note: note.trim() || undefined,
       oldPartPhoto: photo,
       needBy,
@@ -105,7 +113,7 @@ export const PartsRequestSheet: React.FC<{ booking: Booking | null; onClose: () 
       <Text style={styles.label}>කොටස් වර්ගය</Text>
       {ownerChose ? (
         <View style={styles.locked}>
-          <Text style={styles.lockedTitle}>🔒 අයිතිකරු තෝරා ඇත: {PART_TYPE_LABEL[partType]}</Text>
+          <Text style={styles.lockedTitle}>🔒 {locked ? 'අනුමත වර්ගය' : 'අයිතිකරු තෝරා ඇත'}: {PART_TYPE_LABEL[partType]}</Text>
           <Text style={styles.sub}>
             {partType === 'Genuine'
               ? 'Genuine නොමැති නම් පමණක් Recon සඳහා අයිතිකරුගෙන් අවසර ඉල්ලිය හැක.'
@@ -123,11 +131,20 @@ export const PartsRequestSheet: React.FC<{ booking: Booking | null; onClose: () 
       )}
 
       <Text style={styles.label}>අවශ්‍ය කොටස්</Text>
+      {locked && (
+        <View style={styles.locked}>
+          <Text style={styles.lockedTitle}>{fixed.every(isNamedLine) ? '📝 අයිතිකරු තම පෝස්ට් එකේ සඳහන් කළ කොටස්' : '✅ අයිතිකරු අනුමත කළ කොටස් පමණි'}</Text>
+          <Text style={styles.sub}>වෙනත් කොටසක් අවශ්‍ය නම් රැකියාවේ “අමතර වැඩ” ලෙස අයිතිකරුගෙන් අනුමැතිය ගන්න — අනුමැතියකින් තොරව කොටස් අය කළ නොහැක.</Text>
+        </View>
+      )}
       {lines.map((l) => (
         <View key={l.id} style={styles.line}>
           <Text style={[styles.title, styles.flex1]} numberOfLines={1}>
             {l.name}
           </Text>
+          {locked ? (
+            <Text style={styles.qtyValue}>×{l.qty}</Text>
+          ) : (
           <View style={styles.qty}>
             <Pressable style={styles.qtyBtn} onPress={() => setQty(l.id, l.qty - 1)} accessibilityLabel={`Less ${l.name}`}>
               <Text style={styles.qtyText}>{l.qty === 1 ? '✕' : '−'}</Text>
@@ -137,8 +154,11 @@ export const PartsRequestSheet: React.FC<{ booking: Booking | null; onClose: () 
               <Text style={styles.qtyText}>+</Text>
             </Pressable>
           </View>
+          )}
         </View>
       ))}
+      {!locked && (
+      <>
       <View style={styles.chips}>
         {suggestions
           .filter((s) => !lines.some((l) => l.name === s))
@@ -171,6 +191,8 @@ export const PartsRequestSheet: React.FC<{ booking: Booking | null; onClose: () 
           <Text style={styles.addText}>එක් කරන්න</Text>
         </Pressable>
       </View>
+      </>
+      )}
 
       <Text style={styles.label}>වාහනය හඳුනා ගැනීමට</Text>
       <TextInput style={styles.input} value={chassis} onChangeText={setChassis} placeholder="චැසි / මාදිලි අංකය (උදා: NZE141-…)" placeholderTextColor={Colors.textMuted} autoCapitalize="characters" />

@@ -24,8 +24,10 @@ export const HandoverSheet: React.FC<{
   samplePhotos: string[];
   /** Ordered parts haven't been checked in yet. */
   partsPending?: boolean;
+  /** Anything else that must happen first (e.g. the owner still deciding on extra work). */
+  blockedReason?: string;
   onSubmit: (report: HandoverReport) => void;
-}> = ({ visible, onClose, overlay, lines, bill, beforePhotos = [], samplePhotos, partsPending, onSubmit }) => {
+}> = ({ visible, onClose, overlay, lines, bill, beforePhotos = [], samplePhotos, partsPending, blockedReason, onSubmit }) => {
   const checks = [...lines.map((l) => (l.kind === 'part' ? `${l.name}${l.qty > 1 ? ` ×${l.qty}` : ''} සවි කළා` : `${l.name} කළා`)), ...STANDARD_HANDOVER_CHECKS];
   const [done, setDone] = useState<boolean[]>([]);
   const [after, setAfter] = useState<string[]>([]);
@@ -41,7 +43,7 @@ export const HandoverSheet: React.FC<{
   }, [visible]);
 
   const allDone = done.length === checks.length && done.every(Boolean);
-  const valid = allDone && after.length > 0 && !partsPending;
+  const valid = allDone && after.length > 0 && !partsPending && !blockedReason;
 
   const submit = () => {
     onSubmit({ checklist: checks.map((label, i) => ({ label, done: !!done[i] })), beforePhotos, afterPhotos: after, oldPartsKept: hasParts && oldParts, bill, readyAt: Date.now() });
@@ -57,6 +59,7 @@ export const HandoverSheet: React.FC<{
       overlay={overlay}
       footer={<ActionButton label={`භාරදීමට සූදානම් ලෙස දන්වන්න · ${money(bill.total)}`} icon="✓" variant="success" disabled={!valid} onPress={submit} />}
     >
+      {!!blockedReason && <Text style={styles.warn}>⚠️ {blockedReason}</Text>}
       {partsPending && <Text style={styles.warn}>⚠️ ඇණවුම් කළ කොටස් තවම ලැබී නැත — “කොටස්” ටැබයෙන් ලැබුණු බව සලකුණු කළ පසු භාර දිය හැක.</Text>}
       <Text style={styles.label}>
         කළ වැඩ ({done.filter(Boolean).length}/{checks.length})

@@ -7,4 +7,7 @@ export const makeCloseCode = (): string => String(100000 + Math.floor(Math.rando
 /** "482913" → "482 913" for reading aloud. */
 export const formatCloseCode = (code: string) => `${code.slice(0, 3)} ${code.slice(3)}`;
 
+/** QR payload for a parts pickup at a shop counter (same six-digit format as closing codes). */
+export const pickupCodePayload = (code: string) => `ongarage:pickup:${code}`;
+
 export const checkCloseCode = (expected: string, entered: string) => entered.replace(/\D/g, '') === expected;

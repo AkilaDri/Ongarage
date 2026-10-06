@@ -20,7 +20,9 @@ export const CloseJobSheet: React.FC<{
   /** Simulation only: show the owner's code (no second phone in the demo). */
   showSimulatedCode?: boolean;
   onConfirmed: () => void;
-}> = ({ visible, onClose, overlay, expectedCode, total, showSimulatedCode, onConfirmed }) => {
+  /** Texts for other code checks (e.g. a parts pickup at the shop counter). */
+  text?: { title: string; subtitle?: string; hint: string; scan: string };
+}> = ({ visible, onClose, overlay, expectedCode, total, showSimulatedCode, onConfirmed, text }) => {
   const [code, setCode] = useState('');
   const [error, setError] = useState(false);
 
@@ -42,13 +44,13 @@ export const CloseJobSheet: React.FC<{
   return (
     <Sheet
       visible={visible}
-      title="අයිතිකරුගේ කේතයෙන් අවසන් කරන්න"
-      subtitle={`අයිතිකරු පරීක්ෂා කර තහවුරු කළ පසු · ${money(total)}`}
+      title={text?.title ?? 'අයිතිකරුගේ කේතයෙන් අවසන් කරන්න'}
+      subtitle={text?.subtitle ?? `අයිතිකරු පරීක්ෂා කර තහවුරු කළ පසු · ${money(total)}`}
       onClose={onClose}
       overlay={overlay}
-      footer={<ActionButton label="QR ස්කෑන් කිරීම අනුකරණය කරන්න" icon="📷" variant="success" onPress={() => confirm(expectedCode)} />}
+      footer={<ActionButton label={text?.scan ?? 'QR ස්කෑන් කිරීම අනුකරණය කරන්න'} icon="📷" variant="success" onPress={() => confirm(expectedCode)} />}
     >
-      <Text style={styles.hint}>අයිතිකරුගේ දුරකථනයේ ඇති QR කේතය ස්කෑන් කරන්න. ස්කෑන් කළ නොහැකි නම් ඔවුන් කියන ඉලක්කම් 6 ඇතුළත් කරන්න.</Text>
+      <Text style={styles.hint}>{text?.hint ?? 'අයිතිකරුගේ දුරකථනයේ ඇති QR කේතය ස්කෑන් කරන්න. ස්කෑන් කළ නොහැකි නම් ඔවුන් කියන ඉලක්කම් 6 ඇතුළත් කරන්න.'}</Text>
       <View style={styles.row}>
         <TextInput
           style={[styles.input, error && styles.inputError]}
@@ -67,8 +69,8 @@ export const CloseJobSheet: React.FC<{
           <Text style={styles.btnText}>තහවුරු කරන්න</Text>
         </Pressable>
       </View>
-      {error && <Text style={styles.error}>කේතය නොගැළපේ — අයිතිකරුගෙන් නැවත අසන්න.</Text>}
-      {showSimulatedCode && <Text style={styles.hint}>(අනුකරණය: අයිතිකරුගේ කේතය {expectedCode})</Text>}
+      {error && <Text style={styles.error}>කේතය නොගැළපේ — නැවත අසන්න.</Text>}
+      {showSimulatedCode && <Text style={styles.hint}>(අනුකරණය: නිවැරදි කේතය {expectedCode})</Text>}
     </Sheet>
   );
 };

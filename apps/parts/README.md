@@ -13,7 +13,7 @@ npm run parts:web    # in the browser
 | Tab | File | Purpose |
 |---|---|---|
 | Requests | `src/screens/RequestsScreen.tsx` | Garages' parts requests within the delivery radius, with stock on hand per line; quote or pass. Swipe a card for details (`RequestDetailSheet`: vehicle, chassis, old-part photo, map to the garage). Your quotes and their outcome |
-| Orders | `src/screens/OrdersScreen.tsx` | Earnings; won quotes as orders: confirm stock → pack → dispatch (`DispatchSheet`: PickMe Flash or your own rider) → garage checks in and pays; returns |
+| Orders | `src/screens/OrdersScreen.tsx` | Earnings; won quotes as orders: confirm stock → pack → dispatch (`DispatchSheet`: PickMe Flash or your own rider) → garage checks in and pays; or, for pickups, pack → ready at the counter → check the collector's pickup code (shared `CloseJobSheet`) → paid the parts price; returns |
 | Stock | `src/screens/StockScreen.tsx` | Items by part type with price, brand and quantity; low / out-of-stock filter; edit or add (`StockEditSheet`) |
 | Shop | `src/screens/ShopProfileScreen.tsx` | Ordered by daily use: delivery radius and delivery methods, reviews from garages (with replies), settings (what you sell, riders, how garages see you, theme) |
 

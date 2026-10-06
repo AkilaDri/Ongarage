@@ -16,7 +16,7 @@ npm run garage:web    # in the browser
 | (modal) | `src/screens/SOSDispatchScreen.tsx` | 11-step dispatch, the garage-side mirror of the owner's SOS flow. When the assigned technician has the technician app, the field steps become a live view (approve a repair charge above the quote, or take over manually) |
 | Jobs | `src/screens/JobFeedScreen.tsx` | Three sections: jobs open for bidding, direct bookings, and your bids. Swipe a card sideways to open its full details (`src/components/JobDetailView.tsx`: photos, voice notes, description, map) |
 | Schedule | `src/screens/ScheduleScreen.tsx` | Earnings, upcoming and completed bookings. Each booking is a workshop job with a step bar; `BookingActions` runs the next step (receive → diagnosis → handover → close with the owner's code, or rework a reported problem); the details view adds `WorkshopPanel` (assign a team member, diagnosis with the owner's decision per line, bill, handover, warranty) |
-| Parts | `src/screens/PartsScreen.tsx` | Spare parts for booked jobs: quotes to choose, orders on the way, received parts (`PartsRequestSheet`, `PartsDetailSheet`) |
+| Parts | `src/screens/PartsScreen.tsx` | Spare parts for booked jobs: quotes to choose (deliver, or collect from the counter by the garage or a team member), orders on the way or waiting at the counter with a pickup code, received parts (`PartsRequestSheet` — locked to the owner-approved lines for workshop jobs —, `PartsDetailSheet`) |
 | Garage | `src/screens/GarageProfileScreen.tsx` | Ordered by daily use: who is free right now (ready / on break), SOS radius, reviews summary; settings (services, staff register and vans, public card, theme) open as sheets |
 
 ## How it fits together

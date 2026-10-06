@@ -63,6 +63,15 @@ export const approvedLines = (p: WorkshopProgress): DiagnosisLine[] => {
 export const linesToOrder = (p: WorkshopProgress) => approvedLines(p).filter((l) => l.kind === 'part' && l.source === 'order');
 
 /**
+ * Approved parts not yet covered by a parts request: what the garage should order now.
+ * Parts come only after the owner approves (diagnosis or extra work), never before.
+ */
+export const partsStillToOrder = (p: WorkshopProgress, coveredLineIds: string[]) => linesToOrder(p).filter((l) => !coveredLineIds.includes(l.id));
+
+/** Extra work sent mid-repair that the owner hasn't answered yet (handover waits for it). */
+export const pendingExtra = (p: WorkshopProgress) => (p.extras ?? []).find((x) => !x.decision);
+
+/**
  * The owner's bill: labour (the agreed price plus approved labour lines) and parts
  * (approved stock parts plus ordered parts — their real cost once received, else the
  * estimate), billed separately.

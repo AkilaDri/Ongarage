@@ -1,4 +1,4 @@
-import { newWorkshopProgress, type GarageRef, type VoiceNote } from '@ongarage/shared';
+import { makeCloseCode, newWorkshopProgress, type GarageRef, type PartsCollectTask, type VoiceNote } from '@ongarage/shared';
 import type { EarningEntry, GarageLink, Invite, OwnerReview, TechJob, TechProfile } from '../types';
 
 const MIN = 60 * 1000;
@@ -51,6 +51,16 @@ export const SOS_TASKS = ['ස්ථානයේ පරීක්ෂා කර �
 export const SOS_REPAIR_TASK = 1;
 
 // Workshop jobs: TOPCODE's bookings from the garage app (b1, b2) plus a freelance offer.
+/** Parts pickups garages send the technician on (the parts app's TOPCODE pickup order). */
+export const COLLECT_TASKS: PartsCollectTask[] = [
+  {
+    id: 'ct-1', orderId: 'so-topcode-brakes', garage: TOPCODE,
+    shop: { name: 'Galle Auto Parts', phone: '091 223 4501', address: 'පැරණි මාතර පාර, ගාල්ල', coords: { latitude: 6.0335, longitude: 80.2168 } },
+    lines: [{ id: 'a1', name: 'Brake pads (front)', qty: 1 }, { id: 'a2', name: 'Brake fluid', qty: 1 }], partType: 'OEM',
+    forJob: 'Corolla · CAD-9087', pickupCode: makeCloseCode(), holdUntil: Date.now() + 3 * HOUR, amount: 8200, status: 'assigned', assignedAt: Date.now() - 10 * MIN,
+  },
+];
+
 export const WORKSHOP_JOBS: TechJob[] = [
   {
     id: 'w-b1', kind: 'workshop', stage: 'assigned', garage: TOPCODE, title: 'ECU Remapping', icon: '💻',

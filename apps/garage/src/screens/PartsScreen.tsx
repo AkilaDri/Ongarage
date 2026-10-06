@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Colors, EmptyState, FONTS, GlassIcon, Icon, themedStyles, vehicleIcon, type IconName, type PartsRequest } from '@ongarage/shared';
 import { useGarage } from '../context/GarageContext';
-import { allowedTypes, linesSummary, useParts } from '../context/PartsContext';
+import { allowedTypes, linesSummary, useParts, orderTotal } from '../context/PartsContext';
 import { PART_TYPE_LABEL } from '../constants/parts';
 import { PartsRequestSheet } from '../components/PartsRequestSheet';
 import { PartsDetailSheet } from '../components/PartsDetailSheet';
@@ -17,7 +17,7 @@ type Segment = 'quotes' | 'orders' | 'received';
 
 export const PartsScreen: React.FC<{ focusId?: string | null; onFocusHandled?: () => void }> = ({ focusId, onFocusHandled }) => {
   const { bookings } = useGarage();
-  const { requests, quotes, orders, requestFor } = useParts();
+  const { requests, quotes, orders, requestFor, toOrderFor } = useParts();
   const [segment, setSegment] = useState<Segment>('quotes');
   const [detailId, setDetailId] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -49,7 +49,8 @@ export const PartsScreen: React.FC<{ focusId?: string | null; onFocusHandled?: (
   const quoteCount = (r: PartsRequest) => quotes.filter((q) => q.requestId === r.id && !q.withdrawn && allowedTypes(r).includes(q.partType)).length;
 
   // Bookings that can still get a parts request.
-  const eligible = bookings.filter((b) => b.status !== 'completed' && b.source !== 'sos' && !requestFor(b.id));
+  // Workshop jobs: only approved (or owner-named) parts; other bookings: one free-form request.
+  const eligible = bookings.filter((b) => b.status !== 'completed' && b.source !== 'sos' && (b.progress ? toOrderFor(b).length > 0 : !requestFor(b.id)));
 
   const segments: { id: Segment; label: string; icon: IconName; count: number; alert?: boolean }[] = [
     { id: 'quotes', label: 'මිල ගණන්', icon: 'tag', count: open.length, alert: open.some((r) => quoteCount(r) > 0) },
@@ -66,13 +67,16 @@ export const PartsScreen: React.FC<{ focusId?: string | null; onFocusHandled?: (
     let color = Colors.textMuted;
     if (r.status === 'cancelled') status = 'අවලංගු කළා';
     else if (r.status === 'received') {
-      status = `✓ ලැබුණා · ${q ? money(q.total) : ''}`;
+      status = `✓ ලැබුණා · ${q && o ? money(orderTotal(o, q)) : ''}`;
       color = Colors.successText;
     } else if (o?.status === 'arrived') {
       status = '📦 පැමිණියා — පරීක්ෂා කර “ලැබුණා” ඔබන්න';
       color = Colors.primary;
     } else if (o?.status === 'dispatched') {
       status = `🛵 මගදී · ${q?.shop.name} · මිනි. ${o.etaAt ? Math.max(0, Math.round((o.etaAt - now) / 60000)) : '–'}`;
+      color = Colors.primary;
+    } else if (o?.status === 'ready') {
+      status = o.collector?.hasApp ? `🧑‍🔧 ${o.collector.name} එකතු කරමින් · ${q?.shop.name}` : `🏪 කවුන්ටරයේ සූදානම් · ${q?.shop.name} · කේතය ${o.pickupCode}`;
       color = Colors.primary;
     } else if (o?.status === 'confirming') status = '⏳ වෙළඳසැල තොග තහවුරු කරමින්';
     else if (r.reconApproval === 'pending') status = '📲 අයිතිකරුගේ Recon අවසරය බලාපොරොත්තුවෙන්';
@@ -157,7 +161,7 @@ export const PartsScreen: React.FC<{ focusId?: string | null; onFocusHandled?: (
 
       <Sheet visible={pickerOpen} title="කුමන රැකියාවටද?" subtitle="කොටස් ඉල්ලීමක් සැමවිට වෙන් කළ රැකියාවකට අයත් වේ" onClose={() => setPickerOpen(false)}>
         {eligible.length === 0 ? (
-          <Text style={styles.sub}>කොටස් ඉල්ලිය හැකි ඉදිරි වෙන්කිරීම් නැත.</Text>
+          <Text style={styles.sub}>කොටස් ඉල්ලිය හැකි රැකියා නැත. වැඩපළ රැකියාවලට කොටස් ඇණවුම් කළ හැක්කේ අයිතිකරු පරීක්ෂා වාර්තාව අනුමත කළ පසුය (නැත්නම් ඔවුන් පෝස්ට් එකේ කොටස සඳහන් කර ඇත්නම්).</Text>
         ) : (
           eligible.map((b) => (
             <Pressable

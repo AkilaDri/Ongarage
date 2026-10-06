@@ -10,6 +10,7 @@ import {
   warrantyEnd,
   workshopBill,
   type DiagnosisReport,
+  type ExtraWorkRequest,
   type HandoverReport,
   type WorkshopProgress,
 } from '@ongarage/shared';
@@ -244,6 +245,8 @@ type GarageState = {
   receiveVehicle: (id: string, photos: string[]) => void;
   /** Send the diagnosis; the owner approves all, some or none of its lines. */
   sendDiagnosis: (id: string, report: DiagnosisReport) => void;
+  /** Work found mid-repair: the owner approves it like the diagnosis; handover waits for the answer. */
+  requestExtraWork: (id: string, extra: ExtraWorkRequest) => void;
   markReadyForHandover: (id: string, report: HandoverReport) => void;
   /** The owner reported a problem at handover: back to repairing. */
   startRework: (id: string) => void;
@@ -827,6 +830,26 @@ export const GarageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     [later, notify, patchProgress]
   );
 
+  const requestExtraWork = useCallback(
+    (id: string, extra: ExtraWorkRequest) => {
+      const b = findBooking(id);
+      if (!b?.progress || b.progress.stage !== 'repairing') return;
+      patchProgress(id, { extras: [...(b.progress.extras ?? []), extra] });
+      notify({ icon: '📨', title: 'අමතර වැඩ ඉල්ලීම යැව්වා', body: 'අයිතිකරු අනුමත කරන තුරු එම කොටස් ඇණවුම් කරන්න හෝ වැඩ කරන්න එපා.', tone: 'primary' });
+      // Simulated owner: approves the extra lines (the owner app lets them pick).
+      later(() => {
+        const cur = findBooking(id);
+        const x = cur?.progress?.extras?.find((e) => e.id === extra.id);
+        if (!cur?.progress || !x || x.decision) return;
+        const decision = { approvedLineIds: x.lines.map((l) => l.id), declinedLineIds: [], decidedAt: Date.now() };
+        patchProgress(id, { extras: cur.progress.extras!.map((e) => (e.id === extra.id ? { ...e, decision } : e)) });
+        notify({ icon: '✅', title: `${cur.customer.name} අමතර වැඩ අනුමත කළා`, body: x.lines.some((l) => l.kind === 'part' && l.source === 'order') ? 'දැන් එම කොටස් ඇණවුම් කරන්න.' : 'වැඩ කරගෙන යන්න.', tone: 'success' });
+      }, CUSTOMER_REPLY_MS + 1500);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [later, notify, patchProgress]
+  );
+
   const markReadyForHandover = useCallback(
     (id: string, report: HandoverReport) => {
       patchProgress(id, { stage: 'readyForHandover', handover: report, dispute: undefined });
@@ -945,6 +968,7 @@ export const GarageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     shareLocation,
     receiveVehicle,
     sendDiagnosis,
+    requestExtraWork,
     markReadyForHandover,
     startRework,
     closeWorkshopJob,

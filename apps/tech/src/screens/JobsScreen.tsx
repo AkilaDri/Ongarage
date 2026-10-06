@@ -18,6 +18,7 @@ import {
 } from '@ongarage/shared';
 import { isActiveSOS, useTech } from '../context/TechContext';
 import { WorkshopJobSheet, PARTS_LABEL } from '../components/WorkshopJobSheet';
+import { CollectTaskSheet } from '../components/CollectTaskSheet';
 import { sosStageLabel } from './SOSJobScreen';
 import { countdown, formatDate, formatTime, money } from '../utils/format';
 import type { TechJob } from '../types';
@@ -25,8 +26,10 @@ import type { TechJob } from '../types';
 // Today's work, most urgent first: SOS offers (they expire), the SOS job in
 // progress, then workshop job cards from every garage the technician works for.
 export const JobsScreen: React.FC = () => {
-  const { duty, links, jobs, checkIn, setBreak, acceptJob, declineJob, openSOS } = useTech();
+  const { duty, links, jobs, collects, checkIn, setBreak, acceptJob, declineJob, openSOS } = useTech();
   const [detailId, setDetailId] = useState<string | null>(null);
+  const [collectId, setCollectId] = useState<string | null>(null);
+  const openCollects = collects.filter((t) => t.status !== 'delivered');
   const [now, setNow] = useState(Date.now());
 
   useEffect(() => {
@@ -156,6 +159,30 @@ export const JobsScreen: React.FC = () => {
           </Pressable>
         )}
 
+        {openCollects.length > 0 && (
+          <>
+            <Text style={styles.section}>කොටස් එකතු කිරීම</Text>
+            {openCollects.map((t) => (
+              <Pressable key={t.id} style={({ pressed }) => [styles.card, styles.activeCard, pressed && styles.pressed]} onPress={() => setCollectId(t.id)} accessibilityLabel={`Collect parts ${t.shop.name}`}>
+                <View style={styles.row}>
+                  <GlassIcon emoji="🏪" small />
+                  <View style={styles.flex1}>
+                    <Text style={styles.activeLabel}>{t.status === 'assigned' ? '● වෙළඳසැලෙන් එකතු කරන්න' : '● ගරාජයට ගෙන යන්න'}</Text>
+                    <Text style={styles.title} numberOfLines={1}>
+                      {t.shop.name} · {t.lines.map((l) => l.name).join(', ')}
+                    </Text>
+                    <Text style={styles.sub} numberOfLines={1}>
+                      {t.garage.name}
+                      {t.forJob ? ` · ${t.forJob}` : ''} · {formatTime(t.holdUntil)} දක්වා
+                    </Text>
+                  </View>
+                  <Text style={styles.resumeText}>›</Text>
+                </View>
+              </Pressable>
+            ))}
+          </>
+        )}
+
         <Text style={styles.section}>වැඩමුළු රැකියා</Text>
         {workshop.length === 0 ? (
           <EmptyState icon="📋" title="රැකියා කාඩ්පත් නැත" text="ගරාජයක් ඔබට රැකියාවක් පැවරූ විට මෙහි පෙන්වනු ඇත." />
@@ -185,6 +212,7 @@ export const JobsScreen: React.FC = () => {
         )}
       </ScrollView>
       <WorkshopJobSheet job={detail} onClose={() => setDetailId(null)} />
+      <CollectTaskSheet task={collects.find((t) => t.id === collectId) ?? null} onClose={() => setCollectId(null)} />
     </View>
   );
 };

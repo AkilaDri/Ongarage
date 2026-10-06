@@ -39,7 +39,12 @@ export const DiagnosisSheet: React.FC<{
   /** Stand-in photos until camera access in the native build. */
   samplePhotos: string[];
   onSend: (report: DiagnosisReport) => void;
-}> = ({ visible, onClose, overlay, subject, agreedPrice, ownerPartType = 'GarageChoice', priceFor, samplePhotos, onSend }) => {
+  /**
+   * Extra work found during the repair: same lines and approval, but agreedPrice is the
+   * current total and at least one line is needed.
+   */
+  extra?: boolean;
+}> = ({ visible, onClose, overlay, subject, agreedPrice, ownerPartType = 'GarageChoice', priceFor, samplePhotos, onSend, extra }) => {
   const [findings, setFindings] = useState('');
   const [photos, setPhotos] = useState<string[]>([]);
   const [lines, setLines] = useState<DiagnosisLine[]>([]);
@@ -87,7 +92,7 @@ export const DiagnosisSheet: React.FC<{
   };
 
   const total = agreedPrice + linesTotal(lines);
-  const valid = findings.trim().length >= 5;
+  const valid = findings.trim().length >= 5 && (!extra || lines.length > 0);
   const finishOptions = [
     { t: at(0, 17), label: 'අද ප.ව. 5ට' },
     { t: at(1, 12), label: 'හෙට දහවල් 12ට' },
@@ -103,13 +108,14 @@ export const DiagnosisSheet: React.FC<{
   return (
     <Sheet
       visible={visible}
-      title="පරීක්ෂා වාර්තාව"
+      title={extra ? 'අමතර වැඩ — අයිතිකරුගේ අනුමැතියට' : 'පරීක්ෂා වාර්තාව'}
       subtitle={`${subject.title} · ${subject.vehicle}`}
       onClose={onClose}
       overlay={overlay}
       footer={<ActionButton label={`අයිතිකරුගේ අනුමැතියට යවන්න · ${money(total)}`} icon="📨" variant="primary" disabled={!valid} onPress={send} />}
     >
-      <Text style={styles.label}>සොයා ගත් දේ</Text>
+      {extra && <Text style={styles.hint}>අලුත්වැඩියාව අතරතුර හමු වූ දෙයක්: අයිතිකරු අනුමත කරන තුරු මෙම කොටස් ඇණවුම් කරන්න හෝ වැඩ කරන්න එපා. පිළිතුර ලැබෙන තුරු භාරදීම නතර වේ.</Text>}
+      <Text style={styles.label}>{extra ? 'හමු වූ දේ සහ හේතුව' : 'සොයා ගත් දේ'}</Text>
       <TextInput
         style={styles.area}
         value={findings}
@@ -208,7 +214,7 @@ export const DiagnosisSheet: React.FC<{
       </View>
 
       <View style={styles.summary}>
-        <Row label="එකඟ වූ මිල" value={money(agreedPrice)} />
+        <Row label={extra ? 'දැනට එකතුව' : 'එකඟ වූ මිල'} value={money(agreedPrice)} />
         <Row label={`අමතර පේළි ${lines.length}`} value={money(linesTotal(lines))} />
         <Row label="අනුමත කළහොත් නව එකතුව" value={money(total)} strong />
         <Text style={styles.hint}>

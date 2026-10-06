@@ -12,11 +12,17 @@ export const closeCodePayload = (code: string) => `ongarage:close:${code}`;
  * The owner's closing code: a QR to scan, with the six digits underneath for when it
  * can't be scanned (the owner reads them out). Either one closes the job.
  */
-export const CloseCode: React.FC<{ code: string; title?: string; caption?: string; size?: number }> = ({ code, title, caption, size = 180 }) => (
+export const CloseCode: React.FC<{ code: string; title?: string; caption?: string; size?: number; /** What the QR encodes (default: a closing code). */ payload?: string }> = ({
+  code,
+  title,
+  caption,
+  size = 180,
+  payload,
+}) => (
   <View style={styles.card}>
     {!!title && <Text style={styles.title}>{title}</Text>}
     <View style={[styles.qr, { width: size + 24, height: size + 24 }]}>
-      <QRCode value={closeCodePayload(code)} size={size} color="#0b0f17" backgroundColor="#ffffff" />
+      <QRCode value={payload ?? closeCodePayload(code)} size={size} color="#0b0f17" backgroundColor="#ffffff" />
     </View>
     <Text style={styles.code} accessibilityLabel={`Close code ${code}`}>
       {formatCloseCode(code)}

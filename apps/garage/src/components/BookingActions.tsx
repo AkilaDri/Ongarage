@@ -16,13 +16,14 @@ import {
   workshopBill,
   workshopStepIndex,
   partMarketPrice,
+  pendingExtra,
 } from '@ongarage/shared';
 import { useGarage } from '../context/GarageContext';
 import { useParts } from '../context/PartsContext';
 import { JOB_PHOTOS } from '../constants/mockData';
 import { Toast } from './Toast';
 import { callCustomer, openDirections, sendGarageLocation, serviceMode } from '../utils/contact';
-import { ago, formatDate, formatTime } from '../utils/format';
+import { ago, formatDate, formatTime, money } from '../utils/format';
 import type { Booking } from '../types';
 /** Who travels, in one line, so every booking reads the same way. */
 export const ServiceModeNote: React.FC<{ booking: Booking }> = ({ booking: b }) => {
@@ -67,7 +68,7 @@ export const WorkshopStatus: React.FC<{ booking: Booking }> = ({ booking: b }) =
   );
 };
 
-type SheetId = 'checkIn' | 'diagnosis' | 'handover' | 'close' | null;
+type SheetId = 'checkIn' | 'diagnosis' | 'extra' | 'handover' | 'close' | null;
 
 /**
  * The same controls on every upcoming booking: call the customer, then either
@@ -75,15 +76,15 @@ type SheetId = 'checkIn' | 'diagnosis' | 'handover' | 'close' | null;
  * then the next workshop step — receive, diagnose, hand over, close with the owner's code.
  */
 export const BookingActions: React.FC<{ booking: Booking }> = ({ booking: b }) => {
-  const { profile, shareLocation, receiveVehicle, sendDiagnosis, markReadyForHandover, startRework, closeWorkshopJob } = useGarage();
-  const { requestFor } = useParts();
+  const { profile, shareLocation, receiveVehicle, sendDiagnosis, requestExtraWork, markReadyForHandover, startRework, closeWorkshopJob } = useGarage();
+  const { requestFor, requestsFor, toOrderFor } = useParts();
   const mode = serviceMode(b);
   const [sheet, setSheet] = useState<SheetId>(null);
   const close = () => setSheet(null);
   const p = b.progress;
   const subject = { title: b.title, vehicle: `${b.vehicle.name} · ${b.vehicle.plate}` };
   const parts = requestFor(b.id);
-  const partsPending = !!parts && parts.status !== 'received';
+  const partsPending = requestsFor(b.id).some((r) => r.status !== 'received');
 
   if (b.status === 'completed') {
     return <ActionButton label="පාරිභෝගිකයා අමතන්න" icon="📞" variant="ghost" compact onPress={() => callCustomer(b.customer.phone)} />;
@@ -91,6 +92,13 @@ export const BookingActions: React.FC<{ booking: Booking }> = ({ booking: b }) =
 
   const lines = p ? approvedLines(p) : [];
   const bill = p ? workshopBill(b.price, p, parts?.status === 'received' ? b.partsCost : undefined) : { labour: b.price, parts: 0, total: b.price };
+  const extraWaiting = p ? pendingExtra(p) : undefined;
+  const notOrdered = toOrderFor(b).length;
+  const blockedReason = extraWaiting
+    ? 'අයිතිකරු අමතර වැඩ ගැන තීරණය කරන තුරු භාර දිය නොහැක.'
+    : notOrdered
+      ? `අනුමත කොටස් ${notOrdered} ක් තවම ඇණවුම් කර නැත — කාඩ්පතේ “කොටස්” පේළියෙන් ඇණවුම් කරන්න.`
+      : undefined;
 
   const step = () => {
     if (!p) return null;
@@ -103,7 +111,19 @@ export const BookingActions: React.FC<{ booking: Booking }> = ({ booking: b }) =
       case 'awaitingApproval':
         return <Text style={styles.waiting}>⏳ {b.customer.name} වාර්තාව කියවමින් — අනුමත කළ පේළි පමණක් අය කෙරේ.</Text>;
       case 'repairing':
-        return <ActionButton label="භාරදීමට සූදානම්" icon="✓" variant="success" compact onPress={() => setSheet('handover')} />;
+        return (
+          <>
+            {extraWaiting && <Text style={styles.waiting}>⏳ අමතර වැඩ ({money(extraWaiting.lines.reduce((s, l) => s + l.price, 0))}) අයිතිකරුගේ අනුමැතියට — එතෙක් එම කොටස් ඇණවුම් කරන්න එපා.</Text>}
+            <View style={styles.row}>
+              <View style={styles.flex1}>
+                <ActionButton label="අමතර වැඩක්" icon="➕" variant="ghost" compact disabled={!!extraWaiting} onPress={() => setSheet('extra')} />
+              </View>
+              <View style={styles.flex2}>
+                <ActionButton label="භාරදීමට සූදානම්" icon="✓" variant="success" compact onPress={() => setSheet('handover')} />
+              </View>
+            </View>
+          </>
+        );
       case 'readyForHandover':
         return <ActionButton label="අයිතිකරුගේ කේතයෙන් අවසන් කරන්න" icon="🔳" variant="success" compact onPress={() => setSheet('close')} />;
       case 'disputed':
@@ -158,6 +178,18 @@ export const BookingActions: React.FC<{ booking: Booking }> = ({ booking: b }) =
             samplePhotos={JOB_PHOTOS}
             onSend={(r) => sendDiagnosis(b.id, r)}
           />
+          <DiagnosisSheet
+            extra
+            visible={sheet === 'extra'}
+            onClose={close}
+            overlay={<Toast topOffset={40} />}
+            subject={subject}
+            agreedPrice={bill.total}
+            ownerPartType={b.job?.sparePart}
+            priceFor={partMarketPrice}
+            samplePhotos={JOB_PHOTOS}
+            onSend={(r) => requestExtraWork(b.id, { id: `x-${Date.now()}`, reason: r.findings, photos: r.photos, lines: r.lines, sentAt: Date.now() })}
+          />
           <HandoverSheet
             visible={sheet === 'handover'}
             onClose={close}
@@ -167,6 +199,7 @@ export const BookingActions: React.FC<{ booking: Booking }> = ({ booking: b }) =
             beforePhotos={p.checkInPhotos}
             samplePhotos={JOB_PHOTOS}
             partsPending={partsPending}
+            blockedReason={blockedReason}
             onSubmit={(r) => markReadyForHandover(b.id, r)}
           />
           <CloseJobSheet
@@ -187,6 +220,7 @@ export const BookingActions: React.FC<{ booking: Booking }> = ({ booking: b }) =
 const styles = themedStyles(() =>
   StyleSheet.create({
     flex1: { flex: 1 },
+    flex2: { flex: 2 },
     wrap: { gap: 8 },
     row: { flexDirection: 'row', gap: 8 },
     note: { paddingHorizontal: 10, paddingVertical: 8, borderRadius: 12, borderWidth: 1, gap: 2 },

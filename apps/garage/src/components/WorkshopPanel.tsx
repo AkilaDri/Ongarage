@@ -80,6 +80,25 @@ export const WorkshopPanel: React.FC<{ booking: Booking }> = ({ booking: b }) =>
         </View>
       )}
 
+      {(p.extras ?? []).map((x) => (
+        <View key={x.id} style={styles.box}>
+          <Text style={styles.boxTitle}>➕ අමතර වැඩ · {x.decision ? 'අයිතිකරු පිළිතුරු දුන්නා' : '⏳ අනුමැතියට'}</Text>
+          <Text style={styles.text}>{x.reason}</Text>
+          {x.lines.map((l) => {
+            const ok = x.decision?.approvedLineIds.includes(l.id);
+            return (
+              <View key={l.id} style={styles.lineRow}>
+                <Text style={[styles.lineMark, { color: !x.decision ? Colors.textMuted : ok ? Colors.successText : Colors.errorText }]}>{!x.decision ? '•' : ok ? '✓' : '✕'}</Text>
+                <Text style={[styles.lineName, x.decision && !ok && styles.struck]} numberOfLines={1}>
+                  {l.kind === 'part' ? '🔩' : '🔧'} {l.name}
+                </Text>
+                <Text style={[styles.linePrice, x.decision && !ok && styles.struck]}>{money(l.price)}</Text>
+              </View>
+            );
+          })}
+        </View>
+      ))}
+
       {(p.decision || closed) && (
         <View style={styles.box}>
           <View style={styles.billRow}>

@@ -126,6 +126,8 @@ export type PartsRequest = {
   lines: PartLine[];
   /** Part numbers or anything the shop should know. */
   note?: string;
+  /** The approved diagnosis / extra-work lines this request buys (workshop jobs). */
+  forLineIds?: string[];
   /** A photo of the old part is attached (shops identify parts far better with it). */
   oldPartPhoto?: boolean;
   createdAt: number;
@@ -195,6 +197,31 @@ export type PartsOrder = {
   pickupCode?: string;
   /** Pickup: the shop holds the parts until then. */
   holdUntil?: number;
+  /** Pickup: who goes to the counter (a team member; none = the garage itself). */
+  collector?: { id: string; name: string; hasApp?: boolean };
+};
+
+/**
+ * A technician sent to a parts shop's counter for a garage (pickup orders). They show
+ * the pickup code (QR / 6 digits), collect, and hand the parts to the garage.
+ */
+export type PartsCollectTask = {
+  id: string;
+  orderId: string;
+  garage: GarageRef;
+  shop: { name: string; phone: string; address: string; coords: LatLng };
+  lines: PartLine[];
+  partType: Exclude<PartType, 'GarageChoice'>;
+  /** The job the parts are for, e.g. "Brake pads · CAE-1122". */
+  forJob?: string;
+  pickupCode: string;
+  holdUntil: number;
+  /** Already paid by the garage (pickup orders are paid at the counter otherwise). */
+  amount: number;
+  status: 'assigned' | 'collected' | 'delivered';
+  assignedAt: number;
+  collectedAt?: number;
+  deliveredAt?: number;
 };
 
 /** A short in-app message (toast) about something the user did not trigger themselves. */
@@ -317,7 +344,7 @@ export type DiagnosisReport = {
 export type OwnerDecision = { approvedLineIds: string[]; declinedLineIds: string[]; decidedAt: number };
 
 /** Work found mid-repair; same approval rule as the diagnosis. */
-export type ExtraWorkRequest = { id: string; reason: string; lines: DiagnosisLine[]; sentAt: number; decision?: OwnerDecision };
+export type ExtraWorkRequest = { id: string; reason: string; photos?: string[]; lines: DiagnosisLine[]; sentAt: number; decision?: OwnerDecision };
 
 export type HandoverReport = {
   checklist: { label: string; done: boolean }[];

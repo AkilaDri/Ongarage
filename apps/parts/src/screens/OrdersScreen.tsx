@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { ActionButton, categoryInfo, Colors, EmptyState, FONTS, GlassIcon, Icon, themedStyles, type IconName } from '@ongarage/shared';
+import { ActionButton, categoryInfo, CloseJobSheet, Colors, EmptyState, FONTS, GlassIcon, Icon, themedStyles, type IconName } from '@ongarage/shared';
+import { Toast } from '../components/Toast';
 import { useShop } from '../context/ShopContext';
 import { DispatchSheet } from '../components/DispatchSheet';
 import { countdown, formatTime, isSameDay, money } from '../utils/format';
@@ -18,10 +19,17 @@ const STEPS: { id: ShopOrderStatus; label: string }[] = [
   { id: 'arrived', label: 'භාර දුන්නා' },
   { id: 'received', label: 'ගෙවුවා' },
 ];
-const ACTIVE: ShopOrderStatus[] = ['confirming', 'packing', 'dispatched', 'arrived', 'problem'];
+const PICKUP_STEPS: { id: ShopOrderStatus; label: string }[] = [
+  { id: 'confirming', label: 'තහවුරු' },
+  { id: 'packing', label: 'ඇසුරුම්' },
+  { id: 'ready', label: 'කවුන්ටරයේ' },
+  { id: 'received', label: 'භාර දී ගෙවුවා' },
+];
+const ACTIVE: ShopOrderStatus[] = ['confirming', 'packing', 'ready', 'dispatched', 'arrived', 'problem'];
 
 export const OrdersScreen: React.FC = () => {
-  const { orders, confirmStock, declineStock, acceptReturn } = useShop();
+  const { orders, confirmStock, declineStock, acceptReturn, markReady, handOverPickup } = useShop();
+  const [checking, setChecking] = useState<ShopOrder | null>(null);
   const [segment, setSegment] = useState<Segment>('active');
   const [dispatching, setDispatching] = useState<ShopOrder | null>(null);
   const [now, setNow] = useState(Date.now());
@@ -36,7 +44,7 @@ export const OrdersScreen: React.FC = () => {
   const paid = orders.filter((o) => o.status === 'received' && o.receivedAt);
   const today = paid.filter((o) => isSameDay(o.receivedAt!, now)).reduce((s, o) => s + (o.payout ?? 0), 0);
   const week = paid.filter((o) => now - o.receivedAt! < WEEK_MS).reduce((s, o) => s + (o.payout ?? 0), 0);
-  const needsAction = active.filter((o) => o.status === 'confirming' || o.status === 'packing' || o.status === 'problem').length;
+  const needsAction = active.filter((o) => o.status === 'confirming' || o.status === 'packing' || o.status === 'problem' || (o.status === 'ready' && !!o.pickup?.arrivedAt)).length;
 
   const segments: { id: Segment; label: string; icon: IconName; count: number; alert?: boolean }[] = [
     { id: 'active', label: 'ක්‍රියාත්මක', icon: 'clock', count: active.length, alert: needsAction > 0 },
@@ -47,7 +55,8 @@ export const OrdersScreen: React.FC = () => {
     const q = o.quote;
     const r = q.request;
     const failed = o.status === 'unavailable' || o.status === 'problem' || o.status === 'returned';
-    const step = STEPS.findIndex((s) => s.id === o.status);
+    const steps = o.pickup ? PICKUP_STEPS : STEPS;
+    const step = steps.findIndex((s) => s.id === o.status);
     return (
       <View key={o.id} style={[styles.card, o.status === 'confirming' && styles.cardUrgent, failed && styles.cardFailed]}>
         <View style={styles.row}>
@@ -60,7 +69,7 @@ export const OrdersScreen: React.FC = () => {
               {r.vehicle.name} · {r.vehicle.plate} · ඇණවුම {formatTime(o.placedAt)}
             </Text>
           </View>
-          <Text style={styles.price}>{money(q.total)}</Text>
+          <Text style={styles.price}>{money(o.pickup ? q.partsTotal : q.total)}</Text>
         </View>
         <View style={styles.lines}>
           {r.lines.map((l, i) => (
@@ -75,7 +84,7 @@ export const OrdersScreen: React.FC = () => {
 
         {!failed && (
           <View style={styles.steps}>
-            {STEPS.map((s, i) => (
+            {steps.map((s, i) => (
               <View key={s.id} style={styles.step}>
                 <View style={[styles.stepDot, i <= step && styles.stepDone]} />
                 <Text style={[styles.stepText, i <= step && { color: Colors.textMain }]}>{s.label}</Text>
@@ -97,7 +106,20 @@ export const OrdersScreen: React.FC = () => {
             </View>
           </>
         )}
-        {o.status === 'packing' && <ActionButton label="ඇසුරුම් කළා · බෙදාහැරීමට යවන්න" icon="📦" variant="primary" compact onPress={() => setDispatching(o)} />}
+        {o.pickup && o.status !== 'received' && !failed && <Text style={styles.sub}>🏪 ගරාජය කවුන්ටරයෙන් එකතු කරයි · {o.pickup.collector}</Text>}
+        {o.status === 'packing' &&
+          (o.pickup ? (
+            <ActionButton label="ඇසුරුම් කළා · කවුන්ටරයේ සූදානම්" icon="🏪" variant="primary" compact onPress={() => markReady(o.id)} />
+          ) : (
+            <ActionButton label="ඇසුරුම් කළා · බෙදාහැරීමට යවන්න" icon="📦" variant="primary" compact onPress={() => setDispatching(o)} />
+          ))}
+        {o.status === 'ready' && o.pickup && (
+          o.pickup.arrivedAt ? (
+            <ActionButton label="පිකප් කේතය පරීක්ෂා කර භාර දෙන්න" icon="🔳" variant="success" compact onPress={() => setChecking(o)} />
+          ) : (
+            <Text style={styles.sub}>⏳ එකතු කිරීමට පැමිණෙන තුරු{o.pickup.holdUntil ? ` · ${formatTime(o.pickup.holdUntil)} දක්වා තබා ගන්න` : ''}</Text>
+          )
+        )}
         {o.status === 'dispatched' && o.delivery && (
           <View style={styles.rowBetween}>
             <Text style={[styles.sub, styles.flex1]}>
@@ -171,6 +193,21 @@ export const OrdersScreen: React.FC = () => {
         list.map(card)
       )}
       <DispatchSheet order={dispatching} onClose={() => setDispatching(null)} />
+      <CloseJobSheet
+        visible={!!checking}
+        onClose={() => setChecking(null)}
+        overlay={<Toast topOffset={40} />}
+        expectedCode={checking?.pickup?.code ?? ''}
+        total={checking?.quote.partsTotal ?? 0}
+        showSimulatedCode
+        onConfirmed={() => checking && handOverPickup(checking.id)}
+        text={{
+          title: 'පිකප් කේතය පරීක්ෂා කරන්න',
+          subtitle: checking ? `${checking.quote.request.garage.name} · ${checking.pickup?.collector}` : undefined,
+          hint: 'එකතු කිරීමට පැමිණි අයගේ දුරකථනයේ QR කේතය ස්කෑන් කරන්න, නැත්නම් ඔවුන් කියන ඉලක්කම් 6 ඇතුළත් කරන්න. නිවැරදි ගරාජයට පමණක් භාර දෙන්න.',
+          scan: 'QR ස්කෑන් කිරීම අනුකරණය කරන්න',
+        }}
+      />
     </ScrollView>
   );
 };

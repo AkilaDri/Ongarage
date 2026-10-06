@@ -43,7 +43,7 @@ This is an npm workspaces monorepo: one `node_modules` and one `package-lock.jso
 | **SOS dispatch** | A 10-step flow that mirrors the owner's SOS: review, quote (suggested price and ETA), customer choice, assign mechanic and van, live trip, arrival, repair checklist, customer confirmation, QR scan with the bill, rating. |
 | **Job feed & bidding** | Jobs posted by owners, filtered by the services you offer. Each shows Buddy's diagnosis, spare-part preference, doorstep pickup and a deadline countdown. A bid sheet has a market-price hint, warranty and time estimate; bids can be edited or withdrawn while pending. |
 | **Schedule** | Today's and the last 7 days' earnings. Won bids and direct bookings become workshop jobs: receive the vehicle with photos, send a diagnosis the owner approves line by line, repair, hand over with a checklist and bill, close with the owner's QR or code, then warranty. Assign the job to a team member; rework when the owner reports a problem. |
-| **Spare parts** | Request parts for a booked job from shops nearby (the owner's part type is locked; Recon only with their approval), compare total price and delivery time, track delivery, check in, rate the shop. Parts are billed to the owner separately. |
+| **Spare parts** | Order exactly the parts the owner approved (or named in their post) from shops nearby (the owner's part type is locked; Recon only with their approval). Compare price and time, then have them delivered or collect from the counter yourself or send a technician with a pickup code. Track, check in, rate the shop. Parts are billed to the owner separately. |
 | **Garage profile** | Ordered by daily use: who is free right now (ready / on break), SOS radius, reviews with replies; settings for services, staff, vans, the public card and theme. |
 
 ## Features (technician app)
@@ -52,7 +52,8 @@ This is an npm workspaces monorepo: one `node_modules` and one `package-lock.jso
 |---|---|
 | **Duty** | Check in to one garage at a time (so a freelancer counts towards one garage's SOS capacity), take breaks, check out. |
 | **SOS in the field** | Accept an assigned SOS within 90 s, navigate with live location, arrive, inspect, get manager approval for a repair charge above the quote, work the checklist, close with the owner's QR or 6-digit code, collect payment. The garage follows each step live. |
-| **Workshop job cards** | Bookings assigned by a garage: photos, voice notes, parts status, walk-in or doorstep. Receive the vehicle with photos, write the diagnosis (suggested parts and market prices), repair once the owner approves, hand over with a checklist and photos, close with the owner's code. Freelancers accept or decline. |
+| **Workshop job cards** | Bookings assigned by a garage: photos, voice notes, parts status, walk-in or doorstep. Receive the vehicle with photos, write the diagnosis (suggested parts and market prices), repair once the owner approves, hand over with a checklist and photos, close with the owner's code. Ask the owner about extra work found mid-repair. Freelancers accept or decline. |
+| **Parts pickups** | A garage sends you to a parts shop's counter: directions, the pickup code (QR / 6 digits) to show, then hand the parts to the garage. |
 | **Garages & earnings** | Invitations and invite codes, per-garage rates, the account with each garage (pay owed vs. cash collected), job history and owners' ratings. |
 
 ## Features (parts shop app)
@@ -60,7 +61,7 @@ This is an npm workspaces monorepo: one `node_modules` and one `package-lock.jso
 | Area | What it does |
 |---|---|
 | **Requests** | Garages' parts requests within the delivery radius, with what you have in stock for each line. Quote (prices from stock, delivery by PickMe Flash or own rider, arrival time, warranty) or pass. |
-| **Orders** | Confirm stock within 10 minutes, pack, dispatch, get paid on delivery; handle returns. Earnings for today and the week. |
+| **Orders** | Confirm stock within 10 minutes, pack, then dispatch (paid on delivery) or keep it at the counter for the garage to collect (check their pickup code, paid the parts price); handle returns. Earnings for today and the week. |
 | **Stock** | Prices, brands and quantities per part type; low and out-of-stock filter. |
 | **Shop** | Open/closed, delivery radius and methods, reviews from garages with replies, what you sell. |
 

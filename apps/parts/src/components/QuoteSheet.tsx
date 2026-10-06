@@ -21,6 +21,9 @@ export const QuoteSheet: React.FC<{ request: IncomingRequest | null; onClose: ()
   const [eta, setEta] = useState(30);
   const [warranty, setWarranty] = useState(6);
   const [note, setNote] = useState('');
+  // Most garages collect themselves: offer the counter by default.
+  const [counter, setCounter] = useState(true);
+  const [readyMin, setReadyMin] = useState(15);
 
   const types = shown ? allowedTypes(shown, profile.types) : [];
   const priceFor = (r: IncomingRequest, t: QuoteType) => r.lines.map((l) => String(variantFor(stock, l.name, t)?.price ?? listPrice(l.name, t)));
@@ -62,7 +65,7 @@ export const QuoteSheet: React.FC<{ request: IncomingRequest | null; onClose: ()
   const etaOptions = Array.from(new Set([defaultEtaMin(method, shown.distanceKm), 30, 45, 60, 90])).sort((a, b) => a - b);
 
   const submit = () => {
-    sendQuote({ requestId: shown.id, partType: type, unitPrices: units, delivery: method, deliveryFee: fee, etaMin: eta, warrantyMonths: warranty, note: note.trim() || undefined });
+    sendQuote({ requestId: shown.id, partType: type, unitPrices: units, delivery: method, deliveryFee: fee, etaMin: eta, warrantyMonths: warranty, note: note.trim() || undefined, pickupReadyMin: counter ? readyMin : undefined });
     onClose();
   };
 
@@ -143,6 +146,19 @@ export const QuoteSheet: React.FC<{ request: IncomingRequest | null; onClose: ()
         </View>
       )}
 
+      <Pressable style={[styles.chip, counter && styles.chipOn, styles.counterToggle]} onPress={() => setCounter((c) => !c)} accessibilityLabel="Offer counter pickup">
+        <Text style={[styles.chipText, counter && styles.chipTextOn]}>{counter ? '✓ ' : ''}🏪 කවුන්ටරයෙන් එකතු කිරීමටත් ඉඩ දෙන්න (කොටස් මිල පමණි)</Text>
+      </Pressable>
+      {counter && (
+        <View style={styles.chips}>
+          {[10, 15, 30].map((m) => (
+            <Pressable key={m} style={[styles.chip, readyMin === m && styles.chipOn]} onPress={() => setReadyMin(m)}>
+              <Text style={[styles.chipText, readyMin === m && styles.chipTextOn]}>මිනි. {m}කින් සූදානම්</Text>
+            </Pressable>
+          ))}
+        </View>
+      )}
+
       <Text style={styles.label}>ගරාජයට ළඟා වීමට</Text>
       <View style={styles.chips}>
         {etaOptions.map((m) => (
@@ -168,6 +184,7 @@ export const QuoteSheet: React.FC<{ request: IncomingRequest | null; onClose: ()
         <Row label="කොටස්" value={money(partsTotal)} />
         <Row label="බෙදාහැරීම" value={fee ? money(fee) : 'නොමිලේ'} />
         <Row label="ගරාජය සසඳන මුළු මිල" value={money(total)} strong />
+        {counter && <Row label="🏪 කවුන්ටරයෙන් එකතු කළොත්" value={money(partsTotal)} />}
         <Text style={[styles.sub, { color: partsTotal <= market ? Colors.success : Colors.warning }]}>
           {partsTotal === market
             ? 'වෙළඳපොළ මිලට සමානයි'
@@ -195,6 +212,7 @@ const styles = themedStyles(() =>
     sub: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 16 },
     warn: { fontSize: 10.5, fontFamily: FONTS.bodySemiBold, color: Colors.warning, lineHeight: 16 },
     chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+    counterToggle: { marginTop: 4 },
     chip: { paddingHorizontal: 11, paddingVertical: 7, borderRadius: 12, borderWidth: 1, borderColor: Colors.borderColor, backgroundColor: Colors.bgCard },
     chipOn: { backgroundColor: Colors.primary, borderColor: Colors.primary },
     chipText: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },

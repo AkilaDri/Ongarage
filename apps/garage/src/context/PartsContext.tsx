@@ -1,6 +1,18 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import type { PartLine, PartQuote, PartsOrder, PartsRequest, PartType } from '@ongarage/shared';
+import {
+  getAi,
+  makeCloseCode,
+  partsStillToOrder,
+  SUGGEST_MIN_CONFIDENCE,
+  type DiagnosisLine,
+  type PartLine,
+  type PartQuote,
+  type PartsOrder,
+  type PartsRequest,
+  type PartType,
+} from '@ongarage/shared';
 import { useGarage } from './GarageContext';
+import type { Booking } from '../types';
 import { COURIER, listPrice, PARTS_SHOPS, TYPE_FACTOR, type ShopSeed } from '../constants/parts';
 
 const SEC = 1000;
@@ -11,6 +23,16 @@ const DELIVERY_MS = 12 * SEC;
 const OWNER_APPROVAL_MS = 5 * SEC;
 /** A round lasts at least this long, even when no shop can supply (they take time to say no). */
 const MIN_SEARCH_MS = 12 * SEC;
+/** A technician with the app collects a pickup order this long after it is ready (simulated). */
+const COLLECT_MS = 10 * SEC;
+/** Shops hold a pickup order at the counter this long. */
+const HOLD_MS = 3 * 60 * MIN;
+
+/** Lines made from what the owner named in their post (orderable before the diagnosis). */
+export const isNamedLine = (l: DiagnosisLine) => l.id.startsWith('named-');
+
+/** What the garage pays for an order: the delivered total, or parts only when collected. */
+export const orderTotal = (o: PartsOrder, q: PartQuote) => (o.fulfilment === 'pickup' && q.pickup ? q.pickup.total : q.total);
 
 type QuoteType = Exclude<PartType, 'GarageChoice'>;
 
@@ -45,10 +67,12 @@ const makeQuote = (r: PartsRequest, shop: ShopSeed, type: QuoteType, rating: { r
     delivery: shop.delivery,
     courier: courier ? COURIER : undefined,
     at: Date.now(),
+    // Every shop lets garages collect from the counter (most do), for the parts price only.
+    pickup: { readyInMin: 10 + Math.round(shop.distanceKm), total: partsTotal },
   };
 };
 
-export type NewPartsRequest = Pick<PartsRequest, 'bookingId' | 'categoryId' | 'vehicle' | 'partType' | 'lines' | 'note' | 'oldPartPhoto' | 'needBy' | 'radiusKm'> & {
+export type NewPartsRequest = Pick<PartsRequest, 'bookingId' | 'categoryId' | 'vehicle' | 'partType' | 'lines' | 'note' | 'oldPartPhoto' | 'needBy' | 'radiusKm' | 'forLineIds'> & {
   windowMin: number;
 };
 
@@ -61,18 +85,37 @@ type PartsState = {
   requestParts: (input: NewPartsRequest) => string;
   cancelRequest: (id: string) => void;
   askReconApproval: (id: string) => void;
-  acceptQuote: (quoteId: string) => void;
+  /** Choose a quote: delivered, or collected from the counter by the garage / a team member. */
+  acceptQuote: (quoteId: string, pickup?: { collector?: PartsOrder['collector'] }) => void;
+  /** Delivered parts checked in, or a pickup collected (garage) / brought back (technician). */
   markReceived: (orderId: string) => void;
   reportProblem: (orderId: string, reason: string) => void;
   rateOrder: (orderId: string, stars: number) => void;
   /** The live request for a booking (not cancelled), if any. */
   requestFor: (bookingId: string) => PartsRequest | undefined;
+  /** Every live request for a booking (a workshop job can need several: diagnosis, extra work). */
+  requestsFor: (bookingId: string) => PartsRequest[];
+  /**
+   * Parts the garage may order for a booking right now: approved lines not yet requested,
+   * or, before the diagnosis, the parts the owner named in their post.
+   */
+  toOrderFor: (b: Booking) => DiagnosisLine[];
 };
 
 const PartsContext = createContext<PartsState | null>(null);
 
 export const PartsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { notify, addPartsCost, profile, rating } = useGarage();
+  const { notify, addPartsCost, profile, rating, bookings } = useGarage();
+  // Parts each owner named in their post (AI layer), keyed by booking.
+  const [named, setNamed] = useState<Record<string, string[]>>({});
+  useEffect(() => {
+    bookings.forEach((b) => {
+      if (!b.job || !b.progress || named[b.id]) return;
+      getAi()
+        .classifyJob(b.job.description)
+        .then((r) => setNamed((prev) => ({ ...prev, [b.id]: r.confidence >= SUGGEST_MIN_CONFIDENCE ? r.value.partsMentioned : [] })));
+    });
+  }, [bookings, named]);
   const [requests, setRequests] = useState<PartsRequest[]>([]);
   const [quotes, setQuotes] = useState<PartQuote[]>([]);
   const [orders, setOrders] = useState<PartsOrder[]>([]);
@@ -161,10 +204,18 @@ export const PartsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   );
 
   const acceptQuote = useCallback(
-    (quoteId: string) => {
+    (quoteId: string, pickup?: { collector?: PartsOrder['collector'] }) => {
       const q = live.current.quotes.find((x) => x.id === quoteId);
       if (!q) return;
-      const order: PartsOrder = { id: `po-${Date.now()}`, requestId: q.requestId, quoteId, status: 'confirming', placedAt: Date.now() };
+      const order: PartsOrder = {
+        id: `po-${Date.now()}`,
+        requestId: q.requestId,
+        quoteId,
+        status: 'confirming',
+        placedAt: Date.now(),
+        fulfilment: pickup ? 'pickup' : 'delivery',
+        collector: pickup?.collector,
+      };
       setOrders((prev) => [order, ...prev]);
       patchRequest(q.requestId, { status: 'ordered' });
       const shop = PARTS_SHOPS.find((s) => s.id === q.shop.id)!;
@@ -180,6 +231,25 @@ export const PartsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             return { ...prev, [shop.id]: { count: cur.count + 1, rating: Number(((cur.rating * cur.count + 1) / (cur.count + 1)).toFixed(1)) } };
           });
           notify({ icon: '⛔', title: `${q.shop.name} ළඟ තොග නැත`, body: 'ඇණවුම අවලංගු විය — වෙනත් මිල ගණනක් තෝරන්න.', tone: 'danger' });
+          return;
+        }
+        if (order.fulfilment === 'pickup') {
+          // Held at the counter; whoever collects shows the pickup code there.
+          const who = order.collector;
+          patchOrder(order.id, { status: 'ready', pickupCode: makeCloseCode(), holdUntil: Date.now() + HOLD_MS, etaAt: Date.now() + (q.pickup?.readyInMin ?? 15) * MIN });
+          notify({
+            icon: '🏪',
+            title: `${q.shop.name} කවුන්ටරයේ සූදානම්`,
+            body: who ? `${who.name} එකතු කරයි${who.hasApp ? ' — ඔවුන්ගේ ඇප් එකට කාර්යය යැව්වා' : ''}.` : 'කවුන්ටරයේදී පිකප් කේතය පෙන්වන්න.',
+            tone: 'success',
+          });
+          if (who?.hasApp)
+            later(() => {
+              const o = live.current.orders.find((x) => x.id === order.id);
+              if (!o || o.status !== 'ready') return;
+              patchOrder(order.id, { status: 'arrived', etaAt: Date.now() });
+              notify({ icon: '📦', title: `${who.name} කොටස් ගෙනාවා`, body: 'පරීක්ෂා කර “ලැබුණා” ලෙස සලකුණු කරන්න.', tone: 'primary' });
+            }, COLLECT_MS);
           return;
         }
         const courier = q.delivery === 'courier';
@@ -209,8 +279,9 @@ export const PartsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (!o || !q || !r) return;
       patchOrder(orderId, { status: 'received', receivedAt: Date.now() });
       patchRequest(r.id, { status: 'received' });
-      addPartsCost(r.bookingId, q.total);
-      notify({ icon: '✅', title: 'කොටස් ලැබුණා', body: `රු. ${q.total.toLocaleString()} — වාහන හිමිකරුගේ කොටස් බිල්පතට එක් විය.`, tone: 'success' });
+      const total = orderTotal(o, q);
+      addPartsCost(r.bookingId, total);
+      notify({ icon: '✅', title: 'කොටස් ලැබුණා', body: `රු. ${total.toLocaleString()} — වාහන හිමිකරුගේ කොටස් බිල්පතට එක් විය.`, tone: 'success' });
     },
     [addPartsCost, notify, patchOrder, patchRequest]
   );
@@ -238,6 +309,19 @@ export const PartsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   );
 
   const requestFor = useCallback((bookingId: string) => requests.find((r) => r.bookingId === bookingId && r.status !== 'cancelled'), [requests]);
+  const requestsFor = useCallback((bookingId: string) => requests.filter((r) => r.bookingId === bookingId && r.status !== 'cancelled'), [requests]);
+
+  const toOrderFor = useCallback(
+    (b: Booking): DiagnosisLine[] => {
+      if (!b.progress || b.status === 'completed') return [];
+      const reqs = requests.filter((r) => r.bookingId === b.id && r.status !== 'cancelled');
+      const approved = partsStillToOrder(b.progress, reqs.flatMap((r) => r.forLineIds ?? []));
+      if (approved.length || b.progress.decision || reqs.length) return approved;
+      // Before the diagnosis only what the owner named in their post (e.g. "a new battery").
+      return (named[b.id] ?? []).map((name) => ({ id: `named-${b.id}-${name}`, kind: 'part', name, qty: 1, partType: b.job?.sparePart ?? 'GarageChoice', source: 'order', price: 0 }));
+    },
+    [requests, named]
+  );
 
   const value: PartsState = {
     requests,
@@ -252,6 +336,8 @@ export const PartsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     reportProblem,
     rateOrder,
     requestFor,
+    requestsFor,
+    toOrderFor,
   };
   return <PartsContext.Provider value={value}>{children}</PartsContext.Provider>;
 };

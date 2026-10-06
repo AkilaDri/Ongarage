@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Colors, EmptyState, FONTS, GlassIcon, Icon, linesToOrder, SwipeCard, themedStyles, vehicleIcon, type IconName } from '@ongarage/shared';
+import { Colors, EmptyState, FONTS, GlassIcon, Icon, SwipeCard, themedStyles, vehicleIcon, type IconName } from '@ongarage/shared';
 import { useGarage } from '../context/GarageContext';
 import { BookingActions, ServiceModeNote, WorkshopStatus } from '../components/BookingActions';
 import { JobDetailView, type DetailTarget } from '../components/JobDetailView';
@@ -13,12 +13,6 @@ import type { Booking } from '../types';
 type Segment = 'upcoming' | 'completed';
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
-/**
- * Parts are ordered only for lines the owner approved (or once a request exists). SOS parts
- * are handled after the roadside job.
- */
-const showParts = (b: Booking, hasRequest: boolean) =>
-  b.source !== 'sos' && (hasRequest || !b.progress || ((b.progress.stage === 'repairing' || b.progress.stage === 'disputed') && linesToOrder(b.progress).length > 0));
 
 const dayLabel = (t: number) => {
   const now = Date.now();
@@ -29,7 +23,10 @@ const dayLabel = (t: number) => {
 
 export const ScheduleScreen: React.FC<{ onOpenParts: (requestId: string) => void }> = ({ onOpenParts }) => {
   const { bookings } = useGarage();
-  const { requestFor } = useParts();
+  const { requestFor, toOrderFor } = useParts();
+  // Parts only for lines the owner approved (or named in the post), or once a request exists.
+  // SOS parts are handled after the roadside job.
+  const showParts = (b: Booking) => b.source !== 'sos' && (!!requestFor(b.id) || !b.progress || toOrderFor(b).length > 0);
   const [segment, setSegment] = useState<Segment>('upcoming');
   const [detailId, setDetailId] = useState<string | null>(null);
   const [partsFor, setPartsFor] = useState<Booking | null>(null);
@@ -92,7 +89,7 @@ export const ScheduleScreen: React.FC<{ onOpenParts: (requestId: string) => void
           <>
             <WorkshopStatus booking={b} />
             <ServiceModeNote booking={b} />
-            {showParts(b, !!requestFor(b.id)) && <PartsStatusLine booking={b} onRequest={() => setPartsFor(b)} onOpen={onOpenParts} />}
+            {showParts(b) && <PartsStatusLine booking={b} onRequest={() => setPartsFor(b)} onOpen={onOpenParts} />}
             <BookingActions booking={b} />
           </>
         )}

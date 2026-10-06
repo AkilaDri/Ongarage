@@ -1,7 +1,7 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text } from 'react-native';
 import { Colors, FONTS, themedStyles } from '@ongarage/shared';
-import { allowedTypes, useParts } from '../context/PartsContext';
+import { allowedTypes, isNamedLine, useParts } from '../context/PartsContext';
 import { money } from '../utils/format';
 import type { Booking } from '../types';
 
@@ -10,10 +10,22 @@ import type { Booking } from '../types';
  * it is managed; this only starts a request or jumps there.
  */
 export const PartsStatusLine: React.FC<{ booking: Booking; onRequest: () => void; onOpen: (requestId: string) => void }> = ({ booking, onRequest, onOpen }) => {
-  const { requestFor, quotes, orders } = useParts();
+  const { requestFor, toOrderFor, quotes, orders } = useParts();
   const r = requestFor(booking.id);
+  const toOrder = toOrderFor(booking);
+  // Approved (or owner-named) parts not ordered yet: the next thing to do.
+  const orderLine = toOrder.length > 0 && (
+    <Pressable style={({ pressed }) => [styles.line, styles.lineAction, pressed && styles.pressed]} onPress={onRequest} accessibilityLabel="Order approved parts">
+      <Text style={styles.text} numberOfLines={1}>
+        🔩 {toOrder.every(isNamedLine) ? `අයිතිකරු සඳහන් කළ කොටස් ${toOrder.length}` : `අනුමත කොටස් ${toOrder.length}`} ක් ඇණවුම් කරන්න
+      </Text>
+      <Text style={styles.action}>›</Text>
+    </Pressable>
+  );
 
   if (!r) {
+    // Workshop jobs: parts only once the owner approved them (or named them in the post).
+    if (booking.progress) return orderLine || null;
     return (
       <Pressable style={({ pressed }) => [styles.line, pressed && styles.pressed]} onPress={onRequest}>
         <Text style={styles.text}>🔩 කොටස් අවශ්‍යද?</Text>
@@ -28,7 +40,12 @@ export const PartsStatusLine: React.FC<{ booking: Booking; onRequest: () => void
 
   let text = '';
   let tone: 'muted' | 'action' | 'warn' | 'done' = 'muted';
-  if (r.status === 'received') {
+  if (order?.status === 'ready') {
+    text = order.collector?.hasApp
+      ? `🧑‍🔧 ${order.collector.name} ${q?.shop.name ?? ''} වෙතින් එකතු කරමින්`
+      : `🏪 ${q?.shop.name ?? ''} කවුන්ටරයේ සූදානම් · කේතය ${order.pickupCode}`;
+    tone = 'action';
+  } else if (r.status === 'received') {
     text = `✓ කොටස් ලැබුණා${booking.partsCost ? ` · ${money(booking.partsCost)}` : ''}`;
     tone = 'done';
   } else if (order?.status === 'arrived') {
@@ -51,12 +68,15 @@ export const PartsStatusLine: React.FC<{ booking: Booking; onRequest: () => void
   }
 
   return (
+    <>
     <Pressable style={({ pressed }) => [styles.line, tone === 'action' && styles.lineAction, tone === 'warn' && styles.lineWarn, pressed && styles.pressed]} onPress={() => onOpen(r.id)}>
       <Text style={[styles.text, tone === 'done' && { color: Colors.successText }, tone === 'warn' && { color: Colors.warning }]} numberOfLines={1}>
         {text}
       </Text>
       <Text style={styles.action}>›</Text>
     </Pressable>
+    {orderLine}
+    </>
   );
 };
 
