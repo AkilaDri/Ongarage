@@ -32,6 +32,7 @@ This is an npm workspaces monorepo: one `node_modules` and one `package-lock.jso
 | **SOS roadside help** | Pick the breakdown location on a map, choose the vehicle and breakdown type. An 11-step flow follows: search with a growing radius (and a growing technician call-out fee), garage bids, live mechanic tracking, repair progress, QR code to close the job, rating and reward. |
 | **Repair bidding** | Post a job with *OnGarage Buddy* (guided fault diagnosis), category, description, spare-part preference, doorstep pickup and a 1–24 h bid window. Bids come in under Received / Pending / Expired, with countdowns, lowest-bid highlighting and republishing. |
 | **Garage browsing** | 12 service categories. A map with garage pins and a three-position bottom sheet of garage cards (call, directions, book). |
+| **Workshop jobs** | Follow every booked repair step by step: the garage's check-in photos, its diagnosis (tick the lines you agree to, or stop and pay only the inspection fee), the handover report and bill, then show your QR / 6-digit code to close. Report a problem (the garage reworks it, or escalate to OnGarage) and claim the warranty. |
 | **Activity & profile** | Current bookings and completed services. Profile with an animated vehicle showcase, an add-vehicle form with Sri Lankan plate validation, and a light/dark theme switch. |
 
 ## Features (garage app)
@@ -41,7 +42,7 @@ This is an npm workspaces monorepo: one `node_modules` and one `package-lock.jso
 | **SOS inbox** | Go online or offline. Live SOS requests from inside the coverage radius are shown on a map and as cards with the breakdown type, vehicle, distance, ETA and the call-out fee you will receive. Requests expire if nobody answers. |
 | **SOS dispatch** | A 10-step flow that mirrors the owner's SOS: review, quote (suggested price and ETA), customer choice, assign mechanic and van, live trip, arrival, repair checklist, customer confirmation, QR scan with the bill, rating. |
 | **Job feed & bidding** | Jobs posted by owners, filtered by the services you offer. Each shows Buddy's diagnosis, spare-part preference, doorstep pickup and a deadline countdown. A bid sheet has a market-price hint, warranty and time estimate; bids can be edited or withdrawn while pending. |
-| **Schedule** | Today's and the last 7 days' earnings. Won bids become bookings (start, then complete), with completed jobs and ratings. |
+| **Schedule** | Today's and the last 7 days' earnings. Won bids and direct bookings become workshop jobs: receive the vehicle with photos, send a diagnosis the owner approves line by line, repair, hand over with a checklist and bill, close with the owner's QR or code, then warranty. Assign the job to a team member; rework when the owner reports a problem. |
 | **Spare parts** | Request parts for a booked job from shops nearby (the owner's part type is locked; Recon only with their approval), compare total price and delivery time, track delivery, check in, rate the shop. Parts are billed to the owner separately. |
 | **Garage profile** | Ordered by daily use: who is free right now (ready / on break), SOS radius, reviews with replies; settings for services, staff, vans, the public card and theme. |
 
@@ -51,7 +52,7 @@ This is an npm workspaces monorepo: one `node_modules` and one `package-lock.jso
 |---|---|
 | **Duty** | Check in to one garage at a time (so a freelancer counts towards one garage's SOS capacity), take breaks, check out. |
 | **SOS in the field** | Accept an assigned SOS within 90 s, navigate with live location, arrive, inspect, get manager approval for a repair charge above the quote, work the checklist, close with the owner's QR or 6-digit code, collect payment. The garage follows each step live. |
-| **Workshop job cards** | Bookings assigned by a garage: photos, voice notes, parts status, walk-in or doorstep, checklist and notes. Freelancers accept or decline. |
+| **Workshop job cards** | Bookings assigned by a garage: photos, voice notes, parts status, walk-in or doorstep. Receive the vehicle with photos, write the diagnosis (suggested parts and market prices), repair once the owner approves, hand over with a checklist and photos, close with the owner's code. Freelancers accept or decline. |
 | **Garages & earnings** | Invitations and invite codes, per-garage rates, the account with each garage (pay owed vs. cash collected), job history and owners' ratings. |
 
 ## Features (parts shop app)

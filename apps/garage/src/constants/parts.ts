@@ -1,4 +1,4 @@
-import type { PartType, PartsShop } from '@ongarage/shared';
+import { PART_TYPE_FACTOR, partListPrice, type PartType, type PartsShop } from '@ongarage/shared';
 
 // Stand-ins for the parts shops around the garage until they have their own app.
 export type ShopSeed = PartsShop & {
@@ -50,37 +50,9 @@ export const PART_SUGGESTIONS: Record<string, string[]> = {
 };
 export const DEFAULT_SUGGESTIONS = ['Engine oil 4L', 'Oil filter', 'Air filter'];
 
-/** Genuine list prices (LKR); OEM and Recon are cheaper (TYPE_FACTOR). */
-const PART_PRICES: Record<string, number> = {
-  'Engine mount': 14500,
-  'Timing belt': 9800,
-  'Clutch plate': 18500,
-  'Engine oil 4L': 8200,
-  'Oil filter': 1650,
-  Alternator: 38000,
-  'Starter motor': 32000,
-  'Fuse set': 1200,
-  'Wiring connector': 950,
-  'AC gas': 4500,
-  'AC compressor': 65000,
-  'Cabin filter': 2400,
-  'O2 sensor': 16500,
-  'MAF sensor': 21000,
-  'Spark plugs (set)': 7600,
-  'Brake pads (front)': 9500,
-  'Brake pads (rear)': 8200,
-  'Brake disc': 12800,
-  'Brake fluid': 1900,
-  'Air filter (performance)': 11500,
-  'Air filter': 2600,
-  'Battery 12V 45Ah': 27500,
-  'Battery terminals': 1100,
-};
-const DEFAULT_PART_PRICE = 5000;
-
-export const TYPE_FACTOR: Record<Exclude<PartType, 'GarageChoice'>, number> = { Genuine: 1, OEM: 0.72, Recon: 0.55 };
-
-export const listPrice = (name: string) => PART_PRICES[name] ?? DEFAULT_PART_PRICE;
+/** Prices come from the shared market reference. */
+export const TYPE_FACTOR = PART_TYPE_FACTOR;
+export const listPrice = partListPrice;
 
 export const PART_TYPE_LABEL: Record<PartType, string> = {
   Genuine: 'Genuine',

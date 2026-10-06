@@ -2,8 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Easing, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle, Line } from 'react-native-svg';
-import QRCode from 'react-native-qrcode-svg';
-import { Colors, themedStyles } from '@ongarage/shared';
+import { CloseCode, Colors, makeCloseCode, themedStyles } from '@ongarage/shared';
 import { FONTS } from '@ongarage/shared';
 import { useVehicles } from '../context/VehiclesContext';
 import { BREAKDOWN_TYPES } from '@ongarage/shared';
@@ -148,6 +147,8 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
   onClose,
 }) => {
   const [step, setStep] = useState<Step>('confirm');
+  // The owner's closing code: the technician scans the QR or types these six digits.
+  const [closeCode] = useState(makeCloseCode);
   const [breakdown, setBreakdown] = useState<string | null>(null);
   const [radius, setRadius] = useState(INITIAL_RADIUS_KM);
   const [surcharge, setSurcharge] = useState(BASE_FEE);
@@ -727,9 +728,7 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
         <Text style={styles.heroTitle}>QR කේතය ස්කෑන් කරන්න</Text>
         <Text style={styles.heroText}>රැකියාව අවසන් කිරීමට ගරාජ කාර්මිකයාගේ උපාංගයෙන් මෙම QR කේතය ස්කෑන් කරන්න.</Text>
       </View>
-      <View style={styles.qrCard}>
-        <QRCode value={`ongarage:sos:${job.id}:${vehicle.plate}`} size={190} color="#030712" backgroundColor="#ffffff" />
-      </View>
+      <CloseCode code={closeCode} size={190} caption="ස්කෑන් කළ නොහැකි නම් මෙම ඉලක්කම් 6 කාර්මිකයාට කියන්න." />
       <View style={styles.card}>
         <Text style={styles.label}>බිල්පත් සාරාංශය</Text>
         <View style={styles.rowBetween}>
@@ -1132,7 +1131,6 @@ const styles = themedStyles(() => StyleSheet.create({
   callBtn: { width: 42, height: 42, borderRadius: 21, backgroundColor: Colors.success, justifyContent: 'center', alignItems: 'center' },
   callBtnText: { fontSize: 18 },
 
-  qrCard: { ...glass(), alignSelf: 'center', padding: 16, borderRadius: 22, backgroundColor: '#fff', borderColor: 'rgba(255, 255, 255, 0.6)' },
 
   starsRow: { flexDirection: 'row', gap: 8 },
   star: { fontSize: 40, color: Colors.subtleBorder },

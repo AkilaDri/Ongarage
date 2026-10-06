@@ -1,5 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { DEFAULT_COORDS } from '../constants/mockData';
+import { useWorkshops } from './WorkshopContext';
 import { offsetCoordinate, marketPrice } from '@ongarage/shared';
 import type { Bid, RepairJob } from '@ongarage/shared';
 
@@ -104,7 +105,10 @@ type BidsState = {
 const BidsContext = createContext<BidsState | null>(null);
 
 export const BidsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { startWorkshop } = useWorkshops();
   const [jobs, setJobs] = useState<RepairJob[]>(() => seedJobs(Date.now()));
+  const live = useRef(jobs);
+  live.current = jobs;
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   useEffect(() => () => timers.current.forEach(clearTimeout), []);
@@ -130,9 +134,16 @@ export const BidsProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return job;
   }, []);
 
-  const acceptBid = useCallback((jobId: string, bidId: string) => {
-    setJobs((prev) => prev.map((j) => (j.id === jobId ? { ...j, acceptedBidId: bidId } : j)));
-  }, []);
+  const acceptBid = useCallback(
+    (jobId: string, bidId: string) => {
+      setJobs((prev) => prev.map((j) => (j.id === jobId ? { ...j, acceptedBidId: bidId } : j)));
+      const job = live.current.find((j) => j.id === jobId);
+      const bid = job?.bids.find((b) => b.id === bidId);
+      // The winning garage takes the vehicle in and follows the workshop steps.
+      if (job && bid) startWorkshop({ id: jobId, garageName: bid.garageName, categoryId: job.categoryId, agreedPrice: bid.price, scheduledAt: Date.now(), doorstep: job.doorstep, warrantyMonths: bid.warrantyMonths });
+    },
+    [startWorkshop]
+  );
 
   return <BidsContext.Provider value={{ jobs, postJob, acceptBid }}>{children}</BidsContext.Provider>;
 };

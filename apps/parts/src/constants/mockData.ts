@@ -1,4 +1,4 @@
-import type { LatLng, PartLine, PartType } from '@ongarage/shared';
+import { PART_TYPE_FACTOR, partMarketPrice, type LatLng, type PartLine, type PartType } from '@ongarage/shared';
 import type { QuoteType, ShopProfile, ShopReview, StockItem } from '../types';
 
 const MIN = 60 * 1000;
@@ -123,22 +123,9 @@ export const GARAGE_CHECK_MS = 5000;
 
 export const COURIER = 'PickMe Flash';
 
-/** Typical list prices (LKR, Genuine) used as the market reference for items the shop doesn't stock. */
-export const LIST_PRICES: Record<string, number> = {
-  'Brake pads (front)': 9500,
-  'Brake pads (rear)': 8200,
-  'Brake fluid': 1900,
-  'Battery 12V 45Ah': 27500,
-  'Timing belt': 9800,
-  'Engine oil 4L': 8200,
-  'Oil filter': 1650,
-  'O2 sensor': 16500,
-  Alternator: 38000,
-  'Spark plugs (set)': 7600,
-  'Cabin filter': 2400,
-};
-export const TYPE_FACTOR: Record<QuoteType, number> = { Genuine: 1, OEM: 0.72, Recon: 0.55 };
-export const listPrice = (name: string, type: QuoteType) => Math.round(((LIST_PRICES[name] ?? 5000) * TYPE_FACTOR[type]) / 50) * 50;
+/** Market reference for items the shop doesn't stock (shared with the garage app). */
+export const TYPE_FACTOR: Record<QuoteType, number> = PART_TYPE_FACTOR;
+export const listPrice = (name: string, type: QuoteType) => partMarketPrice(name, type);
 
 export const PART_TYPE_LABEL: Record<PartType, string> = { Genuine: 'Genuine', OEM: 'OEM', Recon: 'Recon', GarageChoice: 'ගරාජයේ තේරීම' };
 export const ALL_TYPES: QuoteType[] = ['Genuine', 'OEM', 'Recon'];

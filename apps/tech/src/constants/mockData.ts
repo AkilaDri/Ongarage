@@ -1,4 +1,4 @@
-import type { GarageRef, VoiceNote } from '@ongarage/shared';
+import { newWorkshopProgress, type GarageRef, type VoiceNote } from '@ongarage/shared';
 import type { EarningEntry, GarageLink, Invite, OwnerReview, TechJob, TechProfile } from '../types';
 
 const MIN = 60 * 1000;
@@ -37,6 +37,8 @@ export const INVITES: Invite[] = [
 
 const voice = (id: string, durationSec: number): VoiceNote => ({ id, durationSec });
 const PHOTO = (id: string) => `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=900&q=80`;
+/** Sample photos for the simulated camera (check-in, diagnosis, handover). */
+export const SAMPLE_PHOTOS = [PHOTO('1625047509248-ec889cbff17f'), PHOTO('1517524008697-84bbe3c3fd98'), PHOTO('1503376780353-7e6692767b70')];
 
 const tomorrowAt = (h: number) => {
   const d = new Date(Date.now() + DAY);
@@ -44,8 +46,6 @@ const tomorrowAt = (h: number) => {
   return d.getTime();
 };
 
-/** Checklist for every workshop job card. */
-export const WORKSHOP_TASKS = ['වාහනය පරීක්ෂා කර දෝෂය තහවුරු කිරීම', 'අලුත්වැඩියාව / කොටස් සවි කිරීම', 'පරීක්ෂණ ධාවනය', 'වාහනය පිරිසිදු කර භාර දීමට සූදානම් කිරීම'];
 /** SOS checklist (same as the garage app's dispatch screen). */
 export const SOS_TASKS = ['ස්ථානයේ පරීක්ෂා කර දෝෂය හඳුනා ගැනීම', 'අලුත්වැඩියාව / කොටස් මාරු කිරීම', 'වාහනය භාර දීමට සූදානම් කිරීම'];
 export const SOS_REPAIR_TASK = 1;
@@ -57,30 +57,30 @@ export const WORKSHOP_JOBS: TechJob[] = [
     customer: { name: 'දිනේෂ් කුමාර', phone: '0779876507' }, vehicle: { name: 'Vitz', plate: 'CAE-1122', type: 'Hatchback' },
     location: { address: 'ගාල්ල කොටුව', coords: { latitude: 6.0272, longitude: 80.2171 } }, assignedAt: Date.now() - 3 * HOUR, pay: 1500,
     workshop: {
-      scheduledAt: tomorrowAt(9), doorstep: false, parts: 'none',
+      scheduledAt: tomorrowAt(9), doorstep: false, parts: 'none', agreedPrice: 15500, ownerPartType: 'GarageChoice', progress: newWorkshopProgress(),
       description: 'ඉන්ධන පරිභෝජනය වැඩියි, ඇක්සලරේට් කරද්දී බර ගතියක්. ECU remap එකක් කරන්න කැමතියි.', voiceNotes: [voice('vn-b1', 21)],
     },
-    tasks: [false, false, false, false],
+    tasks: [],
   },
   {
     id: 'w-b2', kind: 'workshop', stage: 'assigned', garage: TOPCODE, title: 'Battery Replacement', icon: '🔋',
     customer: { name: 'කවිෂා රත්නායක', phone: '0779876508' }, vehicle: { name: 'March K11', plate: 'WP-1029', type: 'Hatchback' },
     location: { address: 'වක්වැල්ල පාර', coords: { latitude: 6.0533, longitude: 80.2302 } }, assignedAt: Date.now() - 2 * HOUR, pay: 1500,
     workshop: {
-      scheduledAt: tomorrowAt(14), doorstep: true, parts: 'arrived', partsSummary: 'Battery 12V 45Ah · Battery terminals (Recon, අයිතිකරු අනුමත)',
+      scheduledAt: tomorrowAt(14), doorstep: true, parts: 'arrived', agreedPrice: 8200, ownerPartType: 'Recon', progress: newWorkshopProgress(), partsSummary: 'Battery 12V 45Ah · Battery terminals (Recon, අයිතිකරු අනුමත)',
       description: 'බැටරිය බැහැලා, වාහනය පණගන්වන්න බැහැ. ගෙදරටම ඇවිත් මාරු කරන්න පුළුවන්ද?', photos: [PHOTO('1517524008697-84bbe3c3fd98')],
     },
-    tasks: [false, false, false, false],
+    tasks: [],
   },
   {
     id: 'w-s1', kind: 'workshop', stage: 'offered', garage: SOUTHERN, title: 'Alternator Check', icon: '⚡',
     customer: { name: 'ශෙහාන් ගුණවර්ධන', phone: '0779876506' }, vehicle: { name: 'Axio', plate: 'CAA-3398', type: 'Sedan' },
     location: { address: 'කරාපිටිය, ගාල්ල', coords: SOUTHERN.coords }, assignedAt: Date.now() - 20 * MIN, pay: 2800,
     workshop: {
-      scheduledAt: tomorrowAt(11), doorstep: false, parts: 'onTheWay', partsSummary: 'Alternator (OEM) · Galle Auto Parts',
+      scheduledAt: tomorrowAt(11), doorstep: false, parts: 'onTheWay', agreedPrice: 6500, ownerPartType: 'OEM', progress: newWorkshopProgress(), partsSummary: 'Alternator (OEM) · Galle Auto Parts',
       description: 'බැටරි ලයිට් එක දැල්වෙනවා, බැටරිය චාජ් වෙන්නේ නැහැ වගේ.', photos: [PHOTO('1625047509248-ec889cbff17f')], voiceNotes: [voice('vn-s1', 14)],
     },
-    tasks: [false, false, false, false],
+    tasks: [],
   },
 ];
 

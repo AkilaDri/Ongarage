@@ -1,6 +1,8 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { categoryInfo, marketPrice } from '@ongarage/shared';
 import { useNotice } from './NoticeContext';
+import { SEED_WORKSHOP_ID, useWorkshops } from './WorkshopContext';
+import { MOCK_GARAGES } from '../constants/mockData';
 import type { DirectBooking, DirectBookingInput } from '../types';
 
 const MIN = 60 * 1000;
@@ -22,6 +24,30 @@ type BookingsState = {
 
 const BookingsContext = createContext<BookingsState | null>(null);
 
+/** Seed: a brake job booked this morning; the garage's diagnosis is waiting (see WorkshopContext). */
+const seedBookings = (): DirectBooking[] => {
+  const at = Date.now() - 2 * HOUR;
+  return [
+    {
+      id: SEED_WORKSHOP_ID,
+      garage: MOCK_GARAGES[3],
+      categoryId: '7',
+      service: 'Brake Pads',
+      vehicleId: 'premio',
+      preferredAt: at,
+      description: 'බ්‍රේක් ගහද්දී කෑගහනවා, පෙඩලය ටිකක් පහතට යනවා.',
+      doorstep: false,
+      photos: [],
+      voiceNotes: [],
+      requestedAt: at - 20 * HOUR,
+      respondBy: at - 18 * HOUR,
+      status: 'confirmed',
+      scheduledAt: at,
+      estimate: 3800,
+    },
+  ];
+};
+
 /**
  * Direct bookings the owner sent. Until there is a backend the garage's side is
  * simulated, following the garage app's direct-request rules: it confirms a slot in
@@ -29,7 +55,8 @@ const BookingsContext = createContext<BookingsState | null>(null);
  */
 export const BookingsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { notify } = useNotice();
-  const [bookings, setBookings] = useState<DirectBooking[]>([]);
+  const { startWorkshop } = useWorkshops();
+  const [bookings, setBookings] = useState<DirectBooking[]>(seedBookings);
   const live = useRef(bookings);
   live.current = bookings;
 
@@ -53,6 +80,7 @@ export const BookingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           const hour = new Date(b.preferredAt).getHours();
           if (hour >= OPEN_HOUR && hour < CLOSE_HOUR) {
             patch(b.id, { status: 'confirmed', scheduledAt: b.preferredAt, estimate, garageNote: b.doorstep ? undefined : 'පැමිණීමට පෙර අමතන්න.' });
+            startWorkshop({ id: b.id, garageName: b.garage.name, categoryId: b.categoryId, agreedPrice: estimate, scheduledAt: b.preferredAt, doorstep: b.doorstep });
             notify({
               icon: '✅',
               title: `${b.garage.name} වෙන්කිරීම තහවුරු කළා`,
@@ -68,7 +96,7 @@ export const BookingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         }, GARAGE_REPLY_MS)
       );
     },
-    [notify, patch]
+    [notify, patch, startWorkshop]
   );
 
   const acceptProposal = useCallback(
@@ -76,9 +104,10 @@ export const BookingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const b = live.current.find((x) => x.id === id);
       if (!b?.proposal) return;
       patch(id, { status: 'confirmed', scheduledAt: b.proposal.at, estimate: b.proposal.estimate });
+      startWorkshop({ id, garageName: b.garage.name, categoryId: b.categoryId, agreedPrice: b.proposal.estimate, scheduledAt: b.proposal.at, doorstep: b.doorstep });
       notify({ icon: '✅', title: 'වෙන්කිරීම තහවුරුයි', body: `${b.garage.name} · ${categoryInfo(b.categoryId).name}`, tone: 'success' });
     },
-    [notify, patch]
+    [notify, patch, startWorkshop]
   );
   const declineProposal = useCallback((id: string) => patch(id, { status: 'declined', declineReason: 'ඔබ යෝජිත වේලාව ප්‍රතික්ෂේප කළා' }), [patch]);
   const cancelBooking = useCallback((id: string) => patch(id, { status: 'cancelled' }), [patch]);

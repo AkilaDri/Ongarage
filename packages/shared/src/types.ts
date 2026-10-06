@@ -259,6 +259,12 @@ export type TechAssignment = {
     doorstep: boolean;
     parts: TechPartsStatus;
     partsSummary?: string;
+    /** The garage's agreed price (labour) the diagnosis builds on. */
+    agreedPrice: number;
+    /** The part type the owner asked for in their post. */
+    ownerPartType?: PartType;
+    /** The workshop steps; the same record the garage and owner apps read. */
+    progress?: WorkshopProgress;
   };
 };
 

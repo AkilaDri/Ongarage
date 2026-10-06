@@ -1,4 +1,4 @@
-import type { BreakdownId } from '@ongarage/shared';
+import { newWorkshopProgress, type BreakdownId } from '@ongarage/shared';
 import type { Booking, Customer, CustomerVehicle, DirectRequest, FeedJob, GarageProfile, Review, ServiceVan, TeamMember } from '../types';
 
 const MIN = 60 * 1000;
@@ -73,7 +73,7 @@ export const SOS_POOL: {
 
 // Stand-ins for the photos owners attach to a job until uploads exist.
 const PHOTO = (id: string) => `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=900&q=80`;
-const JOB_PHOTOS = [PHOTO('1625047509248-ec889cbff17f'), PHOTO('1517524008697-84bbe3c3fd98'), PHOTO('1503376780353-7e6692767b70')];
+export const JOB_PHOTOS = [PHOTO('1625047509248-ec889cbff17f'), PHOTO('1517524008697-84bbe3c3fd98'), PHOTO('1503376780353-7e6692767b70')];
 const voice = (id: string, durationSec: number) => ({ id, durationSec });
 
 // Owners' posted repair jobs (owner app: PostJobScreen), relative to the garage.
@@ -137,6 +137,7 @@ export const BOOKINGS: Booking[] = [
     id: 'b1', source: 'bid', title: 'ECU Remapping', icon: '💻', customer: c('දිනේෂ් කුමාර', '0779876507'),
     vehicle: v('Vitz', 'CAE-1122', 'Hatchback'), address: 'ගාල්ල කොටුව', coords: { latitude: 6.0272, longitude: 80.2171 },
     doorstep: false, scheduledAt: tomorrowAt(9), price: 15500, status: 'scheduled', locationSharedAt: Date.now() - 3 * HOUR,
+    progress: newWorkshopProgress(), warrantyMonths: 3, assignedTechId: 'm2',
     note: 'වාහනය උදේ 8:45 ට පමණ ගෙනෙන්න.',
     job: bookedJob('job-b1', '5', 'ඉන්ධන පරිභෝජනය වැඩියි, ඇක්සලරේට් කරද්දී බර ගතියක්. ECU remap එකක් කරන්න කැමතියි.', c('දිනේෂ් කුමාර', '0779876507'),
       v('Vitz', 'CAE-1122', 'Hatchback'), 'ගාල්ල කොටුව', { latitude: 6.0272, longitude: 80.2171 }, 1.6, false, { voiceNotes: [voice('vn-b1', 21)] }),
@@ -145,6 +146,7 @@ export const BOOKINGS: Booking[] = [
     id: 'b2', source: 'bid', title: 'Battery Replacement', icon: '🔋', customer: c('කවිෂා රත්නායක', '0779876508'),
     vehicle: v('March K11', 'WP-1029', 'Hatchback'), address: 'වක්වැල්ල පාර', coords: { latitude: 6.0533, longitude: 80.2302 },
     doorstep: true, scheduledAt: tomorrowAt(14), price: 8200, status: 'scheduled',
+    progress: newWorkshopProgress(), warrantyMonths: 6, assignedTechId: 'm2',
     job: bookedJob('job-b2', '11', 'බැටරිය බැහැලා, වාහනය පණගන්වන්න බැහැ. ගෙදරටම ඇවිත් මාරු කරන්න පුළුවන්ද?', c('කවිෂා රත්නායක', '0779876508'),
       v('March K11', 'WP-1029', 'Hatchback'), 'වක්වැල්ල පාර', { latitude: 6.0533, longitude: 80.2302 }, 2.3, true, { photos: [JOB_PHOTOS[1]], sparePart: 'Genuine' }),
   },

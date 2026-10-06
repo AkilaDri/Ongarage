@@ -1,6 +1,21 @@
 import React, { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { ActionButton, Colors, EmptyState, FONTS, GlassIcon, Icon, isSameDay, SwipeCard, themedStyles, vehicleIcon } from '@ongarage/shared';
+import {
+  ActionButton,
+  Colors,
+  EmptyState,
+  FONTS,
+  GlassIcon,
+  Icon,
+  isSameDay,
+  StepProgress,
+  SwipeCard,
+  themedStyles,
+  vehicleIcon,
+  WORKSHOP_STAGE_TEXT,
+  WORKSHOP_STEP_LABELS,
+  workshopStepIndex,
+} from '@ongarage/shared';
 import { isActiveSOS, useTech } from '../context/TechContext';
 import { WorkshopJobSheet, PARTS_LABEL } from '../components/WorkshopJobSheet';
 import { sosStageLabel } from './SOSJobScreen';
@@ -50,10 +65,11 @@ export const JobsScreen: React.FC = () => {
           <Chip text={w.doorstep ? '🚛 නිවසටම' : '🏠 ගරාජයේ'} />
           {!!(w.photos?.length || w.voiceNotes?.length) && <Chip text={[w.photos?.length && `📷 ${w.photos.length}`, w.voiceNotes?.length && `🎙️ ${w.voiceNotes.length}`].filter(Boolean).join('  ')} accent />}
         </View>
+        {j.stage === 'working' && w.progress && <StepProgress steps={WORKSHOP_STEP_LABELS} current={workshopStepIndex(w.progress.stage)} alert={w.progress.stage === 'awaitingApproval'} />}
         <Text style={[styles.parts, { color: parts.color() }]}>{parts.text}</Text>
         <View style={styles.rowBetween}>
           <Text style={[styles.status, j.stage === 'working' && { color: Colors.primary }, j.stage === 'offered' && { color: Colors.warning }]}>
-            {j.stage === 'offered' ? '● නිදහස් කාර්මික යෝජනාවක් — භාර ගන්නද?' : j.stage === 'working' ? `🔧 වැඩ කරමින් · ${j.tasks.filter(Boolean).length}/${j.tasks.length}` : '● පවරා ඇත'}
+            {j.stage === 'offered' ? '● නිදහස් කාර්මික යෝජනාවක් — භාර ගන්නද?' : j.stage === 'working' && w.progress ? `🔧 ${WORKSHOP_STAGE_TEXT[w.progress.stage]}` : '● පවරා ඇත'}
           </Text>
           <Text style={styles.link}>කාඩ්පත ›</Text>
         </View>

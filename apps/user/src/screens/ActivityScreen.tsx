@@ -12,6 +12,8 @@ import { useUserLocation } from '../context/LocationContext';
 import { directionsUrl } from '@ongarage/shared';
 import { useBookings } from '../context/BookingsContext';
 import { DirectBookingCard } from '../components/DirectBookingCard';
+import { WorkshopTracker } from '../components/workshop/WorkshopTracker';
+import { useWorkshops } from '../context/WorkshopContext';
 import { money } from '../utils/format';
 import type { DirectBooking } from '../types';
 
@@ -22,8 +24,15 @@ const formatDate = (d: Date) => `${d.getFullYear()} ${MONTHS[d.getMonth()]} ${d.
 export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b: DirectBooking) => void }> = ({ onOpenBids, onBookAgain }) => {
   const { jobs } = useBids();
   const { bookings } = useBookings();
-  const liveBookings = bookings.filter((b) => b.status === 'requested' || b.status === 'proposed' || b.status === 'confirmed');
-  const endedBookings = bookings.filter((b) => !liveBookings.includes(b));
+  const { workshops } = useWorkshops();
+  // A workshop job the owner stopped, or saw close, moves down to the completed list.
+  const finished = (id: string) => {
+    const w = workshops[id];
+    return w?.progress.stage === 'declined' || (w?.progress.stage === 'closed' && !!w.acknowledged);
+  };
+  const liveBookings = bookings.filter((b) => (b.status === 'requested' || b.status === 'proposed' || b.status === 'confirmed') && !finished(b.id));
+  const doneBookings = bookings.filter((b) => b.status === 'confirmed' && finished(b.id));
+  const endedBookings = bookings.filter((b) => !liveBookings.includes(b) && !doneBookings.includes(b));
   // Swipe a booking for everything about it (follows the live record).
   const [detail, setDetail] = useState<{ kind: 'job' | 'booking'; id: string } | null>(null);
   const detailTarget: OwnerDetailTarget | null = (() => {
@@ -44,10 +53,46 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
   const vehicleName = (id: string) => findVehicle(id).name;
   const user = useUserLocation();
 
-  const ongoing = jobs
+  const accepted = jobs
     .filter((j) => j.acceptedBidId)
     .map((j) => ({ job: j, bid: j.bids.find((b) => b.id === j.acceptedBidId)! }))
     .filter((x) => x.bid);
+  const ongoing = accepted.filter((x) => !finished(x.job.id));
+  const doneJobs = accepted.filter((x) => finished(x.job.id));
+
+  const bidCard = (job: (typeof jobs)[number], bid: (typeof jobs)[number]['bids'][number]) => {
+    const cat = SERVICE_CATEGORIES.find((c) => c.id === job.categoryId);
+    return (
+      <SwipeCard key={job.id} style={[styles.card, !finished(job.id) && styles.cardOngoing]} onOpen={() => setDetail({ kind: 'job', id: job.id })}>
+        <Pressable style={styles.row} onPress={() => setDetail({ kind: 'job', id: job.id })} accessibilityLabel={`${cat?.name ?? 'Job'} booking details`}>
+          <GlassIcon emoji={cat?.icon ?? '🔧'} />
+          <View style={styles.flex1}>
+            <Text style={styles.title}>{cat?.name ?? 'Service'}</Text>
+            <Text style={styles.sub}>
+              {bid.garageName} · {vehicleName(job.vehicleId)}
+            </Text>
+            <Text style={styles.sub}>වෙන් කළේ {formatDate(new Date(bid.submittedAt))}</Text>
+          </View>
+          <View style={styles.right}>
+            <Text style={styles.price}>{money(bid.price)}</Text>
+            <View style={[styles.status, finished(job.id) ? styles.statusDone : styles.statusOngoing]}>
+              <Text style={[styles.statusText, { color: finished(job.id) ? Colors.success : Colors.warning }]}>{finished(job.id) ? '✓ සම්පූර්ණයි' : '● වෙන් කළා'}</Text>
+            </View>
+          </View>
+        </Pressable>
+        <View style={styles.divider} />
+        <WorkshopTracker id={job.id} />
+        <View style={styles.rowBetween}>
+          <Text style={styles.sub}>
+            🛡️ මාස {bid.warrantyMonths} වගකීම · ⏱️ පැය {bid.estHours}
+          </Text>
+          <Pressable onPress={() => Linking.openURL(directionsUrl(bid.coords, user.coords))}>
+            <Text style={styles.link}>🗺️ දිශාවන්</Text>
+          </Pressable>
+        </View>
+      </SwipeCard>
+    );
+  };
 
   const totalSpent = MOCK_SERVICE_HISTORY.reduce((sum, h) => sum + h.price, 0);
 
@@ -56,7 +101,7 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
       <ScrollView style={styles.flex1} contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
         <View style={styles.statsRow}>
           <Stat value={String(ongoing.length + liveBookings.length)} label="දැනට පවතින" color={Colors.warning} />
-          <Stat value={String(MOCK_SERVICE_HISTORY.length)} label="සම්පූර්ණ කළ" color={Colors.success} />
+          <Stat value={String(MOCK_SERVICE_HISTORY.length + doneBookings.length + doneJobs.length)} label="සම්පූර්ණ කළ" color={Colors.success} />
           <Stat value={money(totalSpent)} label="මුළු වියදම" color={Colors.primary} />
         </View>
 
@@ -71,43 +116,14 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
             </Pressable>
           </View>
         ) : (
-          ongoing.map(({ job, bid }) => {
-            const cat = SERVICE_CATEGORIES.find((c) => c.id === job.categoryId);
-            return (
-              <SwipeCard key={job.id} style={[styles.card, styles.cardOngoing]} onOpen={() => setDetail({ kind: 'job', id: job.id })}>
-                <Pressable style={styles.row} onPress={() => setDetail({ kind: 'job', id: job.id })} accessibilityLabel={`${cat?.name ?? 'Job'} booking details`}>
-                  <GlassIcon emoji={cat?.icon ?? '🔧'} />
-                  <View style={styles.flex1}>
-                    <Text style={styles.title}>{cat?.name ?? 'Service'}</Text>
-                    <Text style={styles.sub}>
-                      {bid.garageName} · {vehicleName(job.vehicleId)}
-                    </Text>
-                    <Text style={styles.sub}>වෙන් කළේ {formatDate(new Date(bid.submittedAt))}</Text>
-                  </View>
-                  <View style={styles.right}>
-                    <Text style={styles.price}>{money(bid.price)}</Text>
-                    <View style={[styles.status, styles.statusOngoing]}>
-                      <Text style={[styles.statusText, { color: Colors.warning }]}>● වෙන් කළා</Text>
-                    </View>
-                  </View>
-                </Pressable>
-                <View style={styles.divider} />
-                <View style={styles.rowBetween}>
-                  <Text style={styles.sub}>
-                    🛡️ මාස {bid.warrantyMonths} වගකීම · ⏱️ පැය {bid.estHours}
-                  </Text>
-                  <Pressable onPress={() => Linking.openURL(directionsUrl(bid.coords, user.coords))}>
-                    <Text style={styles.link}>🗺️ දිශාවන්</Text>
-                  </Pressable>
-                </View>
-              </SwipeCard>
-            );
-          })
+          ongoing.map(({ job, bid }) => bidCard(job, bid))
         )}
 
         {endedBookings.map(bookingCard)}
 
         <Text style={styles.sectionLabel}>සම්පූර්ණ කළ සේවා</Text>
+        {doneBookings.map(bookingCard)}
+        {doneJobs.map(({ job, bid }) => bidCard(job, bid))}
         {MOCK_SERVICE_HISTORY.map((h) => (
           <View key={h.id} style={[styles.card, styles.row]}>
             <GlassIcon emoji={h.icon} />

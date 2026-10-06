@@ -1,5 +1,18 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { breakdownInfo, categoryInfo, distanceKm, marketPrice, offsetCoordinate } from '@ongarage/shared';
+import {
+  breakdownInfo,
+  categoryInfo,
+  DEFAULT_WARRANTY_MONTHS,
+  distanceKm,
+  marketPrice,
+  newWorkshopProgress,
+  offsetCoordinate,
+  warrantyEnd,
+  workshopBill,
+  type DiagnosisReport,
+  type HandoverReport,
+  type WorkshopProgress,
+} from '@ongarage/shared';
 import {
   BID_DECISION_MS,
   BOOKINGS,
@@ -56,10 +69,12 @@ const makeDirect = (i: number, garage: GarageProfile, now: number): DirectReques
   };
 };
 
-const bookingFrom = (job: JobDetails, source: Booking['source'], at: number, price: number, note?: string): Booking => {
+const bookingFrom = (job: JobDetails, source: Booking['source'], at: number, price: number, note?: string, warrantyMonths = DEFAULT_WARRANTY_MONTHS): Booking => {
   const cat = categoryInfo(job.categoryId);
   return {
     job,
+    progress: newWorkshopProgress(),
+    warrantyMonths,
     note: note || undefined,
     // A walk-in owner gets the garage's location and phone with the confirmation.
     locationSharedAt: job.doorstep ? undefined : Date.now(),
@@ -221,10 +236,20 @@ type GarageState = {
   answerDirect: (id: string, reply: { at: number; estimate: number; note: string }) => void;
   declineDirect: (id: string, reason: string) => void;
 
-  startBooking: (id: string) => void;
   /** Re-send the garage's location and phone to a walk-in customer. */
   shareLocation: (id: string) => void;
-  completeBooking: (id: string) => void;
+
+  // Workshop jobs (bid and direct bookings): see the shared WorkshopProgress.
+  /** Vehicle received (or arrived at the owner's door), with condition photos. */
+  receiveVehicle: (id: string, photos: string[]) => void;
+  /** Send the diagnosis; the owner approves all, some or none of its lines. */
+  sendDiagnosis: (id: string, report: DiagnosisReport) => void;
+  markReadyForHandover: (id: string, report: HandoverReport) => void;
+  /** The owner reported a problem at handover: back to repairing. */
+  startRework: (id: string) => void;
+  /** The owner's QR / code checked out: close, start the warranty, book the money. */
+  closeWorkshopJob: (id: string) => void;
+  assignTech: (id: string, memberId: string) => void;
 
   replyReview: (id: string, text: string) => void;
 
@@ -697,7 +722,7 @@ export const GarageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         if (won) {
           const at = new Date(Date.now() + 24 * 60 * MIN);
           at.setHours(10, 0, 0, 0);
-          setBookings((prev) => [{ ...bookingFrom(job, 'bid', at.getTime(), current.price, current.note), id: `b-${bid.id}` }, ...prev]);
+          setBookings((prev) => [{ ...bookingFrom(job, 'bid', at.getTime(), current.price, current.note, current.warrantyMonths), id: `b-${bid.id}` }, ...prev]);
           setFeed((prev) => prev.filter((j) => j.id !== jobId));
           notify({ icon: '🏆', title: 'ඔබ ලංසුව දිනුවා!', body: `${cat.name} · ${job.customer.name} — වෙන් කිරීම කාලසටහනට එක් විය.`, tone: 'success' });
         } else {
@@ -758,7 +783,6 @@ export const GarageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   );
 
   // ---------- Bookings ----------
-  const startBooking = useCallback((id: string) => setBookings((prev) => prev.map((b) => (b.id === id ? { ...b, status: 'inProgress' } : b))), []);
   const addPartsCost = useCallback(
     (id: string, amount: number) => setBookings((prev) => prev.map((b) => (b.id === id ? { ...b, partsCost: (b.partsCost ?? 0) + amount } : b))),
     []
@@ -767,10 +791,105 @@ export const GarageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     (id: string) => setBookings((prev) => prev.map((b) => (b.id === id ? { ...b, locationSharedAt: Date.now() } : b))),
     []
   );
-  const completeBooking = useCallback(
-    (id: string) => setBookings((prev) => prev.map((b) => (b.id === id ? { ...b, status: 'completed', completedAt: Date.now() } : b))),
+  // ---------- Workshop jobs ----------
+  const liveBookings = useRef(bookings);
+  liveBookings.current = bookings;
+  const findBooking = (id: string) => liveBookings.current.find((b) => b.id === id);
+  const patchProgress = useCallback(
+    (id: string, change: Partial<WorkshopProgress>, booking?: Partial<Booking>) =>
+      setBookings((prev) => prev.map((b) => (b.id === id && b.progress ? { ...b, ...booking, progress: { ...b.progress, ...change } } : b))),
     []
   );
+  /** Simulation: the owner side's replies (the owner app answers for real once there's a backend). */
+  const ownerDisputes = useRef(new Set<string>());
+
+  const receiveVehicle = useCallback(
+    (id: string, photos: string[]) => {
+      patchProgress(id, { stage: 'diagnosing', checkInPhotos: photos, receivedAt: Date.now() }, { status: 'inProgress' });
+      notify({ icon: '🚗', title: 'වාහනය ලැබුණා', body: 'පරීක්ෂා කර වාර්තාව අයිතිකරුට යවන්න.', tone: 'primary' });
+    },
+    [notify, patchProgress]
+  );
+
+  const sendDiagnosis = useCallback(
+    (id: string, report: DiagnosisReport) => {
+      patchProgress(id, { stage: 'awaitingApproval', diagnosis: report });
+      notify({ icon: '📨', title: 'පරීක්ෂා වාර්තාව යැව්වා', body: 'අයිතිකරුගේ අනුමැතිය බලාපොරොත්තුවෙන්.', tone: 'primary' });
+      // Simulated owner: approves every line (owners can approve some or none in the owner app).
+      later(() => {
+        const b = findBooking(id);
+        if (b?.progress?.stage !== 'awaitingApproval') return;
+        patchProgress(id, { stage: 'repairing', decision: { approvedLineIds: report.lines.map((l) => l.id), declinedLineIds: [], decidedAt: Date.now() } });
+        notify({ icon: '✅', title: `${b.customer.name} අනුමත කළා`, body: report.lines.length ? `පේළි ${report.lines.length} ම අනුමතයි — අලුත්වැඩියාව අරඹන්න.` : 'අලුත්වැඩියාව අරඹන්න.', tone: 'success' });
+      }, CUSTOMER_REPLY_MS + 1500);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [later, notify, patchProgress]
+  );
+
+  const markReadyForHandover = useCallback(
+    (id: string, report: HandoverReport) => {
+      patchProgress(id, { stage: 'readyForHandover', handover: report, dispute: undefined });
+      const b = findBooking(id);
+      notify({ icon: '🔑', title: 'භාරදීමට සූදානම්', body: `${b?.customer.name ?? 'අයිතිකරු'} පරීක්ෂා කර ඔවුන්ගේ කේතය පෙන්වයි.`, tone: 'primary' });
+      // Simulated owner: the battery job comes back once with a problem, to show the rework path.
+      if (b?.title === 'Battery Replacement' && !ownerDisputes.current.has(id)) {
+        ownerDisputes.current.add(id);
+        later(() => {
+          if (findBooking(id)?.progress?.stage !== 'readyForHandover') return;
+          patchProgress(id, { stage: 'disputed', dispute: { id: `dp-${id}`, topic: 'quality', text: 'ඩෑෂ්බෝඩ් බැටරි ලයිට් එක තවමත් දැල්වෙනවා. ටර්මිනල් හරියට සවි කළාද?', raisedAt: Date.now(), status: 'open' } });
+          notify({ icon: '⚠️', title: `${b.customer.name} ගැටලුවක් වාර්තා කළා`, body: 'නැවත පරීක්ෂා කර හදා භාර දෙන්න.', tone: 'danger' });
+        }, CUSTOMER_REPLY_MS);
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [later, notify, patchProgress]
+  );
+
+  const startRework = useCallback(
+    (id: string) => {
+      const b = findBooking(id);
+      if (!b?.progress?.dispute) return;
+      patchProgress(id, { stage: 'repairing', dispute: { ...b.progress.dispute, status: 'rework' } });
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [patchProgress]
+  );
+
+  const closeWorkshopJob = useCallback(
+    (id: string) => {
+      const b = findBooking(id);
+      if (!b?.progress || b.progress.stage !== 'readyForHandover') return;
+      const now = Date.now();
+      const bill = b.progress.handover?.bill ?? workshopBill(b.price, b.progress, b.partsCost);
+      setBookings((prev) =>
+        prev.map((x) =>
+          x.id === id && x.progress
+            ? {
+                ...x,
+                // Labour is the garage's earnings; parts are billed to the owner separately.
+                price: bill.labour,
+                partsCost: bill.parts,
+                status: 'completed',
+                completedAt: now,
+                progress: {
+                  ...x.progress,
+                  stage: 'closed',
+                  closedAt: now,
+                  warrantyUntil: warrantyEnd(now, x.warrantyMonths ?? DEFAULT_WARRANTY_MONTHS),
+                  dispute: x.progress.dispute ? { ...x.progress.dispute, status: 'resolved' } : undefined,
+                },
+              }
+            : x
+        )
+      );
+      notify({ icon: '🎉', title: 'රැකියාව අවසන්', body: `${b.customer.name} කේතයෙන් තහවුරු කළා · මාස ${b.warrantyMonths ?? DEFAULT_WARRANTY_MONTHS} වගකීම ආරම්භ විය.`, tone: 'success' });
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [notify]
+  );
+
+  const assignTech = useCallback((id: string, memberId: string) => setBookings((prev) => prev.map((b) => (b.id === id ? { ...b, assignedTechId: memberId } : b))), []);
 
   const rating = useMemo(() => {
     const count = RATING_HISTORY.count + reviews.length;
@@ -823,9 +942,13 @@ export const GarageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     withdrawBid,
     answerDirect,
     declineDirect,
-    startBooking,
     shareLocation,
-    completeBooking,
+    receiveVehicle,
+    sendDiagnosis,
+    markReadyForHandover,
+    startRework,
+    closeWorkshopJob,
+    assignTech,
     dismissNotice,
   };
 

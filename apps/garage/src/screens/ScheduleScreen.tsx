@@ -1,16 +1,24 @@
 import React, { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Colors, EmptyState, FONTS, GlassIcon, Icon, SwipeCard, themedStyles, vehicleIcon, type IconName } from '@ongarage/shared';
+import { Colors, EmptyState, FONTS, GlassIcon, Icon, linesToOrder, SwipeCard, themedStyles, vehicleIcon, type IconName } from '@ongarage/shared';
 import { useGarage } from '../context/GarageContext';
-import { BookingActions, ServiceModeNote } from '../components/BookingActions';
+import { BookingActions, ServiceModeNote, WorkshopStatus } from '../components/BookingActions';
 import { JobDetailView, type DetailTarget } from '../components/JobDetailView';
 import { PartsStatusLine } from '../components/PartsStatusLine';
 import { PartsRequestSheet } from '../components/PartsRequestSheet';
+import { useParts } from '../context/PartsContext';
 import { formatDate, formatTime, isSameDay, money } from '../utils/format';
 import type { Booking } from '../types';
 
 type Segment = 'upcoming' | 'completed';
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+
+/**
+ * Parts are ordered only for lines the owner approved (or once a request exists). SOS parts
+ * are handled after the roadside job.
+ */
+const showParts = (b: Booking, hasRequest: boolean) =>
+  b.source !== 'sos' && (hasRequest || !b.progress || ((b.progress.stage === 'repairing' || b.progress.stage === 'disputed') && linesToOrder(b.progress).length > 0));
 
 const dayLabel = (t: number) => {
   const now = Date.now();
@@ -21,6 +29,7 @@ const dayLabel = (t: number) => {
 
 export const ScheduleScreen: React.FC<{ onOpenParts: (requestId: string) => void }> = ({ onOpenParts }) => {
   const { bookings } = useGarage();
+  const { requestFor } = useParts();
   const [segment, setSegment] = useState<Segment>('upcoming');
   const [detailId, setDetailId] = useState<string | null>(null);
   const [partsFor, setPartsFor] = useState<Booking | null>(null);
@@ -69,7 +78,7 @@ export const ScheduleScreen: React.FC<{ onOpenParts: (requestId: string) => void
 
         <View style={styles.chips}>
           <Chip text={`📅 ${dayLabel(when)} · ${formatTime(when)}`} />
-          {b.status === 'inProgress' && <Chip text="🔧 වැඩ කරමින්" />}
+          {b.progress?.warrantyUntil && <Chip text={`🛡️ වගකීම ${formatDate(b.progress.warrantyUntil)} දක්වා`} />}
           {!!media && <Chip text={media} />}
           {b.calloutOnly && <Chip text="🚐 පැමිණීමේ ගාස්තුව පමණි" />}
         </View>
@@ -81,8 +90,9 @@ export const ScheduleScreen: React.FC<{ onOpenParts: (requestId: string) => void
           </View>
         ) : (
           <>
+            <WorkshopStatus booking={b} />
             <ServiceModeNote booking={b} />
-            {b.source !== 'sos' && <PartsStatusLine booking={b} onRequest={() => setPartsFor(b)} onOpen={onOpenParts} />}
+            {showParts(b, !!requestFor(b.id)) && <PartsStatusLine booking={b} onRequest={() => setPartsFor(b)} onOpen={onOpenParts} />}
             <BookingActions booking={b} />
           </>
         )}

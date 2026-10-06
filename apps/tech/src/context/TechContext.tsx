@@ -1,4 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { checkCloseCode, type DiagnosisReport, type HandoverReport, type WorkshopProgress } from '@ongarage/shared';
 import {
   ACCEPT_WINDOW_MS,
   APPROVAL_MS,
@@ -18,6 +19,11 @@ import {
 import type { Duty, EarningEntry, GarageLink, Invite, Notice, OwnerReview, TechJob, TechProfile } from '../types';
 
 /** SOS stages where the technician is committed to the job (can't break or check out). */
+/** Simulated owner reply to a diagnosis. */
+const OWNER_APPROVE_MS = 4000;
+/** Simulated garage: parts ordered after approval arrive this long after. */
+const PARTS_ARRIVE_MS = 9000;
+
 const SOS_ACTIVE = ['enroute', 'arrived', 'inspecting', 'approval', 'repairing', 'awaitingConfirm', 'qr', 'payment'];
 export const isActiveSOS = (j: TechJob) => j.kind === 'sos' && SOS_ACTIVE.includes(j.stage);
 export const isOpenWorkshop = (j: TechJob) => j.kind === 'workshop' && (j.stage === 'assigned' || j.stage === 'working');
@@ -62,9 +68,15 @@ type TechState = {
   closeWithOwner: (id: string, code?: string) => boolean;
   collectPayment: (id: string, method: 'cash' | 'online') => void;
 
-  startWork: (id: string) => void;
+  // Workshop jobs follow the shared workshop steps (see WorkshopProgress).
+  /** Vehicle received (or reached the owner's door) with condition photos: work starts. */
+  receiveVehicle: (id: string, photos: string[]) => void;
+  /** The diagnosis goes to the owner through the garage; parts wait for their approval. */
+  sendDiagnosis: (id: string, report: DiagnosisReport) => void;
+  markReadyForHandover: (id: string, report: HandoverReport) => void;
+  /** Close with the owner's QR / 6-digit code: the job is done and paid to the technician. */
+  closeWorkshopJob: (id: string, code: string) => boolean;
   setNotes: (id: string, notes: string) => void;
-  finishWork: (id: string) => void;
 
   settleGarage: (garageId: string) => void;
   dismissNotice: () => void;
@@ -327,8 +339,14 @@ export const TechProvider: React.FC<{ children: React.ReactNode }> = ({ children
   );
 
   // ---------- Workshop jobs ----------
-  const startWork = useCallback(
-    (id: string) => {
+  const patchProgress = useCallback(
+    (id: string, change: Partial<WorkshopProgress>, job?: Partial<TechJob>) =>
+      patch(id, (j) => (j.workshop?.progress ? { ...job, workshop: { ...j.workshop, progress: { ...j.workshop.progress, ...change } } } : {})),
+    [patch]
+  );
+
+  const receiveVehicle = useCallback(
+    (id: string, photos: string[]) => {
       const j = find(id);
       const { duty: d } = live.current;
       if (!j || j.stage !== 'assigned') return;
@@ -336,23 +354,60 @@ export const TechProvider: React.FC<{ children: React.ReactNode }> = ({ children
         notify({ icon: '⛔', title: 'පළමුව රාජකාරියට පැමිණෙන්න', body: `${j.garage.name} හි රාජකාරියට පැමිණ (විවේකයේ නොසිට) වැඩ අරඹන්න.`, tone: 'danger' });
         return;
       }
-      patch(id, { stage: 'working', startedAt: Date.now() });
+      patchProgress(id, { stage: 'diagnosing', checkInPhotos: photos, receivedAt: Date.now() }, { stage: 'working', startedAt: Date.now() });
+      notify({ icon: '🚗', title: 'වාහනය ලැබුණා', body: 'පරීක්ෂා කර වාර්තාව ලියන්න — ගරාජය හරහා අයිතිකරුට යයි.', tone: 'primary' });
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [notify, patch]
+    [notify, patchProgress]
+  );
+
+  const sendDiagnosis = useCallback(
+    (id: string, report: DiagnosisReport) => {
+      patchProgress(id, { stage: 'awaitingApproval', diagnosis: report });
+      // Simulated owner: approves every line through the garage (the owner app can approve some or none).
+      later(() => {
+        const j = find(id);
+        if (j?.workshop?.progress?.stage !== 'awaitingApproval') return;
+        const toOrder = report.lines.filter((l) => l.kind === 'part' && l.source === 'order');
+        patchProgress(id, { stage: 'repairing', decision: { approvedLineIds: report.lines.map((l) => l.id), declinedLineIds: [], decidedAt: Date.now() } });
+        if (toOrder.length)
+          patch(id, (cur) => (cur.workshop ? { workshop: { ...cur.workshop, parts: 'ordered', partsSummary: toOrder.map((l) => `${l.name} (${l.partType})`).join(' · ') } } : {}));
+        notify({ icon: '✅', title: `${j.customer.name} අනුමත කළා`, body: toOrder.length ? 'ගරාජය කොටස් ඇණවුම් කරයි — අලුත්වැඩියාව අරඹන්න.' : 'අලුත්වැඩියාව අරඹන්න.', tone: 'success' });
+        // Simulated garage: the ordered parts arrive a little later.
+        if (toOrder.length)
+          later(() => {
+            patch(id, (cur) => (cur.workshop ? { workshop: { ...cur.workshop, parts: 'arrived' } } : {}));
+            notify({ icon: '📦', title: 'කොටස් ගරාජයට ලැබුණා', body: `${j.title} · ${toOrder.length} ක්`, tone: 'success' });
+          }, PARTS_ARRIVE_MS);
+      }, OWNER_APPROVE_MS);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [later, notify, patch, patchProgress]
+  );
+
+  const markReadyForHandover = useCallback(
+    (id: string, report: HandoverReport) => {
+      patchProgress(id, { stage: 'readyForHandover', handover: report });
+      notify({ icon: '🔑', title: 'භාරදීමට සූදානම්', body: 'අයිතිකරු පරීක්ෂා කර ඔවුන්ගේ QR / කේතය පෙන්වයි.', tone: 'primary' });
+    },
+    [notify, patchProgress]
+  );
+
+  const closeWorkshopJob = useCallback(
+    (id: string, code: string) => {
+      const j = find(id);
+      const p = j?.workshop?.progress;
+      if (!j || !p || p.stage !== 'readyForHandover' || !checkCloseCode(p.closeCode, code)) return false;
+      const now = Date.now();
+      patchProgress(id, { stage: 'closed', closedAt: now }, { stage: 'done', completedAt: now });
+      addEarning(j, 0);
+      notify({ icon: '✅', title: 'රැකියාව අවසන්', body: `${j.customer.name} කේතයෙන් තහවුරු කළා · ඔබට රු. ${j.pay.toLocaleString()}`, tone: 'success' });
+      return true;
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [notify, patchProgress]
   );
   const setNotes = useCallback((id: string, notes: string) => patch(id, { notes }), [patch]);
-  const finishWork = useCallback(
-    (id: string) => {
-      const j = find(id);
-      if (!j || j.stage !== 'working') return;
-      patch(id, { stage: 'done', completedAt: Date.now(), tasks: j.tasks.map(() => true) });
-      addEarning(j, 0);
-      notify({ icon: '✅', title: 'රැකියාව අවසන්', body: `${j.garage.name} වෙත දැනුම් දුන්නා · ඔබට රු. ${j.pay.toLocaleString()}`, tone: 'success' });
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [notify, patch]
-  );
 
   // ---------- Money ----------
   const settleGarage = useCallback(
@@ -400,9 +455,11 @@ export const TechProvider: React.FC<{ children: React.ReactNode }> = ({ children
     finishRepair,
     closeWithOwner,
     collectPayment,
-    startWork,
+    receiveVehicle,
+    sendDiagnosis,
+    markReadyForHandover,
+    closeWorkshopJob,
     setNotes,
-    finishWork,
     settleGarage,
     dismissNotice,
   };

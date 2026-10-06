@@ -23,6 +23,8 @@ export * from './marketplace/levels';
 export * from './marketplace/fairness';
 export * from './marketplace/guarantee';
 export * from './marketplace/closeCode';
+export * from './marketplace/workshop';
+export * from './marketplace/partPrices';
 
 // AI decisions layer (rules today; Claude / Laya through the back end later).
 export * from './ai';
@@ -41,3 +43,9 @@ export * from './ui/SwipeCard';
 export * from './ui/ThemeToggle';
 export * from './ui/Visuals';
 export * from './ui/VoiceNotePlayer';
+
+// Workshop job forms the garage and technician apps share.
+export * from './ui/workshop/CheckInSheet';
+export * from './ui/workshop/DiagnosisSheet';
+export * from './ui/workshop/HandoverSheet';
+export * from './ui/workshop/CloseJobSheet';

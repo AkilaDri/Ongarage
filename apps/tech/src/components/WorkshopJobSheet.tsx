@@ -1,11 +1,35 @@
 import React, { useEffect, useState } from 'react';
 import { Image, Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { ActionButton, Colors, directionsUrl, FONTS, themedStyles, vehicleIcon, VoiceNotePlayer, type TechPartsStatus } from '@ongarage/shared';
+import {
+  ActionButton,
+  approvedLines,
+  CheckInSheet,
+  CloseJobSheet,
+  Colors,
+  DiagnosisSheet,
+  directionsUrl,
+  FONTS,
+  HandoverSheet,
+  partMarketPrice,
+  PhotoStrip,
+  StepProgress,
+  themedStyles,
+  vehicleIcon,
+  VoiceNotePlayer,
+  WORKSHOP_STAGE_TEXT,
+  WORKSHOP_STEP_LABELS,
+  workshopBill,
+  workshopStepIndex,
+  type TechPartsStatus,
+} from '@ongarage/shared';
 import { useTech } from '../context/TechContext';
-import { WORKSHOP_TASKS } from '../constants/mockData';
+import { SAMPLE_PHOTOS } from '../constants/mockData';
 import { formatDate, formatTime, money } from '../utils/format';
 import { Sheet } from './Sheet';
+import { Toast } from './Toast';
 import type { TechJob } from '../types';
+
+type StepSheet = 'checkIn' | 'diagnosis' | 'handover' | 'close' | null;
 
 const DECLINE_REASONS = ['එම වේලාවේ නොහැක', 'මගේ විශේෂඥතාව නොවේ', 'දුර වැඩියි'];
 
@@ -16,9 +40,14 @@ export const PARTS_LABEL: Record<TechPartsStatus, { text: string; color: () => s
   arrived: { text: '📦 කොටස් ගරාජයට ලැබී ඇත', color: () => Colors.successText },
 };
 
-/** A workshop job card: what the owner sent, parts, the checklist, and start / finish. */
+/**
+ * A workshop job card: what the owner sent, parts, and the workshop steps — receive the
+ * vehicle, diagnose (the owner approves through the garage), repair, hand over, and close
+ * with the owner's QR / code.
+ */
 export const WorkshopJobSheet: React.FC<{ job: TechJob | null; onClose: () => void }> = ({ job, onClose }) => {
-  const { duty, acceptJob, declineJob, startWork, toggleTask, setNotes, finishWork } = useTech();
+  const { duty, acceptJob, declineJob, receiveVehicle, sendDiagnosis, markReadyForHandover, closeWorkshopJob, setNotes } = useTech();
+  const [step, setStep] = useState<StepSheet>(null);
   const [shown, setShown] = useState<TechJob | null>(job);
   const [declining, setDeclining] = useState(false);
   const [notes, setLocalNotes] = useState('');
@@ -35,8 +64,12 @@ export const WorkshopJobSheet: React.FC<{ job: TechJob | null; onClose: () => vo
   const j = job ?? shown;
   const w = j.workshop!;
   const parts = PARTS_LABEL[w.parts];
-  const allDone = j.tasks.every(Boolean);
   const here = duty.garageId === j.garage.id && !duty.onBreak;
+  const p = w.progress;
+  const subject = { title: j.title, vehicle: `${j.vehicle.name} · ${j.vehicle.plate}` };
+  const partsPending = w.parts === 'ordered' || w.parts === 'onTheWay';
+  const bill = p ? workshopBill(w.agreedPrice, p) : { labour: w.agreedPrice, parts: 0, total: w.agreedPrice };
+  const closeStep = () => setStep(null);
 
   const footer = () => {
     if (j.stage === 'offered') {
@@ -66,22 +99,38 @@ export const WorkshopJobSheet: React.FC<{ job: TechJob | null; onClose: () => vo
         </View>
       );
     }
-    if (j.stage === 'assigned') return <ActionButton label={here ? 'වැඩ අරඹන්න' : `${j.garage.name} හි රාජකාරියට පැමිණ අරඹන්න`} icon="🔧" variant="primary" disabled={!here} onPress={() => startWork(j.id)} />;
-    if (j.stage === 'working')
+    if (j.stage === 'assigned')
       return (
         <ActionButton
-          label="වැඩ අවසන් · ගරාජයට දන්වන්න"
-          icon="✓"
-          variant="success"
-          disabled={!allDone}
-          onPress={() => {
-            setNotes(j.id, notes);
-            finishWork(j.id);
-            onClose();
-          }}
+          label={here ? (w.doorstep ? 'අයිතිකරු වෙත පැමිණියා' : 'වාහනය ලැබුණා') : `${j.garage.name} හි රාජකාරියට පැමිණ අරඹන්න`}
+          icon="🚗"
+          variant="primary"
+          disabled={!here}
+          onPress={() => setStep('checkIn')}
         />
       );
-    return undefined;
+    if (j.stage !== 'working' || !p) return undefined;
+    switch (p.stage) {
+      case 'received':
+      case 'diagnosing':
+        return <ActionButton label="පරීක්ෂා වාර්තාව ලියන්න" icon="🔍" variant="primary" onPress={() => setStep('diagnosis')} />;
+      case 'repairing':
+        return (
+          <ActionButton
+            label="භාරදීමට සූදානම්"
+            icon="✓"
+            variant="success"
+            onPress={() => {
+              setNotes(j.id, notes);
+              setStep('handover');
+            }}
+          />
+        );
+      case 'readyForHandover':
+        return <ActionButton label="අයිතිකරුගේ කේතයෙන් අවසන් කරන්න" icon="🔳" variant="success" onPress={() => setStep('close')} />;
+      default:
+        return undefined;
+    }
   };
 
   return (
@@ -124,18 +173,26 @@ export const WorkshopJobSheet: React.FC<{ job: TechJob | null; onClose: () => vo
         </View>
       </View>
 
-      {j.stage !== 'offered' && (
+      {j.stage !== 'offered' && p && (
         <View style={styles.card}>
-          <Text style={styles.label}>පිරික්සුම් ලැයිස්තුව</Text>
-          {WORKSHOP_TASKS.map((t, i) => {
-            const on = j.tasks[i];
-            return (
-              <Pressable key={t} style={styles.task} disabled={j.stage !== 'working'} onPress={() => toggleTask(j.id, i)} accessibilityLabel={`Workshop task ${i + 1}`}>
-                <View style={[styles.check, on && styles.checkOn, j.stage !== 'working' && styles.off]}>{on && <Text style={styles.checkMark}>✓</Text>}</View>
-                <Text style={[styles.taskText, on && styles.taskDone]}>{t}</Text>
-              </Pressable>
-            );
-          })}
+          <Text style={styles.label}>වැඩපළ ප්‍රගතිය</Text>
+          <StepProgress steps={WORKSHOP_STEP_LABELS} current={workshopStepIndex(p.stage)} alert={p.stage === 'awaitingApproval'} />
+          <Text style={[styles.detail, p.stage === 'awaitingApproval' && { color: Colors.warning }]}>{WORKSHOP_STAGE_TEXT[p.stage]}</Text>
+          {!!p.checkInPhotos?.length && <PhotoStrip photos={p.checkInPhotos} height={64} />}
+          {p.diagnosis && (
+            <>
+              <Text style={styles.sub}>🔍 {p.diagnosis.findings}</Text>
+              {p.diagnosis.lines.map((l) => {
+                const ok = p.decision?.approvedLineIds.includes(l.id);
+                return (
+                  <Text key={l.id} style={[styles.sub, p.decision && !ok && styles.struck]}>
+                    {p.decision ? (ok ? '✓' : '✕') : '•'} {l.kind === 'part' ? '🔩' : '🔧'} {l.name} · {money(l.price)}
+                  </Text>
+                );
+              })}
+            </>
+          )}
+          {p.stage === 'repairing' && partsPending && <Text style={[styles.sub, { color: Colors.warning }]}>⏳ ඇණවුම් කළ කොටස් ලැබෙන තුරු භාරදිය නොහැක.</Text>}
           {j.stage === 'working' && (
             <TextInput
               style={styles.input}
@@ -152,6 +209,42 @@ export const WorkshopJobSheet: React.FC<{ job: TechJob | null; onClose: () => vo
       <Text style={styles.hint}>
         මෙම රැකියාවට ඔබට {money(j.pay)} ({j.garage.name} {j.stage === 'offered' ? 'යෝජනාව' : 'අනුපාතය'}).
       </Text>
+      {p && (
+        <>
+          <CheckInSheet visible={step === 'checkIn'} onClose={closeStep} overlay={<Toast topOffset={40} />} subject={subject} doorstep={w.doorstep} samplePhotos={SAMPLE_PHOTOS} onConfirm={(photos) => receiveVehicle(j.id, photos)} />
+          <DiagnosisSheet
+            visible={step === 'diagnosis'}
+            onClose={closeStep}
+            overlay={<Toast topOffset={40} />}
+            subject={subject}
+            agreedPrice={w.agreedPrice}
+            ownerPartType={w.ownerPartType}
+            priceFor={partMarketPrice}
+            samplePhotos={SAMPLE_PHOTOS}
+            onSend={(r) => sendDiagnosis(j.id, r)}
+          />
+          <HandoverSheet
+            visible={step === 'handover'}
+            onClose={closeStep}
+            overlay={<Toast topOffset={40} />}
+            lines={approvedLines(p)}
+            bill={bill}
+            beforePhotos={p.checkInPhotos}
+            samplePhotos={SAMPLE_PHOTOS}
+            partsPending={partsPending}
+            onSubmit={(r) => markReadyForHandover(j.id, r)}
+          />
+          <CloseJobSheet
+            visible={step === 'close'}
+            onClose={closeStep}
+            overlay={<Toast topOffset={40} />}
+            expectedCode={p.closeCode}
+            total={p.handover?.bill.total ?? bill.total}
+            showSimulatedCode
+            onConfirmed={() => closeWorkshopJob(j.id, p.closeCode)}
+          />
+        </>
+      )}
     </Sheet>
   );
 };
@@ -172,13 +265,7 @@ const styles = themedStyles(() =>
     partsText: { fontSize: 12.5, fontFamily: FONTS.bodyBold },
     divider: { height: 1, backgroundColor: Colors.borderColor },
     hint: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 16 },
-    task: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 6 },
-    check: { width: 24, height: 24, borderRadius: 8, borderWidth: 1.5, borderColor: Colors.subtleBorder, justifyContent: 'center', alignItems: 'center' },
-    checkOn: { backgroundColor: Colors.success, borderColor: Colors.success },
-    checkMark: { fontSize: 13, fontWeight: '900', color: '#fff' },
-    off: { opacity: 0.5 },
-    taskText: { flex: 1, fontSize: 12.5, fontFamily: FONTS.bodyMedium, color: Colors.textMain },
-    taskDone: { color: Colors.textMuted, textDecorationLine: 'line-through' },
+    struck: { textDecorationLine: 'line-through', opacity: 0.7 },
     input: {
       minHeight: 60,
       padding: 12,

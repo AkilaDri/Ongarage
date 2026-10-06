@@ -1,4 +1,4 @@
-import type { BreakdownId, LatLng, PickedLocation, VoiceNote } from '@ongarage/shared';
+import type { BreakdownId, LatLng, PickedLocation, VoiceNote, WorkshopProgress } from '@ongarage/shared';
 
 // Garage-side views of the records the owner app creates. When a backend exists
 // these are what the garage receives for each owner action.
@@ -161,6 +161,15 @@ export type Booking = {
   locationSharedAt?: number;
   /** Parts bought for this job, billed to the owner separately from price (labour). */
   partsCost?: number;
+  /**
+   * Bid and direct bookings: the workshop job — received → diagnosis → owner approval →
+   * repair → handover → closed with the owner's code (see the shared WorkshopProgress).
+   */
+  progress?: WorkshopProgress;
+  /** Warranty the garage gave (bid) or the default for direct bookings. */
+  warrantyMonths?: number;
+  /** Team member the manager assigned to do the work. */
+  assignedTechId?: string;
 };
 
 /** hasApp: linked to the technician app, so SOS field steps come from their phone. */

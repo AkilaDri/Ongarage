@@ -19,6 +19,7 @@ import { bidDeadline, useGarage } from '../context/GarageContext';
 import { ServiceModeNote } from './BookingActions';
 import { callCustomer, serviceMode } from '../utils/contact';
 import { Toast } from './Toast';
+import { WorkshopPanel } from './WorkshopPanel';
 import { ago, countdown, formatDate, formatTime, money } from '../utils/format';
 import type { Booking, DirectRequest, FeedJob, JobDetails } from '../types';
 
@@ -205,7 +206,8 @@ export const JobDetailView: React.FC<{
                   </View>
                 </View>
                 <ServiceModeNote booking={booking} />
-                {!!booking.partsCost && (
+                {booking.progress && <WorkshopPanel booking={booking} />}
+                {!booking.progress && !!booking.partsCost && (
                   <View style={styles.bill}>
                     <View style={styles.billRow}>
                       <Text style={styles.sub}>🔧 වැඩ ගාස්තුව</Text>

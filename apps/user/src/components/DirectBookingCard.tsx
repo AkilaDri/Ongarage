@@ -3,6 +3,8 @@ import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { ActionButton, categoryInfo, Colors, directionsUrl, FONTS, GlassIcon, themedStyles, vehicleIcon } from '@ongarage/shared';
 import { useBookings } from '../context/BookingsContext';
 import { useVehicles } from '../context/VehiclesContext';
+import { useWorkshops } from '../context/WorkshopContext';
+import { WorkshopTracker } from './workshop/WorkshopTracker';
 import { useUserLocation } from '../context/LocationContext';
 import { countdown, formatDate, formatTime, money } from '../utils/format';
 import type { DirectBooking } from '../types';
@@ -13,6 +15,7 @@ const ENDED = { declined: 'ප්‍රතික්ෂේප විය', expired
 export const DirectBookingCard: React.FC<{ booking: DirectBooking; onBookAgain: (b: DirectBooking) => void; onOpen?: () => void }> = ({ booking: b, onBookAgain, onOpen }) => {
   const { acceptProposal, declineProposal, cancelBooking } = useBookings();
   const { findVehicle } = useVehicles();
+  const { workshops } = useWorkshops();
   const user = useUserLocation();
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
@@ -24,6 +27,8 @@ export const DirectBookingCard: React.FC<{ booking: DirectBooking; onBookAgain: 
   const cat = categoryInfo(b.categoryId);
   const v = findVehicle(b.vehicleId);
   const ended = b.status === 'declined' || b.status === 'expired' || b.status === 'cancelled';
+  // Once the garage has the vehicle, the workshop steps replace the "how to get there" details.
+  const started = (workshops[b.id]?.progress.stage ?? 'booked') !== 'booked';
   const media = [b.photos.length && `📷 ${b.photos.length}`, b.voiceNotes.length && `🎙️ ${b.voiceNotes.length}`].filter(Boolean).join('  ');
 
   return (
@@ -78,8 +83,11 @@ export const DirectBookingCard: React.FC<{ booking: DirectBooking; onBookAgain: 
         </>
       )}
 
-      {b.status === 'confirmed' && b.scheduledAt && (
+      {b.status === 'confirmed' && b.scheduledAt && started && <WorkshopTracker id={b.id} />}
+
+      {b.status === 'confirmed' && b.scheduledAt && !started && (
         <>
+          <WorkshopTracker id={b.id} />
           <View style={styles.rowBetween}>
             <Text style={[styles.state, { color: Colors.successText }]}>
               ✓ තහවුරුයි · {formatDate(b.scheduledAt)} · {formatTime(b.scheduledAt)}

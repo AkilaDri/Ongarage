@@ -17,6 +17,7 @@ import { LocationProvider } from './context/LocationContext';
 import { BidsProvider } from './context/BidsContext';
 import { NoticeProvider } from './context/NoticeContext';
 import { BookingsProvider } from './context/BookingsContext';
+import { WorkshopProvider } from './context/WorkshopContext';
 import { Header } from './components/Header';
 import { Toast } from './components/Toast';
 import { DirectBookingSheet } from './components/DirectBookingSheet';
@@ -40,11 +41,13 @@ export default function App() {
   return (
     <ThemeProvider>
       <NoticeProvider>
-        <VehiclesProvider>
-          <BookingsProvider>
-            <AppShell />
-          </BookingsProvider>
-        </VehiclesProvider>
+        <WorkshopProvider>
+          <VehiclesProvider>
+            <BookingsProvider>
+              <AppShell />
+            </BookingsProvider>
+          </VehiclesProvider>
+        </WorkshopProvider>
       </NoticeProvider>
     </ThemeProvider>
   );

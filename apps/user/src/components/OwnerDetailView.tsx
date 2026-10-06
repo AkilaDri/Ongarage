@@ -22,6 +22,8 @@ import {
 import { biddingEndsAt, lowestBidId } from '../context/BidsContext';
 import { useBookings } from '../context/BookingsContext';
 import { useVehicles } from '../context/VehiclesContext';
+import { useWorkshops } from '../context/WorkshopContext';
+import { WorkshopTracker } from './workshop/WorkshopTracker';
 import { useUserLocation } from '../context/LocationContext';
 import { sparePartLabel } from '../constants/labels';
 import { Toast } from './Toast';
@@ -54,6 +56,7 @@ export const OwnerDetailView: React.FC<{
   onRepublish?: (job: RepairJob) => void;
 }> = ({ target, onClose, onAcceptBid, onRepublish }) => {
   const { findVehicle } = useVehicles();
+  const { workshops } = useWorkshops();
   const user = useUserLocation();
   const { acceptProposal, declineProposal, cancelBooking } = useBookings();
   const [shown, setShown] = useState<OwnerDetailTarget | null>(target);
@@ -293,6 +296,15 @@ export const OwnerDetailView: React.FC<{
             </View>
 
             {job ? jobBody(job) : bookingBody(booking!)}
+
+            {workshops[shown.kind === 'job' ? shown.job.id : shown.booking.id] && (
+              <>
+                <Text style={styles.section}>වැඩපළ ප්‍රගතිය</Text>
+                <View style={styles.card}>
+                  <WorkshopTracker id={shown.kind === 'job' ? shown.job.id : shown.booking.id} detailed />
+                </View>
+              </>
+            )}
 
             <Text style={styles.section}>ඔබ එවූ විස්තරය</Text>
             <View style={styles.card}>
