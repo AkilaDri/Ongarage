@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { ActionButton, categoryInfo, Colors, EmptyState, FONTS, GlassIcon, Icon, marketPrice, SwipeCard, themedStyles, vehicleIcon, type IconName } from '@ongarage/shared';
+import { ActionButton, categoryInfo, Colors, EmptyState, FONTS, GlassIcon, Icon, isHighValueJob, levelForFeature, marketPrice, SwipeCard, themedStyles, vehicleIcon, type IconName } from '@ongarage/shared';
 import { bidDeadline, useGarage } from '../context/GarageContext';
 import { BidSheet } from '../components/BidSheet';
 import { DirectReplySheet, type ReplyMode } from '../components/DirectReplySheet';
@@ -21,7 +21,7 @@ const STATUS: Record<BidStatus, { label: string; color: () => string; bg: string
 };
 
 export const JobFeedScreen: React.FC = () => {
-  const { feed, directs, bids, profile, withdrawBid } = useGarage();
+  const { feed, directs, bids, profile, withdrawBid, has } = useGarage();
   const [segment, setSegment] = useState<Segment>('open');
   const [scope, setScope] = useState<Scope>('services');
   const [sheet, setSheet] = useState<{ job: FeedJob; existing?: MyBid } | null>(null);
@@ -83,6 +83,15 @@ export const JobFeedScreen: React.FC = () => {
           <Pressable style={styles.linkBtn} onPress={go(() => setSheet({ job, existing: pending }))}>
             <Text style={styles.link}>සංස්කරණය</Text>
           </Pressable>
+        </View>
+      );
+    }
+    // Jobs worth more than HIGH_VALUE_MIN go to garages whose level unlocked them.
+    if (isHighValueJob(job.categoryId) && !has('highValueJobs')) {
+      const lv = levelForFeature('highValueJobs');
+      return (
+        <View style={styles.locked}>
+          <Text style={styles.lockedText}>🔒 ඉහළ වටිනාකමැති රැකියාවක් — {lv.icon} {lv.name} මට්ටමේදී ලංසු තැබිය හැක</Text>
         </View>
       );
     }
@@ -346,6 +355,8 @@ const Chip: React.FC<{ text: string; accent?: boolean }> = ({ text, accent }) =>
 
 const styles = themedStyles(() =>
   StyleSheet.create({
+    locked: { padding: 10, borderRadius: 12, backgroundColor: Colors.subtleFill, borderWidth: 1, borderColor: Colors.borderColor },
+    lockedText: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, lineHeight: 17 },
     flex1: { flex: 1 },
     flex2: { flex: 2 },
     row: { flexDirection: 'row', alignItems: 'center', gap: 10 },

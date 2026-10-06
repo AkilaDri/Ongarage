@@ -45,7 +45,7 @@ This is an npm workspaces monorepo: one `node_modules` and one `package-lock.jso
 | **Job feed & bidding** | Jobs posted by owners, filtered by the services you offer. Each shows Buddy's diagnosis, spare-part preference, doorstep pickup and a deadline countdown. A bid sheet has a market-price hint, warranty and time estimate; bids can be edited or withdrawn while pending. |
 | **Schedule** | Today's and the last 7 days' earnings. Won bids and direct bookings become workshop jobs: receive the vehicle with photos, send a diagnosis the owner approves line by line, repair, hand over with a checklist and bill, close with the owner's QR or code, then warranty. Assign the job to a team member; rework when the owner reports a problem. |
 | **Spare parts** | Order exactly the parts the owner approved (or named in their post) from shops nearby (the owner's part type is locked; Recon only with their approval). Compare price and time, then have them delivered or collect from the counter yourself or send a technician with a pickup code. Track, check in, rate the shop. Parts are billed to the owner separately. |
-| **Garage profile** | Ordered by daily use: who is free right now (ready / on break), SOS radius, reviews with replies; settings for services, staff, vans, the public card and theme. |
+| **Garage profile** | Ordered by daily use: who is free right now (ready / on break), SOS radius, reviews with replies, the trust score (four rating dimensions, completion, on-time and dispute rates, a tip for the weakest) and the level ladder (requirements met, features unlocked and still locked, a 30-day grace period when falling below); settings for services, staff, vans, the public card and theme. |
 
 ## Features (technician app)
 

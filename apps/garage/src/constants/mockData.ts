@@ -1,4 +1,4 @@
-import { newWorkshopProgress, type BreakdownId } from '@ongarage/shared';
+import { newWorkshopProgress, type BreakdownId, type LevelId } from '@ongarage/shared';
 import type { Booking, Customer, CustomerVehicle, DirectRequest, FeedJob, GarageProfile, Review, ServiceVan, TeamMember } from '../types';
 
 const MIN = 60 * 1000;
@@ -36,16 +36,40 @@ export const VANS: ServiceVan[] = [
   { id: 'v2', name: 'Nissan Caravan මෙවලම් ට්‍රක්', plate: 'SP-LG-7790' },
 ];
 
+const dims = (quality: number, pricing: number, onTime: number, communication: number) => ({ quality, pricing, onTime, communication });
+
 export const REVIEWS: Review[] = [
-  { id: 'r1', customer: 'දිනේෂ් කුමාර', rating: 5, text: 'pickup අඩුපාඩුව සහ ECU error එක හරියටම හොයලා හදා දුන්නා.', at: Date.now() - 2 * DAY },
-  { id: 'r2', customer: 'සචිනි පෙරේරා', rating: 5, text: 'මාර්ගයේ නතර වුණාම විනාඩි 10න් ආවා. ඉතා හොඳ සේවාවක්.', at: Date.now() - 5 * DAY },
-  { id: 'r3', customer: 'අමිල ප්‍රනාන්දු', rating: 4, text: 'හොඳ වැඩක්, නමුත් කොටස් ගෙන්වීමට දිනයක් ගත වුණා.', at: Date.now() - 9 * DAY },
+  { id: 'r1', customer: 'දිනේෂ් කුමාර', rating: 5, dimensions: dims(5, 5, 5, 5), text: 'pickup අඩුපාඩුව සහ ECU error එක හරියටම හොයලා හදා දුන්නා.', at: Date.now() - 2 * DAY },
+  { id: 'r2', customer: 'සචිනි පෙරේරා', rating: 5, dimensions: dims(5, 5, 5, 5), text: 'මාර්ගයේ නතර වුණාම විනාඩි 10න් ආවා. ඉතා හොඳ සේවාවක්.', at: Date.now() - 5 * DAY },
+  { id: 'r3', customer: 'අමිල ප්‍රනාන්දු', rating: 4, dimensions: dims(5, 4, 3, 4), text: 'හොඳ වැඩක්, නමුත් කොටස් ගෙන්වීමට දිනයක් ගත වුණා.', at: Date.now() - 9 * DAY },
   {
-    id: 'r4', customer: 'කවිෂා රත්නායක', rating: 3, text: 'වැඩේ හොඳයි, හැබැයි කියපු වෙලාවට වඩා පැය දෙකක් පරක්කු වුණා.', at: Date.now() - 14 * DAY,
+    id: 'r4', customer: 'කවිෂා රත්නායක', rating: 3, dimensions: dims(4, 4, 2, 3), text: 'වැඩේ හොඳයි, හැබැයි කියපු වෙලාවට වඩා පැය දෙකක් පරක්කු වුණා.', at: Date.now() - 14 * DAY,
     reply: { text: 'සමාවෙන්න, එදා කොටස් සැපයුම්කරු ප්‍රමාද වුණා. ඊළඟ වතාවේ කලින්ම දැනුම් දෙන්නම්.', at: Date.now() - 13 * DAY },
   },
-  { id: 'r5', customer: 'ලහිරු බණ්ඩාර', rating: 5, text: 'මිල සාධාරණයි, කරපු දේ හොඳට පැහැදිලි කළා.', at: Date.now() - 20 * DAY },
+  { id: 'r5', customer: 'ලහිරු බණ්ඩාර', rating: 5, dimensions: dims(5, 5, 4, 5), text: 'මිල සාධාරණයි, කරපු දේ හොඳට පැහැදිලි කළා.', at: Date.now() - 20 * DAY },
 ];
+
+/**
+ * Everything before the seeded reviews and bookings that the trust score and level use
+ * (a backend would keep these): per-dimension rating totals, jobs and disputes, and the
+ * level the garage holds today.
+ */
+export const TRUST_HISTORY = {
+  ratings: {
+    quality: { sum: 81 * 4.9, count: 81 },
+    pricing: { sum: 81 * 4.75, count: 81 },
+    onTime: { sum: 81 * 4.6, count: 81 },
+    communication: { sum: 81 * 4.8, count: 81 },
+  },
+  jobsAccepted: 72,
+  jobsClosed: 68,
+  disputes: 1,
+  onTimeJobs: 61,
+  monthsOnApp: 7,
+  documents: true,
+  subscribed: false,
+  heldLevel: 'trusted' as LevelId,
+};
 
 /** Totals of all ratings before the seeded reviews (keeps the profile numbers realistic). */
 export const RATING_HISTORY = { count: 86, sum: 86 * 4.9 };

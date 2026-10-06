@@ -31,6 +31,18 @@ export type TrustInputs = {
 
 const round1 = (n: number) => Math.round(n * 10) / 10;
 
+/** What lifts each dimension, shown for a garage's weakest one. */
+export const DIMENSION_TIPS: Record<RatingDimension, string> = {
+  quality: 'පරීක්ෂා වාර්තාවට ඡායාරූප එක් කරන්න, භාරදීමට පෙර පරීක්ෂණ ධාවනයක් කරන්න, පැරණි කොටස් පෙන්වන්න.',
+  pricing: 'පරීක්ෂා වාර්තාවේ සෑම කොටසක්ම සහ වැඩක්ම වෙනම මිලට පෙන්වන්න; එකඟ වූ මිලට වඩා අය නොකරන්න.',
+  onTime: 'යථාර්ථවාදී අවසන් වේලාවක් දෙන්න; කොටස් ප්‍රමාද නම් කලින්ම අයිතිකරුට දන්වන්න.',
+  communication: 'වෙන්කිරීම් ඉක්මනින් තහවුරු කරන්න, ප්‍රගතිය පියවරෙන් පියවර යාවත්කාලීන කරන්න, සමාලෝචනවලට පිළිතුරු දෙන්න.',
+};
+
+/** The dimension pulling the score down most (lowest value, ties broken by weight). */
+export const weakestDimension = (d: Record<RatingDimension, number>): RatingDimension =>
+  [...RATING_DIMENSIONS].sort((a, b) => d[a.id] - d[b.id] || b.weight - a.weight)[0].id;
+
 export const computeTrustScore = (i: TrustInputs): TrustScore => {
   const dimensions = Object.fromEntries(
     RATING_DIMENSIONS.map((d) => {

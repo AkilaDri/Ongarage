@@ -1,6 +1,6 @@
 import React from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Colors, FONTS, GlassIcon, glassStyle, ThemeToggle, themedStyles, useTheme } from '@ongarage/shared';
+import { Colors, currentLevel, FONTS, GlassIcon, glassStyle, LevelBadge, levelProgress, nextLevel, ThemeToggle, themedStyles, useTheme, type LevelStats } from '@ongarage/shared';
 import { useTech } from '../context/TechContext';
 import { ago } from '../utils/format';
 
@@ -8,6 +8,18 @@ import { ago } from '../utils/format';
 export const ProfileScreen: React.FC = () => {
   const { profile, rating, reviews, links, earnings } = useTech();
   const { isDark, toggle } = useTheme();
+  // The same ladder as garages, from the technician's own record (garages see it when inviting).
+  const stats: LevelStats = {
+    documents: profile.nicVerified,
+    closedJobs: links.reduce((s, l) => s + l.jobsDone, 0),
+    score: rating.average,
+    disputeRate: 0,
+    monthsOnApp: Math.floor((Date.now() - profile.joinedAt) / (30 * 24 * 60 * 60 * 1000)),
+    subscribed: false,
+  };
+  const level = currentLevel(stats);
+  const next = nextLevel(level.id);
+  const missing = next ? levelProgress(next, stats).filter((x) => !x.met) : [];
 
   return (
     <ScrollView style={styles.flex1} contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
@@ -34,6 +46,31 @@ export const ProfileScreen: React.FC = () => {
           <Stat value={String(links.reduce((s, l) => s + l.jobsDone, 0))} label="කළ රැකියා" color={Colors.success} />
           <Stat value={String(links.length)} label="ගරාජ" color={Colors.primary} />
         </View>
+      </View>
+
+      <View style={styles.card} accessibilityLabel="Technician level">
+        <View style={styles.levelRow}>
+          <LevelBadge level={level.id} />
+          <Text style={styles.sub}>ගරාජවලට ඔබව පෙනෙන මට්ටම</Text>
+        </View>
+        {next ? (
+          <>
+            <Text style={styles.levelNext}>
+              ඊළඟ: {next.icon} {next.name}
+            </Text>
+            {missing.map((x) => (
+              <View key={x.label} style={styles.levelRow}>
+                <Text style={[styles.sub, styles.flex1]}>○ {x.label}</Text>
+                <Text style={styles.levelNeed}>
+                  {x.have} / {x.need}
+                </Text>
+              </View>
+            ))}
+          </>
+        ) : (
+          <Text style={styles.sub}>ඉහළම මට්ටම ✓</Text>
+        )}
+        <Text style={styles.sub}>මට්ටම ඉහළ යන්නේ QR / කේතයෙන් අවසන් කළ රැකියා සහ හිමියන්ගේ ශ්‍රේණි අනුව පමණි.</Text>
       </View>
 
       <Text style={styles.section}>කුසලතා</Text>
@@ -83,6 +120,9 @@ const Stat: React.FC<{ value: string; label: string; color: string }> = ({ value
 
 const styles = themedStyles(() =>
   StyleSheet.create({
+    levelRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+    levelNext: { fontSize: 12.5, fontFamily: FONTS.bodyBold, color: Colors.textMain },
+    levelNeed: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: Colors.warning },
     flex1: { flex: 1 },
     row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
     rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },

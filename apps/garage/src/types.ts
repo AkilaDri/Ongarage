@@ -1,4 +1,4 @@
-import type { BreakdownId, LatLng, PickedLocation, VoiceNote, WorkshopProgress } from '@ongarage/shared';
+import type { BreakdownId, LatLng, PickedLocation, VoiceNote, WorkshopProgress, GarageReview } from '@ongarage/shared';
 
 // Garage-side views of the records the owner app creates. When a backend exists
 // these are what the garage receives for each owner action.
@@ -184,15 +184,8 @@ export type Attendance = {
 };
 export type ServiceVan = { id: string; name: string; plate: string };
 
-export type Review = {
-  id: string;
-  customer: string;
-  rating: number;
-  text: string;
-  at: number;
-  /** The garage's public reply, shown under the review in the owner app. */
-  reply?: { text: string; at: number };
-};
+/** An owner's review of a code-closed job (shared contract), with your public reply. */
+export type Review = GarageReview;
 
 export type GarageProfile = {
   id: string;

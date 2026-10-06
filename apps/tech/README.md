@@ -16,7 +16,7 @@ npm run tech:web    # in the browser
 | (modal) | `src/screens/SOSJobScreen.tsx` | The SOS field steps: on the way (map, live location, directions) → arrived → inspection → manager approval when the repair charge exceeds the quote → checklist → owner confirms → QR or 6-digit code → collect payment → done |
 | Garages | `src/screens/GaragesScreen.tsx` | Invitations; joining with a garage's code; each garage's terms (employee / freelance, per-job rates, jobs done) and check-in; your own code for garages to invite you |
 | Earnings | `src/screens/EarningsScreen.tsx` | Pay for today, 7 and 30 days; the account with each garage (pay owed vs. cash collected for it) and settling it; job history with owners' ratings |
-| Me | `src/screens/ProfileScreen.tsx` | Profile, verification, skills, owners' ratings, theme |
+| Me | `src/screens/ProfileScreen.tsx` | Profile, verification, your level on the shared ladder (what garages see, and what's missing for the next), skills, owners' ratings, theme |
 
 The header pill shows duty state (on duty / on break / off) and opens `DutySheet`: check in, take a break, check out.
 

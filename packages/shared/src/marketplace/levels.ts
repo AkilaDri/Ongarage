@@ -1,4 +1,5 @@
 import type { Feature, LevelId } from '../types';
+import { marketPrice } from '../constants/categories';
 
 // The progression ladder garages (and technicians) climb by doing good work through
 // the app. Higher levels unlock features; locked ones stay visible so garages know
@@ -95,6 +96,36 @@ export const levelProgress = (target: Level, s: LevelStats): LevelProgressItem[]
 export const entitlementsFor = (id: LevelId): Set<Feature> => {
   const upTo = LEVELS.slice(0, LEVELS.findIndex((l) => l.id === id) + 1);
   return new Set(upTo.flatMap((l) => l.unlocks));
+};
+
+/** What each feature means to a garage, for the ladder and locked teasers. */
+export const FEATURE_INFO: Record<Feature, { icon: string; label: string }> = {
+  sos: { icon: '🚨', label: 'SOS ඉල්ලීම්' },
+  bids: { icon: '🏷️', label: 'රැකියා සඳහා ලංසු' },
+  directBookings: { icon: '📅', label: 'ඍජු වෙන්කිරීම්' },
+  verifiedBadge: { icon: '✅', label: 'තහවුරු කළ ලාංඡනය' },
+  priorityPlacement: { icon: '⬆️', label: 'ලැයිස්තුවල ඉහළින් පෙන්වීම' },
+  highValueJobs: { icon: '💎', label: 'ඉහළ වටිනාකමැති රැකියා' },
+  protectedJobs: { icon: '🛡️', label: 'ආරක්ෂිත රැකියා (OnGarage Guarantee)' },
+  adCredits: { icon: '📣', label: 'දැන්වීම් ණය' },
+  analytics: { icon: '📊', label: 'ව්‍යාපාර වාර්තා' },
+};
+
+/** Jobs whose typical price is at least this need the 'highValueJobs' feature to bid on. */
+export const HIGH_VALUE_MIN = 9000;
+export const isHighValueJob = (categoryId: string) => marketPrice(categoryId) >= HIGH_VALUE_MIN;
+
+export const levelIndex = (id: LevelId) => LEVELS.findIndex((l) => l.id === id);
+
+/**
+ * The level a garage keeps: dropping below its requirements starts a grace period
+ * (DEMOTION_GRACE_DAYS) with a warning; only when it runs out does the level fall.
+ */
+export const effectiveLevel = (held: LevelId, earned: LevelId, belowSince: number | undefined, now: number) => {
+  if (levelIndex(earned) >= levelIndex(held)) return { level: earned, graceDaysLeft: undefined as number | undefined };
+  const since = belowSince ?? now;
+  const left = DEMOTION_GRACE_DAYS - Math.floor((now - since) / (24 * 60 * 60 * 1000));
+  return left > 0 ? { level: held, graceDaysLeft: left } : { level: earned, graceDaysLeft: undefined as number | undefined };
 };
 
 /** The level that unlocks a feature (to show "🔒 unlocks at …"). */

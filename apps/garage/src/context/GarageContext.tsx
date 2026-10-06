@@ -1,6 +1,11 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import {
   breakdownInfo,
+  computeTrustScore,
+  currentLevel,
+  effectiveLevel,
+  entitlementsFor,
+  LEVELS,
   categoryInfo,
   DEFAULT_WARRANTY_MONTHS,
   distanceKm,
@@ -10,6 +15,10 @@ import {
   warrantyEnd,
   workshopBill,
   type DiagnosisReport,
+  type Feature,
+  type Level,
+  type LevelStats,
+  type TrustScore,
   type ExtraWorkRequest,
   type HandoverReport,
   type WorkshopProgress,
@@ -24,6 +33,7 @@ import {
   FEED_POOL,
   GARAGE,
   RATING_HISTORY,
+  TRUST_HISTORY,
   REVIEWS,
   SOS_ARRIVAL_MS,
   SOS_POOL,
@@ -197,6 +207,17 @@ type GarageState = {
   bookings: Booking[];
   reviews: Review[];
   rating: { average: number; count: number };
+  /** Trust score from the four rating dimensions and how jobs went (shared rules). */
+  trust: TrustScore;
+  levelStats: LevelStats;
+  /** The level in effect (kept through the grace period after falling below it). */
+  level: Level;
+  /** The level the numbers support right now. */
+  earnedLevel: Level;
+  /** Days left to recover before the level drops (when below it). */
+  graceDaysLeft?: number;
+  /** Is a level feature switched on for this garage? */
+  has: (f: Feature) => boolean;
   notice: Notice | null;
 
   setOpen: (open: boolean) => void;
@@ -624,7 +645,7 @@ export const GarageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       ...prev,
     ]);
     setReviews((prev) => [
-      { id: `r-${d.request.id}`, customer: d.request.customer.name, rating, text: 'ඉක්මනින් පැමිණ ගැටලුව විසඳුවා. ස්තූතියි!', at: Date.now() },
+      { id: `r-${d.request.id}`, customer: d.request.customer.name, rating, dimensions: { quality: rating, pricing: 5, onTime: 5, communication: rating }, text: 'ඉක්මනින් පැමිණ ගැටලුව විසඳුවා. ස්තූතියි!', at: Date.now() },
       ...prev,
     ]);
     // 'done' is not committed, so the mechanic is free again.
@@ -907,9 +928,27 @@ export const GarageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         )
       );
       notify({ icon: '🎉', title: 'රැකියාව අවසන්', body: `${b.customer.name} කේතයෙන් තහවුරු කළා · මාස ${b.warrantyMonths ?? DEFAULT_WARRANTY_MONTHS} වගකීම ආරම්භ විය.`, tone: 'success' });
+      // Simulated owner: rates the job on the four dimensions a little later (owner app: RatingSheet).
+      later(() => {
+        const reworked = !!b.progress?.dispute;
+        const d = reworked ? { quality: 4, pricing: 5, onTime: 3, communication: 4 } : { quality: 5, pricing: 5, onTime: 5, communication: 4 };
+        const stars = Math.round(((d.quality * 0.4 + d.pricing * 0.25 + d.onTime * 0.2 + d.communication * 0.15) * 10)) / 10;
+        setReviews((prev) => [
+          {
+            id: `r-${id}`,
+            customer: b.customer.name,
+            rating: stars,
+            dimensions: d,
+            text: reworked ? 'පළමු වතාවේ හරි ගියේ නැහැ, හැබැයි ඉක්මනින් නැවත හදලා දුන්නා.' : 'කියපු විදියටම කළා, පරීක්ෂා වාර්තාව පැහැදිලියි.',
+            at: Date.now(),
+          },
+          ...prev,
+        ]);
+        notify({ icon: '⭐', title: `${b.customer.name} ඔබව ශ්‍රේණිගත කළා`, body: `★${stars} · “සමාලෝචන” හි පිළිතුරු දෙන්න.`, tone: 'primary' });
+      }, CUSTOMER_REPLY_MS);
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [notify]
+    [later, notify]
   );
 
   const assignTech = useCallback((id: string, memberId: string) => setBookings((prev) => prev.map((b) => (b.id === id ? { ...b, assignedTechId: memberId } : b))), []);
@@ -919,6 +958,52 @@ export const GarageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const sum = RATING_HISTORY.sum + reviews.reduce((s, r) => s + r.rating, 0);
     return { average: Number((sum / count).toFixed(1)), count };
   }, [reviews]);
+
+  // ---------- Trust score and level (shared rules; a backend would compute these) ----------
+  const trust = useMemo(() => {
+    const ratings = Object.fromEntries(
+      (Object.keys(TRUST_HISTORY.ratings) as (keyof typeof TRUST_HISTORY.ratings)[]).map((k) => {
+        const rated = reviews.filter((r) => r.dimensions);
+        return [k, { sum: TRUST_HISTORY.ratings[k].sum + rated.reduce((s, r) => s + r.dimensions![k], 0), count: TRUST_HISTORY.ratings[k].count + rated.length }];
+      })
+    ) as Parameters<typeof computeTrustScore>[0]['ratings'];
+    const closed = bookings.filter((b) => b.status === 'completed');
+    return computeTrustScore({
+      ratings,
+      jobsAccepted: TRUST_HISTORY.jobsAccepted + bookings.length,
+      jobsClosed: TRUST_HISTORY.jobsClosed + closed.length,
+      // A problem the owner reported that needed rework counts against the garage.
+      disputes: TRUST_HISTORY.disputes + bookings.filter((b) => b.progress?.dispute).length,
+      onTimeJobs: TRUST_HISTORY.onTimeJobs + closed.filter((b) => !b.progress?.dispute).length,
+    });
+  }, [reviews, bookings]);
+  const levelStats: LevelStats = useMemo(
+    () => ({
+      documents: TRUST_HISTORY.documents,
+      closedJobs: TRUST_HISTORY.jobsClosed + bookings.filter((b) => b.status === 'completed').length,
+      score: trust.score,
+      disputeRate: trust.disputeRate,
+      monthsOnApp: TRUST_HISTORY.monthsOnApp,
+      subscribed: TRUST_HISTORY.subscribed,
+    }),
+    [trust, bookings]
+  );
+  const earnedLevel = useMemo(() => currentLevel(levelStats), [levelStats]);
+  // When the numbers drop below the held level, a grace period starts (and ends if they recover).
+  const [belowSince, setBelowSince] = useState<number | undefined>(undefined);
+  const heldIndex = LEVELS.findIndex((l) => l.id === TRUST_HISTORY.heldLevel);
+  const below = LEVELS.findIndex((l) => l.id === earnedLevel.id) < heldIndex;
+  useEffect(() => {
+    if (below && belowSince === undefined) {
+      setBelowSince(Date.now());
+      notify({ icon: '⚠️', title: 'ඔබගේ මට්ටම අවදානමේ', body: 'අවශ්‍යතාවලට වඩා පහළ ගියා — නැවත ළඟා වීමට දින 30ක්. “ගරාජය” ටැබය බලන්න.', tone: 'danger' });
+    }
+    if (!below && belowSince !== undefined) setBelowSince(undefined);
+  }, [below, belowSince, notify]);
+  const { level: levelId, graceDaysLeft } = effectiveLevel(TRUST_HISTORY.heldLevel, earnedLevel.id, belowSince, Date.now());
+  const level = LEVELS.find((l) => l.id === levelId)!;
+  const features = useMemo(() => entitlementsFor(level.id), [level.id]);
+  const has = useCallback((f: Feature) => features.has(f), [features]);
 
   const value: GarageState = {
     profile,
@@ -935,6 +1020,12 @@ export const GarageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     bookings,
     reviews,
     rating,
+    trust,
+    levelStats,
+    level,
+    earnedLevel,
+    graceDaysLeft,
+    has,
     notice,
     notify,
     addPartsCost,

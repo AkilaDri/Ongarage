@@ -1,6 +1,6 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Colors, FONTS, Pulse, themedStyles } from '@ongarage/shared';
+import { Colors, FONTS, LevelBadge, Pulse, themedStyles } from '@ongarage/shared';
 import { useGarage } from '../context/GarageContext';
 
 const greetingFor = (hour: number) => {
@@ -13,7 +13,7 @@ const greetingFor = (hour: number) => {
 // Same layout as the owner app's header; the garage badge pulses while the
 // garage is online and the right-hand pill switches availability.
 export const GarageHeader: React.FC = () => {
-  const { profile, isOpen, setOpen } = useGarage();
+  const { profile, isOpen, setOpen, level } = useGarage();
   const initials = profile.name.replace(/[^A-Za-z]/g, '').slice(0, 3).toUpperCase();
 
   return (
@@ -33,9 +33,12 @@ export const GarageHeader: React.FC = () => {
           <Text style={styles.name} numberOfLines={1}>
             {profile.name}
           </Text>
-          <Text style={styles.location} numberOfLines={1}>
-            📍 {profile.address}
-          </Text>
+          <View style={styles.nameRow}>
+            <LevelBadge level={level.id} compact />
+            <Text style={[styles.location, styles.flexShrink]} numberOfLines={1}>
+              📍 {profile.address}
+            </Text>
+          </View>
         </View>
       </View>
 
@@ -54,6 +57,7 @@ export const GarageHeader: React.FC = () => {
 
 const styles = themedStyles(() =>
   StyleSheet.create({
+    nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
     header: {
       flexDirection: 'row',
       justifyContent: 'space-between',

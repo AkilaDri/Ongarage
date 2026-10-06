@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Colors, FONTS, GlassIcon, glassStyle, SERVICE_CATEGORIES, ThemeToggle, themedStyles, useTheme } from '@ongarage/shared';
+import { Colors, FONTS, GlassIcon, glassStyle, LevelBadge, levelProgress, nextLevel, SERVICE_CATEGORIES, ThemeToggle, themedStyles, useTheme } from '@ongarage/shared';
 import { useGarage } from '../context/GarageContext';
 import { VANS } from '../constants/mockData';
 import { ago } from '../utils/format';
@@ -9,11 +9,13 @@ import { ServicesSheet } from '../components/ServicesSheet';
 import { ReviewsSheet } from '../components/ReviewsSheet';
 import { TeamManageSheet } from '../components/TeamManageSheet';
 import { PublicProfileSheet } from '../components/PublicProfileSheet';
+import { LevelSheet } from '../components/LevelSheet';
 
 /*
  * Ordered by how often a garage owner needs it on a working day:
  *  - Today (many times a day): who is free right now, SOS radius.
- *  - Reviews (a few times a week): summary, opens the full list with replies.
+ *  - Reviews and level (a few times a week): summary, the full list with replies, and the
+ *    trust score / level ladder.
  *  - Settings (rarely): services, staff register, public profile, theme. Each opens
  *    a sheet, so nothing here can be changed by a stray tap while scrolling.
  */
@@ -22,10 +24,13 @@ const RADIUS_PRESETS = [3, 5, 8, 10, 15];
 const RADIUS_MIN = 1;
 const RADIUS_MAX = 15;
 
-type SheetId = 'attendance' | 'services' | 'reviews' | 'team' | 'profile' | null;
+type SheetId = 'attendance' | 'services' | 'reviews' | 'team' | 'profile' | 'level' | null;
 
 export const GarageProfileScreen: React.FC = () => {
-  const { profile, rating, reviews, team, crew, setCoverage, setOnBreak } = useGarage();
+  const { profile, rating, reviews, team, crew, setCoverage, setOnBreak, trust, level, levelStats, graceDaysLeft } = useGarage();
+  const next = nextLevel(level.id);
+  const nextItems = next ? levelProgress(next, levelStats) : [];
+  const nextMet = nextItems.filter((x) => x.met).length;
   const { isDark, toggle } = useTheme();
   const [sheet, setSheet] = useState<SheetId>(null);
   const close = () => setSheet(null);
@@ -160,7 +165,7 @@ export const GarageProfileScreen: React.FC = () => {
       </View>
 
       {/* ---------- Reviews ---------- */}
-      <Text style={styles.sectionLabel}>සමාලෝචන</Text>
+      <Text style={styles.sectionLabel}>සමාලෝචන සහ මට්ටම</Text>
       <Pressable style={({ pressed }) => [styles.card, pressed && styles.pressed]} onPress={() => setSheet('reviews')}>
         <View style={styles.row}>
           <Text style={styles.ratingBig}>★ {rating.average}</Text>
@@ -180,6 +185,28 @@ export const GarageProfileScreen: React.FC = () => {
             “{latest.text}” — {latest.customer}, {ago(Date.now() - latest.at)}
           </Text>
         )}
+      </Pressable>
+
+      <Pressable style={({ pressed }) => [styles.card, graceDaysLeft !== undefined && styles.cardWarn, pressed && styles.pressed]} onPress={() => setSheet('level')} accessibilityLabel="Open level and trust">
+        <View style={styles.rowBetween}>
+          <LevelBadge level={level.id} />
+          <Text style={styles.trustScore}>විශ්වාසය {trust.score.toFixed(1)}</Text>
+        </View>
+        {graceDaysLeft !== undefined ? (
+          <Text style={styles.warnText}>⚠️ මට්ටම අවදානමේ — නැවත සපුරා ගැනීමට දින {graceDaysLeft}ක්</Text>
+        ) : next ? (
+          <>
+            <View style={styles.levelBar}>
+              <View style={[styles.levelBarFill, { width: `${(nextMet / Math.max(1, nextItems.length)) * 100}%` }]} />
+            </View>
+            <Text style={styles.sub}>
+              ඊළඟ: {next.icon} {next.name} · අවශ්‍යතා {nextMet}/{nextItems.length} · {nextItems.filter((x) => !x.met).map((x) => x.label).slice(0, 2).join(', ')}
+            </Text>
+          </>
+        ) : (
+          <Text style={styles.sub}>ඉහළම මට්ටම ✓</Text>
+        )}
+        <Text style={styles.link}>ලකුණු සහ මට්ටම් පඩිපෙළ ›</Text>
       </Pressable>
 
       {/* ---------- Settings ---------- */}
@@ -205,6 +232,7 @@ export const GarageProfileScreen: React.FC = () => {
       <ReviewsSheet visible={sheet === 'reviews'} onClose={close} />
       <TeamManageSheet visible={sheet === 'team'} onClose={close} />
       <PublicProfileSheet visible={sheet === 'profile'} onClose={close} />
+      <LevelSheet visible={sheet === 'level'} onClose={close} />
     </ScrollView>
   );
 };
@@ -231,6 +259,10 @@ const SettingRow: React.FC<{ icon: string; title: string; value: string; onPress
 
 const styles = themedStyles(() =>
   StyleSheet.create({
+    cardWarn: { borderColor: 'rgba(245, 158, 11, 0.55)' },
+    trustScore: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.success },
+    levelBar: { height: 6, borderRadius: 3, backgroundColor: Colors.subtleFill, overflow: 'hidden' },
+    levelBarFill: { height: 6, borderRadius: 3, backgroundColor: Colors.primary },
     flex1: { flex: 1 },
     row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
     rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
