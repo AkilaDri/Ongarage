@@ -3,7 +3,7 @@ import { View, Text, Pressable, StyleSheet, ScrollView, TextInput, Animated, Lin
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, getThemeMode, themedStyles } from '@ongarage/shared';
 import { MOCK_GARAGES } from '../constants/mockData';
-import { GarageCard } from '@ongarage/shared';
+import { GarageTile } from '../components/home/GarageTile';
 import { GoogleMap } from '@ongarage/shared';
 import { Icon } from '@ongarage/shared';
 import { useUserLocation } from '../context/LocationContext';
@@ -262,23 +262,32 @@ export const ServiceBrowseScreen: React.FC<ServiceBrowseScreenProps> = ({ servic
               if (listY.current > 2 && sheetRef.current !== 'expanded') animateTo('expanded');
             }}
           >
-            {garages.map((g, idx) => (
-              <GarageCard
+            {garages.map((g) => (
+              <GarageTile
                 key={g.id}
                 garage={g}
-                variant="map"
-                thumbColor={idx === 0 ? '#10b981' : '#38bdf8'}
-                onCall={() => Linking.openURL(`tel:${g.phone.replace(/\s/g, '')}`)}
-                onDirections={() => Linking.openURL(directionsUrl(g.coords, user.coords))}
-                onBook={() => onBook(g)}
+                width="100%"
+                onOpen={() => setReviewsFor(g)}
                 onSaveChange={(saved) => notify({ icon: saved ? '♥' : '♡', title: saved ? 'සුරැකි ගරාජ වලට එක් කළා' : 'සුරැකි ලැයිස්තුවෙන් ඉවත් කළා', body: g.name, tone: 'primary' })}
-                onReviews={() => setReviewsFor(g)}
               />
             ))}
           </Animated.ScrollView>
         </Animated.View>
       </View>
-      <GarageReviewsSheet garage={reviewsFor} onClose={() => setReviewsFor(null)} />
+      <GarageReviewsSheet
+        garage={reviewsFor}
+        onClose={() => setReviewsFor(null)}
+        onCall={reviewsFor ? () => Linking.openURL(`tel:${reviewsFor.phone.replace(/s/g, '')}`) : undefined}
+        onBook={
+          reviewsFor
+            ? () => {
+                const g = reviewsFor;
+                setReviewsFor(null);
+                onBook(g);
+              }
+            : undefined
+        }
+      />
     </SafeAreaView>
   );
 };

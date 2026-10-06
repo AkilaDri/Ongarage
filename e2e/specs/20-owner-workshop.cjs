@@ -4,7 +4,7 @@ const { spec } = require('../lib.cjs');
 // report a problem (AI topic), rework, show the code, rate, warranty claim; then a bid on
 // a Genuine post: Recon approval; another stopped at the diagnosis.
 module.exports = spec('Owner · workshop job, extra work, problem, rating, Recon', 'user', async (t) => {
-  await t.clickText('ක්‍රියාකාරකම්');
+  await t.clickText('Activity');
   t.check('diagnosis waiting for approval', await t.has('පරීක්ෂා වාර්තාව ඔබගේ අනුමැතියට'));
   await t.clickText('වාර්තාව බලා අනුමත කරන්න');
   const lines = (await t.labels('Approve line ')).map((l) => l.slice(13));
@@ -48,12 +48,12 @@ module.exports = spec('Owner · workshop job, extra work, problem, rating, Recon
   t.check('warranty claim accepted', await t.has('ගරාජය වගකීම පිළිගත්තා'));
 
   // A bid on a Genuine post: Recon asked → approved; the bill drops
-  await t.clickText('ලංසු');
+  await t.clickText('Bids');
   await t.clickLabel('Mechanical details');
   t.check('bids show level badges', (await t.labels('Level ')).length > 0);
   await t.clickText('මෙම ලංසුව පිළිගන්න');
   await t.clickText('පිළිගන්න');
-  await t.clickText('ක්‍රියාකාරකම්');
+  await t.clickText('Activity');
   await t.wait(11000);
   await t.clickText('වාර්තාව බලා අනුමත කරන්න');
   await t.clickText('අනුමත කරන්න ·');

@@ -31,7 +31,10 @@ export const GarageReviewsSheet: React.FC<{
   /** Opened from a bid: its offer on top, and accepting it. */
   bid?: Bid;
   onAccept?: () => void;
-}> = ({ garage, onClose, bid, onAccept }) => {
+  /** Opened from Home: call or book this garage. */
+  onCall?: () => void;
+  onBook?: () => void;
+}> = ({ garage, onClose, bid, onAccept, onCall, onBook }) => {
   const [shown, setShown] = useState(garage);
   useEffect(() => {
     if (garage) setShown(garage);
@@ -47,7 +50,22 @@ export const GarageReviewsSheet: React.FC<{
       title={g.name}
       subtitle={`★ ${g.rating.toFixed(1)} · සමාලෝචන ${g.reviews}`}
       onClose={onClose}
-      footer={bid && onAccept ? <ActionButton label={`ලංසුව පිළිගන්න · ${money(bid.price)}`} icon="✓" variant="success" onPress={onAccept} /> : undefined}
+      footer={
+        bid && onAccept ? (
+          <ActionButton label={`ලංසුව පිළිගන්න · ${money(bid.price)}`} icon="✓" variant="success" onPress={onAccept} />
+        ) : onBook ? (
+          <View style={styles.actions}>
+            {!!onCall && (
+              <View style={styles.flex1}>
+                <ActionButton label="අමතන්න" icon="📞" variant="ghost" compact onPress={onCall} />
+              </View>
+            )}
+            <View style={styles.flex2}>
+              <ActionButton label="වෙන් කරන්න" icon="📅" variant="primary" compact onPress={onBook} />
+            </View>
+          </View>
+        ) : undefined
+      }
     >
       {bid && (
         <View style={[styles.box, styles.bidBox]} accessibilityLabel="Bid summary">
@@ -126,6 +144,9 @@ const styles = themedStyles(() =>
     sub: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 16 },
     reply: { marginTop: 4, padding: 10, borderRadius: 12, backgroundColor: Colors.subtleFill, gap: 2 },
     protected: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: Colors.warning, lineHeight: 17 },
+    actions: { flexDirection: 'row', gap: 8 },
+    flex1: { flex: 1 },
+    flex2: { flex: 2 },
     bidBox: { borderColor: 'rgba(16, 185, 129, 0.45)' },
     bidPrice: { fontSize: 17, fontFamily: FONTS.titleBold, color: Colors.success },
     replyLabel: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.primary },

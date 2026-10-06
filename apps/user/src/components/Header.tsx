@@ -2,12 +2,10 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, Modal, Animated, Easing, useWindowDimensions } from 'react-native';
 import { Colors, getThemeMode, themedStyles } from '@ongarage/shared';
 import { FONTS } from '@ongarage/shared';
-import { MOCK_USER } from '../constants/mockData';
+import { useProfile } from '../context/ProfileContext';
 import { useVehicles } from '../context/VehiclesContext';
 import { vehicleIcon } from '@ongarage/shared';
 import { Gradient, GRADIENTS } from '@ongarage/shared';
-import { useUserLocation } from '../context/LocationContext';
-import { VehicleTurntable } from './VehicleTurntable';
 
 const POPOVER_WIDTH = 264;
 const EDGE_GAP = 12;
@@ -150,6 +148,15 @@ const greetingFor = (hour: number) => {
   return 'සුභ රාත්‍රියක් 🌙';
 };
 
+/** The band other tabs show instead of the greeting: just the tab's title, same colour as Home's. */
+export const TitleBand: React.FC<{ title: string }> = ({ title }) => (
+  <View style={styles.titleBand}>
+    <Text style={styles.titleBandText} accessibilityRole="header">
+      {title}
+    </Text>
+  </View>
+);
+
 interface HeaderProps {
   activeVehicle: string;
   onVehicleChange: (vehicleId: string) => void;
@@ -159,33 +166,27 @@ export const Header: React.FC<HeaderProps> = ({ activeVehicle, onVehicleChange }
   const [showDropdown, setShowDropdown] = useState(false);
   const triggerRef = useRef<View>(null);
   const activeCar = useVehicles().findVehicle(activeVehicle);
-  const { locality, status } = useUserLocation();
+  const { fullName } = useProfile();
 
   return (
     <View style={styles.header}>
-      <View style={styles.brandBox}>
-        <VehicleTurntable vehicleId={activeCar.id} icon={vehicleIcon(activeCar.type)} onPress={() => setShowDropdown(true)} />
-        <View style={styles.greetingText}>
-          <Text style={styles.greeting} numberOfLines={1}>
-            {greetingFor(new Date().getHours())} 👋
-          </Text>
-          <Text style={styles.userName} numberOfLines={1}>
-            {MOCK_USER.firstName} {MOCK_USER.lastName}
-          </Text>
-          <Text style={styles.location} numberOfLines={1}>
-            📍 {status === 'locating' ? 'ස්ථානය සොයමින්...' : locality}
-          </Text>
-        </View>
+      <View style={styles.greetingText}>
+        <Text style={styles.hi} numberOfLines={1}>
+          Hi {fullName},
+        </Text>
+        <Text style={styles.greeting} numberOfLines={1}>
+          {greetingFor(new Date().getHours())}
+        </Text>
       </View>
 
-      <Pressable
-        ref={triggerRef}
-        style={[styles.vehicleDropdown, showDropdown && styles.vehicleDropdownOpen]}
-        onPress={() => setShowDropdown(true)}
-      >
-        <Text style={styles.vehicleIcon}>{vehicleIcon(activeCar.type)}</Text>
-        <Text style={styles.vehicleLabel}>{`${activeCar.name} (${activeCar.plate})`}</Text>
-        <Text style={[styles.dropdownArrow, showDropdown && { transform: [{ rotate: '180deg' }] }]}>▾</Text>
+      <Pressable ref={triggerRef} style={[styles.vehiclePill, showDropdown && styles.vehiclePillOpen]} onPress={() => setShowDropdown(true)} accessibilityLabel="Change vehicle">
+        <View style={styles.pillCar}>
+          <Text style={styles.pillCarIcon}>{vehicleIcon(activeCar.type)}</Text>
+        </View>
+        <Text style={styles.pillLabel} numberOfLines={1}>
+          {activeCar.plate}
+        </Text>
+        <Text style={styles.pillArrow}>▾</Text>
       </Pressable>
 
       <VehiclePicker
@@ -200,36 +201,37 @@ export const Header: React.FC<HeaderProps> = ({ activeVehicle, onVehicleChange }
 };
 
 const styles = themedStyles(() => StyleSheet.create({
+  // A soft sky-blue band (dark text on light, light text on dark); the screen below overlaps it.
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    backgroundColor: Colors.bgBody,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.borderColor,
+    gap: 12,
+    paddingHorizontal: 18,
+    paddingTop: 12,
+    paddingBottom: 34,
+    backgroundColor: getThemeMode() === 'dark' ? '#0e2a3f' : '#bfe4fa',
   },
-  brandBox: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1, marginRight: 8 },
-  greetingText: { flexShrink: 1 },
-  greeting: { fontSize: 10.5, color: Colors.textMuted, fontFamily: FONTS.bodyRegular },
-  userName: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textMain, marginTop: 2 },
-  location: { fontSize: 9.5, color: Colors.textMuted, fontFamily: FONTS.bodyRegular, marginTop: 1 },
-  vehicleDropdown: {
+  titleBand: { paddingHorizontal: 18, paddingTop: 14, paddingBottom: 34, backgroundColor: getThemeMode() === 'dark' ? '#0e2a3f' : '#bfe4fa' },
+  titleBandText: { fontSize: 20, fontFamily: FONTS.titleBold, color: getThemeMode() === 'dark' ? '#d6eefc' : '#0f2a3d' },
+  greetingText: { flexShrink: 1, gap: 1 },
+  hi: { fontSize: 15, fontFamily: FONTS.titleBold, color: getThemeMode() === 'dark' ? '#d6eefc' : '#0f2a3d' },
+  greeting: { fontSize: 12.5, fontFamily: FONTS.bodyMedium, color: getThemeMode() === 'dark' ? '#8fc3e3' : '#2b4a63' },
+  vehiclePill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(56, 189, 248, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(56, 189, 248, 0.25)',
-    borderRadius: 8,
-    paddingHorizontal: 6,
-    paddingVertical: 4,
+    gap: 8,
+    paddingVertical: 5,
+    paddingLeft: 5,
+    paddingRight: 12,
+    borderRadius: 22,
+    backgroundColor: getThemeMode() === 'dark' ? '#16415f' : '#0f2f4a',
   },
-  vehicleDropdownOpen: { borderColor: 'rgba(56, 189, 248, 0.6)', backgroundColor: 'rgba(56, 189, 248, 0.16)' },
-  vehicleIcon: { fontSize: 12 },
-  vehicleLabel: { color: Colors.primary, fontSize: 11, fontWeight: '700' },
-  dropdownArrow: { fontSize: 9, color: Colors.primary, marginLeft: 2 },
+  vehiclePillOpen: { opacity: 0.85 },
+  pillCar: { width: 30, height: 30, borderRadius: 15, backgroundColor: '#d6eefc', alignItems: 'center', justifyContent: 'center' },
+  pillCarIcon: { fontSize: 16 },
+  pillLabel: { fontSize: 12, fontFamily: FONTS.bodyBold, color: '#fff', letterSpacing: 0.5 },
+  pillArrow: { fontSize: 10, color: '#bfe4fa' },
 
   backdrop: { ...StyleSheet.absoluteFill, backgroundColor: Colors.overlay },
   popover: {

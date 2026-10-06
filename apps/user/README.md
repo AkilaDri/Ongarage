@@ -12,7 +12,7 @@ npm run user:web    # in the browser
 
 | Screen | File | Purpose |
 |---|---|---|
-| Home | `src/screens/HomeScreen.tsx` | SOS banner, posting a repair job, service categories, the nearest garage card (level badge, latest review with the garage's reply, all reviews) |
+| Home | `src/screens/HomeScreen.tsx` | SOS banner, posting a repair job, service categories as round photos in two sideways rows, ad banners, offer tiles, and garage rows (featured ads, newly joined, popular, nearest) of photo tiles that open the garage with Call / Book (`components/home`, content in `constants/home.ts`) |
 | SOS location | `src/screens/SOSMapPickerScreen.tsx` | Pick the breakdown spot: GPS, tap on map, place search |
 | SOS flow | `src/screens/SOSFlowScreen.tsx` | The 11-step SOS loop, from confirmation to rating |
 | Post a job | `src/screens/PostJobScreen.tsx` | Job form with OnGarage Buddy diagnosis and the bid timer |

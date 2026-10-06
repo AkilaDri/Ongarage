@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
-import { ActionButton, categoryInfo, Colors, directionsUrl, FONTS, GlassIcon, themedStyles, vehicleIcon } from '@ongarage/shared';
+import { ActionButton, categoryInfo, Colors, directionsUrl, FONTS, themedStyles, vehicleIcon } from '@ongarage/shared';
 import { useBookings } from '../context/BookingsContext';
 import { useVehicles } from '../context/VehiclesContext';
 import { useWorkshops } from '../context/WorkshopContext';
 import { WorkshopTracker } from './workshop/WorkshopTracker';
+import { CategoryPhoto } from './home/CategoryPhoto';
 import { useUserLocation } from '../context/LocationContext';
 import { countdown, formatDate, formatTime, money } from '../utils/format';
 import type { DirectBooking } from '../types';
@@ -34,7 +35,7 @@ export const DirectBookingCard: React.FC<{ booking: DirectBooking; onBookAgain: 
   return (
     <View style={[styles.card, b.status === 'confirmed' && styles.confirmed, b.status === 'proposed' && styles.proposed, ended && styles.ended]}>
       <Pressable style={styles.row} onPress={onOpen} disabled={!onOpen} accessibilityLabel={`${cat.name} booking details`}>
-        <GlassIcon emoji={cat.icon} />
+        <CategoryPhoto categoryId={b.categoryId} />
         <View style={styles.flex1}>
           <Text style={styles.title}>
             {cat.name}

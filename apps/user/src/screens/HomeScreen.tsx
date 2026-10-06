@@ -1,18 +1,44 @@
-import React, { useState } from 'react';
-import { View, ScrollView, Text, Pressable, StyleSheet, Linking } from 'react-native';
-import { Colors, themedStyles } from '@ongarage/shared';
-import { FONTS } from '@ongarage/shared';
+import React, { useMemo, useState } from 'react';
+import { View, ScrollView, Text, Pressable, StyleSheet, Linking, ImageBackground } from 'react-native';
+import {
+  Colors,
+  directionsUrl,
+  distanceKm,
+  FONTS,
+  Gradient,
+  Pulse,
+  SERVICE_CATEGORIES,
+  themedStyles,
+  type Garage,
+  type ServiceCategory,
+} from '@ongarage/shared';
 import { MOCK_GARAGES } from '../constants/mockData';
-import { SERVICE_CATEGORIES } from '@ongarage/shared';
-import { ServiceCard } from '../components/ServiceCard';
+import { GARAGE_INFO, NEW_GARAGE_DAYS, OFFERS, PROMO_BANNERS, SPONSORED_GARAGE_IDS, type Offer } from '../constants/home';
 import { AllServicesSheet } from '../components/AllServicesSheet';
-import { GarageCard } from '@ongarage/shared';
-import { Gradient, GRADIENTS, Pulse } from '@ongarage/shared';
+import { CategoryStrip } from '../components/home/CategoryStrip';
+import { PromoCarousel } from '../components/home/PromoCarousel';
+import { OfferTiles } from '../components/home/OfferTiles';
+import { GarageRow } from '../components/home/GarageRow';
+import { GarageListSheet } from '../components/home/GarageListSheet';
 import { useUserLocation } from '../context/LocationContext';
 import { useNotice } from '../context/NoticeContext';
 import { GarageReviewsSheet } from '../components/GarageReviewsSheet';
-import { directionsUrl, distanceKm } from '@ongarage/shared';
-import type { Garage, ServiceCategory } from '@ongarage/shared';
+
+const DAY = 24 * 60 * 60 * 1000;
+
+const SOS_PHOTO = require('../../assets/home/banners/sos.jpg');
+const POST_JOB_PHOTO = require('../../assets/home/banners/post-job.jpg');
+// Shades fade from solid behind the text to clear over the photo (same style as the ad banners).
+const SOS_SHADE = [
+  { offset: '0', color: '#7f1d1d', opacity: 0.88 },
+  { offset: '0.5', color: '#450a0a', opacity: 0.4 },
+  { offset: '1', color: '#020617', opacity: 0 },
+];
+const JOB_SHADE = [
+  { offset: '0', color: '#0f172a', opacity: 0.85 },
+  { offset: '0.5', color: '#0f172a', opacity: 0.35 },
+  { offset: '1', color: '#020617', opacity: 0 },
+];
 
 interface HomeScreenProps {
   onSOSPress: () => void;
@@ -24,178 +50,166 @@ interface HomeScreenProps {
 export const HomeScreen: React.FC<HomeScreenProps> = ({ onSOSPress, onPostJob, onServicePress, onBookGarage }) => {
   const user = useUserLocation();
   const [allServices, setAllServices] = useState(false);
-  const [reviewsFor, setReviewsFor] = useState<Garage | null>(null);
   const { notify } = useNotice();
-  const featured = MOCK_GARAGES.map((g) => ({ ...g, distance: Number(distanceKm(user.coords, g.coords).toFixed(1)) })).sort(
-    (a, b) => a.distance - b.distance
-  )[0];
+  const [list, setList] = useState<{ title: string; garages: Garage[]; ad?: boolean } | null>(null);
+
+  // Distances from where the owner is; the rows below are organic (ratings, distance,
+  // how new a garage is) — ads only appear in the labelled "Featured" row and banners.
+  const garages = useMemo(() => MOCK_GARAGES.map((g) => ({ ...g, distance: Number(distanceKm(user.coords, g.coords).toFixed(1)) })), [user.coords]);
+  const byId = (id: string) => garages.find((g) => g.id === id);
+  const sponsored = SPONSORED_GARAGE_IDS.map(byId).filter((g): g is Garage => !!g);
+  const newlyJoined = garages
+    .filter((g) => (GARAGE_INFO[g.id]?.joinedAt ?? 0) > Date.now() - NEW_GARAGE_DAYS * DAY)
+    .sort((a, b) => GARAGE_INFO[b.id].joinedAt - GARAGE_INFO[a.id].joinedAt);
+  // Popular: rating weighted by how many reviews back it up.
+  const popular = [...garages].sort((a, b) => b.rating * Math.log10(b.reviews + 1) - a.rating * Math.log10(a.reviews + 1));
+  const nearest = [...garages].sort((a, b) => a.distance - b.distance);
+  const protectedGarages = garages.filter((g) => g.level === 'premier');
+
+  const [open, setOpen] = useState<Garage | null>(null);
+  const save = (g: Garage, saved: boolean) =>
+    notify({ icon: saved ? '♥' : '♡', title: saved ? 'සුරැකි ගරාජ වලට එක් කළා' : 'සුරැකි ලැයිස්තුවෙන් ඉවත් කළා', body: g.name, tone: 'primary' });
+  const openOffer = (o: Offer) => {
+    if ('categoryId' in o) {
+      const cat = SERVICE_CATEGORIES.find((c) => c.id === o.categoryId);
+      if (cat) onServicePress(cat);
+    } else if (o.list === 'new') setList({ title: 'අලුතින් එක් වූ ගරාජ', garages: newlyJoined });
+    else setList({ title: 'ආරක්ෂිත රැකියා (OnGarage Guarantee)', garages: protectedGarages });
+  };
 
   return (
     <View style={styles.container}>
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {/* SOS Banner */}
-        <Pressable style={[styles.banner, styles.sosBanner]} onPress={onSOSPress}>
-          <Gradient stops={GRADIENTS.sos} />
-          <View style={styles.sosLeft}>
-            <View style={styles.sosBadge}>
-              <Pulse style={styles.pulseDot} />
-              <Text style={styles.badgeText}>24/7 මාවත් උදව්</Text>
+        {/* SOS: the emergency action — a photo banner, one line, one big button */}
+        <Pressable style={({ pressed }) => [styles.hero, styles.sosHero, pressed && styles.pressed]} onPress={onSOSPress} accessibilityLabel="Open SOS">
+          <ImageBackground source={SOS_PHOTO} style={styles.heroBg} imageStyle={styles.heroImage}>
+            <Gradient stops={SOS_SHADE} />
+            <View style={styles.heroCopy}>
+              <View style={styles.sosBadge}>
+                <Pulse style={styles.pulseDot} />
+                <Text style={styles.badgeText}>24/7 SOS</Text>
+              </View>
+              <Text style={styles.heroTitle}>වාහනය අඩපණ වුණාද?</Text>
+              <Text style={styles.heroSub}>ළඟම කාර්මිකයා ඔබ වෙත</Text>
             </View>
-            <Text style={styles.sosTitle}>වාහනය අඩපණ වුණාද?</Text>
-            <Text style={styles.sosDesc}>ක්ෂණිකව ළඟම ඇති යාන්ත්‍රිකයෙකු වෙත දන්වන්න.</Text>
-          </View>
-          <Pressable style={styles.sosSquareBtn} onPress={onSOSPress}>
-            <Text style={styles.sosBtnEmoji}>🚨</Text>
-            <Text style={styles.sosBtnText}>SOS</Text>
-          </Pressable>
+            <View style={styles.sosButton}>
+              <Text style={styles.sosButtonText}>SOS</Text>
+            </View>
+          </ImageBackground>
         </Pressable>
 
-        {/* Post Repair Bid Card */}
-        <View style={styles.bidCard}>
-          <Gradient stops={GRADIENTS.bid} />
-          <View>
-            <Text style={styles.bidTitle}>අලුත්වැඩියා ලංසුවක් (Bid) පළ කරන්න</Text>
-            <Text style={styles.bidDesc}>
-              ඔබේ වාහන දෝෂය සටහන් කර පිළිගත් ගරාජ කිහිපයකින් තරගකාරී මිල ගණන් ලබා ගන්න.
-            </Text>
-          </View>
-          <Pressable style={styles.bidBtn} onPress={onPostJob}>
-            <Gradient stops={GRADIENTS.cta} />
-            <Text style={styles.bidBtnText}>＋</Text>
-            <Text style={styles.bidBtnText}>නව අලුත්වැඩියා ඉල්ලීමක් කරන්න</Text>
-          </Pressable>
-        </View>
+        {/* Post a repair job: garages bid on it */}
+        <Pressable style={({ pressed }) => [styles.hero, pressed && styles.pressed]} onPress={onPostJob} accessibilityLabel="Post a repair job">
+          <ImageBackground source={POST_JOB_PHOTO} style={styles.heroBg} imageStyle={styles.heroImage}>
+            <Gradient stops={JOB_SHADE} />
+            <View style={styles.heroCopy}>
+              <Text style={styles.heroTitle}>අලුත්වැඩියාවක් පළ කරන්න</Text>
+              <Text style={styles.heroSub}>ගරාජ කිහිපයකින් මිල ගණන් ලබා ගන්න</Text>
+              <View style={styles.jobCta}>
+                <Text style={styles.jobCtaText}>＋ නව ඉල්ලීමක්</Text>
+              </View>
+            </View>
+          </ImageBackground>
+        </Pressable>
 
-        {/* Services */}
+        {/* Categories: round photos, two rows, slide sideways */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionLabel}>වාහන සේවා අංශ (Categories)</Text>
+          <Text style={styles.sectionTitle}>සේවා අංශ</Text>
           <Pressable onPress={() => setAllServices(true)} hitSlop={6}>
             <Text style={styles.viewAllLink}>සියල්ල බලන්න</Text>
           </Pressable>
         </View>
+        <CategoryStrip onSelect={onServicePress} />
 
-        <View style={styles.servicesGrid}>
-          {SERVICE_CATEGORIES.map((service) => (
-            <ServiceCard
-              key={service.id}
-              icon={service.icon}
-              name={service.name}
-              iconColor={service.color}
-              onPress={() => onServicePress(service)}
-            />
-          ))}
-        </View>
-
-        {/* Garages Near You */}
-        <View style={[styles.sectionHeader, { marginTop: 8 }]}>
-          <Text style={styles.sectionLabel}>ඔබට ආසන්න ගරාජයන්</Text>
-          <Text style={styles.listLabel}>ප්‍රධාන ලැයිස්තුව</Text>
-        </View>
-
-        <GarageCard
-          garage={featured}
-          variant="home"
-          thumbColor="#10b981"
-          onCall={() => Linking.openURL(`tel:${featured.phone.replace(/\s/g, '')}`)}
-          onDirections={() => Linking.openURL(directionsUrl(featured.coords, user.coords))}
-          onBook={() => onBookGarage(featured)}
-          onSaveChange={(saved) => notify({ icon: saved ? '♥' : '♡', title: saved ? 'සුරැකි ගරාජ වලට එක් කළා' : 'සුරැකි ලැයිස්තුවෙන් ඉවත් කළා', body: featured.name, tone: 'primary' })}
-          onReviews={() => setReviewsFor(featured)}
+        {/* Ads */}
+        <PromoCarousel
+          banners={PROMO_BANNERS}
+          onOpen={(b) => {
+            const g = byId(b.garageId);
+            if (g) setOpen(g);
+          }}
         />
+
+        {/* Deals */}
+        <Text style={styles.sectionTitle}>ගනුදෙනු සහ දීමනා</Text>
+        <OfferTiles offers={OFFERS} onOpen={openOffer} />
+
+        {/* Garage rows */}
+        <GarageRow title="විශේෂාංග · දැන්වීම්" garages={sponsored} ad onOpen={setOpen} onSaveChange={save} onSeeAll={() => setList({ title: 'විශේෂාංග · දැන්වීම්', garages: sponsored, ad: true })} />
+        <GarageRow title="අලුතින් එක් වූ" garages={newlyJoined} onOpen={setOpen} onSaveChange={save} onSeeAll={() => setList({ title: 'අලුතින් එක් වූ ගරාජ', garages: newlyJoined })} />
+        <GarageRow title="ජනප්‍රිය ගරාජ" garages={popular.slice(0, 6)} onOpen={setOpen} onSaveChange={save} onSeeAll={() => setList({ title: 'ජනප්‍රිය ගරාජ', garages: popular })} />
+        <GarageRow title="ඔබට ළඟම" garages={nearest.slice(0, 6)} onOpen={setOpen} onSaveChange={save} onSeeAll={() => setList({ title: 'ඔබට ළඟම ගරාජ', garages: nearest })} />
       </ScrollView>
       <AllServicesSheet visible={allServices} onClose={() => setAllServices(false)} onSelect={onServicePress} />
-      <GarageReviewsSheet garage={reviewsFor} onClose={() => setReviewsFor(null)} />
+      <GarageListSheet
+        list={list}
+        onClose={() => setList(null)}
+        onOpen={(g) => {
+          setList(null);
+          setOpen(g);
+        }}
+        onSaveChange={save}
+      />
+      <GarageReviewsSheet
+        garage={open}
+        onClose={() => setOpen(null)}
+        onCall={open ? () => Linking.openURL(`tel:${open.phone.replace(/\s/g, '')}`) : undefined}
+        onBook={
+          open
+            ? () => {
+                const g = open;
+                setOpen(null);
+                onBookGarage(g);
+              }
+            : undefined
+        }
+      />
     </View>
   );
 };
 
 const styles = themedStyles(() => StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.bgBody },
+  // Transparent: the rounded sheet in App.tsx supplies the background.
+  container: { flex: 1 },
   scroll: { flex: 1 },
   content: { paddingTop: 14, paddingHorizontal: 16, paddingBottom: 90, gap: 16 },
-  flex1: { flex: 1 },
-  banner: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: 12,
-    borderRadius: 20,
-    padding: 16,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  sosBanner: {
-    backgroundColor: '#dc2626',
-    shadowColor: '#dc2626',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.35,
-    shadowRadius: 25,
-    elevation: 8,
-  },
-  sosLeft: { flex: 1, gap: 4 },
+  // White text sits on the photos' fixed dark shades (not theme surfaces).
+  hero: { borderRadius: 18, overflow: 'hidden' },
+  sosHero: { shadowColor: '#dc2626', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 18, elevation: 6 },
+  pressed: { opacity: 0.9, transform: [{ scale: 0.99 }] },
+  // A fixed height: with only minHeight, the web build draws the photo at its natural size (zoomed in).
+  heroBg: { height: 132, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, gap: 12 },
+  heroImage: { borderRadius: 18, width: '100%', height: '100%' },
+  heroCopy: { flex: 1, gap: 3 },
+  heroTitle: { fontSize: 18, fontFamily: FONTS.titleBold, color: '#fff' },
+  heroSub: { fontSize: 11.5, fontFamily: FONTS.bodyMedium, color: '#e2e8f0' },
   sosBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-    paddingHorizontal: 7,
+    gap: 5,
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(255, 255, 255, 0.18)',
+    marginBottom: 2,
   },
   pulseDot: { width: 6, height: 6, backgroundColor: '#fff', borderRadius: 3 },
-  badgeText: { fontSize: 9, fontWeight: '800', color: '#fff' },
-  sosTitle: { fontSize: 16, fontFamily: FONTS.titleBold, color: '#fff', lineHeight: 20 },
-  sosDesc: { fontSize: 11, fontFamily: FONTS.bodyRegular, color: '#fee2e2', lineHeight: 14.3 },
-  sosSquareBtn: {
-    width: 52,
-    height: 52,
-    backgroundColor: '#fff',
-    borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
-    elevation: 4,
-  },
-  sosBtnEmoji: { fontSize: 16 },
-  sosBtnText: { fontSize: 9.5, fontWeight: '900', color: '#dc2626', letterSpacing: 0.5 },
-  bidCard: {
-    backgroundColor: '#1e3a8a',
-    borderWidth: 1,
-    borderColor: 'rgba(56, 189, 248, 0.2)',
-    borderRadius: 20,
-    padding: 16,
-    gap: 12,
-    overflow: 'hidden',
-  },
-  bidTitle: { fontSize: 15, fontFamily: FONTS.titleBold, color: '#fff' },
-  bidDesc: { fontSize: 11.5, fontFamily: FONTS.bodyRegular, color: '#cbd5e1', lineHeight: 16.1 },
-  bidBtn: {
-    flexDirection: 'row',
+  badgeText: { fontSize: 10, fontWeight: '800', color: '#fff', letterSpacing: 0.4 },
+  sosButton: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#dc2626',
+    borderWidth: 3,
+    borderColor: 'rgba(255, 255, 255, 0.85)',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    padding: 12,
-    borderRadius: 12,
-    overflow: 'hidden',
   },
-  bidBtnText: { fontSize: 12.5, fontWeight: '800', color: '#fff' },
+  sosButtonText: { fontSize: 15, fontWeight: '900', color: '#fff', letterSpacing: 1 },
+  jobCta: { alignSelf: 'flex-start', marginTop: 8, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12, backgroundColor: '#f59e0b' },
+  jobCtaText: { fontSize: 12, fontFamily: FONTS.bodyBold, color: '#fff' },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 },
-  sectionLabel: {
-    fontSize: 11,
-    fontFamily: FONTS.bodySemiBold,
-    color: Colors.textMuted,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-  },
   viewAllLink: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
-  listLabel: { fontSize: 11, fontFamily: FONTS.bodyMedium, color: Colors.textMuted },
-  servicesGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 12 },
+  sectionTitle: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textMain },
 }));

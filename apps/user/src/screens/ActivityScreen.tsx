@@ -4,7 +4,8 @@ import { Colors, themedStyles } from '@ongarage/shared';
 import { FONTS } from '@ongarage/shared';
 import { categoryInfo, SERVICE_CATEGORIES } from '@ongarage/shared';
 import { useVehicles } from '../context/VehiclesContext';
-import { EmptyState, GlassIcon, SwipeCard } from '@ongarage/shared';
+import { EmptyState, SwipeCard } from '@ongarage/shared';
+import { CategoryPhoto } from '../components/home/CategoryPhoto';
 import { OwnerDetailView, type OwnerDetailTarget } from '../components/OwnerDetailView';
 import { useBids } from '../context/BidsContext';
 import { useUserLocation } from '../context/LocationContext';
@@ -64,7 +65,7 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
     return (
       <SwipeCard key={job.id} style={[styles.card, !finished(job.id) && styles.cardOngoing]} onOpen={() => setDetail({ kind: 'job', id: job.id })}>
         <Pressable style={styles.row} onPress={() => setDetail({ kind: 'job', id: job.id })} accessibilityLabel={`${cat?.name ?? 'Job'} booking details`}>
-          <GlassIcon emoji={cat?.icon ?? '🔧'} />
+          <CategoryPhoto categoryId={job.categoryId} />
           <View style={styles.flex1}>
             <Text style={styles.title}>{cat?.name ?? 'Service'}</Text>
             <Text style={styles.sub}>
@@ -130,7 +131,7 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
         {history.map((w) => (
           <View key={w.id} style={styles.card}>
             <View style={styles.row}>
-              <GlassIcon emoji={w.icon ?? categoryInfo(w.categoryId).icon} />
+              <CategoryPhoto categoryId={w.categoryId} />
               <View style={styles.flex1}>
                 <Text style={styles.title}>{w.title ?? categoryInfo(w.categoryId).name}</Text>
                 <Text style={styles.sub}>
@@ -165,7 +166,8 @@ const Stat: React.FC<{ value: string; label: string; color: string }> = ({ value
 );
 
 const styles = themedStyles(() => StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.bgBody },
+  // Transparent: the rounded sheet in App.tsx supplies the background.
+  container: { flex: 1 },
   swipeWrap: { borderRadius: 18 },
   swipeHint: { fontSize: 10.5, fontFamily: FONTS.bodyMedium, color: Colors.textMuted, textAlign: 'center' },
   flex1: { flex: 1 },
