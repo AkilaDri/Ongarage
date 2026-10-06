@@ -71,6 +71,18 @@ export const TRUST_HISTORY = {
   heldLevel: 'trusted' as LevelId,
 };
 
+/**
+ * Fair-share monitoring (runs on the back end; the admin app approves flags): TOPCODE takes
+ * a large share of local ECU work and earns over the threshold, so after the 30-day notice
+ * its daily intake is limited. Earnings also price its subscription band.
+ */
+export const FAIRNESS_SEED = {
+  stats: { areaShareByCategory: { '5': 0.31, '1': 0.14, '7': 0.09 }, avgMonthlyEarnings: 520000, monthsObserved: 4 },
+  flaggedAt: Date.now() - 40 * DAY,
+  /** Won through the app earlier this month (before the seeded bookings). */
+  monthWonBefore: 168000,
+};
+
 /** Totals of all ratings before the seeded reviews (keeps the profile numbers realistic). */
 export const RATING_HISTORY = { count: 86, sum: 86 * 4.9 };
 
@@ -173,6 +185,18 @@ export const BOOKINGS: Booking[] = [
     progress: newWorkshopProgress(), warrantyMonths: 6, assignedTechId: 'm2',
     job: bookedJob('job-b2', '11', 'බැටරිය බැහැලා, වාහනය පණගන්වන්න බැහැ. ගෙදරටම ඇවිත් මාරු කරන්න පුළුවන්ද?', c('කවිෂා රත්නායක', '0779876508'),
       v('March K11', 'WP-1029', 'Hatchback'), 'වක්වැල්ල පාර', { latitude: 6.0533, longitude: 80.2302 }, 2.3, true, { photos: [JOB_PHOTOS[1]], sparePart: 'Genuine' }),
+  },
+  {
+    id: 'b5', source: 'bid', title: 'Engine Overhaul', icon: '🔧', customer: c('නුවන් ජයවර්ධන', '0779876513'),
+    vehicle: v('Premio', 'CAD-4410', 'Sedan'), address: 'ගාල්ල කොටුව', coords: { latitude: 6.0301, longitude: 80.2152 },
+    doorstep: false, scheduledAt: tomorrowAt(11), price: 38000, status: 'scheduled', locationSharedAt: Date.now() - 20 * HOUR,
+    progress: newWorkshopProgress(), warrantyMonths: 6,
+  },
+  {
+    id: 'b6', source: 'direct', title: 'A/C Repair', icon: '❄', customer: c('ඉෂාරා සමරවීර', '0779876514'),
+    vehicle: v('Vezel', 'CAB-7781', 'SUV'), address: 'කරාපිටිය', coords: { latitude: 6.0588, longitude: 80.2305 },
+    doorstep: false, scheduledAt: tomorrowAt(16), price: 9500, status: 'scheduled', locationSharedAt: Date.now() - 6 * HOUR,
+    progress: newWorkshopProgress(), warrantyMonths: 3,
   },
   {
     id: 'b3', source: 'sos', title: 'ටයර් පන්චර්', icon: '🛞', customer: c('සචිනි පෙරේරා', '0779876509'),

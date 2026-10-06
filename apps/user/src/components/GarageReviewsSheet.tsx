@@ -24,6 +24,7 @@ export const GarageReviewsSheet: React.FC<{ garage: Garage | null; onClose: () =
         <View style={styles.box}>
           <LevelBadge level={level.id} />
           <Text style={styles.sub}>{level.note} · OnGarage මට්ටම් තීරණය වන්නේ අවසන් කළ රැකියා, ශ්‍රේණිය සහ ගැටලු අනුපාතය අනුවය.</Text>
+          {level.id === 'premier' && <Text style={styles.protected}>🛡️ මෙම ගරාජයේ රැකියා OnGarage Guarantee මගින් ආරක්ෂිතයි (උපරිම රු. 50,000).</Text>}
         </View>
       )}
 
@@ -84,6 +85,7 @@ const styles = themedStyles(() =>
     text: { fontSize: 12, fontFamily: FONTS.bodyRegular, color: Colors.textSoft, lineHeight: 18 },
     sub: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 16 },
     reply: { marginTop: 4, padding: 10, borderRadius: 12, backgroundColor: Colors.subtleFill, gap: 2 },
+    protected: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: Colors.warning, lineHeight: 17 },
     replyLabel: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
   })
 );

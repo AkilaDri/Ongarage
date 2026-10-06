@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { ActionButton, categoryInfo, Colors, FONTS, GlassIcon, marketPrice, themedStyles, vehicleIcon } from '@ongarage/shared';
+import { ActionButton, categoryInfo, Colors, dayStart, FONTS, GlassIcon, marketPrice, themedStyles, vehicleIcon } from '@ongarage/shared';
 import { useGarage } from '../context/GarageContext';
 import { money } from '../utils/format';
 import type { FeedJob, MyBid } from '../types';
@@ -14,7 +14,9 @@ interface BidSheetProps {
 }
 
 export const BidSheet: React.FC<BidSheetProps> = ({ job, existing, onClose }) => {
-  const { placeBid } = useGarage();
+  const { placeBid, intakeOn } = useGarage();
+  // A won bid is booked tomorrow; a limited garage needs room for it then.
+  const room = intakeOn(dayStart(Date.now()) + 24 * 60 * 60 * 1000).remaining;
   const [mounted, setMounted] = useState(!!job);
   const [shown, setShown] = useState<FeedJob | null>(job);
   const [price, setPrice] = useState('');
@@ -128,7 +130,8 @@ export const BidSheet: React.FC<BidSheetProps> = ({ job, existing, onClose }) =>
           </ScrollView>
 
           <View style={styles.footer}>
-            <ActionButton label={existing ? 'ලංසුව යාවත්කාලීන කරන්න' : `${money(value)} ලංසුව යවන්න`} icon="📨" variant="primary" disabled={value <= 0} onPress={submit} />
+            {value > room && <Text style={styles.roomWarn}>⚖️ හෙට ඉඩ ඇත්තේ {money(room)} ක් පමණි — අඩු ලංසුවක් හෝ පසුව උත්සාහ කරන්න.</Text>}
+            <ActionButton label={existing ? 'ලංසුව යාවත්කාලීන කරන්න' : `${money(value)} ලංසුව යවන්න`} icon="📨" variant="primary" disabled={value <= 0 || value > room} onPress={submit} />
           </View>
         </Animated.View>
       </KeyboardAvoidingView>
@@ -138,6 +141,7 @@ export const BidSheet: React.FC<BidSheetProps> = ({ job, existing, onClose }) =>
 
 const styles = themedStyles(() =>
   StyleSheet.create({
+    roomWarn: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.warning, lineHeight: 17, marginBottom: 6 },
     flex1: { flex: 1 },
     backdrop: { ...StyleSheet.absoluteFill, backgroundColor: Colors.overlay },
     anchor: { flex: 1, justifyContent: 'flex-end' },

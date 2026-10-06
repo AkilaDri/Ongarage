@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { ActionButton, categoryInfo, Colors, EmptyState, FONTS, GlassIcon, Icon, isHighValueJob, levelForFeature, marketPrice, SwipeCard, themedStyles, vehicleIcon, type IconName } from '@ongarage/shared';
+import { ActionButton, categoryInfo, Colors, dayStart, EmptyState, FONTS, GlassIcon, Icon, isHighValueJob, levelForFeature, marketPrice, SwipeCard, themedStyles, vehicleIcon, type IconName } from '@ongarage/shared';
 import { bidDeadline, useGarage } from '../context/GarageContext';
 import { BidSheet } from '../components/BidSheet';
 import { DirectReplySheet, type ReplyMode } from '../components/DirectReplySheet';
@@ -21,7 +21,7 @@ const STATUS: Record<BidStatus, { label: string; color: () => string; bg: string
 };
 
 export const JobFeedScreen: React.FC = () => {
-  const { feed, directs, bids, profile, withdrawBid, has } = useGarage();
+  const { feed, directs, bids, profile, withdrawBid, has, headStartUntil, intakeOn, limitFrom } = useGarage();
   const [segment, setSegment] = useState<Segment>('open');
   const [scope, setScope] = useState<Scope>('services');
   const [sheet, setSheet] = useState<{ job: FeedJob; existing?: MyBid } | null>(null);
@@ -83,6 +83,24 @@ export const JobFeedScreen: React.FC = () => {
           <Pressable style={styles.linkBtn} onPress={go(() => setSheet({ job, existing: pending }))}>
             <Text style={styles.link}>සංස්කරණය</Text>
           </Pressable>
+        </View>
+      );
+    }
+    // Newer high-score garages see fresh posts first (fair share).
+    const head = headStartUntil(job);
+    if (head) {
+      return (
+        <View style={styles.locked}>
+          <Text style={styles.lockedText}>🌱 නව ගරාජවලට පළමුව · ඔබට ලංසු තැබිය හැක්කේ {countdown(head - Date.now())}කින්</Text>
+        </View>
+      );
+    }
+    // A won bid is booked tomorrow: limited garages need room for it.
+    const room = intakeOn(dayStart(Date.now()) + 24 * 60 * 60 * 1000);
+    if (room.remaining < marketPrice(job.categoryId)) {
+      return (
+        <View style={styles.locked}>
+          <Text style={styles.lockedText}>⚖️ හෙට දෛනික සීමාව පිරී ඇත (ඉඩ {money(room.remaining)}) — ඉඩ ඇති වූ විට ලංසු තබන්න</Text>
         </View>
       );
     }
@@ -284,6 +302,14 @@ export const JobFeedScreen: React.FC = () => {
       </View>
 
       <ScrollView style={styles.flex1} contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
+        {limitFrom !== undefined && Date.now() >= limitFrom && (() => {
+          const t = intakeOn(dayStart(Date.now()) + 24 * 60 * 60 * 1000);
+          return (
+            <View style={styles.locked} accessibilityLabel="Intake banner">
+              <Text style={styles.lockedText}>⚖️ සාධාරණ බෙදාහැරීම: හෙට නව වැඩ {money(t.used)} / {money(t.limit)} · ඉඩ {money(t.remaining)} (“ගරාජය” ටැබය)</Text>
+            </View>
+          );
+        })()}
         {segment === 'open' && (
           <>
             <View style={styles.chips}>

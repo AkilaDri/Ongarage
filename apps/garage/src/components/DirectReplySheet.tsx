@@ -24,7 +24,7 @@ const slotOptions = (preferredAt: number) => {
 };
 
 export const DirectReplySheet: React.FC<{ request: DirectRequest | null; mode: ReplyMode; onClose: () => void }> = ({ request, mode, onClose }) => {
-  const { answerDirect, declineDirect, bookings } = useGarage();
+  const { answerDirect, declineDirect, bookings, intakeOn } = useGarage();
   const [mounted, setMounted] = useState(!!request);
   const [shown, setShown] = useState<DirectRequest | null>(request);
   const [at, setAt] = useState(0);
@@ -124,6 +124,9 @@ export const DirectReplySheet: React.FC<{ request: DirectRequest | null; mode: R
                   );
                 })}
                 {!!clash && <Text style={[styles.hint, { color: Colors.warning }]}>මේ වේලාවට ආසන්නව ඔබට “{clash.title}” වෙන්කිරීමක් දැනටමත් ඇත.</Text>}
+                {value > 0 && intakeOn(at).remaining < value && (
+                  <Text style={[styles.hint, { color: Colors.warning }]}>⚖️ එදින දෛනික සීමාව පිරී ඇත — ප්‍රතික්ෂේප නොකර ඉඩ ඇති ඊළඟ දිනයට යෝජනා වේ.</Text>
+                )}
 
                 <Text style={styles.label}>ඇස්තමේන්තුගත මිල</Text>
                 <View style={styles.priceBox}>

@@ -1,3 +1,5 @@
+import type { WorkshopProgress } from '../types';
+
 // OnGarage Guarantee: a capped service guarantee on "Protected" jobs (Premier garages).
 // Not insurance — and not risk-free for the garage: it pays a deductible, claims lower
 // its trust score, and only well-documented jobs qualify. Real money waits for the
@@ -22,6 +24,14 @@ export type ClaimEligibility = {
   /** Raised inside the job's warranty period. */
   withinWarranty: boolean;
 };
+
+/** Eligibility from a workshop job's record. */
+export const eligibilityOf = (p: WorkshopProgress, now: number): ClaimEligibility => ({
+  protectedJob: !!p.protected,
+  closedWithCode: p.stage === 'closed' && !!p.closedAt,
+  documented: !!p.checkInPhotos?.length && !!p.handover?.afterPhotos?.length,
+  withinWarranty: !!p.warrantyUntil && p.warrantyUntil > now,
+});
 
 /** Why a claim can't go ahead (empty = eligible). */
 export const claimBlockers = (e: ClaimEligibility): string[] =>

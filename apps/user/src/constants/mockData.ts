@@ -43,6 +43,26 @@ export const SAMPLE_UPLOAD_PHOTOS = [
 
 export const MOCK_GARAGES: Garage[] = [
   {
+    id: '5',
+    name: 'AutoTech Motors',
+    level: 'premier',
+    dimensions: { quality: 4.9, pricing: 4.7, onTime: 4.8, communication: 4.8 },
+    recentReviews: [
+      review('at1', 'Akila Drishan', 4.6, 'ඉක්මනින් කළා, පරණ ෆිල්ටරය පෙන්නුවා.', 23, 'ස්තූතියි! ඊළඟ සේවාව කි.මී. 5,000න්.'),
+      review('at2', 'තරිඳු පීරිස්', 5, 'ආරක්ෂිත රැකියාවක් නිසා කිසිම කරදරයක් නැතිව කළා.', 30),
+    ],
+    specialization: 'Full Service & Hybrid Care',
+    rating: 4.9,
+    reviews: 212,
+    distance: 2.6,
+    status: 'open',
+    phone: '077 567 8901',
+    address: 'වක්වැල්ල පාර, ගාල්ල',
+    coords: { latitude: 6.0533, longitude: 80.2302 },
+    reviews_text: 'සියලු වැඩ ඡායාරූප සමඟ පෙන්නුවා.',
+    photos: GARAGE_PHOTOS,
+  },
+  {
     id: '1',
     name: 'TOPCODE Tuning & Service',
     level: 'trusted',
@@ -114,6 +134,9 @@ export const MOCK_GARAGES: Garage[] = [
     photos: GARAGE_PHOTOS,
   },
 ];
+
+/** The garage of the seeded direct booking (brake job) — looked up by id, not position. */
+export const SPEED_WORKS = MOCK_GARAGES.find((g) => g.id === '4')!;
 
 export const MOCK_MECHANICS: Mechanic[] = [
   {

@@ -429,6 +429,10 @@ export type WorkshopProgress = {
   warrantyClaim?: WarrantyClaim;
   /** Genuine unavailable: Recon asked for (and answered) by the owner. */
   recon?: ReconRequest[];
+  /** Done by a Premier garage: covered by the OnGarage Guarantee (capped). */
+  protected?: boolean;
+  /** The owner's OnGarage Guarantee claim, if any. */
+  guaranteeClaim?: GuaranteeClaim;
 };
 
 // ---------- Trust, levels and fair share ----------

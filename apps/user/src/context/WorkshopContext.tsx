@@ -1,6 +1,9 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import {
   approvedLines,
+  claimBlockers,
+  claimSplit,
+  eligibilityOf,
   DEFAULT_WARRANTY_MONTHS,
   INSPECTION_FEE,
   newWorkshopProgress,
@@ -17,13 +20,14 @@ import {
   type DimensionRating,
   type DisputeTopic,
   type GarageReview,
+  type GuaranteeClaim,
   type PartType,
   type ReconRequest,
   type ExtraWorkRequest,
   type WorkshopProgress,
 } from '@ongarage/shared';
 import { useNotice } from './NoticeContext';
-import { MOCK_GARAGES, SAMPLE_UPLOAD_PHOTOS } from '../constants/mockData';
+import { SPEED_WORKS, SAMPLE_UPLOAD_PHOTOS } from '../constants/mockData';
 
 const MIN = 60 * 1000;
 const HOUR = 60 * MIN;
@@ -75,7 +79,11 @@ export type OwnerWorkshop = {
   review?: GarageReview;
 };
 
-export type WorkshopStart = Omit<OwnerWorkshop, 'progress' | 'warrantyMonths' | 'acknowledged' | 'receiptNo' | 'review' | 'technician'> & { warrantyMonths?: number };
+export type WorkshopStart = Omit<OwnerWorkshop, 'progress' | 'warrantyMonths' | 'acknowledged' | 'receiptNo' | 'review' | 'technician'> & {
+  warrantyMonths?: number;
+  /** Booked with a Premier garage: covered by the OnGarage Guarantee. */
+  protectedJob?: boolean;
+};
 
 export type RatingInput = { dimensions: DimensionRating; technician?: number; text: string };
 
@@ -89,6 +97,8 @@ type WorkshopState = {
   decideExtra: (id: string, extraId: string, approvedLineIds: string[]) => void;
   /** Genuine unavailable: allow Recon (cheaper) or wait for Genuine. */
   decideRecon: (id: string, reconId: string, approve: boolean) => void;
+  /** OnGarage Guarantee claim on a protected job the garage couldn't put right. */
+  claimGuarantee: (id: string, reason: string, amount: number, photos?: string[]) => void;
   /** Rate a closed job: the garage on four dimensions, and the technician. */
   rateJob: (id: string, input: RatingInput) => void;
   /** Decline the diagnosis: the job ends and only the inspection fee is due. */
@@ -148,6 +158,7 @@ const pastJob = (o: {
   labour: number;
   parts: { name: string; type: PartType; price: number }[];
   review?: GarageReview;
+  protectedJob?: boolean;
 }): OwnerWorkshop => {
   const closedAt = Date.now() - o.daysAgo * DAY;
   const base = newWorkshopProgress();
@@ -155,7 +166,9 @@ const pastJob = (o: {
   const progress: WorkshopProgress = {
     ...base,
     stage: 'closed',
+    protected: o.protectedJob,
     receivedAt: closedAt - 5 * HOUR,
+    checkInPhotos: SAMPLE_UPLOAD_PHOTOS.slice(1),
     diagnosis: { findings: o.title, lines, revisedTotal: o.labour + lines.reduce((s, l) => s + l.price, 0), finishBy: closedAt, sentAt: closedAt - 4 * HOUR },
     decision: { approvedLineIds: lines.map((l) => l.id), declinedLineIds: [], decidedAt: closedAt - 4 * HOUR },
     closedAt,
@@ -165,6 +178,7 @@ const pastJob = (o: {
   progress.handover = {
     checklist: [...lines.map((l) => l.name), ...STANDARD_HANDOVER_CHECKS].map((label) => ({ label, done: true })),
     oldPartsKept: true,
+    afterPhotos: [SAMPLE_UPLOAD_PHOTOS[2]],
     bill,
     readyAt: closedAt - 30 * MIN,
   };
@@ -190,7 +204,7 @@ const pastJob = (o: {
 const HISTORY: OwnerWorkshop[] = [
   pastJob({
     id: 'h1', title: 'සම්පූර්ණ සින්තටික් ඔයිල් මාරුව', icon: '🛢️', garageName: 'AutoTech Motors', categoryId: '1', vehicleId: 'premio',
-    daysAgo: 24, warrantyMonths: 3, labour: 4650, parts: [{ name: 'Engine oil 4L', type: 'Genuine', price: 8200 }, { name: 'Oil filter', type: 'Genuine', price: 1650 }],
+    daysAgo: 24, warrantyMonths: 3, protectedJob: true, labour: 4650, parts: [{ name: 'Engine oil 4L', type: 'Genuine', price: 8200 }, { name: 'Oil filter', type: 'Genuine', price: 1650 }],
     review: {
       id: 'rv-h1', customer: 'Akila Drishan', rating: 4.6, dimensions: { quality: 5, pricing: 4, onTime: 5, communication: 4 }, technician: { name: 'චමින්ද සිල්වා', rating: 5 },
       text: 'ඉක්මනින් කළා, පරණ ෆිල්ටරය පෙන්නුවා.', at: Date.now() - 23 * DAY, reply: { text: 'ස්තූතියි! ඊළඟ සේවාව කි.මී. 5,000න්.', at: Date.now() - 22 * DAY },
@@ -207,7 +221,7 @@ export const SEED_WORKSHOP_ID = 'db-seed';
 const seedWorkshop = (): OwnerWorkshop => {
   const base: OwnerWorkshop = {
     id: SEED_WORKSHOP_ID,
-    garageName: MOCK_GARAGES[3].name,
+    garageName: SPEED_WORKS.name,
     categoryId: '7',
     vehicleId: 'premio',
     agreedPrice: 3800,
@@ -215,7 +229,7 @@ const seedWorkshop = (): OwnerWorkshop => {
     doorstep: false,
     warrantyMonths: DEFAULT_WARRANTY_MONTHS,
     progress: newWorkshopProgress(),
-    technician: technicianFor(MOCK_GARAGES[3].name),
+    technician: technicianFor(SPEED_WORKS.name),
   };
   return {
     ...base,
@@ -315,7 +329,8 @@ export const WorkshopProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const startWorkshop = useCallback(
     (start: WorkshopStart) => {
       if (live.current[start.id]) return;
-      const w: OwnerWorkshop = { ...start, warrantyMonths: start.warrantyMonths ?? DEFAULT_WARRANTY_MONTHS, progress: newWorkshopProgress() };
+      const { protectedJob, ...rest } = start;
+      const w: OwnerWorkshop = { ...rest, warrantyMonths: start.warrantyMonths ?? DEFAULT_WARRANTY_MONTHS, progress: { ...newWorkshopProgress(), protected: protectedJob } };
       setWorkshops((prev) => ({ ...prev, [w.id]: w }));
       // The garage receives the vehicle at the booked time.
       later(() => {
@@ -381,6 +396,31 @@ export const WorkshopProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       repairThenHandover(id);
     },
     [notify, patch, repairThenHandover]
+  );
+
+  const claimGuarantee = useCallback(
+    (id: string, reason: string, amount: number, photos?: string[]) => {
+      const w = live.current[id];
+      if (!w || claimBlockers(eligibilityOf(w.progress, Date.now())).length || w.progress.guaranteeClaim) return;
+      const claim: GuaranteeClaim = { id: `gc-${id}`, jobRef: w.receiptNo ?? id, reason, amount, photos, raisedAt: Date.now(), status: 'submitted' };
+      patch(id, { guaranteeClaim: claim });
+      notify({ icon: '🛡️', title: 'Guarantee ඉල්ලීම යැව්වා', body: `${w.garageName} ට පිළිතුරු දීමට අවස්ථාව ලැබේ; පසුව OnGarage කණ්ඩායම තීරණය කරයි.`, tone: 'primary' });
+      // Simulated: the garage responds first, then the OnGarage team decides (admin app).
+      later(() => {
+        const c = live.current[id]?.progress.guaranteeClaim;
+        if (c?.status !== 'submitted') return;
+        patch(id, { guaranteeClaim: { ...c, status: 'garageResponded', garageResponse: 'අපි පරීක්ෂා කළා — අපට එය නොමිලේ නිවැරදි කළ නොහැකි කොටසක ගැටලුවක්. OnGarage තීරණයට එකඟයි.' } });
+        notify({ icon: '💬', title: `${w.garageName} පිළිතුරු දුන්නා`, body: 'OnGarage කණ්ඩායම දැන් සලකා බලයි.', tone: 'primary' });
+        later(() => {
+          const c2 = live.current[id]?.progress.guaranteeClaim;
+          if (c2?.status !== 'garageResponded') return;
+          const split = claimSplit(amount);
+          patch(id, { guaranteeClaim: { ...c2, status: 'approved', split: { garagePays: split.garagePays, guaranteePays: split.guaranteePays } } });
+          notify({ icon: '✅', title: 'Guarantee ඉල්ලීම අනුමතයි', body: `OnGarage රු. ${split.guaranteePays.toLocaleString()} · ගරාජය රු. ${split.garagePays.toLocaleString()} ගෙවයි.`, tone: 'success' });
+        }, CLAIM_REPLY_MS);
+      }, CLAIM_REPLY_MS - 1000);
+    },
+    [later, notify, patch]
   );
 
   const rateJob = useCallback(
@@ -511,7 +551,7 @@ export const WorkshopProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   );
 
   return (
-    <WorkshopContext.Provider value={{ workshops, startWorkshop, approveDiagnosis, decideExtra, decideRecon, rateJob, declineDiagnosis, showCloseCode, acknowledgeClosed, reportProblem, escalate, claimWarranty }}>
+    <WorkshopContext.Provider value={{ workshops, startWorkshop, approveDiagnosis, decideExtra, decideRecon, claimGuarantee, rateJob, declineDiagnosis, showCloseCode, acknowledgeClosed, reportProblem, escalate, claimWarranty }}>
       {children}
     </WorkshopContext.Provider>
   );

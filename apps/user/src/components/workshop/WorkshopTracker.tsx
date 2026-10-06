@@ -24,6 +24,7 @@ import { WarrantySheet } from './WarrantySheet';
 import { ReconSheet } from './ReconSheet';
 import { RatingSheet } from './RatingSheet';
 import { ReceiptSheet } from './ReceiptSheet';
+import { GuaranteeSheet } from './GuaranteeSheet';
 
 /** The workshop steps as the owner reads them. */
 const OWNER_STAGE_TEXT: Record<WorkshopStage, string> = {
@@ -38,7 +39,7 @@ const OWNER_STAGE_TEXT: Record<WorkshopStage, string> = {
   disputed: 'ඔබ වාර්තා කළ ගැටලුව',
 };
 
-type SheetId = 'approve' | 'extra' | 'recon' | 'handover' | 'problem' | 'warranty' | 'rate' | 'receipt' | null;
+type SheetId = 'approve' | 'extra' | 'recon' | 'handover' | 'problem' | 'warranty' | 'rate' | 'receipt' | 'guarantee' | null;
 
 /**
  * Where a booked repair is, and what the owner does next: approve the diagnosis, collect
@@ -61,6 +62,8 @@ export const WorkshopTracker: React.FC<{ id: string; detailed?: boolean }> = ({ 
   const reconAsk = pendingRecon(p);
   const warrantyOver = p.stage === 'closed' && !!p.warrantyUntil && p.warrantyUntil <= Date.now();
   const review = w.review;
+  const gc = p.guaranteeClaim;
+  const GC_TEXT = { submitted: '⏳ ගරාජයේ පිළිතුර බලාපොරොත්තුවෙන්', garageResponded: '⚖️ OnGarage කණ්ඩායම සලකා බලමින්', approved: '✅ අනුමතයි', rejected: '✕ ප්‍රතික්ෂේප විය' } as const;
 
   const action = () => {
     switch (p.stage) {
@@ -115,10 +118,28 @@ export const WorkshopTracker: React.FC<{ id: string; detailed?: boolean }> = ({ 
                 )}
               </View>
             ) : null}
+            {gc && (
+              <View style={styles.reviewBox}>
+                <Text style={styles.sub}>
+                  🛡️ Guarantee ඉල්ලීම ({money(gc.amount)}): {GC_TEXT[gc.status]}
+                </Text>
+                {!!gc.garageResponse && <Text style={styles.sub}>↳ {w.garageName}: {gc.garageResponse}</Text>}
+                {gc.split && (
+                  <Text style={styles.sub}>
+                    OnGarage {money(gc.split.guaranteePays)} · ගරාජය {money(gc.split.garagePays)}
+                  </Text>
+                )}
+              </View>
+            )}
             <View style={styles.links}>
               <Pressable onPress={() => setSheet('receipt')} hitSlop={6} accessibilityLabel="Open receipt">
                 <Text style={styles.link}>🧾 රිසිට්පත</Text>
               </Pressable>
+              {p.protected && !gc && inWarranty && (
+                <Pressable onPress={() => setSheet('guarantee')} hitSlop={6} accessibilityLabel="Guarantee claim">
+                  <Text style={styles.link}>🛡️ Guarantee ඉල්ලීමක්</Text>
+                </Pressable>
+              )}
               {!review && (
                 <Pressable onPress={() => setSheet('rate')} hitSlop={6} accessibilityLabel="Rate this job">
                   <Text style={styles.link}>⭐ ශ්‍රේණිගත කරන්න</Text>
@@ -137,6 +158,11 @@ export const WorkshopTracker: React.FC<{ id: string; detailed?: boolean }> = ({ 
   return (
     <View style={styles.wrap}>
       {p.stage !== 'closed' && <StepProgress steps={WORKSHOP_STEP_LABELS} current={workshopStepIndex(p.stage)} alert={alert || p.stage === 'disputed'} />}
+      {p.protected && (
+        <View style={styles.protectedPill} accessibilityLabel="Protected job">
+          <Text style={styles.protectedText}>🛡️ ආරක්ෂිත රැකියාව · OnGarage Guarantee</Text>
+        </View>
+      )}
       <View style={styles.rowBetween}>
         <Text style={[styles.stage, alert && { color: Colors.warning }]}>{warrantyOver ? 'අවසන් — වගකීම කල් ඉකුත් විය' : OWNER_STAGE_TEXT[p.stage]}</Text>
         {p.stage === 'closed' && p.warrantyUntil && (
@@ -222,6 +248,7 @@ export const WorkshopTracker: React.FC<{ id: string; detailed?: boolean }> = ({ 
         }}
       />
       <ReceiptSheet workshop={sheet === 'receipt' ? w : null} onClose={close} />
+      <GuaranteeSheet workshop={sheet === 'guarantee' ? w : null} onClose={close} />
       <ProblemSheet workshop={sheet === 'problem' ? w : null} onClose={close} />
       <WarrantySheet workshop={sheet === 'warranty' ? w : null} onClose={close} />
     </View>
@@ -236,6 +263,8 @@ const styles = themedStyles(() =>
     warranty: { fontSize: 10.5, fontFamily: FONTS.bodySemiBold, color: Colors.successText },
     note: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.warning, lineHeight: 17 },
     links: { flexDirection: 'row', gap: 16, flexWrap: 'wrap' },
+    protectedPill: { alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, backgroundColor: 'rgba(245, 158, 11, 0.14)', borderWidth: 1, borderColor: 'rgba(245, 158, 11, 0.45)' },
+    protectedText: { fontSize: 10.5, fontFamily: FONTS.bodyBold, color: Colors.warning },
     reviewBox: { padding: 10, borderRadius: 12, backgroundColor: Colors.subtleFill, gap: 3 },
     replyLabel: { fontFamily: FONTS.bodySemiBold, color: Colors.primary },
     link: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: Colors.primary },

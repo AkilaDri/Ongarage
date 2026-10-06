@@ -1,6 +1,16 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import {
   breakdownInfo,
+  computeIntake,
+  dayStart,
+  FAIRNESS,
+  fairnessFlags,
+  firstDayWithRoom,
+  isRisingGarage,
+  planFor,
+  PLANS,
+  RISING_HEAD_START_MIN,
+  valueGuarantee,
   computeTrustScore,
   currentLevel,
   effectiveLevel,
@@ -15,6 +25,9 @@ import {
   warrantyEnd,
   workshopBill,
   type DiagnosisReport,
+  type IntakeStatus,
+  type SubscriptionPlan,
+  type SubscriptionPlanId,
   type Feature,
   type Level,
   type LevelStats,
@@ -34,11 +47,13 @@ import {
   GARAGE,
   RATING_HISTORY,
   TRUST_HISTORY,
+  FAIRNESS_SEED,
   REVIEWS,
   SOS_ARRIVAL_MS,
   SOS_POOL,
   TEAM,
 } from '../constants/mockData';
+import { formatDate } from '../utils/format';
 import type { Attendance, Booking, DirectRequest, Dispatch, DispatchStage, FeedJob, GarageProfile, JobDetails, MyBid, Notice, Review, SOSRequest, TeamMember } from '../types';
 
 const MIN = 60 * 1000;
@@ -218,6 +233,24 @@ type GarageState = {
   graceDaysLeft?: number;
   /** Is a level feature switched on for this garage? */
   has: (f: Feature) => boolean;
+
+  // Fair share and subscription (shared fairness rules)
+  /** Why monitoring flagged this garage (empty = not flagged). */
+  fairnessReasons: string[];
+  /** When the daily limit starts (after the notice period). */
+  limitFrom?: number;
+  /** New work (value) on a day: limit, used, room. */
+  intakeOn: (day: number) => IntakeStatus;
+  /** A newer high-score garage sees new bid jobs first; others wait until this time. */
+  headStartUntil: (job: FeedJob) => number | undefined;
+  subscription: { plan: SubscriptionPlan; since: number } | null;
+  /** The band the garage's app earnings put it in (the price it would pay). */
+  recommendedPlan: SubscriptionPlan;
+  subscribe: (plan: SubscriptionPlanId) => void;
+  cancelSubscription: () => void;
+  /** Won work this month and the value guarantee for the plan's fee. */
+  monthWon: number;
+  valueCheck: { target: number; met: boolean; credit: number } | null;
   notice: Notice | null;
 
   setOpen: (open: boolean) => void;
@@ -321,6 +354,8 @@ export const GarageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   // Latest values for timers, intervals and guards.
   const live = useRef({ profile, isOpen, feed, directs, bids, dispatches, openId, team, attendance, crew, requests });
   live.current = { profile, isOpen, feed, directs, bids, dispatches, openId, team, attendance, crew, requests };
+  // Any day's room for new work (set below, once bookings and the plan are known).
+  const intakeRef = useRef<(day: number) => IntakeStatus>(() => ({ limited: false, limit: Infinity, used: 0, remaining: Infinity, reached: false }));
 
   const findDispatch = (id: string | null) => (id ? live.current.dispatches.find((d) => d.id === id) : undefined);
   const patch = useCallback((id: string, change: Partial<Dispatch> | ((d: Dispatch) => Partial<Dispatch>)) => {
@@ -732,6 +767,11 @@ export const GarageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const placeBid = useCallback(
     (job: FeedJob, input: Pick<MyBid, 'price' | 'warrantyMonths' | 'estHours' | 'note'>) => {
       const jobId = job.id;
+      // A won bid is booked tomorrow: it has to fit tomorrow's room (limited garages only).
+      if (intakeRef.current(dayStart(Date.now()) + 24 * HOUR).remaining < input.price) {
+        notify({ icon: '⚖️', title: 'හෙට දෛනික සීමාව පිරී ඇත', body: 'ඉඩ ඇති වූ විට නැවත ලංසු තබන්න — හෝ දායකත්වය බලන්න.', tone: 'danger' });
+        return;
+      }
       const existing = live.current.bids.find((b) => b.jobId === jobId && b.status === 'pending');
       const bid: MyBid = { ...input, id: existing?.id ?? `bid-${Date.now()}`, jobId, job, submittedAt: Date.now(), status: 'pending' };
       setBids((prev) => [bid, ...prev.filter((b) => b.id !== bid.id)]);
@@ -765,6 +805,10 @@ export const GarageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const d = live.current.directs.find((x) => x.id === id);
       if (!d || d.status !== 'new') return;
       const cat = categoryInfo(d.categoryId);
+      // Over the day's limit: never refused — offered the first day with room, same time.
+      const day = firstDayWithRoom(reply.at, reply.estimate, (t) => intakeRef.current(t).remaining);
+      const moved = day !== dayStart(reply.at);
+      if (moved) reply = { ...reply, at: day + (reply.at - dayStart(reply.at)), note: reply.note || 'එදින ඉඩ නැති නිසා ඊළඟ නිදහස් දිනය යෝජනා කරමු.' };
       if (reply.at === d.preferredAt) {
         // The owner already chose this garage and this slot: accepting books it.
         setDirects((prev) => prev.filter((x) => x.id !== id));
@@ -780,7 +824,11 @@ export const GarageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         return;
       }
       setDirects((prev) => prev.map((x) => (x.id === id ? { ...x, status: 'proposed', proposal: reply } : x)));
-      notify({ icon: '📨', title: 'වෙනත් වේලාවක් යෝජනා කළා', body: `${d.customer.name} ගේ පිළිතුර බලාපොරොත්තුවෙන්.`, tone: 'primary' });
+      notify(
+        moved
+          ? { icon: '⚖️', title: 'එම දිනයේ දෛනික සීමාව පිරී ඇත', body: `ප්‍රතික්ෂේප නොකර ඉඩ ඇති ඊළඟ දිනය (${formatDate(reply.at)}) ${d.customer.name} ට යෝජනා කළා.`, tone: 'primary' }
+          : { icon: '📨', title: 'වෙනත් වේලාවක් යෝජනා කළා', body: `${d.customer.name} ගේ පිළිතුර බලාපොරොත්තුවෙන්.`, tone: 'primary' }
+      );
       later(() => {
         const current = live.current.directs.find((x) => x.id === id);
         if (!current || current.status !== 'proposed') return;
@@ -977,6 +1025,8 @@ export const GarageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       onTimeJobs: TRUST_HISTORY.onTimeJobs + closed.filter((b) => !b.progress?.dispute).length,
     });
   }, [reviews, bookings]);
+  // The garage's subscription (a plan is a requirement for a Premier invitation).
+  const [subscription, setSubscription] = useState<{ plan: SubscriptionPlan; since: number } | null>(null);
   const levelStats: LevelStats = useMemo(
     () => ({
       documents: TRUST_HISTORY.documents,
@@ -984,9 +1034,9 @@ export const GarageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       score: trust.score,
       disputeRate: trust.disputeRate,
       monthsOnApp: TRUST_HISTORY.monthsOnApp,
-      subscribed: TRUST_HISTORY.subscribed,
+      subscribed: TRUST_HISTORY.subscribed || !!subscription,
     }),
-    [trust, bookings]
+    [trust, bookings, subscription]
   );
   const earnedLevel = useMemo(() => currentLevel(levelStats), [levelStats]);
   // When the numbers drop below the held level, a grace period starts (and ends if they recover).
@@ -1004,6 +1054,49 @@ export const GarageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const level = LEVELS.find((l) => l.id === levelId)!;
   const features = useMemo(() => entitlementsFor(level.id), [level.id]);
   const has = useCallback((f: Feature) => features.has(f), [features]);
+
+  // ---------- Fair share and subscription ----------
+  const fairnessReasons = useMemo(() => fairnessFlags(FAIRNESS_SEED.stats, (id) => categoryInfo(id).name), []);
+  const limitFrom = fairnessReasons.length ? FAIRNESS_SEED.flaggedAt + FAIRNESS.graceDays * 24 * HOUR : undefined;
+  const recommendedPlan = planFor(FAIRNESS_SEED.stats.avgMonthlyEarnings);
+  const intakeOn = useCallback(
+    (day: number) =>
+      computeIntake({
+        limited: limitFrom !== undefined && Date.now() >= limitFrom,
+        // Capacity: today's register; later days assume the whole team.
+        mechanicsPresent: dayStart(day) === dayStart(Date.now()) && crew.confirmed ? crew.presentIds.length : team.length,
+        // New work on that day (SOS is never limited: it's an emergency).
+        todaysJobValues: bookings.filter((b) => b.source !== 'sos' && dayStart(b.scheduledAt) === dayStart(day)).map((b) => b.price),
+        planMultiplier: subscription?.plan.intakeMultiplier,
+      }),
+    [limitFrom, crew, team, bookings, subscription]
+  );
+  intakeRef.current = intakeOn;
+  const subscribe = useCallback(
+    (id: SubscriptionPlanId) => {
+      const plan = PLANS.find((p) => p.id === id)!;
+      setSubscription({ plan, since: Date.now() });
+      notify({ icon: '⭐', title: `${plan.name} දායකත්වය ආරම්භ විය`, body: `මසකට රු. ${plan.fee.toLocaleString()} · ඔබ දිනූ වැඩ ගාස්තුව මෙන් 5 ගුණයකට අඩු නම් වෙනස ආපසු ලැබේ.`, tone: 'success' });
+    },
+    [notify]
+  );
+  const cancelSubscription = useCallback(() => {
+    setSubscription(null);
+    notify({ icon: '↩️', title: 'දායකත්වය අවලංගු කළා', body: 'මාසය අවසානය දක්වා ප්‍රතිලාභ ලැබේ.', tone: 'primary' });
+  }, [notify]);
+  const monthWon = useMemo(() => {
+    const m = new Date();
+    return FAIRNESS_SEED.monthWonBefore + bookings.filter((b) => b.source !== 'sos' && new Date(b.scheduledAt).getMonth() === m.getMonth()).reduce((s, b) => s + b.price, 0);
+  }, [bookings]);
+  const valueCheck = subscription ? valueGuarantee(subscription.plan.fee, monthWon) : null;
+  const rising = isRisingGarage({ monthsOnApp: TRUST_HISTORY.monthsOnApp, score: trust.score, closedJobs: levelStats.closedJobs });
+  const headStartUntil = useCallback(
+    (job: FeedJob) => {
+      const until = job.postedAt + RISING_HEAD_START_MIN * MIN;
+      return rising || until <= Date.now() ? undefined : until;
+    },
+    [rising]
+  );
 
   const value: GarageState = {
     profile,
@@ -1026,6 +1119,16 @@ export const GarageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     earnedLevel,
     graceDaysLeft,
     has,
+    fairnessReasons,
+    limitFrom,
+    intakeOn,
+    headStartUntil,
+    subscription,
+    recommendedPlan,
+    subscribe,
+    cancelSubscription,
+    monthWon,
+    valueCheck,
     notice,
     notify,
     addPartsCost,

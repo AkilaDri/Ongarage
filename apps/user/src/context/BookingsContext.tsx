@@ -2,7 +2,7 @@ import React, { createContext, useCallback, useContext, useEffect, useRef, useSt
 import { categoryInfo, marketPrice } from '@ongarage/shared';
 import { useNotice } from './NoticeContext';
 import { SEED_WORKSHOP_ID, useWorkshops } from './WorkshopContext';
-import { MOCK_GARAGES } from '../constants/mockData';
+import { SPEED_WORKS } from '../constants/mockData';
 import type { DirectBooking, DirectBookingInput } from '../types';
 
 const MIN = 60 * 1000;
@@ -30,7 +30,7 @@ const seedBookings = (): DirectBooking[] => {
   return [
     {
       id: SEED_WORKSHOP_ID,
-      garage: MOCK_GARAGES[3],
+      garage: SPEED_WORKS,
       categoryId: '7',
       service: 'Brake Pads',
       vehicleId: 'premio',
@@ -80,7 +80,7 @@ export const BookingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           const hour = new Date(b.preferredAt).getHours();
           if (hour >= OPEN_HOUR && hour < CLOSE_HOUR) {
             patch(b.id, { status: 'confirmed', scheduledAt: b.preferredAt, estimate, garageNote: b.doorstep ? undefined : 'පැමිණීමට පෙර අමතන්න.' });
-            startWorkshop({ id: b.id, garageName: b.garage.name, categoryId: b.categoryId, agreedPrice: estimate, scheduledAt: b.preferredAt, doorstep: b.doorstep, vehicleId: b.vehicleId });
+            startWorkshop({ id: b.id, garageName: b.garage.name, categoryId: b.categoryId, agreedPrice: estimate, scheduledAt: b.preferredAt, doorstep: b.doorstep, vehicleId: b.vehicleId, protectedJob: b.garage.level === 'premier' });
             notify({
               icon: '✅',
               title: `${b.garage.name} වෙන්කිරීම තහවුරු කළා`,
@@ -104,7 +104,7 @@ export const BookingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const b = live.current.find((x) => x.id === id);
       if (!b?.proposal) return;
       patch(id, { status: 'confirmed', scheduledAt: b.proposal.at, estimate: b.proposal.estimate });
-      startWorkshop({ id, garageName: b.garage.name, categoryId: b.categoryId, agreedPrice: b.proposal.estimate, scheduledAt: b.proposal.at, doorstep: b.doorstep, vehicleId: b.vehicleId });
+      startWorkshop({ id, garageName: b.garage.name, categoryId: b.categoryId, agreedPrice: b.proposal.estimate, scheduledAt: b.proposal.at, doorstep: b.doorstep, vehicleId: b.vehicleId, protectedJob: b.garage.level === 'premier' });
       notify({ icon: '✅', title: 'වෙන්කිරීම තහවුරුයි', body: `${b.garage.name} · ${categoryInfo(b.categoryId).name}`, tone: 'success' });
     },
     [notify, patch, startWorkshop]

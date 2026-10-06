@@ -141,7 +141,7 @@ export const BidsProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const job = live.current.find((j) => j.id === jobId);
       const bid = job?.bids.find((b) => b.id === bidId);
       // The winning garage takes the vehicle in and follows the workshop steps.
-      if (job && bid) startWorkshop({ id: jobId, garageName: bid.garageName, categoryId: job.categoryId, agreedPrice: bid.price, scheduledAt: Date.now(), doorstep: job.doorstep, warrantyMonths: bid.warrantyMonths, vehicleId: job.vehicleId, partType: job.sparePart });
+      if (job && bid) startWorkshop({ id: jobId, garageName: bid.garageName, categoryId: job.categoryId, agreedPrice: bid.price, scheduledAt: Date.now(), doorstep: job.doorstep, warrantyMonths: bid.warrantyMonths, vehicleId: job.vehicleId, partType: job.sparePart, protectedJob: bid.level === 'premier' });
     },
     [startWorkshop]
   );

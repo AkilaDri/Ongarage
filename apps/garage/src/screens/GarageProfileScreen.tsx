@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Colors, FONTS, GlassIcon, glassStyle, LevelBadge, levelProgress, nextLevel, SERVICE_CATEGORIES, ThemeToggle, themedStyles, useTheme } from '@ongarage/shared';
+import { Colors, dayStart, FONTS, GlassIcon, glassStyle, LevelBadge, levelProgress, nextLevel, SERVICE_CATEGORIES, ThemeToggle, themedStyles, useTheme } from '@ongarage/shared';
 import { useGarage } from '../context/GarageContext';
 import { VANS } from '../constants/mockData';
 import { ago } from '../utils/format';
@@ -10,6 +10,7 @@ import { ReviewsSheet } from '../components/ReviewsSheet';
 import { TeamManageSheet } from '../components/TeamManageSheet';
 import { PublicProfileSheet } from '../components/PublicProfileSheet';
 import { LevelSheet } from '../components/LevelSheet';
+import { FairShareSheet } from '../components/FairShareSheet';
 
 /*
  * Ordered by how often a garage owner needs it on a working day:
@@ -24,10 +25,12 @@ const RADIUS_PRESETS = [3, 5, 8, 10, 15];
 const RADIUS_MIN = 1;
 const RADIUS_MAX = 15;
 
-type SheetId = 'attendance' | 'services' | 'reviews' | 'team' | 'profile' | 'level' | null;
+type SheetId = 'attendance' | 'services' | 'reviews' | 'team' | 'profile' | 'level' | 'fair' | null;
 
 export const GarageProfileScreen: React.FC = () => {
-  const { profile, rating, reviews, team, crew, setCoverage, setOnBreak, trust, level, levelStats, graceDaysLeft } = useGarage();
+  const { profile, rating, reviews, team, crew, setCoverage, setOnBreak, trust, level, levelStats, graceDaysLeft, limitFrom, intakeOn, subscription, recommendedPlan } = useGarage();
+  const limited = limitFrom !== undefined && Date.now() >= limitFrom;
+  const tomorrow = intakeOn(dayStart(Date.now()) + 24 * 60 * 60 * 1000);
   const next = nextLevel(level.id);
   const nextItems = next ? levelProgress(next, levelStats) : [];
   const nextMet = nextItems.filter((x) => x.met).length;
@@ -209,6 +212,21 @@ export const GarageProfileScreen: React.FC = () => {
         <Text style={styles.link}>ලකුණු සහ මට්ටම් පඩිපෙළ ›</Text>
       </Pressable>
 
+      <Pressable style={({ pressed }) => [styles.card, limited && tomorrow.remaining <= 0 && styles.cardWarn, pressed && styles.pressed]} onPress={() => setSheet('fair')} accessibilityLabel="Open fair share and plan">
+        <View style={styles.rowBetween}>
+          <Text style={styles.cardTitle}>⚖️ සාධාරණ බෙදාහැරීම සහ දායකත්වය</Text>
+          <Text style={styles.chevron}>›</Text>
+        </View>
+        <Text style={styles.sub}>
+          {limited
+            ? `දෛනික සීමාව ක්‍රියාත්මකයි · හෙට ඉඩ ${tomorrow.remaining === Infinity ? '∞' : `රු. ${tomorrow.remaining.toLocaleString()}`}`
+            : limitFrom
+              ? 'සීමාව පිළිබඳ දැනුම්දීමක් ඇත'
+              : 'ඔබ සීමා කර නැත'}{' '}
+          · {subscription ? `⭐ ${subscription.plan.name}` : `ඔබට ගැළපෙන සැලැස්ම: ${recommendedPlan.name}`}
+        </Text>
+      </Pressable>
+
       {/* ---------- Settings ---------- */}
       <Text style={styles.sectionLabel}>සැකසුම්</Text>
       <View style={styles.list}>
@@ -233,6 +251,7 @@ export const GarageProfileScreen: React.FC = () => {
       <TeamManageSheet visible={sheet === 'team'} onClose={close} />
       <PublicProfileSheet visible={sheet === 'profile'} onClose={close} />
       <LevelSheet visible={sheet === 'level'} onClose={close} />
+      <FairShareSheet visible={sheet === 'fair'} onClose={close} />
     </ScrollView>
   );
 };
