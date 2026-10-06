@@ -15,6 +15,11 @@
     "parts:web": "npm run web --workspace @ongarage/parts",
     "tech": "npm run start --workspace @ongarage/tech",
     "tech:web": "npm run web --workspace @ongarage/tech",
-    "typecheck": "npm run typecheck --workspaces --if-present"
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspace @ongarage/shared",
+    "e2e": "node e2e/run.cjs"
+  },
+  "devDependencies": {
+    "puppeteer-core": "^23.11.1"
   }
 }

@@ -37,3 +37,9 @@ Google Map Full API Key.txt
 
 # typescript
 *.tsbuildinfo
+
+# Shared unit tests (compiled by packages/shared/test/run.cjs)
+.test-build/
+
+# Browser test screenshots
+e2e/shots/

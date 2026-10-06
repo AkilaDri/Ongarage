@@ -18,9 +18,14 @@ apps/
   parts/           Spare-parts shop app
   tech/            Field technician app
 packages/
-  shared/          @ongarage/shared: types, theme engine, glass UI kit,
-                   line icons, sheets, toasts, Google Maps helpers,
-                   service categories, formatting
+  shared/          @ongarage/shared: types (the backend contract), theme
+                   engine, glass UI kit, sheets, toasts, workshop sheets,
+                   Google Maps helpers, service categories, formatting,
+                   marketplace rules (trust, levels, fair share, plans,
+                   guarantee, workshop maths, part prices), the AI
+                   decisions layer, and their unit tests (test/)
+e2e/               Browser tests for all four apps (specs/), run against
+                   the dev servers
 ```
 
 This is an npm workspaces monorepo: one `node_modules` and one `package-lock.json` at the root. Code goes into `packages/shared` only when more than one app needs it.
@@ -114,10 +119,19 @@ Run these from the repository root:
 | `npm run tech` | Technician app dev server | 8094 |
 | `npm run tech:web` | Technician app in the browser | 8094 |
 | `npm run typecheck` | TypeScript checks for all workspaces | — |
+| `npm test` | Unit tests for the shared rules and AI layer | — |
+| `npm run e2e` | Browser tests (the four dev servers must be running) | — |
 
 Each app has its own fixed port (set in its `package.json` scripts), so all four can run at once — start each in its own terminal and open http://localhost:8091 (owner), 8092 (garage), 8093 (parts shop) and 8094 (technician) in the browser. Add `-- --clear` to clear Metro's cache, e.g. `npm run garage -- --clear`.
 
 Add a dependency to one app with `npm install <package> -w @ongarage/user`. Keep shared dependency versions identical across the apps so React and React Native are installed once.
+
+## Testing
+
+- **`npm test`** runs the unit tests in `packages/shared/test` with Node's built-in test runner: the AI decisions layer (Sinhala, Singlish and English inputs from the mock data), trust score and levels, fair share, plans and the guarantee, and the workshop maths (bill, parts timing, extra work, Recon, warranty dates, part prices, codes). It compiles the pure-logic modules with TypeScript first, so no app has to run.
+- **`npm run e2e`** drives the four apps' web builds in a headless Chrome or Edge (`puppeteer-core`, no browser download; set `ONGARAGE_BROWSER` to the browser's path if it isn't found). Start the four dev servers first. Each spec in `e2e/specs` opens a fresh page, so it starts from the seeded data, and fails on any page error or native alert. Run one spec with `npm run e2e -- garage` (file names containing "garage"). Screenshots go to `e2e/shots/` (git-ignored).
+
+The specs cover: garage workshop jobs with parts, Recon, counter pickup and the owner's code; the garage trust score, levels and grace period; fair share and the subscription; the owner's workshop job, extra work, problem and rework, rating and Recon; the owner's cards, history, receipts, ratings and the OnGarage Guarantee; the parts shop's counter pickup; and the technician's pickup task, workshop job and level.
 
 ## Project status
 
@@ -125,9 +139,12 @@ Add a dependency to one app with `npm install <package> -w @ongarage/user`. Keep
 - **Garage app** works end to end on mock data. It simulates the owner side: SOS requests and posted jobs arrive over time, customers accept quotes and confirm repairs, and bids are decided by price. Parts shops are simulated too.
 - **Parts shop app** works end to end on mock data. It simulates the garages: requests arrive, quotes are decided by total price and delivery time, deliveries are checked in and paid, and one garage reports a wrong part.
 - **Technician app** works end to end on mock data. It simulates the garages (SOS offers, manager approvals) and owners (confirmation, ratings). In the garage app, a technician with the app makes the SOS dispatch a live view, simulated there too.
+- **Workshop jobs** (receive → diagnosis → owner approval → repair → handover → close with the owner's code → warranty), parts at the right time with counter pickup, ratings, levels, fair share, subscriptions and the OnGarage Guarantee all run on the shared rules in `packages/shared/src/marketplace`. Each app simulates the others' replies; decisions that will belong to OnGarage staff (fairness flags, Guarantee claims, escalated disputes) are simulated until the admin app exists. The Guarantee pays no real money until its legal check.
 
 ## Roadmap
 
-1. Backend with live updates (e.g. Supabase or Firebase): accounts, jobs, bids, SOS dispatch, live mechanic location.
-2. Connect the apps to the backend so an owner's SOS or job reaches real garages, a garage's quote or bid reaches the owner, and a garage's parts request reaches real shops.
-3. Notifications, payments, ratings and reviews.
+1. Admin app for OnGarage staff: fairness flags, escalated disputes, Guarantee claims, levels and Premier invitations, ads and feature controls.
+2. Backend with live updates: accounts, jobs, bids, SOS dispatch, workshop records, live locations — so each app's simulated counterpart becomes the real one.
+3. A Claude-backed provider for the AI decisions layer (`setAiProvider`), with the same tests as the rules provider.
+4. Laya integration.
+5. Notifications and payments.

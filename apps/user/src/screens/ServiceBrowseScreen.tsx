@@ -406,6 +406,6 @@ const styles = themedStyles(() => StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
-  countLabel: { fontSize: 10, color: '#10b981', fontWeight: '700' },
+  countLabel: { fontSize: 10, color: Colors.successText, fontWeight: '700' },
   garageList: { gap: 12, paddingBottom: 8 },
 }));

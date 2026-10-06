@@ -50,9 +50,17 @@ npm run garage         # garage app dev server,     port 8092 (npm run garage:we
 npm run parts          # parts shop app dev server, port 8093 (npm run parts:web)
 npm run tech           # technician app dev server, port 8094 (npm run tech:web)
 npm run typecheck      # tsc --noEmit in every workspace
+npm test               # unit tests for the shared rules + AI layer (packages/shared/test, node:test)
+npm run e2e            # browser tests (e2e/specs) against the four running dev servers
+npm run e2e -- owner   # only specs whose file name contains "owner"
 ```
 
 Each app's port is fixed in its `package.json` scripts (owner 8091, garage 8092, parts 8093, technician 8094), so all four run at once with no extra flags; keep those ports unique when adding an app. Add a dependency to one app with `npm install <pkg> -w @ongarage/user` (keep versions identical across apps so React/React Native are hoisted once). Clear Metro's cache with `-- --clear` after moving files between packages.
+
+## Tests
+
+- **Unit tests** (`packages/shared/test/*.test.cjs`): `run.cjs` compiles the pure-logic modules (`types`, `utils`, `constants`, `ai`, `marketplace` — nothing that imports React Native) to `.test-build/` and runs them with `node --test`. Changing a marketplace rule or the AI vocabulary means updating these tests; a future Claude/Laya provider must pass `ai.test.cjs`.
+- **Browser tests** (`e2e/specs/*.cjs`, `e2e/lib.cjs`): each spec is a flow in one app's web build, from the seed data. They click by `accessibilityLabel` (English, e.g. `"Order approved parts"`) or by visible Sinhala text, so keep labels stable and give new pressables a label. Timings follow the simulations' delays; if a simulated delay changes, adjust the spec's waits. Installing packages can stop a running Metro server — restart it before `npm run e2e`.
 
 ## Rules that span the repo
 
