@@ -163,9 +163,19 @@ export type PartQuote = {
   at: number;
   /** The shop could not supply it after all. */
   withdrawn?: boolean;
+  /**
+   * Collecting from the counter instead of delivery (most garages do): ready this many
+   * minutes after confirming, total without the delivery fee.
+   */
+  pickup?: { readyInMin: number; total: number };
 };
 
-export type PartsOrderStatus = 'confirming' | 'dispatched' | 'arrived' | 'received' | 'unavailable' | 'problem';
+/**
+ * Delivery: confirming → dispatched → arrived → received.
+ * Pickup:   confirming → ready (held at the counter until holdUntil) → received
+ * (the shop scans the garage's collection code).
+ */
+export type PartsOrderStatus = 'confirming' | 'dispatched' | 'arrived' | 'ready' | 'received' | 'unavailable' | 'problem';
 
 export type PartsOrder = {
   id: string;
@@ -180,6 +190,11 @@ export type PartsOrder = {
   /** Why the garage sent it back (wrong or damaged part). */
   problem?: string;
   rating?: number;
+  fulfilment?: 'delivery' | 'pickup';
+  /** Pickup: shown at the counter as a QR / code so the right garage collects. */
+  pickupCode?: string;
+  /** Pickup: the shop holds the parts until then. */
+  holdUntil?: number;
 };
 
 /** A short in-app message (toast) about something the user did not trigger themselves. */
@@ -245,4 +260,157 @@ export type TechAssignment = {
     parts: TechPartsStatus;
     partsSummary?: string;
   };
+};
+
+// ---------- Workshop jobs (garage ⇄ owner ⇄ technician) ----------
+// A booked repair (from a bid or a direct booking) runs as: booked → vehicle received →
+// diagnosing → owner approves the diagnosis → repairing (maybe waiting for parts) →
+// ready for handover → closed with the owner's QR / 6-digit code. Parts are ordered
+// only after the owner approves (or when the owner's own post named the part), and any
+// extra cost needs another approval. A problem at handover sends the job back for
+// rework; an unresolved one goes to OnGarage.
+
+export type WorkshopStage =
+  | 'booked'
+  | 'received'
+  | 'diagnosing'
+  | 'awaitingApproval'
+  | 'repairing'
+  | 'readyForHandover'
+  | 'closed'
+  /** The owner declined the diagnosis; only what was already agreed is charged. */
+  | 'declined'
+  | 'disputed';
+
+/** One line of a diagnosis or extra-work request. */
+export type DiagnosisLine = {
+  id: string;
+  kind: 'part' | 'labour';
+  name: string;
+  qty: number;
+  /** Parts: the type, which must respect the owner's choice (Recon instead of Genuine needs approval). */
+  partType?: PartType;
+  /** Parts: already in the garage, or to be ordered from a shop. */
+  source?: 'stock' | 'order';
+  /** Estimated price for the whole line (LKR). */
+  price: number;
+};
+
+export type DiagnosisReport = {
+  findings: string;
+  photos?: string[];
+  voiceNotes?: VoiceNote[];
+  lines: DiagnosisLine[];
+  /** Agreed price (bid / estimate) plus every line: what the owner would pay in total. */
+  revisedTotal: number;
+  finishBy: number;
+  sentAt: number;
+};
+
+/** The owner's answer: approve all, some lines, or decline. */
+export type OwnerDecision = { approvedLineIds: string[]; declinedLineIds: string[]; decidedAt: number };
+
+/** Work found mid-repair; same approval rule as the diagnosis. */
+export type ExtraWorkRequest = { id: string; reason: string; lines: DiagnosisLine[]; sentAt: number; decision?: OwnerDecision };
+
+export type HandoverReport = {
+  checklist: { label: string; done: boolean }[];
+  beforePhotos?: string[];
+  afterPhotos?: string[];
+  /** Replaced parts kept for the owner to see (a simple anti-fraud habit). */
+  oldPartsKept: boolean;
+  bill: { labour: number; parts: number; total: number };
+  readyAt: number;
+};
+
+export type DisputeTopic = 'quality' | 'price' | 'delay' | 'behaviour' | 'damage' | 'wrongPart' | 'other';
+
+export type Dispute = {
+  id: string;
+  topic: DisputeTopic;
+  text: string;
+  photos?: string[];
+  raisedAt: number;
+  /** open → rework (garage fixes it) → resolved; escalated goes to OnGarage (admin app). */
+  status: 'open' | 'rework' | 'resolved' | 'escalated';
+};
+
+export type WarrantyClaim = { id: string; text: string; photos?: string[]; raisedAt: number; status: 'open' | 'accepted' | 'rejected' | 'escalated' };
+
+/** Everything that happened on one workshop job; the garage, owner and technician apps all read it. */
+export type WorkshopProgress = {
+  stage: WorkshopStage;
+  checkInPhotos?: string[];
+  receivedAt?: number;
+  diagnosis?: DiagnosisReport;
+  decision?: OwnerDecision;
+  extras?: ExtraWorkRequest[];
+  /** Waiting for ordered parts (the garage's parts request). */
+  waitingForParts?: boolean;
+  handover?: HandoverReport;
+  dispute?: Dispute;
+  /** Owner's QR / 6-digit code that closes the job. */
+  closeCode: string;
+  closedAt?: number;
+  /** Warranty from the bid, counted from closing. */
+  warrantyUntil?: number;
+  warrantyClaim?: WarrantyClaim;
+};
+
+// ---------- Trust, levels and fair share ----------
+
+/** Owners rate these separately, only on jobs closed with their QR / code. */
+export type RatingDimension = 'quality' | 'pricing' | 'onTime' | 'communication';
+
+export type DimensionRating = Record<RatingDimension, number>;
+
+export type TrustScore = {
+  /** 1–5, one decimal: what levels and placement use. */
+  score: number;
+  /** Per dimension, after the small-sample adjustment. */
+  dimensions: DimensionRating;
+  reviewCount: number;
+  completionRate: number;
+  disputeRate: number;
+  onTimeRate: number;
+};
+
+export type LevelId = 'registered' | 'verified' | 'trusted' | 'premier';
+
+/** Features a level switches on (the server will send these per garage). */
+export type Feature =
+  | 'sos'
+  | 'bids'
+  | 'directBookings'
+  | 'verifiedBadge'
+  | 'priorityPlacement'
+  | 'highValueJobs'
+  | 'protectedJobs'
+  | 'adCredits'
+  | 'analytics';
+
+/** Today's new-work intake for a garage under fair-share limits (bids + direct bookings only). */
+export type IntakeStatus = {
+  /** Only garages flagged by fairness monitoring are limited. */
+  limited: boolean;
+  /** LKR of new work per day (Infinity when not limited). */
+  limit: number;
+  used: number;
+  remaining: number;
+  reached: boolean;
+};
+
+export type SubscriptionPlanId = 'growth' | 'pro' | 'premier';
+
+export type GuaranteeClaim = {
+  id: string;
+  jobRef: string;
+  reason: string;
+  amount: number;
+  photos?: string[];
+  raisedAt: number;
+  status: 'submitted' | 'garageResponded' | 'approved' | 'rejected';
+  garageResponse?: string;
+  /** The garage's share (deductible) and the guarantee's share if approved. */
+  split?: { garagePays: number; guaranteePays: number };
 };

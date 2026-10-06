@@ -17,13 +17,26 @@ export * from './maps/GoogleMap';
 
 export * from './utils/format';
 
+// Business rules every app agrees on (trust, levels, fair share, guarantee, closing codes).
+export * from './marketplace/trust';
+export * from './marketplace/levels';
+export * from './marketplace/fairness';
+export * from './marketplace/guarantee';
+export * from './marketplace/closeCode';
+
+// AI decisions layer (rules today; Claude / Laya through the back end later).
+export * from './ai';
+
 export * from './ui/BottomNav';
+export * from './ui/CloseCode';
 export * from './ui/GarageCard';
 export * from './ui/Glass';
 export * from './ui/Icons';
 export * from './ui/NoticeToast';
+export * from './ui/PhotoStrip';
 export * from './ui/Sheet';
 export * from './ui/Slider';
+export * from './ui/StepProgress';
 export * from './ui/SwipeCard';
 export * from './ui/ThemeToggle';
 export * from './ui/Visuals';
