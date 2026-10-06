@@ -1,14 +1,37 @@
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { Colors, FONTS, LevelBadge, LEVELS, RATING_DIMENSIONS, themedStyles, type Garage } from '@ongarage/shared';
-import { ago } from '../utils/format';
+import { ActionButton, Colors, FONTS, LevelBadge, LEVELS, RATING_DIMENSIONS, themedStyles, type Bid, type Garage } from '@ongarage/shared';
+import { MOCK_GARAGES } from '../constants/mockData';
+import { ago, money } from '../utils/format';
 import { Sheet } from './Sheet';
+
+/** The garage behind a bid: its full profile when known, else what the bid carries. */
+export const garageForBid = (b: Bid): Garage =>
+  MOCK_GARAGES.find((g) => g.name === b.garageName) ?? {
+    id: b.id,
+    name: b.garageName,
+    specialization: '',
+    rating: b.rating,
+    reviews: b.reviews,
+    distance: b.distanceKm,
+    status: 'open',
+    phone: '',
+    address: '',
+    coords: b.coords,
+    level: b.level,
+  };
 
 /**
  * A garage as owners judge it: its level, the four rating dimensions, and reviews with
  * the garage's public replies. Every review comes from a job closed with an owner's code.
  */
-export const GarageReviewsSheet: React.FC<{ garage: Garage | null; onClose: () => void }> = ({ garage, onClose }) => {
+export const GarageReviewsSheet: React.FC<{
+  garage: Garage | null;
+  onClose: () => void;
+  /** Opened from a bid: its offer on top, and accepting it. */
+  bid?: Bid;
+  onAccept?: () => void;
+}> = ({ garage, onClose, bid, onAccept }) => {
   const [shown, setShown] = useState(garage);
   useEffect(() => {
     if (garage) setShown(garage);
@@ -19,7 +42,24 @@ export const GarageReviewsSheet: React.FC<{ garage: Garage | null; onClose: () =
   const level = g.level ? LEVELS.find((l) => l.id === g.level) : undefined;
 
   return (
-    <Sheet visible={!!garage} title={g.name} subtitle={`★ ${g.rating.toFixed(1)} · සමාලෝචන ${g.reviews}`} onClose={onClose}>
+    <Sheet
+      visible={!!garage}
+      title={g.name}
+      subtitle={`★ ${g.rating.toFixed(1)} · සමාලෝචන ${g.reviews}`}
+      onClose={onClose}
+      footer={bid && onAccept ? <ActionButton label={`ලංසුව පිළිගන්න · ${money(bid.price)}`} icon="✓" variant="success" onPress={onAccept} /> : undefined}
+    >
+      {bid && (
+        <View style={[styles.box, styles.bidBox]} accessibilityLabel="Bid summary">
+          <View style={styles.rowBetween}>
+            <Text style={styles.customer}>ඔබගේ රැකියාවට ලංසුව</Text>
+            <Text style={styles.bidPrice}>{money(bid.price)}</Text>
+          </View>
+          <Text style={styles.text}>
+            🛡️ මාස {bid.warrantyMonths} වගකීම · ⏱️ පැය {bid.estHours} · 📍 කි.මී. {bid.distanceKm}
+          </Text>
+        </View>
+      )}
       {level && (
         <View style={styles.box}>
           <LevelBadge level={level.id} />
@@ -86,6 +126,8 @@ const styles = themedStyles(() =>
     sub: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 16 },
     reply: { marginTop: 4, padding: 10, borderRadius: 12, backgroundColor: Colors.subtleFill, gap: 2 },
     protected: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: Colors.warning, lineHeight: 17 },
+    bidBox: { borderColor: 'rgba(16, 185, 129, 0.45)' },
+    bidPrice: { fontSize: 17, fontFamily: FONTS.titleBold, color: Colors.success },
     replyLabel: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
   })
 );

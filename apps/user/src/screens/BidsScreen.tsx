@@ -8,6 +8,7 @@ import { Icon, type IconName } from '@ongarage/shared';
 import { GoogleMap, zoomToFit } from '@ongarage/shared';
 import { ActionButton, EmptyState, GlassIcon, ModalCard, SwipeCard } from '@ongarage/shared';
 import { OwnerDetailView } from '../components/OwnerDetailView';
+import { GarageReviewsSheet, garageForBid } from '../components/GarageReviewsSheet';
 import { money } from '../utils/format';
 import { biddingEndsAt, isExpired, lowestBidId, useBids } from '../context/BidsContext';
 import { useUserLocation } from '../context/LocationContext';
@@ -47,6 +48,8 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, onPost
   const user = useUserLocation();
   const [now, setNow] = useState(Date.now());
   const [confirming, setConfirming] = useState<{ job: RepairJob; bid: Bid } | null>(null);
+  // One garage's bid, opened by tapping or swiping it inside the job card.
+  const [bidView, setBidView] = useState<{ job: RepairJob; bid: Bid } | null>(null);
   const [booked, setBooked] = useState<{ job: RepairJob; bid: Bid } | null>(null);
   // Swipe (or tap the header of) a job card for everything about it.
   const [detailId, setDetailId] = useState<string | null>(null);
@@ -103,8 +106,8 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, onPost
     const isLowest = bid.id === lowestBidId(job.bids);
     const isAccepted = job.acceptedBidId === bid.id;
     return (
-      <View key={bid.id} style={[styles.bidCard, isLowest && !job.acceptedBidId && styles.bidCardLowest, isAccepted && styles.bidCardAccepted]}>
-        <View style={styles.rowBetween}>
+      <SwipeCard key={bid.id} style={[styles.bidCard, isLowest && !job.acceptedBidId && styles.bidCardLowest, isAccepted && styles.bidCardAccepted]} onOpen={() => setBidView({ job, bid })}>
+        <Pressable style={styles.rowBetween} onPress={() => setBidView({ job, bid })} accessibilityLabel={`${bid.garageName} bid details`}>
           <View style={styles.flex1}>
             <Text style={styles.cardTitle}>{bid.garageName}</Text>
             {!!bid.level && <LevelBadge level={bid.level} compact />}
@@ -115,7 +118,7 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, onPost
           <View style={styles.pricePill}>
             <Text style={styles.priceText}>{money(bid.price)}</Text>
           </View>
-        </View>
+        </Pressable>
         <View style={styles.chipRow}>
           <View style={styles.infoChip}>
             <Text style={styles.infoChipText}>🛡️ මාස {bid.warrantyMonths} වගකීම</Text>
@@ -145,7 +148,7 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, onPost
             onPress={() => setConfirming({ job, bid })}
           />
         )}
-      </View>
+      </SwipeCard>
     );
   };
 
@@ -283,6 +286,20 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, onPost
         onClose={() => setDetailId(null)}
         onAcceptBid={(job, bid) => setConfirming({ job, bid })}
         onRepublish={(job) => onRepublish(draftFor(job))}
+      />
+      <GarageReviewsSheet
+        garage={bidView ? garageForBid(bidView.bid) : null}
+        bid={bidView?.bid}
+        onClose={() => setBidView(null)}
+        onAccept={
+          bidView && !bidView.job.acceptedBidId
+            ? () => {
+                const v = bidView;
+                setBidView(null);
+                setConfirming(v);
+              }
+            : undefined
+        }
       />
 
       {confirming && (

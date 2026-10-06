@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { DEFAULT_COORDS } from '../constants/mockData';
+import { DEFAULT_COORDS, MOCK_GARAGES } from '../constants/mockData';
 import { useWorkshops } from './WorkshopContext';
 import { offsetCoordinate, marketPrice } from '@ongarage/shared';
 import type { Bid, RepairJob } from '@ongarage/shared';
@@ -7,10 +7,16 @@ import type { Bid, RepairJob } from '@ongarage/shared';
 const MIN = 60 * 1000;
 const HOUR = 60 * MIN;
 
+// Garages that bid on posted jobs. Rating, review count and level come from their
+// profiles (MOCK_GARAGES), so a bid and the garage's page always agree.
+const profile = (name: string) => {
+  const g = MOCK_GARAGES.find((x) => x.name === name)!;
+  return { garageName: g.name, level: g.level, rating: g.rating, reviews: g.reviews };
+};
 const BIDDING_GARAGES = [
-  { garageName: 'TOPCODE Tuning & Service', level: 'trusted' as const, rating: 4.9, reviews: 120, distanceKm: 1.2, bearing: 300, warrantyMonths: 3, estHours: 1 },
-  { garageName: 'Apex Motors & Hybrid Hub', level: 'verified' as const, rating: 4.6, reviews: 45, distanceKm: 3.5, bearing: 40, warrantyMonths: 1, estHours: 2 },
-  { garageName: 'Lanka Auto Diagnostics', level: 'verified' as const, rating: 4.8, reviews: 76, distanceKm: 2.1, bearing: 160, warrantyMonths: 2, estHours: 3 },
+  { ...profile('TOPCODE Tuning & Service'), distanceKm: 1.2, bearing: 300, warrantyMonths: 3, estHours: 1 },
+  { ...profile('Apex Motors & Hybrid Hub'), distanceKm: 3.5, bearing: 40, warrantyMonths: 1, estHours: 2 },
+  { ...profile('Lanka Auto Diagnostics'), distanceKm: 2.1, bearing: 160, warrantyMonths: 2, estHours: 3 },
 ];
 
 const PRICE_FACTORS = [1.0, 0.82, 1.18];
