@@ -2,7 +2,8 @@ import React, { useEffect, useId, useRef } from 'react';
 import { Animated, Easing, StyleProp, StyleSheet, ViewStyle } from 'react-native';
 import Svg, { Circle, Defs, LinearGradient, Pattern, Rect, Stop } from 'react-native-svg';
 
-type GradientStop = { offset: string; color: string };
+/** A colour stop; opacity (0–1) lets a gradient fade to transparent, e.g. a shade over a photo. */
+type GradientStop = { offset: string; color: string; opacity?: number };
 
 // CSS "linear-gradient(135deg, ...)" rendered behind the parent's children.
 // Parent must set overflow: 'hidden' + borderRadius for rounded corners.
@@ -16,7 +17,7 @@ export const Gradient: React.FC<{ stops: GradientStop[]; vertical?: boolean }> =
       <Defs>
         <LinearGradient id={id} x1="0" y1="0" x2={vertical ? '0' : '1'} y2="1">
           {stops.map((s) => (
-            <Stop key={s.offset} offset={s.offset} stopColor={s.color} />
+            <Stop key={s.offset} offset={s.offset} stopColor={s.color} stopOpacity={s.opacity ?? 1} />
           ))}
         </LinearGradient>
       </Defs>

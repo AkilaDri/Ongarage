@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Animated, View, StyleSheet, Modal } from 'react-native';
+import { Animated, View, StyleSheet, Modal, Text } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
@@ -10,7 +10,7 @@ import {
   NotoSansSinhala_600SemiBold,
   NotoSansSinhala_700Bold,
 } from '@expo-google-fonts/noto-sans-sinhala';
-import { Colors, themedStyles } from '@ongarage/shared';
+import { Colors, getThemeMode, themedStyles } from '@ongarage/shared';
 import { ThemeProvider, useTheme } from '@ongarage/shared';
 import { VehiclesProvider } from './context/VehiclesContext';
 import { LocationProvider } from './context/LocationContext';
@@ -18,7 +18,8 @@ import { BidsProvider } from './context/BidsContext';
 import { NoticeProvider } from './context/NoticeContext';
 import { BookingsProvider } from './context/BookingsContext';
 import { WorkshopProvider } from './context/WorkshopContext';
-import { Header } from './components/Header';
+import { ProfileProvider } from './context/ProfileContext';
+import { Header, TitleBand } from './components/Header';
 import { Toast } from './components/Toast';
 import { DirectBookingSheet } from './components/DirectBookingSheet';
 import { HomeScreen } from './screens/HomeScreen';
@@ -33,6 +34,9 @@ import { BottomNav } from '@ongarage/shared';
 import { USER_TABS, type TabId } from './constants/tabs';
 import { categoryInfo, type Garage, type JobDraft, type PickedLocation, type ServiceCategory } from '@ongarage/shared';
 
+// The title band other tabs show instead of the greeting header (Home has the header; Account has nothing and uses the full screen).
+const TAB_TITLES: Partial<Record<TabId, string>> = { bids: 'ඔබගේ ලංසු වල තත්ත්වය', activity: 'ඔබේ ක්‍රියාකාරකම්' };
+
 type SOSStage = 'closed' | 'map' | 'flow';
 
 SplashScreen.preventAutoHideAsync();
@@ -42,11 +46,13 @@ export default function App() {
     <ThemeProvider>
       <NoticeProvider>
         <WorkshopProvider>
+          <ProfileProvider>
           <VehiclesProvider>
             <BookingsProvider>
               <AppShell />
             </BookingsProvider>
           </VehiclesProvider>
+          </ProfileProvider>
         </WorkshopProvider>
       </NoticeProvider>
     </ThemeProvider>
@@ -107,28 +113,34 @@ function AppShell() {
     <SafeAreaProvider>
       <StatusBar style={isDark ? "light" : "dark"} />
       <SafeAreaView style={styles.container} edges={['top']}>
-        {/* One header on every tab, like the garage, parts and technician apps. */}
-        <Header activeVehicle={selectedVehicle} onVehicleChange={setSelectedVehicle} />
+        {/* One header band on every tab: a short greeting and the active vehicle. */}
         {activeTab === 'home' ? (
-          <HomeScreen
-            onSOSPress={() => setSOSStage('map')}
-            onPostJob={() => setPostJob({ draft: null })}
-            onServicePress={setSelectedService}
-            onBookGarage={(garage) => setBooking({ garage })}
-          />
-        ) : activeTab === 'bids' ? (
-          <BidsScreen
-            tab={bidsTab}
-            onTabChange={setBidsTab}
-            onPostJob={() => setPostJob({ draft: null })}
-            onRepublish={(draft) => setPostJob({ draft })}
-            onViewActivity={() => setActiveTab('activity')}
-          />
-        ) : activeTab === 'activity' ? (
-          <ActivityScreen onOpenBids={() => setActiveTab('bids')} onBookAgain={(b) => setSelectedService(categoryInfo(b.categoryId))} />
-        ) : (
-          <ProfileScreen activeVehicle={selectedVehicle} onVehicleChange={setSelectedVehicle} />
-        )}
+          <Header activeVehicle={selectedVehicle} onVehicleChange={setSelectedVehicle} />
+        ) : TAB_TITLES[activeTab] ? (
+          <TitleBand title={TAB_TITLES[activeTab]!} />
+        ) : null}
+        <View style={[styles.sheet, activeTab !== 'profile' && styles.sheetOverlap]}>
+          {activeTab === 'home' ? (
+            <HomeScreen
+              onSOSPress={() => setSOSStage('map')}
+              onPostJob={() => setPostJob({ draft: null })}
+              onServicePress={setSelectedService}
+              onBookGarage={(garage) => setBooking({ garage })}
+            />
+          ) : activeTab === 'bids' ? (
+            <BidsScreen
+              tab={bidsTab}
+              onTabChange={setBidsTab}
+              onPostJob={() => setPostJob({ draft: null })}
+              onRepublish={(draft) => setPostJob({ draft })}
+              onViewActivity={() => setActiveTab('activity')}
+            />
+          ) : activeTab === 'activity' ? (
+            <ActivityScreen onOpenBids={() => setActiveTab('bids')} onBookAgain={(b) => setSelectedService(categoryInfo(b.categoryId))} />
+          ) : (
+            <ProfileScreen activeVehicle={selectedVehicle} onVehicleChange={setSelectedVehicle} />
+          )}
+        </View>
 
         <View style={styles.bottomNavContainer}>
           <BottomNav items={USER_TABS} activeTab={activeTab} onTabChange={setActiveTab} />
@@ -204,5 +216,8 @@ function AppShell() {
 
 const styles = themedStyles(() => StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.bgBody },
+  // The tab's screen overlaps the header band with rounded top corners.
+  sheet: { flex: 1, backgroundColor: getThemeMode() === 'dark' ? Colors.bgBody : '#ffffff' },
+  sheetOverlap: { marginTop: -18, borderTopLeftRadius: 24, borderTopRightRadius: 24, overflow: 'hidden' },
   bottomNavContainer: { position: 'absolute', bottom: 0, left: 0, right: 0 },
 }));

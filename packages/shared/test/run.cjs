@@ -2,8 +2,9 @@
 // workshop maths. These modules are plain TypeScript (no React Native), so they are
 // compiled to CommonJS with the TypeScript compiler and run with Node's test runner.
 //
-//   npm test                       (from the repo root)
-//   node packages/shared/test/run.cjs
+//   npm test                                           (from the repo root)
+//   npm test -- --test-name-pattern="grace period"       (only matching tests)
+//   npm test -- workshop                               (only test files whose name contains it)
 const fs = require('fs');
 const path = require('path');
 const { spawnSync } = require('child_process');
@@ -37,9 +38,13 @@ for (const file of COMPILE.flatMap(filesIn).filter((f) => f.endsWith('.ts'))) {
   fs.writeFileSync(dest, outputText);
 }
 
+// Extra arguments: --flags go to node --test; a bare word picks test files by name.
+const args = process.argv.slice(2);
+const flags = args.filter((a) => a.startsWith('--'));
+const names = args.filter((a) => !a.startsWith('--'));
 const tests = fs
   .readdirSync(__dirname)
-  .filter((f) => f.endsWith('.test.cjs'))
+  .filter((f) => f.endsWith('.test.cjs') && (!names.length || names.some((n) => f.includes(n))))
   .map((f) => path.join(__dirname, f));
-const run = spawnSync(process.execPath, ['--test', ...tests], { stdio: 'inherit' });
+const run = spawnSync(process.execPath, ['--test', ...flags, ...tests], { stdio: 'inherit' });
 process.exit(run.status ?? 1);

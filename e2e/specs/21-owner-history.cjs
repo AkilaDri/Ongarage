@@ -1,19 +1,17 @@
 const { spec } = require('../lib.cjs');
 
-// Owner: garage cards (level, reviews with replies, save toast), history from closed
+// Owner: garage tiles (save toast, ratings sheet), history from closed
 // records (receipt, warranty status, rating with moderation and the garage's reply),
 // the OnGarage Guarantee on a protected job, and stopping a job at the diagnosis.
 module.exports = spec('Owner · cards, history, receipts, ratings, Guarantee', 'user', async (t) => {
-  t.check('garage card shows a level badge', (await t.labels('Level ')).length > 0);
-  await t.clickText('♡');
+  // Home's garage tiles: saving shows a toast, a tile opens the garage with its ratings.
+  await t.clickLabel('Save AutoTech Motors');
   t.check('saving shows a toast, not an alert', await t.has('සුරැකි ගරාජ වලට එක් කළා'));
-  // Home features the nearest garage, so find its card by label rather than by name.
-  const reviews = await t.page.evaluate(() => document.querySelector('[aria-label$=" reviews"]')?.getAttribute('aria-label'));
-  await t.clickLabel(reviews);
-  t.check('reviews sheet shows the four dimensions', await t.has('අවංක මිල'));
+  await t.clickLabel('Garage AutoTech Motors');
+  t.check('garage sheet shows the four dimensions and its level', (await t.has('අවංක මිල')) && (await t.labels('Level ')).includes('Level premier'));
   await t.escape();
 
-  await t.clickText('ක්‍රියාකාරකම්');
+  await t.clickText('Activity');
   t.check('history from closed records', (await t.has('සම්පූර්ණ සින්තටික් ඔයිල් මාරුව')) && (await t.has('ඉදිරි බ්‍රේක් පෑඩ් මාරු කිරීම')));
   t.check('expired warranty shown', await t.has('වගකීම කල් ඉකුත් විය'));
   t.check('past review with the garage reply', (await t.has('ඔබ ★4.6 දුන්නා')) && (await t.has('ඊළඟ සේවාව')));
@@ -45,11 +43,11 @@ module.exports = spec('Owner · cards, history, receipts, ratings, Guarantee', '
   t.check('garage responded, OnGarage approved', (await t.has('✅ අනුමතයි')) && (await t.has('OnGarage රු. 25,000')));
 
   // Accept a bid, then stop at the diagnosis: inspection fee only
-  await t.clickText('ලංසු');
+  await t.clickText('Bids');
   await t.clickLabel('Mechanical details');
   await t.clickText('මෙම ලංසුව පිළිගන්න');
   await t.clickText('පිළිගන්න');
-  await t.clickText('ක්‍රියාකාරකම්');
+  await t.clickText('Activity');
   await t.wait(11000);
   await t.clickText('වාර්තාව බලා අනුමත කරන්න');
   await t.clickText('නවත්වන්න');
