@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Animated, View, StyleSheet, Modal, Text } from 'react-native';
+import { Animated, View, StyleSheet, Modal, Text, Pressable } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
@@ -10,7 +10,7 @@ import {
   NotoSansSinhala_600SemiBold,
   NotoSansSinhala_700Bold,
 } from '@expo-google-fonts/noto-sans-sinhala';
-import { Colors, getThemeMode, themedStyles } from '@ongarage/shared';
+import { Colors, FONTS, getThemeMode, Pulse, themedStyles } from '@ongarage/shared';
 import { ThemeProvider, useTheme } from '@ongarage/shared';
 import { VehiclesProvider } from './context/VehiclesContext';
 import { LocationProvider } from './context/LocationContext';
@@ -129,12 +129,44 @@ function AppShell() {
         ) : TAB_TITLES[activeTab] ? (
           <TitleBand title={TAB_TITLES[activeTab]!} />
         ) : null}
+
+        {/* Sticky banners on Home (outside the animated sheet so they don't get cut off) */}
+        {activeTab === 'home' && (
+          <View style={styles.stickyBannersContainer}>
+            <Pressable style={({ pressed }) => [styles.sosBanner, pressed && styles.pressed]} onPress={() => setSOSStage('map')} accessibilityLabel="Open SOS">
+              <View style={styles.sosBannerContent}>
+                <View style={styles.sosLeft}>
+                  <View style={styles.sosBadge}>
+                    <Pulse style={styles.pulseDot} />
+                    <Text style={styles.badgeText}>24/7 SOS</Text>
+                  </View>
+                  <Text style={styles.heroTitle}>වාහනය අඩපණ වුණාද?</Text>
+                  <Text style={styles.heroSub}>ළඟම කාර්මිකයා ඔබ වෙත</Text>
+                </View>
+                <View style={styles.sosButton}>
+                  <Text style={styles.sosButtonText}>SOS</Text>
+                </View>
+              </View>
+            </Pressable>
+            <Pressable style={({ pressed }) => [styles.jobBanner, pressed && styles.pressed]} onPress={() => setPostJob({ draft: null })} accessibilityLabel="Post a repair job">
+              <View style={styles.jobBannerContent}>
+                <View style={styles.jobLeft}>
+                  <Text style={styles.jobBannerTitle}>අලුත්වැඩියාවක් පළ කරන්න</Text>
+                  <Text style={styles.jobBannerSub}>ගරාජ කිහිපයකින් මිල ගණන් ලබා ගන්න</Text>
+                </View>
+                <View style={styles.jobCta}>
+                  <Text style={styles.jobCtaText}>＋</Text>
+                </View>
+              </View>
+            </Pressable>
+          </View>
+        )}
+
         <Animated.View
           style={[
             styles.sheet,
             activeTab !== 'profile' && styles.sheetOverlap,
             activeTab === 'home' && {
-              marginTop: sheetScroll.interpolate({ inputRange: [0, 1], outputRange: [-18, -200] }),
               borderTopLeftRadius: sheetScroll.interpolate({ inputRange: [0, 1], outputRange: [24, 0] }),
               borderTopRightRadius: sheetScroll.interpolate({ inputRange: [0, 1], outputRange: [24, 0] }),
             },
@@ -241,4 +273,24 @@ const styles = themedStyles(() => StyleSheet.create({
   sheet: { flex: 1, backgroundColor: getThemeMode() === 'dark' ? Colors.bgBody : '#ffffff' },
   sheetOverlap: { marginTop: -18, borderTopLeftRadius: 24, borderTopRightRadius: 24, overflow: 'hidden' },
   bottomNavContainer: { position: 'absolute', bottom: 0, left: 0, right: 0 },
+  // Sticky banners on Home (outside the sheet so they don't move when sheet expands)
+  stickyBannersContainer: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 8, gap: 8, zIndex: 10, backgroundColor: getThemeMode() === 'dark' ? Colors.bgBody : '#ffffff' },
+  pressed: { opacity: 0.9, transform: [{ scale: 0.99 }] },
+  sosBanner: { borderRadius: 18, overflow: 'hidden', backgroundColor: '#dc2626', shadowColor: '#dc2626', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 18, elevation: 6 },
+  sosBannerContent: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, gap: 12 },
+  sosLeft: { flex: 1, gap: 3 },
+  sosBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, backgroundColor: 'rgba(255, 255, 255, 0.18)', marginBottom: 2 },
+  pulseDot: { width: 6, height: 6, backgroundColor: '#fff', borderRadius: 3 },
+  badgeText: { fontSize: 10, fontWeight: '800', color: '#fff', letterSpacing: 0.4 },
+  heroTitle: { fontSize: 18, fontFamily: FONTS.titleBold, color: '#fff' },
+  heroSub: { fontSize: 11.5, fontFamily: FONTS.bodyMedium, color: '#e2e8f0' },
+  sosButton: { width: 64, height: 64, borderRadius: 32, backgroundColor: 'rgba(255, 255, 255, 0.15)', borderWidth: 3, borderColor: 'rgba(255, 255, 255, 0.85)', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  sosButtonText: { fontSize: 15, fontWeight: '900', color: '#fff', letterSpacing: 1 },
+  jobBanner: { borderRadius: 18, overflow: 'hidden', backgroundColor: '#162b63', shadowColor: '#162b63', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.25, shadowRadius: 18, elevation: 5 },
+  jobBannerContent: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, gap: 12 },
+  jobLeft: { flex: 1, gap: 2 },
+  jobBannerTitle: { fontSize: 17, fontFamily: FONTS.titleBold, color: '#fff' },
+  jobBannerSub: { fontSize: 11, fontFamily: FONTS.bodyMedium, color: 'rgba(255, 255, 255, 0.9)' },
+  jobCta: { width: 52, height: 52, borderRadius: 26, backgroundColor: 'rgba(255, 255, 255, 0.2)', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'rgba(255, 255, 255, 0.85)', flexShrink: 0 },
+  jobCtaText: { fontSize: 22, fontWeight: '700', color: '#fff' },
 }));
