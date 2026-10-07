@@ -5,6 +5,7 @@ import {
   directionsUrl,
   distanceKm,
   FONTS,
+  getThemeMode,
   Pulse,
   SERVICE_CATEGORIES,
   themedStyles,
@@ -64,7 +65,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onSOSPress, onPostJob, o
 
   return (
     <View style={styles.container}>
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      {/* Sticky banners: SOS and Post Job remain on top while content scrolls below */}
+      <View style={styles.stickyBannersContainer}>
         {/* SOS: the emergency action — solid red, no image, just icon and text */}
         <Pressable style={({ pressed }) => [styles.sosBanner, pressed && styles.pressed]} onPress={onSOSPress} accessibilityLabel="Open SOS">
           <View style={styles.sosBannerContent}>
@@ -97,7 +99,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onSOSPress, onPostJob, o
             </View>
           </View>
         </Pressable>
+      </View>
 
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* Categories: round photos, two rows, slide sideways */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>සේවා අංශ</Text>
@@ -157,8 +161,10 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onSOSPress, onPostJob, o
 const styles = themedStyles(() => StyleSheet.create({
   // Transparent: the rounded sheet in App.tsx supplies the background.
   container: { flex: 1 },
+  // Sticky banners float above the scrollable content.
+  stickyBannersContainer: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 8, gap: 8, zIndex: 10, backgroundColor: getThemeMode() === 'dark' ? Colors.bgBody : '#ffffff' },
   scroll: { flex: 1 },
-  content: { paddingTop: 14, paddingHorizontal: 16, paddingBottom: 90, gap: 16 },
+  content: { paddingTop: 8, paddingHorizontal: 16, paddingBottom: 90, gap: 16 },
   pressed: { opacity: 0.9, transform: [{ scale: 0.99 }] },
 
   // SOS banner: solid red, icon-driven, no image.
