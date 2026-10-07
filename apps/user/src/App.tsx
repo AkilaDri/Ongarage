@@ -130,9 +130,18 @@ function AppShell() {
           <TitleBand title={TAB_TITLES[activeTab]!} />
         ) : null}
 
-        {/* Sticky banners on Home (outside the animated sheet so they don't get cut off) */}
+        {/* Sticky banners on Home with animated rounded bottom corners */}
         {activeTab === 'home' && (
-          <View style={styles.stickyBannersContainer}>
+          <Animated.View
+            style={[
+              styles.stickyBannersContainer,
+              {
+                borderBottomLeftRadius: sheetScroll.interpolate({ inputRange: [0, 1], outputRange: [24, 0] }),
+                borderBottomRightRadius: sheetScroll.interpolate({ inputRange: [0, 1], outputRange: [24, 0] }),
+                paddingBottom: sheetScroll.interpolate({ inputRange: [0, 1], outputRange: [8, 0] }),
+              },
+            ]}
+          >
             <Pressable style={({ pressed }) => [styles.sosBanner, pressed && styles.pressed]} onPress={() => setSOSStage('map')} accessibilityLabel="Open SOS">
               <View style={styles.sosBannerContent}>
                 <View style={styles.sosLeft}>
@@ -159,7 +168,7 @@ function AppShell() {
                 </View>
               </View>
             </Pressable>
-          </View>
+          </Animated.View>
         )}
 
         <Animated.View
@@ -167,8 +176,7 @@ function AppShell() {
             styles.sheet,
             activeTab !== 'profile' && styles.sheetOverlap,
             activeTab === 'home' && {
-              borderTopLeftRadius: sheetScroll.interpolate({ inputRange: [0, 1], outputRange: [24, 0] }),
-              borderTopRightRadius: sheetScroll.interpolate({ inputRange: [0, 1], outputRange: [24, 0] }),
+              marginTop: sheetScroll.interpolate({ inputRange: [0, 1], outputRange: [-18, 0] }),
             },
           ]}
         >
