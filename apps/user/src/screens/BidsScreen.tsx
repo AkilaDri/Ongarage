@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Linking, Pressable, ScrollView, StyleSheet, Text, View, Image } from 'react-native';
-import { Colors, LevelBadge, themedStyles, LEVELS } from '@ongarage/shared';
+import { Colors, Gradient, LevelBadge, getThemeMode, themedStyles, LEVELS } from '@ongarage/shared';
 import { FONTS } from '@ongarage/shared';
 import { SERVICE_CATEGORIES } from '@ongarage/shared';
 import { useVehicles } from '../context/VehiclesContext';
@@ -10,12 +10,20 @@ import { ActionButton, EmptyState, GlassIcon, ModalCard, SwipeCard } from '@onga
 import { OwnerDetailView } from '../components/OwnerDetailView';
 import { GarageReviewsSheet, garageForBid } from '../components/GarageReviewsSheet';
 import { ThreeStateSheet } from '../components/ThreeStateSheet';
-import { CATEGORY_IMAGES, GARAGE_COVERS } from '../constants/home';
+import { GARAGE_COVERS } from '../constants/home';
+import { CategoryPhoto } from '../components/home/CategoryPhoto';
 import { money } from '../utils/format';
 import { biddingEndsAt, isExpired, lowestBidId, useBids } from '../context/BidsContext';
 import { useUserLocation } from '../context/LocationContext';
 import { directionsUrl } from '@ongarage/shared';
 import type { Bid, JobDraft, RepairJob } from '@ongarage/shared';
+
+// Same wash as the Home screen's Post Job banner.
+const JOB_GRADIENT = [
+  { offset: '0', color: '#2a4690' },
+  { offset: '0.55', color: '#162b63' },
+  { offset: '1', color: '#0f2050' },
+];
 
 export type BidsTab = 'received' | 'pending' | 'expired';
 
@@ -88,9 +96,7 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, onPost
     const media = [job.photos?.length && `📷 ${job.photos.length}`, job.voiceNotes?.length && `🎙️ ${job.voiceNotes.length}`].filter(Boolean).join('  ');
     return (
       <Pressable style={styles.jobHead} onPress={() => setDetailId(job.id)} accessibilityLabel={`${cat?.name ?? 'Job'} details`}>
-        <View style={[styles.catRing, { borderColor: cat?.color ?? Colors.primary }]}>
-          <Image source={CATEGORY_IMAGES[job.categoryId]} style={styles.catPhoto} />
-        </View>
+        <CategoryPhoto categoryId={job.categoryId} size={50} />
         <View style={styles.flex1}>
           <Text style={styles.cardTitle} numberOfLines={1}>
             {cat?.name ?? 'Service'}
@@ -296,7 +302,7 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, onPost
           const active = tab === t.id;
           return (
             <Pressable key={t.id} style={[styles.tab, active && styles.tabActive]} onPress={() => onTabChange(t.id)}>
-              <Icon name={t.icon} size={15} color={active ? Colors.primary : Colors.textMuted} />
+              <Icon name={t.icon} size={15} color={active ? '#ffffff' : Colors.textMuted} />
               <Text style={[styles.tabText, active && styles.tabTextActive]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
                 {t.label}
               </Text>
@@ -318,10 +324,19 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, onPost
                 scrollEventThrottle={16}
                 onScroll={(e) => api.onScroll(e.nativeEvent.contentOffset.y)}
               >
-                <Pressable style={({ pressed }) => [styles.newJobBtn, pressed && { opacity: 0.75 }]} onPress={onPostJob}>
-                  <Text style={styles.newJobText}>＋ නව අලුත්වැඩියා රැකියාවක් පළ කරන්න</Text>
+                {/* The same navy banner as the Home screen */}
+                <Pressable style={({ pressed }) => [styles.newJobBtn, pressed && { opacity: 0.9, transform: [{ scale: 0.99 }] }]} onPress={onPostJob} accessibilityLabel="Post a repair job">
+                  <Gradient stops={JOB_GRADIENT} />
+                  <View style={styles.newJobCopy}>
+                    <Text style={styles.newJobTitle}>වාහනයේ Repair එකක්ද?</Text>
+                    <Text style={styles.newJobSub}>OnGarage වලින් Quotes ගන්න</Text>
+                  </View>
+                  <View style={styles.newJobPlus}>
+                    <View style={styles.plusBarH} />
+                    <View style={styles.plusBarV} />
+                  </View>
                 </Pressable>
-                {jobs.length > 0 && <Text style={styles.swipeHint}>⇆ ලංසු, ඡායාරූප සහ සම්පූර්ණ විස්තර සඳහා රැකියා කාඩ්පතක් පැත්තට ස්වයිප් කරන්න</Text>}
+                {jobs.length > 0 && <Text style={styles.swipeHint}>ලංසු, ඡායාරූප සහ සම්පූර්ණ විස්තර සඳහා රැකියා කාඩ්පතක් පැත්තට ස්වයිප් කරන්න</Text>}
                 {tab === 'received' && renderReceived()}
                 {tab === 'pending' && renderWaiting(pending, 'pending')}
                 {tab === 'expired' && renderWaiting(expired, 'expired')}
@@ -409,9 +424,14 @@ const styles = themedStyles(() => StyleSheet.create({
   flex1: { flex: 1 },
   rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
   // Same "add" button as the garage app's Parts tab.
-  newJobBtn: { alignItems: 'center', paddingVertical: 12, borderRadius: 14, borderWidth: 1, borderStyle: 'dashed', borderColor: Colors.primary, backgroundColor: 'rgba(56, 189, 248, 0.08)' },
-  newJobText: { fontSize: 12.5, fontFamily: FONTS.bodyBold, color: Colors.primary },
-  swipeHint: { fontSize: 10.5, fontFamily: FONTS.bodyMedium, color: Colors.textMuted, textAlign: 'center' },
+  newJobBtn: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 14, borderRadius: 18, overflow: 'hidden', backgroundColor: '#162b63', shadowColor: '#162b63', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.25, shadowRadius: 16, elevation: 5 },
+  newJobCopy: { flex: 1, gap: 2 },
+  newJobTitle: { fontSize: 16, fontFamily: FONTS.titleBold, color: '#fff' },
+  newJobSub: { fontSize: 11, fontFamily: FONTS.bodyMedium, color: 'rgba(255, 255, 255, 0.9)' },
+  newJobPlus: { width: 44, height: 44, borderRadius: 22, borderWidth: 2, borderColor: 'rgba(255, 255, 255, 0.85)', backgroundColor: 'rgba(255, 255, 255, 0.2)', alignItems: 'center', justifyContent: 'center' },
+  plusBarH: { position: 'absolute', width: 16, height: 2.5, borderRadius: 2, backgroundColor: '#fff' },
+  plusBarV: { position: 'absolute', width: 2.5, height: 16, borderRadius: 2, backgroundColor: '#fff' },
+  swipeHint: { fontSize: 10.5, fontFamily: FONTS.bodyMedium, color: Colors.textMuted },
   detailsLink: { fontSize: 10.5, fontFamily: FONTS.bodySemiBold, color: Colors.primary, marginTop: 4 },
   tabBar: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 6 },
   tab: {
@@ -422,14 +442,12 @@ const styles = themedStyles(() => StyleSheet.create({
     gap: 6,
     paddingVertical: 10,
     paddingHorizontal: 8,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: Colors.borderColor,
-    backgroundColor: Colors.bgCard,
+    borderRadius: 22,
+    backgroundColor: Colors.subtleFill,
   },
-  tabActive: { backgroundColor: 'rgba(56, 189, 248, 0.14)', borderColor: 'rgba(56, 189, 248, 0.5)' },
+  tabActive: { backgroundColor: '#162b63', shadowColor: '#162b63', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.28, shadowRadius: 8, elevation: 4 },
   tabText: { flexShrink: 1, fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
-  tabTextActive: { color: Colors.primary },
+  tabTextActive: { color: '#ffffff' },
   // Corner badge keeps the label row from wrapping on narrow tabs.
   tabCount: {
     position: 'absolute',
@@ -445,7 +463,7 @@ const styles = themedStyles(() => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  tabCountActive: { backgroundColor: Colors.primary },
+  tabCountActive: { backgroundColor: '#4ca1d1' },
   tabCountText: { fontSize: 9.5, fontWeight: '800', color: Colors.textMuted },
   tabCountTextActive: { color: '#fff' },
   body: { padding: 16, paddingTop: 4, gap: 12, paddingBottom: 24 },
@@ -461,7 +479,8 @@ const styles = themedStyles(() => StyleSheet.create({
   peekBadgeText: { fontSize: 9.5, fontWeight: '800', color: '#fff' },
   hint: { fontSize: 11, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
   link: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
-  card: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.borderColor, borderRadius: 18, padding: 14, gap: 10 },
+  // Soft shadow instead of an outline (an outline only on dark, where a shadow would not show), like the Home garage tiles.
+  card: { backgroundColor: Colors.bgCard, borderWidth: getThemeMode() === 'dark' ? 1 : 0, borderColor: Colors.borderColor, borderRadius: 20, padding: 14, gap: 10, shadowColor: '#0f172a', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.1, shadowRadius: 16, elevation: 3 },
   cardExpired: { borderColor: 'rgba(239, 68, 68, 0.4)' },
   cardTitle: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.textMain },
   cardSub: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 1 },
@@ -474,7 +493,7 @@ const styles = themedStyles(() => StyleSheet.create({
   badgeDanger: { backgroundColor: 'rgba(239, 68, 68, 0.12)', borderColor: 'rgba(239, 68, 68, 0.45)' },
   badgeText: { fontSize: 10, fontFamily: FONTS.bodySemiBold },
   // Photo tile: the garage's cover with the price on it, then name and one line of details.
-  bidCard: { borderRadius: 16, borderWidth: 1, borderColor: Colors.borderColor, backgroundColor: Colors.bgCard, overflow: 'hidden' },
+  bidCard: { borderRadius: 18, borderWidth: 1, borderColor: Colors.borderColor, backgroundColor: Colors.bgCard, overflow: 'hidden' },
   bidCardLowest: { borderColor: 'rgba(16, 185, 129, 0.55)' },
   bidCardAccepted: { borderColor: Colors.success },
   bidCover: { width: '100%', height: 120 },
@@ -485,8 +504,6 @@ const styles = themedStyles(() => StyleSheet.create({
   lowestTag: { position: 'absolute', top: 10, left: 10, backgroundColor: 'rgba(255, 255, 255, 0.92)', borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3 },
   lowestTagText: { fontSize: 10, fontFamily: FONTS.bodyBold, color: '#047857' },
   star: { color: Colors.warning, fontFamily: FONTS.bodyBold },
-  catRing: { width: 46, height: 46, borderRadius: 23, borderWidth: 2, padding: 2 },
-  catPhoto: { width: '100%', height: '100%', borderRadius: 21 },
   waitRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   waitDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: Colors.warning },
   pinAnchor: { position: 'absolute', transform: [{ translateX: '-50%' }, { translateY: '-50%' }] },

@@ -10,7 +10,7 @@ import {
   NotoSansSinhala_600SemiBold,
   NotoSansSinhala_700Bold,
 } from '@expo-google-fonts/noto-sans-sinhala';
-import { Colors, FONTS, getThemeMode, Pulse, themedStyles } from '@ongarage/shared';
+import { Colors, FONTS, getThemeMode, Gradient, Pulse, themedStyles } from '@ongarage/shared';
 import { ThemeProvider, useTheme } from '@ongarage/shared';
 import { VehiclesProvider } from './context/VehiclesContext';
 import { LocationProvider } from './context/LocationContext';
@@ -36,6 +36,24 @@ import { categoryInfo, type Garage, type JobDraft, type PickedLocation, type Ser
 
 // The title band other tabs show instead of the greeting header (Home has the header; Account has nothing and uses the full screen).
 const TAB_TITLES: Partial<Record<TabId, string>> = { bids: 'ඔබගේ ලංසු වල තත්ත්වය', activity: 'ඔබේ ක්‍රියාකාරකම්' };
+
+// Banner sizes: stacked cards at the top of Home, one compact row once the page is scrolled.
+const SOS_H = 94;
+const JOB_H = 82;
+const BANNER_GAP = 8;
+const COMPACT_H = 56;
+
+// Soft diagonal washes over the banners' base colours (lighter at the top left, deeper at the bottom right).
+const SOS_GRADIENT = [
+  { offset: '0', color: '#f05252' },
+  { offset: '0.55', color: '#dc2626' },
+  { offset: '1', color: '#b91c1c' },
+];
+const JOB_GRADIENT = [
+  { offset: '0', color: '#2a4690' },
+  { offset: '0.55', color: '#162b63' },
+  { offset: '1', color: '#0f2050' },
+];
 
 type SOSStage = 'closed' | 'map' | 'flow';
 
@@ -68,6 +86,13 @@ function AppShell() {
   const firstRender = useRef(true);
   const sheetScroll = useRef(new Animated.Value(0)).current;
   const scrollY = useRef(0);
+  const [headerH, setHeaderH] = useState(80);
+  // Width of the banner area: the two banners tween between stacked cards and one row of two.
+  const [bannerW, setBannerW] = useState(358);
+  const half = (bannerW - BANNER_GAP) / 2;
+  const lerp = (a: number, b: number) => sheetScroll.interpolate({ inputRange: [0, 1], outputRange: [a, b] });
+  const fadeOut = sheetScroll.interpolate({ inputRange: [0, 0.4], outputRange: [1, 0], extrapolate: 'clamp' });
+  const fadeIn = sheetScroll.interpolate({ inputRange: [0.6, 1], outputRange: [0, 1], extrapolate: 'clamp' });
 
   useEffect(() => {
     if (firstRender.current) {
@@ -101,9 +126,8 @@ function AppShell() {
 
   const handleHomeScroll = useCallback((y: number) => {
     scrollY.current = y;
-    // Expand sheet when scrolling down (triggers at ~80px scroll).
-    const expandThreshold = 80;
-    const progress = Math.min(1, Math.max(0, (y - expandThreshold) / 120));
+    // The banner area rises over the greeting within the first 60px of scrolling, and settles back at the top (service categories).
+    const progress = Math.min(1, Math.max(0, y / 60));
     sheetScroll.setValue(progress);
   }, [sheetScroll]);
 
@@ -125,49 +149,69 @@ function AppShell() {
       <SafeAreaView style={styles.container} edges={['top']}>
         {/* One header band on every tab: a short greeting and the active vehicle. */}
         {activeTab === 'home' ? (
-          <Header activeVehicle={selectedVehicle} onVehicleChange={setSelectedVehicle} />
+          <View onLayout={(e) => setHeaderH(Math.round(e.nativeEvent.layout.height))}>
+            <Header activeVehicle={selectedVehicle} onVehicleChange={setSelectedVehicle} />
+          </View>
         ) : TAB_TITLES[activeTab] ? (
           <TitleBand title={TAB_TITLES[activeTab]!} />
         ) : null}
 
         {/* Sticky banners on Home with animated rounded bottom corners */}
         {activeTab === 'home' && (
-          <Animated.View
-            style={[
-              styles.stickyBannersContainer,
-              {
-                borderBottomLeftRadius: sheetScroll.interpolate({ inputRange: [0, 1], outputRange: [24, 0] }),
-                borderBottomRightRadius: sheetScroll.interpolate({ inputRange: [0, 1], outputRange: [24, 0] }),
-                paddingBottom: sheetScroll.interpolate({ inputRange: [0, 1], outputRange: [8, 0] }),
-              },
-            ]}
-          >
-            <Pressable style={({ pressed }) => [styles.sosBanner, pressed && styles.pressed]} onPress={() => setSOSStage('map')} accessibilityLabel="Open SOS">
-              <View style={styles.sosBannerContent}>
-                <View style={styles.sosLeft}>
-                  <View style={styles.sosBadge}>
-                    <Pulse style={styles.pulseDot} />
-                    <Text style={styles.badgeText}>24/7 SOS</Text>
-                  </View>
-                  <Text style={styles.heroTitle}>වාහනය අඩපණ වුණාද?</Text>
-                  <Text style={styles.heroSub}>ළඟම කාර්මිකයා ඔබ වෙත</Text>
-                </View>
-                <View style={styles.sosButton}>
-                  <Text style={styles.sosButtonText}>SOS</Text>
-                </View>
-              </View>
-            </Pressable>
-            <Pressable style={({ pressed }) => [styles.jobBanner, pressed && styles.pressed]} onPress={() => setPostJob({ draft: null })} accessibilityLabel="Post a repair job">
-              <View style={styles.jobBannerContent}>
-                <View style={styles.jobLeft}>
-                  <Text style={styles.jobBannerTitle}>අලුත්වැඩියාවක් පළ කරන්න</Text>
-                  <Text style={styles.jobBannerSub}>ගරාජ කිහිපයකින් මිල ගණන් ලබා ගන්න</Text>
-                </View>
-                <View style={styles.jobCta}>
-                  <Text style={styles.jobCtaText}>＋</Text>
-                </View>
-              </View>
-            </Pressable>
+          <Animated.View style={[styles.stickyBannersContainer, { marginTop: sheetScroll.interpolate({ inputRange: [0, 1], outputRange: [-18, -headerH] }) }]}>
+            <View onLayout={(e) => setBannerW(Math.round(e.nativeEvent.layout.width))}>
+              <Animated.View style={{ height: lerp(SOS_H + BANNER_GAP + JOB_H, COMPACT_H) }}>
+                {/* SOS: full card at the top of the page, the left half of a single row once scrolled */}
+                <Animated.View style={[styles.sosBanner, styles.bannerAbs, { width: lerp(bannerW, half), height: lerp(SOS_H, COMPACT_H), top: 0, left: 0 }]}>
+                  <Gradient stops={SOS_GRADIENT} />
+                  <Pressable style={({ pressed }) => [StyleSheet.absoluteFill, pressed && styles.pressed]} onPress={() => setSOSStage('map')} accessibilityLabel="Open SOS">
+                    <Animated.View style={[styles.sosBannerContent, styles.bannerFull, { width: bannerW, opacity: fadeOut }]}>
+                      <View style={styles.sosLeft}>
+                        <View style={styles.sosBadge}>
+                          <Pulse style={styles.pulseDot} />
+                          <Text style={styles.badgeText}>24/7 SOS</Text>
+                        </View>
+                        <Text style={styles.heroTitle}>වාහනය Breakdown ද ?</Text>
+                        <Text style={styles.heroSub}>ළගම OnGarage උදව් ඉල්ලන්න</Text>
+                      </View>
+                      <View style={styles.sosButton}>
+                        <Text style={styles.sosButtonText}>SOS</Text>
+                      </View>
+                    </Animated.View>
+                    <Animated.View style={[styles.compactRow, { opacity: fadeIn }]} pointerEvents="none">
+                      <View style={styles.compactPlus}>
+                        <Pulse style={styles.compactDot} />
+                      </View>
+                      <Text style={styles.compactSos}>SOS</Text>
+                      <Text style={styles.compactSmall}>24/7</Text>
+                    </Animated.View>
+                  </Pressable>
+                </Animated.View>
+
+                {/* Post a job: full card below the SOS card, the right half of the row once scrolled */}
+                <Animated.View style={[styles.jobBanner, styles.bannerAbs, { width: lerp(bannerW, half), height: lerp(JOB_H, COMPACT_H), top: lerp(SOS_H + BANNER_GAP, 0), left: lerp(0, half + BANNER_GAP) }]}>
+                  <Gradient stops={JOB_GRADIENT} />
+                  <Pressable style={({ pressed }) => [StyleSheet.absoluteFill, pressed && styles.pressed]} onPress={() => setPostJob({ draft: null })} accessibilityLabel="Post a repair job">
+                    <Animated.View style={[styles.jobBannerContent, styles.bannerFull, { width: bannerW, opacity: fadeOut }]}>
+                      <View style={styles.jobLeft}>
+                        <Text style={styles.jobBannerTitle}>වාහනයේ Repair එකක්ද?</Text>
+                        <Text style={styles.jobBannerSub}>OnGarage වලින් Quotes ගන්න</Text>
+                      </View>
+                      <View style={styles.jobCta}>
+                        <Text style={styles.jobCtaText}>＋</Text>
+                      </View>
+                    </Animated.View>
+                    <Animated.View style={[styles.compactRow, { opacity: fadeIn }]} pointerEvents="none">
+                      <View style={styles.compactPlus}>
+                        <View style={styles.plusBarH} />
+                        <View style={styles.plusBarV} />
+                      </View>
+                      <Text style={styles.compactJob}>Quotes ඉල්ලන්න</Text>
+                    </Animated.View>
+                  </Pressable>
+                </Animated.View>
+              </Animated.View>
+            </View>
           </Animated.View>
         )}
 
@@ -175,9 +219,7 @@ function AppShell() {
           style={[
             styles.sheet,
             activeTab !== 'profile' && styles.sheetOverlap,
-            activeTab === 'home' && {
-              marginTop: sheetScroll.interpolate({ inputRange: [0, 1], outputRange: [-18, 0] }),
-            },
+            activeTab === 'home' && styles.sheetHome,
           ]}
         >
           {activeTab === 'home' ? (
@@ -280,9 +322,11 @@ const styles = themedStyles(() => StyleSheet.create({
   // The tab's screen overlaps the header band with rounded top corners.
   sheet: { flex: 1, backgroundColor: getThemeMode() === 'dark' ? Colors.bgBody : '#ffffff' },
   sheetOverlap: { marginTop: -18, borderTopLeftRadius: 24, borderTopRightRadius: 24, overflow: 'hidden' },
-  bottomNavContainer: { position: 'absolute', bottom: 0, left: 0, right: 0 },
+  // Home: the list sits in its own rounded, shadowed sheet that slides up over the padding under the banners.
+  sheetHome: { marginTop: -16, zIndex: 2, borderTopWidth: 1, borderTopColor: Colors.borderColor, shadowColor: '#000', shadowOffset: { width: 0, height: -6 }, shadowOpacity: 0.14, shadowRadius: 14, elevation: 12 },
+  bottomNavContainer: { position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 20 },
   // Sticky banners on Home (outside the sheet so they don't move when sheet expands)
-  stickyBannersContainer: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 8, gap: 8, zIndex: 10, backgroundColor: getThemeMode() === 'dark' ? Colors.bgBody : '#ffffff' },
+  stickyBannersContainer: { marginTop: -18, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 16, paddingTop: 16, paddingBottom: 26, zIndex: 1, backgroundColor: getThemeMode() === 'dark' ? Colors.bgBody : '#ffffff' },
   pressed: { opacity: 0.9, transform: [{ scale: 0.99 }] },
   sosBanner: { borderRadius: 18, overflow: 'hidden', backgroundColor: '#dc2626', shadowColor: '#dc2626', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 18, elevation: 6 },
   sosBannerContent: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, gap: 12 },
@@ -300,5 +344,17 @@ const styles = themedStyles(() => StyleSheet.create({
   jobBannerTitle: { fontSize: 17, fontFamily: FONTS.titleBold, color: '#fff' },
   jobBannerSub: { fontSize: 11, fontFamily: FONTS.bodyMedium, color: 'rgba(255, 255, 255, 0.9)' },
   jobCta: { width: 52, height: 52, borderRadius: 26, backgroundColor: 'rgba(255, 255, 255, 0.2)', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'rgba(255, 255, 255, 0.85)', flexShrink: 0 },
+  bannerAbs: { position: 'absolute' },
+  bannerFull: { position: 'absolute', left: 0, top: 0, bottom: 0 },
+  compactRow: { ...StyleSheet.absoluteFill, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  compactSos: { fontSize: 17, fontWeight: '900', color: '#fff', letterSpacing: 1 },
+  compactSmall: { fontSize: 11, fontWeight: '700', color: 'rgba(255,255,255,0.8)' },
+  compactPlus: { width: 28, height: 28, borderRadius: 14, borderWidth: 2, borderColor: 'rgba(255,255,255,0.85)', alignItems: 'center', justifyContent: 'center' },
+  compactDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: '#fff' },
+  // The plus is drawn (not a glyph) so its stroke weight matches the dot's.
+  plusBarH: { position: 'absolute', width: 12, height: 2.5, borderRadius: 2, backgroundColor: '#fff' },
+  plusBarV: { position: 'absolute', width: 2.5, height: 12, borderRadius: 2, backgroundColor: '#fff' },
+  compactPlusText: { fontSize: 15, fontWeight: '700', color: '#fff', marginTop: -2 },
+  compactJob: { fontSize: 14, fontFamily: FONTS.titleBold, color: '#fff' },
   jobCtaText: { fontSize: 22, fontWeight: '700', color: '#fff' },
 }));

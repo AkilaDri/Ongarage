@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(node -e ' *)"
+      "Bash(node -e ' *)",
+      "Bash(awk '/^## Honest limits/,/^## [A-Z][a-z]+ [a-z]/' README.md)",
+      "Bash(awk '/Where Jev leads/,0' README.md)"
     ]
   }
 }
