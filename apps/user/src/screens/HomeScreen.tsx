@@ -84,15 +84,12 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onSOSPress, onPostJob, o
           </View>
         </Pressable>
 
-        {/* Post a repair job: solid gold, no image, just wrench icon and text */}
+        {/* Post a repair job: dark blue, no image, just text and plus button */}
         <Pressable style={({ pressed }) => [styles.jobBanner, pressed && styles.pressed]} onPress={onPostJob} accessibilityLabel="Post a repair job">
           <View style={styles.jobBannerContent}>
             <View style={styles.jobLeft}>
               <Text style={styles.jobBannerTitle}>අලුත්වැඩියාවක් පළ කරන්න</Text>
               <Text style={styles.jobBannerSub}>ගරාජ කිහිපයකින් මිල ගණන් ලබා ගන්න</Text>
-            </View>
-            <View style={styles.jobIcon}>
-              <Text style={styles.jobIconText}>🔧</Text>
             </View>
             <View style={styles.jobCta}>
               <Text style={styles.jobCtaText}>＋</Text>
@@ -199,15 +196,13 @@ const styles = themedStyles(() => StyleSheet.create({
   },
   sosButtonText: { fontSize: 15, fontWeight: '900', color: '#fff', letterSpacing: 1 },
 
-  // Post Job banner: solid gold, icon-driven, no image.
-  jobBanner: { borderRadius: 18, overflow: 'hidden', backgroundColor: '#f59e0b' },
+  // Post Job banner: dark blue, no image, text + plus button only.
+  jobBanner: { borderRadius: 18, overflow: 'hidden', backgroundColor: '#162b63', shadowColor: '#162b63', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.25, shadowRadius: 18, elevation: 5 },
   jobBannerContent: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, gap: 12 },
   jobLeft: { flex: 1, gap: 2 },
   jobBannerTitle: { fontSize: 17, fontFamily: FONTS.titleBold, color: '#fff' },
   jobBannerSub: { fontSize: 11, fontFamily: FONTS.bodyMedium, color: 'rgba(255, 255, 255, 0.9)' },
-  jobIcon: { width: 52, height: 52, borderRadius: 26, backgroundColor: 'rgba(255, 255, 255, 0.2)', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  jobIconText: { fontSize: 28 },
-  jobCta: { width: 52, height: 52, borderRadius: 26, backgroundColor: 'rgba(255, 255, 255, 0.25)', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#fff', flexShrink: 0 },
+  jobCta: { width: 52, height: 52, borderRadius: 26, backgroundColor: 'rgba(255, 255, 255, 0.2)', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'rgba(255, 255, 255, 0.85)', flexShrink: 0 },
   jobCtaText: { fontSize: 22, fontWeight: '700', color: '#fff' },
 
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 },
