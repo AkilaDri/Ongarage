@@ -1,11 +1,10 @@
 import React, { useMemo, useState } from 'react';
-import { View, ScrollView, Text, Pressable, StyleSheet, Linking, ImageBackground } from 'react-native';
+import { View, ScrollView, Text, Pressable, StyleSheet, Linking } from 'react-native';
 import {
   Colors,
   directionsUrl,
   distanceKm,
   FONTS,
-  Gradient,
   Pulse,
   SERVICE_CATEGORIES,
   themedStyles,
@@ -25,20 +24,6 @@ import { useNotice } from '../context/NoticeContext';
 import { GarageReviewsSheet } from '../components/GarageReviewsSheet';
 
 const DAY = 24 * 60 * 60 * 1000;
-
-const SOS_PHOTO = require('../../assets/home/banners/sos.jpg');
-const POST_JOB_PHOTO = require('../../assets/home/banners/post-job.jpg');
-// Shades fade from solid behind the text to clear over the photo (same style as the ad banners).
-const SOS_SHADE = [
-  { offset: '0', color: '#7f1d1d', opacity: 0.88 },
-  { offset: '0.5', color: '#450a0a', opacity: 0.4 },
-  { offset: '1', color: '#020617', opacity: 0 },
-];
-const JOB_SHADE = [
-  { offset: '0', color: '#0f172a', opacity: 0.85 },
-  { offset: '0.5', color: '#0f172a', opacity: 0.35 },
-  { offset: '1', color: '#020617', opacity: 0 },
-];
 
 interface HomeScreenProps {
   onSOSPress: () => void;
@@ -80,11 +65,10 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onSOSPress, onPostJob, o
   return (
     <View style={styles.container}>
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {/* SOS: the emergency action — a photo banner, one line, one big button */}
-        <Pressable style={({ pressed }) => [styles.hero, styles.sosHero, pressed && styles.pressed]} onPress={onSOSPress} accessibilityLabel="Open SOS">
-          <ImageBackground source={SOS_PHOTO} style={styles.heroBg} imageStyle={styles.heroImage}>
-            <Gradient stops={SOS_SHADE} />
-            <View style={styles.heroCopy}>
+        {/* SOS: the emergency action — solid red, no image, just icon and text */}
+        <Pressable style={({ pressed }) => [styles.sosBanner, pressed && styles.pressed]} onPress={onSOSPress} accessibilityLabel="Open SOS">
+          <View style={styles.sosBannerContent}>
+            <View style={styles.sosLeft}>
               <View style={styles.sosBadge}>
                 <Pulse style={styles.pulseDot} />
                 <Text style={styles.badgeText}>24/7 SOS</Text>
@@ -95,21 +79,23 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onSOSPress, onPostJob, o
             <View style={styles.sosButton}>
               <Text style={styles.sosButtonText}>SOS</Text>
             </View>
-          </ImageBackground>
+          </View>
         </Pressable>
 
-        {/* Post a repair job: garages bid on it */}
-        <Pressable style={({ pressed }) => [styles.hero, pressed && styles.pressed]} onPress={onPostJob} accessibilityLabel="Post a repair job">
-          <ImageBackground source={POST_JOB_PHOTO} style={styles.heroBg} imageStyle={styles.heroImage}>
-            <Gradient stops={JOB_SHADE} />
-            <View style={styles.heroCopy}>
-              <Text style={styles.heroTitle}>අලුත්වැඩියාවක් පළ කරන්න</Text>
-              <Text style={styles.heroSub}>ගරාජ කිහිපයකින් මිල ගණන් ලබා ගන්න</Text>
-              <View style={styles.jobCta}>
-                <Text style={styles.jobCtaText}>＋ නව ඉල්ලීමක්</Text>
-              </View>
+        {/* Post a repair job: solid gold, no image, just wrench icon and text */}
+        <Pressable style={({ pressed }) => [styles.jobBanner, pressed && styles.pressed]} onPress={onPostJob} accessibilityLabel="Post a repair job">
+          <View style={styles.jobBannerContent}>
+            <View style={styles.jobLeft}>
+              <Text style={styles.jobBannerTitle}>අලුත්වැඩියාවක් පළ කරන්න</Text>
+              <Text style={styles.jobBannerSub}>ගරාජ කිහිපයකින් මිල ගණන් ලබා ගන්න</Text>
             </View>
-          </ImageBackground>
+            <View style={styles.jobIcon}>
+              <Text style={styles.jobIconText}>🔧</Text>
+            </View>
+            <View style={styles.jobCta}>
+              <Text style={styles.jobCtaText}>＋</Text>
+            </View>
+          </View>
         </Pressable>
 
         {/* Categories: round photos, two rows, slide sideways */}
@@ -173,16 +159,12 @@ const styles = themedStyles(() => StyleSheet.create({
   container: { flex: 1 },
   scroll: { flex: 1 },
   content: { paddingTop: 14, paddingHorizontal: 16, paddingBottom: 90, gap: 16 },
-  // White text sits on the photos' fixed dark shades (not theme surfaces).
-  hero: { borderRadius: 18, overflow: 'hidden' },
-  sosHero: { shadowColor: '#dc2626', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 18, elevation: 6 },
   pressed: { opacity: 0.9, transform: [{ scale: 0.99 }] },
-  // A fixed height: with only minHeight, the web build draws the photo at its natural size (zoomed in).
-  heroBg: { height: 132, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, gap: 12 },
-  heroImage: { borderRadius: 18, width: '100%', height: '100%' },
-  heroCopy: { flex: 1, gap: 3 },
-  heroTitle: { fontSize: 18, fontFamily: FONTS.titleBold, color: '#fff' },
-  heroSub: { fontSize: 11.5, fontFamily: FONTS.bodyMedium, color: '#e2e8f0' },
+
+  // SOS banner: solid red, icon-driven, no image.
+  sosBanner: { borderRadius: 18, overflow: 'hidden', backgroundColor: '#dc2626', shadowColor: '#dc2626', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 18, elevation: 6 },
+  sosBannerContent: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, gap: 12 },
+  sosLeft: { flex: 1, gap: 3 },
   sosBadge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -196,19 +178,32 @@ const styles = themedStyles(() => StyleSheet.create({
   },
   pulseDot: { width: 6, height: 6, backgroundColor: '#fff', borderRadius: 3 },
   badgeText: { fontSize: 10, fontWeight: '800', color: '#fff', letterSpacing: 0.4 },
+  heroTitle: { fontSize: 18, fontFamily: FONTS.titleBold, color: '#fff' },
+  heroSub: { fontSize: 11.5, fontFamily: FONTS.bodyMedium, color: '#e2e8f0' },
   sosButton: {
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#dc2626',
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
     borderWidth: 3,
     borderColor: 'rgba(255, 255, 255, 0.85)',
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
   sosButtonText: { fontSize: 15, fontWeight: '900', color: '#fff', letterSpacing: 1 },
-  jobCta: { alignSelf: 'flex-start', marginTop: 8, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12, backgroundColor: '#f59e0b' },
-  jobCtaText: { fontSize: 12, fontFamily: FONTS.bodyBold, color: '#fff' },
+
+  // Post Job banner: solid gold, icon-driven, no image.
+  jobBanner: { borderRadius: 18, overflow: 'hidden', backgroundColor: '#f59e0b' },
+  jobBannerContent: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, gap: 12 },
+  jobLeft: { flex: 1, gap: 2 },
+  jobBannerTitle: { fontSize: 17, fontFamily: FONTS.titleBold, color: '#fff' },
+  jobBannerSub: { fontSize: 11, fontFamily: FONTS.bodyMedium, color: 'rgba(255, 255, 255, 0.9)' },
+  jobIcon: { width: 52, height: 52, borderRadius: 26, backgroundColor: 'rgba(255, 255, 255, 0.2)', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  jobIconText: { fontSize: 28 },
+  jobCta: { width: 52, height: 52, borderRadius: 26, backgroundColor: 'rgba(255, 255, 255, 0.25)', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#fff', flexShrink: 0 },
+  jobCtaText: { fontSize: 22, fontWeight: '700', color: '#fff' },
+
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 },
   viewAllLink: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
   sectionTitle: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textMain },
