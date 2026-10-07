@@ -6,7 +6,15 @@ import { FONTS } from '../theme/fonts';
 
 // path: a 24×24 SVG path, filled with the active/idle colour.
 // badge: a count on the icon (e.g. requests waiting for an answer); hidden when 0.
-export type NavItem<T extends string> = { id: T; label: string; path: string; badge?: number };
+// icon: instead of a path, a component drawing the icon itself (e.g. a designer's two-tone artwork);
+// it is told whether its tab is active and picks its own colours.
+export type NavItem<T extends string> = {
+  id: T;
+  label: string;
+  path?: string;
+  icon?: React.ComponentType<{ active: boolean; size?: number }>;
+  badge?: number;
+};
 
 interface BottomNavProps<T extends string> {
   items: NavItem<T>[];
@@ -23,9 +31,13 @@ export function BottomNav<T extends string>({ items, activeTab, onTabChange }: B
       return (
         <Pressable key={item.id} style={styles.navItem} onPress={() => onTabChange(item.id)}>
           <View>
-            <Svg width={22} height={22} viewBox="0 0 24 24">
-              <Path d={item.path} fill={color} />
-            </Svg>
+            {item.icon ? (
+              <item.icon active={activeTab === item.id} size={26} />
+            ) : (
+              <Svg width={22} height={22} viewBox="0 0 24 24">
+                <Path d={item.path} fill={color} />
+              </Svg>
+            )}
             {!!item.badge && (
               <View style={styles.badge}>
                 <Text style={styles.badgeText}>{item.badge > 9 ? '9+' : item.badge}</Text>
