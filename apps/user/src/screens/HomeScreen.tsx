@@ -31,9 +31,10 @@ interface HomeScreenProps {
   onPostJob: () => void;
   onServicePress: (service: ServiceCategory) => void;
   onBookGarage: (garage: Garage) => void;
+  onScrollChange?: (scrollY: number) => void;
 }
 
-export const HomeScreen: React.FC<HomeScreenProps> = ({ onSOSPress, onPostJob, onServicePress, onBookGarage }) => {
+export const HomeScreen: React.FC<HomeScreenProps> = ({ onSOSPress, onPostJob, onServicePress, onBookGarage, onScrollChange }) => {
   const user = useUserLocation();
   const [allServices, setAllServices] = useState(false);
   const { notify } = useNotice();
@@ -98,7 +99,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onSOSPress, onPostJob, o
         </Pressable>
       </View>
 
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} scrollEventThrottle={16} onScroll={(e) => onScrollChange?.(e.nativeEvent.contentOffset.y)}>
         {/* Categories: round photos, two rows, slide sideways */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>සේවා අංශ</Text>

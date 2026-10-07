@@ -66,6 +66,8 @@ function AppShell() {
   const fade = useRef(new Animated.Value(0)).current;
   const [fadeColor, setFadeColor] = useState(Colors.bgBody);
   const firstRender = useRef(true);
+  const sheetScroll = useRef(new Animated.Value(0)).current;
+  const scrollY = useRef(0);
 
   useEffect(() => {
     if (firstRender.current) {
@@ -97,6 +99,14 @@ function AppShell() {
 
   const closeSOS = useCallback(() => setSOSStage('closed'), []);
 
+  const handleHomeScroll = useCallback((y: number) => {
+    scrollY.current = y;
+    // Expand sheet when scrolling down (triggers at ~80px scroll).
+    const expandThreshold = 80;
+    const progress = Math.min(1, Math.max(0, (y - expandThreshold) / 120));
+    sheetScroll.setValue(progress);
+  }, [sheetScroll]);
+
   React.useEffect(() => {
     if (fontsLoaded) {
       SplashScreen.hideAsync();
@@ -119,13 +129,24 @@ function AppShell() {
         ) : TAB_TITLES[activeTab] ? (
           <TitleBand title={TAB_TITLES[activeTab]!} />
         ) : null}
-        <View style={[styles.sheet, activeTab !== 'profile' && styles.sheetOverlap]}>
+        <Animated.View
+          style={[
+            styles.sheet,
+            activeTab !== 'profile' && styles.sheetOverlap,
+            activeTab === 'home' && {
+              marginTop: sheetScroll.interpolate({ inputRange: [0, 1], outputRange: [-18, -80] }),
+              borderTopLeftRadius: sheetScroll.interpolate({ inputRange: [0, 1], outputRange: [24, 0] }),
+              borderTopRightRadius: sheetScroll.interpolate({ inputRange: [0, 1], outputRange: [24, 0] }),
+            },
+          ]}
+        >
           {activeTab === 'home' ? (
             <HomeScreen
               onSOSPress={() => setSOSStage('map')}
               onPostJob={() => setPostJob({ draft: null })}
               onServicePress={setSelectedService}
               onBookGarage={(garage) => setBooking({ garage })}
+              onScrollChange={handleHomeScroll}
             />
           ) : activeTab === 'bids' ? (
             <BidsScreen
@@ -140,7 +161,7 @@ function AppShell() {
           ) : (
             <ProfileScreen activeVehicle={selectedVehicle} onVehicleChange={setSelectedVehicle} />
           )}
-        </View>
+        </Animated.View>
 
         <View style={styles.bottomNavContainer}>
           <BottomNav items={USER_TABS} activeTab={activeTab} onTabChange={setActiveTab} />
