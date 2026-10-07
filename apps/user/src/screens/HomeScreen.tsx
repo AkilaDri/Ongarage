@@ -1,12 +1,11 @@
 import React, { useMemo, useState } from 'react';
-import { View, ScrollView, Text, Pressable, StyleSheet, Linking, ImageBackground } from 'react-native';
+import { View, ScrollView, Text, Pressable, StyleSheet, Linking } from 'react-native';
 import {
   Colors,
   directionsUrl,
   distanceKm,
   FONTS,
-  Gradient,
-  Pulse,
+  getThemeMode,
   SERVICE_CATEGORIES,
   themedStyles,
   type Garage,
@@ -26,28 +25,15 @@ import { GarageReviewsSheet } from '../components/GarageReviewsSheet';
 
 const DAY = 24 * 60 * 60 * 1000;
 
-const SOS_PHOTO = require('../../assets/home/banners/sos.jpg');
-const POST_JOB_PHOTO = require('../../assets/home/banners/post-job.jpg');
-// Shades fade from solid behind the text to clear over the photo (same style as the ad banners).
-const SOS_SHADE = [
-  { offset: '0', color: '#7f1d1d', opacity: 0.88 },
-  { offset: '0.5', color: '#450a0a', opacity: 0.4 },
-  { offset: '1', color: '#020617', opacity: 0 },
-];
-const JOB_SHADE = [
-  { offset: '0', color: '#0f172a', opacity: 0.85 },
-  { offset: '0.5', color: '#0f172a', opacity: 0.35 },
-  { offset: '1', color: '#020617', opacity: 0 },
-];
-
 interface HomeScreenProps {
   onSOSPress: () => void;
   onPostJob: () => void;
   onServicePress: (service: ServiceCategory) => void;
   onBookGarage: (garage: Garage) => void;
+  onScrollChange?: (scrollY: number) => void;
 }
 
-export const HomeScreen: React.FC<HomeScreenProps> = ({ onSOSPress, onPostJob, onServicePress, onBookGarage }) => {
+export const HomeScreen: React.FC<HomeScreenProps> = ({ onSOSPress, onPostJob, onServicePress, onBookGarage, onScrollChange }) => {
   const user = useUserLocation();
   const [allServices, setAllServices] = useState(false);
   const { notify } = useNotice();
@@ -79,39 +65,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onSOSPress, onPostJob, o
 
   return (
     <View style={styles.container}>
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {/* SOS: the emergency action — a photo banner, one line, one big button */}
-        <Pressable style={({ pressed }) => [styles.hero, styles.sosHero, pressed && styles.pressed]} onPress={onSOSPress} accessibilityLabel="Open SOS">
-          <ImageBackground source={SOS_PHOTO} style={styles.heroBg} imageStyle={styles.heroImage}>
-            <Gradient stops={SOS_SHADE} />
-            <View style={styles.heroCopy}>
-              <View style={styles.sosBadge}>
-                <Pulse style={styles.pulseDot} />
-                <Text style={styles.badgeText}>24/7 SOS</Text>
-              </View>
-              <Text style={styles.heroTitle}>වාහනය අඩපණ වුණාද?</Text>
-              <Text style={styles.heroSub}>ළඟම කාර්මිකයා ඔබ වෙත</Text>
-            </View>
-            <View style={styles.sosButton}>
-              <Text style={styles.sosButtonText}>SOS</Text>
-            </View>
-          </ImageBackground>
-        </Pressable>
-
-        {/* Post a repair job: garages bid on it */}
-        <Pressable style={({ pressed }) => [styles.hero, pressed && styles.pressed]} onPress={onPostJob} accessibilityLabel="Post a repair job">
-          <ImageBackground source={POST_JOB_PHOTO} style={styles.heroBg} imageStyle={styles.heroImage}>
-            <Gradient stops={JOB_SHADE} />
-            <View style={styles.heroCopy}>
-              <Text style={styles.heroTitle}>අලුත්වැඩියාවක් පළ කරන්න</Text>
-              <Text style={styles.heroSub}>ගරාජ කිහිපයකින් මිල ගණන් ලබා ගන්න</Text>
-              <View style={styles.jobCta}>
-                <Text style={styles.jobCtaText}>＋ නව ඉල්ලීමක්</Text>
-              </View>
-            </View>
-          </ImageBackground>
-        </Pressable>
-
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} scrollEventThrottle={16} onScroll={(e) => onScrollChange?.(e.nativeEvent.contentOffset.y)}>
         {/* Categories: round photos, two rows, slide sideways */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>සේවා අංශ</Text>
@@ -172,43 +126,7 @@ const styles = themedStyles(() => StyleSheet.create({
   // Transparent: the rounded sheet in App.tsx supplies the background.
   container: { flex: 1 },
   scroll: { flex: 1 },
-  content: { paddingTop: 14, paddingHorizontal: 16, paddingBottom: 90, gap: 16 },
-  // White text sits on the photos' fixed dark shades (not theme surfaces).
-  hero: { borderRadius: 18, overflow: 'hidden' },
-  sosHero: { shadowColor: '#dc2626', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 18, elevation: 6 },
-  pressed: { opacity: 0.9, transform: [{ scale: 0.99 }] },
-  // A fixed height: with only minHeight, the web build draws the photo at its natural size (zoomed in).
-  heroBg: { height: 132, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, gap: 12 },
-  heroImage: { borderRadius: 18, width: '100%', height: '100%' },
-  heroCopy: { flex: 1, gap: 3 },
-  heroTitle: { fontSize: 18, fontFamily: FONTS.titleBold, color: '#fff' },
-  heroSub: { fontSize: 11.5, fontFamily: FONTS.bodyMedium, color: '#e2e8f0' },
-  sosBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    alignSelf: 'flex-start',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.18)',
-    marginBottom: 2,
-  },
-  pulseDot: { width: 6, height: 6, backgroundColor: '#fff', borderRadius: 3 },
-  badgeText: { fontSize: 10, fontWeight: '800', color: '#fff', letterSpacing: 0.4 },
-  sosButton: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: '#dc2626',
-    borderWidth: 3,
-    borderColor: 'rgba(255, 255, 255, 0.85)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  sosButtonText: { fontSize: 15, fontWeight: '900', color: '#fff', letterSpacing: 1 },
-  jobCta: { alignSelf: 'flex-start', marginTop: 8, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12, backgroundColor: '#f59e0b' },
-  jobCtaText: { fontSize: 12, fontFamily: FONTS.bodyBold, color: '#fff' },
+  content: { paddingTop: 16, paddingHorizontal: 16, paddingBottom: 90, gap: 16 },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 },
   viewAllLink: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
   sectionTitle: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textMain },
