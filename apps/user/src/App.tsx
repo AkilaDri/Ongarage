@@ -134,7 +134,7 @@ function AppShell() {
             styles.sheet,
             activeTab !== 'profile' && styles.sheetOverlap,
             activeTab === 'home' && {
-              marginTop: sheetScroll.interpolate({ inputRange: [0, 1], outputRange: [-18, -80] }),
+              marginTop: sheetScroll.interpolate({ inputRange: [0, 1], outputRange: [-18, -200] }),
               borderTopLeftRadius: sheetScroll.interpolate({ inputRange: [0, 1], outputRange: [24, 0] }),
               borderTopRightRadius: sheetScroll.interpolate({ inputRange: [0, 1], outputRange: [24, 0] }),
             },
