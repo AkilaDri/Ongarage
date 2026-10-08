@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { Colors, FONTS, GarageCard, themedStyles, type Garage } from '@ongarage/shared';
+import { Colors, FONTS, GarageCard, themedStyles, type Garage, softEdge, softShadow } from '@ongarage/shared';
 import { useGarage } from '../context/GarageContext';
 import { Sheet } from './Sheet';
 
@@ -53,8 +53,8 @@ const InfoRow: React.FC<{ icon: string; label: string; value: string }> = ({ ico
 const styles = themedStyles(() =>
   StyleSheet.create({
     flex1: { flex: 1 },
-    section: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, letterSpacing: 0.4, marginTop: 4 },
-    card: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.borderColor, borderRadius: 16, padding: 14, gap: 10 },
+    section: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textMain, marginTop: 4 },
+    card: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), borderRadius: 20, padding: 14, gap: 10, ...softShadow() },
     sub: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
     infoRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
     infoIcon: { fontSize: 16, width: 22, textAlign: 'center' },

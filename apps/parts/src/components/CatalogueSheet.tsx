@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { ActionButton, Colors, FONTS, SERVICE_CATEGORIES, themedStyles } from '@ongarage/shared';
+import { ActionButton, Colors, FONTS, SERVICE_CATEGORIES, themedStyles, softEdge, softShadow } from '@ongarage/shared';
 import { useShop } from '../context/ShopContext';
 import { ALL_TYPES } from '../constants/mockData';
 import { Sheet } from './Sheet';
@@ -88,8 +88,8 @@ export const CatalogueSheet: React.FC<{ visible: boolean; onClose: () => void }>
 const styles = themedStyles(() =>
   StyleSheet.create({
     flex1: { flex: 1 },
-    label: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, letterSpacing: 0.4, marginTop: 6 },
-    row: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 14, borderWidth: 1, borderColor: Colors.borderColor, backgroundColor: Colors.bgCard },
+    label: { fontSize: 13.5, fontFamily: FONTS.titleBold, color: Colors.textMain, marginTop: 6 },
+    row: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 18, borderWidth: 1, borderColor: softEdge(), backgroundColor: Colors.bgCard, ...softShadow() },
     rowOn: { borderColor: 'rgba(56, 189, 248, 0.45)' },
     name: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.textMain },
     sub: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 1 },
@@ -98,7 +98,7 @@ const styles = themedStyles(() =>
     knob: { width: 18, height: 18, borderRadius: 9, backgroundColor: '#fff' },
     knobOn: { alignSelf: 'flex-end' },
     grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-    cat: { paddingHorizontal: 11, paddingVertical: 8, borderRadius: 12, borderWidth: 1, borderColor: Colors.borderColor, backgroundColor: Colors.bgCard },
+    cat: { paddingHorizontal: 11, paddingVertical: 8, borderRadius: 16, borderWidth: 1, borderColor: softEdge(), backgroundColor: Colors.bgCard, ...softShadow() },
     catOn: { borderColor: Colors.primary, backgroundColor: 'rgba(56, 189, 248, 0.1)' },
     catText: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
   })

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { categoryInfo, Colors, EmptyState, FONTS, GlassIcon, SERVICE_CATEGORIES, themedStyles } from '@ongarage/shared';
+import { categoryInfo, Colors, EmptyState, FONTS, GlassIcon, SERVICE_CATEGORIES, themedStyles, softEdge, softShadow, softFill } from '@ongarage/shared';
 import { useShop } from '../context/ShopContext';
 import { StockEditSheet, type StockTarget } from '../components/StockEditSheet';
 import { money } from '../utils/format';
@@ -108,23 +108,24 @@ const styles = themedStyles(() =>
       flex: 1,
       height: 46,
       paddingHorizontal: 14,
-      borderRadius: 14,
+      borderRadius: 18,
       backgroundColor: Colors.bgCard,
       borderWidth: 1,
-      borderColor: Colors.borderColor,
+      borderColor: softEdge(),
       color: Colors.textMain,
       fontSize: 13,
       fontFamily: FONTS.bodyMedium,
+      ...softShadow(),
     },
     addBtn: { width: 46, height: 46, borderRadius: 14, backgroundColor: Colors.primary, justifyContent: 'center', alignItems: 'center' },
     addText: { fontSize: 22, color: '#fff', fontWeight: '700' },
     chips: { gap: 6 },
-    filter: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, borderWidth: 1, borderColor: Colors.borderColor, backgroundColor: Colors.bgCard },
+    filter: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, borderWidth: 1, borderColor: softEdge(), backgroundColor: Colors.bgCard, ...softShadow() },
     filterOn: { backgroundColor: Colors.primary, borderColor: Colors.primary },
     filterWarn: { borderColor: 'rgba(245, 158, 11, 0.55)' },
     filterText: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
     filterTextOn: { color: '#fff' },
-    card: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.borderColor, borderRadius: 18, padding: 14, gap: 10 },
+    card: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), borderRadius: 20, padding: 14, gap: 10, ...softShadow() },
     title: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.textMain },
     sub: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 1 },
     variant: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: Colors.borderColor },
@@ -134,7 +135,7 @@ const styles = themedStyles(() =>
     typeText: { fontSize: 10, fontWeight: '800', color: Colors.primary },
     priceText: { fontSize: 12.5, fontFamily: FONTS.bodyBold, color: Colors.textMain },
     qty: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-    qtyBtn: { width: 30, height: 30, borderRadius: 15, backgroundColor: Colors.subtleFill, borderWidth: 1, borderColor: Colors.borderColor, justifyContent: 'center', alignItems: 'center' },
+    qtyBtn: { width: 30, height: 30, borderRadius: 15, backgroundColor: softFill(), borderWidth: 1, borderColor: 'transparent', justifyContent: 'center', alignItems: 'center' },
     qtyBtnText: { fontSize: 16, fontWeight: '700', color: Colors.textMain },
     qtyValue: { fontSize: 14, fontFamily: FONTS.bodyBold, color: Colors.textMain, minWidth: 22, textAlign: 'center' },
     off: { opacity: 0.35 },

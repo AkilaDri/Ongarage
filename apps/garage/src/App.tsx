@@ -10,7 +10,7 @@ import {
   NotoSansSinhala_600SemiBold,
   NotoSansSinhala_700Bold,
 } from '@expo-google-fonts/noto-sans-sinhala';
-import { BottomNav, Colors, ThemeProvider, themedStyles, useTheme } from '@ongarage/shared';
+import { BottomNav, Colors, ThemeProvider, themedStyles, useTheme, headerBand, getThemeMode } from '@ongarage/shared';
 import { GarageProvider, useGarage } from './context/GarageContext';
 import { PartsProvider, useParts } from './context/PartsContext';
 import { GARAGE_TABS, type TabId } from './constants/tabs';
@@ -85,7 +85,8 @@ function AppShell() {
       <StatusBar style={isDark ? 'light' : 'dark'} />
       <SafeAreaView style={styles.container} edges={['top']}>
         <GarageHeader />
-        <View style={styles.flex1}>
+        {/* The tab's screen overlaps the header band with rounded top corners, like the owner app. */}
+        <View style={styles.sheet}>
           {tab === 'sos' && <SOSInboxScreen />}
           {tab === 'jobs' && <JobFeedScreen />}
           {tab === 'schedule' && <ScheduleScreen onOpenParts={openParts} />}
@@ -111,8 +112,9 @@ function AppShell() {
 
 const styles = themedStyles(() =>
   StyleSheet.create({
-    container: { flex: 1, backgroundColor: Colors.bgBody },
+    container: { flex: 1, backgroundColor: headerBand().bg },
     flex1: { flex: 1 },
+    sheet: { flex: 1, marginTop: -18, borderTopLeftRadius: 24, borderTopRightRadius: 24, overflow: 'hidden', backgroundColor: getThemeMode() === 'dark' ? Colors.bgBody : '#ffffff' },
     nav: { position: 'absolute', left: 0, right: 0, bottom: 0 },
   })
 );

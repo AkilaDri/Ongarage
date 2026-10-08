@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { Colors, FONTS, themedStyles } from '@ongarage/shared';
+import { Colors, FONTS, themedStyles, softEdge, softShadow, softFill } from '@ongarage/shared';
 import { useGarage } from '../context/GarageContext';
 import { Sheet } from './Sheet';
 import { ago } from '../utils/format';
@@ -135,12 +135,12 @@ const styles = themedStyles(() =>
     name: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.textMain },
     sub: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 1 },
     chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-    filter: { paddingHorizontal: 11, paddingVertical: 6, borderRadius: 14, borderWidth: 1, borderColor: Colors.borderColor, backgroundColor: Colors.bgCard },
+    filter: { paddingHorizontal: 11, paddingVertical: 6, borderRadius: 18, borderWidth: 1, borderColor: softEdge(), backgroundColor: Colors.bgCard, ...softShadow() },
     filterActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
     filterText: { fontSize: 10.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
     filterTextActive: { color: '#fff' },
     empty: { fontSize: 11.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, textAlign: 'center', paddingVertical: 16 },
-    card: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.borderColor, borderRadius: 16, padding: 14, gap: 6 },
+    card: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), borderRadius: 20, padding: 14, gap: 6, ...softShadow() },
     cardLow: { borderColor: 'rgba(245, 158, 11, 0.4)' },
     stars: { fontSize: 13, color: Colors.warning, letterSpacing: 2 },
     text: { fontSize: 12.5, fontFamily: FONTS.bodyRegular, color: Colors.textSoft, lineHeight: 19 },
@@ -155,10 +155,10 @@ const styles = themedStyles(() =>
     input: {
       minHeight: 72,
       padding: 12,
-      borderRadius: 12,
-      backgroundColor: Colors.subtleFill,
+      borderRadius: 16,
+      backgroundColor: softFill(),
       borderWidth: 1,
-      borderColor: Colors.borderColor,
+      borderColor: 'transparent',
       color: Colors.textMain,
       fontSize: 12.5,
       fontFamily: FONTS.bodyRegular,

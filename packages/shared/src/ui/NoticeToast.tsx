@@ -23,6 +23,7 @@ export const NoticeToast: React.FC<{ notice: Notice | null; onDismiss: () => voi
 
   if (!notice) return null;
   const tone = { primary: Colors.primary, success: Colors.success, danger: Colors.error }[notice.tone] ?? Colors.primary;
+  const tint = { primary: 'rgba(56, 189, 248, 0.16)', success: 'rgba(16, 185, 129, 0.16)', danger: 'rgba(239, 68, 68, 0.14)' }[notice.tone] ?? 'rgba(56, 189, 248, 0.16)';
 
   return (
     <Animated.View
@@ -32,8 +33,9 @@ export const NoticeToast: React.FC<{ notice: Notice | null; onDismiss: () => voi
         { top: topOffset, opacity: anim, transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [-30, 0] }) }] },
       ]}
     >
-      <Pressable style={[styles.card, { borderColor: tone }]} onPress={dismissNotice}>
-        <View style={[styles.iconTile, { borderColor: tone }]}>
+      <Pressable style={styles.card} onPress={dismissNotice}>
+        <View style={[styles.toneBar, { backgroundColor: tone }]} />
+        <View style={[styles.iconTile, { backgroundColor: tint }]}>
           <Text style={styles.icon}>{notice.icon}</Text>
         </View>
         <View style={styles.flex1}>
@@ -55,16 +57,21 @@ const styles = themedStyles(() =>
       alignItems: 'center',
       gap: 12,
       padding: 12,
-      borderRadius: 18,
-      borderWidth: 1.5,
-      backgroundColor: Colors.cardGlass,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 10 },
-      shadowOpacity: getThemeMode() === 'dark' ? 0.5 : 0.12,
-      shadowRadius: 20,
+      paddingLeft: 16,
+      borderRadius: 22,
+      borderWidth: 1,
+      borderColor: getThemeMode() === 'dark' ? Colors.borderColor : 'transparent',
+      backgroundColor: Colors.bgCard,
+      overflow: 'hidden',
+      shadowColor: '#0f172a',
+      shadowOffset: { width: 0, height: 12 },
+      shadowOpacity: getThemeMode() === 'dark' ? 0.5 : 0.18,
+      shadowRadius: 24,
       elevation: 12,
     },
-    iconTile: { width: 40, height: 40, borderRadius: 13, borderWidth: 1.5, backgroundColor: Colors.glassBg, justifyContent: 'center', alignItems: 'center' },
+    // A slim tone stripe on the left says what kind of notice it is.
+    toneBar: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 5 },
+    iconTile: { width: 42, height: 42, borderRadius: 21, justifyContent: 'center', alignItems: 'center' },
     icon: { fontSize: 19 },
     flex1: { flex: 1 },
     title: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.textMain },

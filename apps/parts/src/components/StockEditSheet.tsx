@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { ActionButton, Colors, FONTS, SERVICE_CATEGORIES, themedStyles } from '@ongarage/shared';
+import { ActionButton, Colors, FONTS, SERVICE_CATEGORIES, themedStyles, softEdge, softShadow } from '@ongarage/shared';
 import { useShop } from '../context/ShopContext';
 import { ALL_TYPES, listPrice } from '../constants/mockData';
 import { money } from '../utils/format';
@@ -108,25 +108,26 @@ const styles = themedStyles(() =>
   StyleSheet.create({
     flex1: { flex: 1 },
     twoCol: { flexDirection: 'row', gap: 10 },
-    label: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, letterSpacing: 0.4, marginTop: 6, marginBottom: 6 },
+    label: { fontSize: 13.5, fontFamily: FONTS.titleBold, color: Colors.textMain, marginTop: 6, marginBottom: 6 },
     sub: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
     chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-    chip: { paddingHorizontal: 11, paddingVertical: 7, borderRadius: 12, borderWidth: 1, borderColor: Colors.borderColor, backgroundColor: Colors.bgCard },
+    chip: { paddingHorizontal: 11, paddingVertical: 7, borderRadius: 16, borderWidth: 1, borderColor: softEdge(), backgroundColor: Colors.bgCard, ...softShadow() },
     chipOn: { backgroundColor: Colors.primary, borderColor: Colors.primary },
     chipText: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
     chipTextOn: { color: '#fff' },
     input: {
       height: 46,
       paddingHorizontal: 12,
-      borderRadius: 12,
+      borderRadius: 16,
       backgroundColor: Colors.bgCard,
       borderWidth: 1,
-      borderColor: Colors.borderColor,
+      borderColor: softEdge(),
       color: Colors.textMain,
       fontSize: 13,
       fontFamily: FONTS.bodyMedium,
+      ...softShadow(),
     },
-    priceBox: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, height: 52, borderRadius: 14, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.borderColor },
+    priceBox: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, height: 52, borderRadius: 18, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), ...softShadow() },
     currency: { fontSize: 15, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
     priceInput: { flex: 1, fontSize: 20, fontWeight: '800', color: Colors.textMain },
   })

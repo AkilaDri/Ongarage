@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { ActionButton, Colors, FONTS, themedStyles } from '@ongarage/shared';
+import { ActionButton, Colors, FONTS, themedStyles, softEdge, softShadow } from '@ongarage/shared';
 import { allowedTypes, courierFee, defaultEtaMin, inStockFor, useShop, variantFor } from '../context/ShopContext';
 import { COURIER, listPrice } from '../constants/mockData';
 import { formatTime, money } from '../utils/format';
@@ -208,33 +208,34 @@ const Row: React.FC<{ label: string; value: string; strong?: boolean }> = ({ lab
 const styles = themedStyles(() =>
   StyleSheet.create({
     flex1: { flex: 1 },
-    label: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, letterSpacing: 0.4, marginTop: 6 },
+    label: { fontSize: 13.5, fontFamily: FONTS.titleBold, color: Colors.textMain, marginTop: 6 },
     sub: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 16 },
     warn: { fontSize: 10.5, fontFamily: FONTS.bodySemiBold, color: Colors.warning, lineHeight: 16 },
     chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
     counterToggle: { marginTop: 4 },
-    chip: { paddingHorizontal: 11, paddingVertical: 7, borderRadius: 12, borderWidth: 1, borderColor: Colors.borderColor, backgroundColor: Colors.bgCard },
+    chip: { paddingHorizontal: 11, paddingVertical: 7, borderRadius: 16, borderWidth: 1, borderColor: softEdge(), backgroundColor: Colors.bgCard, ...softShadow() },
     chipOn: { backgroundColor: Colors.primary, borderColor: Colors.primary },
     chipText: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
     chipTextOn: { color: '#fff' },
     priceRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
     lineName: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
-    priceBox: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, height: 42, width: 118, borderRadius: 12, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.borderColor },
+    priceBox: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, height: 42, width: 118, borderRadius: 16, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), ...softShadow() },
     currency: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
     priceInput: { flex: 1, fontSize: 15, fontWeight: '800', color: Colors.textMain },
     input: {
       height: 44,
       paddingHorizontal: 12,
-      borderRadius: 12,
+      borderRadius: 16,
       backgroundColor: Colors.bgCard,
       borderWidth: 1,
-      borderColor: Colors.borderColor,
+      borderColor: softEdge(),
       color: Colors.textMain,
       fontSize: 12.5,
       fontFamily: FONTS.bodyMedium,
       marginTop: 6,
+      ...softShadow(),
     },
-    summary: { padding: 12, borderRadius: 14, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.borderColor, gap: 6, marginTop: 6 },
+    summary: { padding: 12, borderRadius: 18, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), gap: 6, marginTop: 6, ...softShadow() },
     sumRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     sumValue: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
     sumStrongLabel: { fontSize: 12.5, fontFamily: FONTS.bodyBold, color: Colors.textMain },

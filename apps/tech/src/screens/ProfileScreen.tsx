@@ -1,6 +1,6 @@
 import React from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Colors, currentLevel, FONTS, GlassIcon, glassStyle, LevelBadge, levelProgress, nextLevel, ThemeToggle, themedStyles, useTheme, type LevelStats } from '@ongarage/shared';
+import { Colors, currentLevel, FONTS, GlassIcon, glassStyle, LevelBadge, levelProgress, nextLevel, ThemeToggle, themedStyles, useTheme, type LevelStats, softEdge, softShadow } from '@ongarage/shared';
 import { useTech } from '../context/TechContext';
 import { ago } from '../utils/format';
 
@@ -127,7 +127,7 @@ const styles = themedStyles(() =>
     row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
     rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     body: { padding: 16, gap: 12, paddingBottom: 100 },
-    card: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.borderColor, borderRadius: 18, padding: 14, gap: 8 },
+    card: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), borderRadius: 20, padding: 14, gap: 8, ...softShadow() },
     center: { alignItems: 'center', gap: 6 },
     avatar: { width: 76, height: 76, borderRadius: 38, ...glassStyle(), justifyContent: 'center', alignItems: 'center' },
     avatarEmoji: { fontSize: 36 },
@@ -142,7 +142,7 @@ const styles = themedStyles(() =>
     stat: { flex: 1, alignItems: 'center', paddingVertical: 10, borderRadius: 14, backgroundColor: Colors.subtleFill },
     statValue: { fontSize: 16, fontWeight: '900' },
     statLabel: { fontSize: 9.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, marginTop: 1 },
-    section: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, letterSpacing: 0.5, marginTop: 4 },
+    section: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textMain, marginTop: 4 },
     chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
     chip: { paddingHorizontal: 11, paddingVertical: 6, borderRadius: 12, backgroundColor: 'rgba(56, 189, 248, 0.12)' },
     chipText: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: Colors.primary },

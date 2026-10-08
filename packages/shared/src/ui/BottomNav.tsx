@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
-import { Colors, themedStyles } from '../theme/colors';
+import { Colors, getThemeMode, themedStyles } from '../theme/colors';
 import { FONTS } from '../theme/fonts';
 
 // path: a 24×24 SVG path, filled with the active/idle colour.
@@ -27,7 +27,7 @@ export function BottomNav<T extends string>({ items, activeTab, onTabChange }: B
   return (
   <View style={styles.container}>
     {items.map((item) => {
-      const color = activeTab === item.id ? Colors.primary : Colors.textMuted;
+      const color = activeTab === item.id ? (getThemeMode() === 'dark' ? Colors.primary : '#162b63') : Colors.textMuted;
       return (
         <Pressable key={item.id} style={styles.navItem} onPress={() => onTabChange(item.id)}>
           <View>
@@ -59,13 +59,20 @@ const styles = themedStyles(() => StyleSheet.create({
     alignItems: 'center',
     height: 72,
     backgroundColor: Colors.barBg,
-    borderTopWidth: 1,
+    borderTopWidth: getThemeMode() === 'dark' ? 1 : 0,
     borderTopColor: Colors.borderColor,
+    borderTopLeftRadius: 22,
+    borderTopRightRadius: 22,
+    shadowColor: '#0f172a',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: getThemeMode() === 'dark' ? 0.3 : 0.08,
+    shadowRadius: 14,
+    elevation: 12,
     paddingBottom: 10,
     paddingHorizontal: 10,
   },
   navItem: { alignItems: 'center', gap: 4, width: 70 },
-  label: { fontSize: 10.5, fontFamily: FONTS.bodyMedium },
+  label: { fontSize: 10.5, fontFamily: FONTS.bodySemiBold },
   badge: {
     position: 'absolute',
     top: -6,

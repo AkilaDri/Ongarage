@@ -4,6 +4,7 @@ import QRCode from 'react-native-qrcode-svg';
 import { Colors, themedStyles } from '../theme/colors';
 import { FONTS } from '../theme/fonts';
 import { formatCloseCode } from '../marketplace/closeCode';
+import { softEdge, softShadow } from './Glass';
 
 /** What the QR encodes, so a scanner can tell an OnGarage closing code from any other QR. */
 export const closeCodePayload = (code: string) => `ongarage:close:${code}`;
@@ -33,7 +34,7 @@ export const CloseCode: React.FC<{ code: string; title?: string; caption?: strin
 
 const styles = themedStyles(() =>
   StyleSheet.create({
-    card: { alignItems: 'center', gap: 10, padding: 16, borderRadius: 20, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.borderColor },
+    card: { alignItems: 'center', gap: 10, padding: 16, borderRadius: 20, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), ...softShadow() },
     title: { fontSize: 14, fontFamily: FONTS.titleBold, color: Colors.textMain, textAlign: 'center' },
     // Always white behind the code so any scanner can read it, in either theme.
     qr: { backgroundColor: '#ffffff', borderRadius: 16, justifyContent: 'center', alignItems: 'center' },

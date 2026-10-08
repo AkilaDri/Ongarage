@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { ActionButton, Colors, FONTS, themedStyles } from '@ongarage/shared';
+import { ActionButton, Colors, FONTS, themedStyles, softEdge, softShadow } from '@ongarage/shared';
 import { useShop } from '../context/ShopContext';
 import { COURIER } from '../constants/mockData';
 import { money } from '../utils/format';
@@ -96,13 +96,13 @@ const styles = themedStyles(() =>
   StyleSheet.create({
     flex1: { flex: 1 },
     row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-    card: { padding: 12, borderRadius: 14, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.borderColor, gap: 6 },
-    label: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, letterSpacing: 0.4, marginTop: 6 },
+    card: { padding: 12, borderRadius: 18, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), gap: 6, ...softShadow() },
+    label: { fontSize: 13.5, fontFamily: FONTS.titleBold, color: Colors.textMain, marginTop: 6 },
     title: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.textMain },
     sub: { fontSize: 11, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 16 },
     hint: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 16, marginTop: 4 },
     warn: { fontSize: 10.5, fontFamily: FONTS.bodySemiBold, color: Colors.warning, lineHeight: 16 },
-    option: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 14, borderWidth: 1, borderColor: Colors.borderColor, backgroundColor: Colors.bgCard },
+    option: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 18, borderWidth: 1, borderColor: softEdge(), backgroundColor: Colors.bgCard, ...softShadow() },
     optionOn: { borderColor: Colors.primary, backgroundColor: 'rgba(56, 189, 248, 0.08)' },
     radio: { width: 18, height: 18, borderRadius: 9, borderWidth: 2, borderColor: Colors.subtleBorder },
     radioOn: { borderColor: Colors.primary, borderWidth: 6 },

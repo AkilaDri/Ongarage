@@ -3,6 +3,7 @@ import { Animated, Easing, Pressable, StyleSheet, Text, View } from 'react-nativ
 import { Colors, themedStyles } from '../theme/colors';
 import { FONTS } from '../theme/fonts';
 import type { VoiceNote } from '../types';
+import { softEdge, softShadow } from './Glass';
 
 const BARS = 28;
 
@@ -87,7 +88,7 @@ export const VoiceNotePlayer: React.FC<{ note: VoiceNote; index: number }> = ({ 
 const styles = themedStyles(() =>
   StyleSheet.create({
     flex1: { flex: 1 },
-    wrap: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 16, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.borderColor },
+    wrap: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 20, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), ...softShadow() },
     play: { width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.primary, justifyContent: 'center', alignItems: 'center' },
     playIcon: { fontSize: 13, fontWeight: '900', color: '#fff' },
     wave: { height: 28, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Colors, FONTS, PhotoStrip, themedStyles, workshopBill, type DiagnosisLine } from '@ongarage/shared';
+import { Colors, FONTS, PhotoStrip, themedStyles, workshopBill, type DiagnosisLine, softEdge, softShadow } from '@ongarage/shared';
 import { useGarage } from '../context/GarageContext';
 import { WorkshopStatus } from './BookingActions';
 import { formatDate, money } from '../utils/format';
@@ -154,13 +154,13 @@ const styles = themedStyles(() =>
   StyleSheet.create({
     wrap: { gap: 8 },
     section: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.textMain, marginTop: 4 },
-    label: { fontSize: 10.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, letterSpacing: 0.4, marginTop: 2 },
+    label: { fontSize: 13.5, fontFamily: FONTS.titleBold, color: Colors.textMain, marginTop: 2 },
     chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-    chip: { paddingHorizontal: 11, paddingVertical: 6, borderRadius: 12, borderWidth: 1, borderColor: Colors.borderColor, backgroundColor: Colors.bgCard },
+    chip: { paddingHorizontal: 11, paddingVertical: 6, borderRadius: 16, borderWidth: 1, borderColor: softEdge(), backgroundColor: Colors.bgCard, ...softShadow() },
     chipOn: { borderColor: 'rgba(56, 189, 248, 0.6)', backgroundColor: 'rgba(56, 189, 248, 0.12)' },
     chipText: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
     off: { opacity: 0.6 },
-    box: { padding: 12, borderRadius: 14, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.borderColor, gap: 6 },
+    box: { padding: 12, borderRadius: 18, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), gap: 6, ...softShadow() },
     boxWarn: { borderColor: 'rgba(245, 158, 11, 0.5)', backgroundColor: 'rgba(245, 158, 11, 0.08)' },
     boxTitle: { fontSize: 12, fontFamily: FONTS.bodyBold, color: Colors.textMain },
     text: { fontSize: 11, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 17 },

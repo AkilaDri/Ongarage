@@ -12,6 +12,8 @@ import {
   RATING_DIMENSIONS,
   themedStyles,
   weakestDimension,
+  softEdge,
+  softShadow,
 } from '@ongarage/shared';
 import { useGarage } from '../context/GarageContext';
 import { Sheet } from './Sheet';
@@ -129,10 +131,10 @@ const styles = themedStyles(() =>
   StyleSheet.create({
     flex1: { flex: 1 },
     rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
-    box: { padding: 12, borderRadius: 14, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.borderColor, gap: 8 },
+    box: { padding: 12, borderRadius: 18, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), gap: 8, ...softShadow() },
     boxTitle: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.textMain },
     sub: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 16 },
-    section: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, letterSpacing: 0.4, marginTop: 4 },
+    section: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textMain, marginTop: 4 },
     warnBox: { padding: 12, borderRadius: 14, backgroundColor: 'rgba(245, 158, 11, 0.1)', borderWidth: 1, borderColor: 'rgba(245, 158, 11, 0.5)', gap: 4 },
     warnTitle: { fontSize: 12.5, fontFamily: FONTS.bodyBold, color: Colors.warning },
     scoreRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
@@ -150,7 +152,7 @@ const styles = themedStyles(() =>
     rateLabel: { fontSize: 10, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
     tip: { padding: 10, borderRadius: 12, backgroundColor: 'rgba(56, 189, 248, 0.08)', gap: 2 },
     tipTitle: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
-    level: { padding: 12, borderRadius: 14, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.borderColor, gap: 8 },
+    level: { padding: 12, borderRadius: 18, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), gap: 8, ...softShadow() },
     levelCurrent: { borderColor: 'rgba(16, 185, 129, 0.55)', backgroundColor: 'rgba(16, 185, 129, 0.06)' },
     levelFar: { opacity: 0.75 },
     state: { fontSize: 11, fontFamily: FONTS.bodyBold },

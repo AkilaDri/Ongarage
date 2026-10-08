@@ -1,6 +1,6 @@
 import React from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { ActionButton, Colors, EmptyState, FONTS, GlassIcon, themedStyles } from '@ongarage/shared';
+import { ActionButton, Colors, EmptyState, FONTS, GlassIcon, themedStyles, softEdge, softShadow } from '@ongarage/shared';
 import { useTech } from '../context/TechContext';
 import { ago, isSameDay, money } from '../utils/format';
 
@@ -102,11 +102,11 @@ const styles = themedStyles(() =>
     row: { flexDirection: 'row', alignItems: 'center', gap: 10 },
     body: { padding: 16, gap: 12, paddingBottom: 100 },
     statsRow: { flexDirection: 'row', gap: 8 },
-    stat: { flex: 1, alignItems: 'center', paddingVertical: 12, paddingHorizontal: 6, borderRadius: 16, borderWidth: 1, borderColor: Colors.borderColor, backgroundColor: Colors.bgCard },
+    stat: { flex: 1, alignItems: 'center', paddingVertical: 12, paddingHorizontal: 6, borderRadius: 20, borderWidth: 1, borderColor: softEdge(), backgroundColor: Colors.bgCard, ...softShadow() },
     statValue: { fontSize: 15, fontFamily: FONTS.titleBold },
     statLabel: { fontSize: 10, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 2 },
-    section: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, letterSpacing: 0.5, marginTop: 4 },
-    card: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.borderColor, borderRadius: 18, padding: 14, gap: 8 },
+    section: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textMain, marginTop: 4 },
+    card: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), borderRadius: 20, padding: 14, gap: 8, ...softShadow() },
     dim: { opacity: 0.6 },
     title: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.textMain },
     sub: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 1 },

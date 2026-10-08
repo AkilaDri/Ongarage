@@ -1,6 +1,6 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { ActionButton, Colors, dayStart, FONTS, GUARANTEE, GUARANTEE_MULTIPLE, INTAKE, PLANS, RISING_HEAD_START_MIN, themedStyles } from '@ongarage/shared';
+import { ActionButton, Colors, dayStart, FONTS, GUARANTEE, GUARANTEE_MULTIPLE, INTAKE, PLANS, RISING_HEAD_START_MIN, themedStyles, softEdge, softShadow } from '@ongarage/shared';
 import { useGarage } from '../context/GarageContext';
 import { formatDate, money } from '../utils/format';
 import { Sheet } from './Sheet';
@@ -124,20 +124,20 @@ const styles = themedStyles(() =>
   StyleSheet.create({
     flex1: { flex: 1 },
     rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
-    box: { padding: 12, borderRadius: 14, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.borderColor, gap: 6 },
+    box: { padding: 12, borderRadius: 18, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), gap: 6, ...softShadow() },
     boxWarn: { borderColor: 'rgba(245, 158, 11, 0.5)', backgroundColor: 'rgba(245, 158, 11, 0.07)' },
     boxOk: { borderColor: 'rgba(16, 185, 129, 0.5)' },
     boxTitle: { fontSize: 12.5, fontFamily: FONTS.bodyBold, color: Colors.textMain },
     text: { fontSize: 11.5, fontFamily: FONTS.bodyRegular, color: Colors.textSoft, lineHeight: 18 },
     sub: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 16 },
-    section: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, letterSpacing: 0.4, marginTop: 4 },
+    section: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textMain, marginTop: 4 },
     dayRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     dayLabel: { width: 52, fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
     dayValue: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
     track: { flex: 1, height: 6, borderRadius: 3, backgroundColor: Colors.subtleFill, overflow: 'hidden' },
     fill: { height: 6, borderRadius: 3, backgroundColor: Colors.primary },
     fillFull: { backgroundColor: Colors.warning },
-    plan: { padding: 12, borderRadius: 14, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.borderColor, gap: 4, opacity: 0.8 },
+    plan: { padding: 12, borderRadius: 18, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), gap: 4, opacity: 0.8, ...softShadow() },
     planMine: { borderColor: 'rgba(56, 189, 248, 0.6)', opacity: 1 },
     cancel: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.errorText },
   })

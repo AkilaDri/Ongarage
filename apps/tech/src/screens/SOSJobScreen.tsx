@@ -16,6 +16,10 @@ import {
   vehicleIcon,
   zoomToFit,
   type LatLng,
+  softEdge,
+  softShadow,
+  softFill,
+  getThemeMode,
 } from '@ongarage/shared';
 import { sosTotal, useTech } from '../context/TechContext';
 import { DRIVE_MS, SOS_REPAIR_TASK, SOS_TASKS } from '../constants/mockData';
@@ -47,6 +51,14 @@ export const SOSJobScreen: React.FC = () => {
   const pop = useRef(new Animated.Value(0)).current;
 
   const stage = job?.stage ?? 'enroute';
+  // Height of the top layer (map or band), measured so the map zooms to fit what is visible.
+  const [topH, setTopH] = useState(320);
+  // Each step opens at the top of the sheet.
+  const sheetScroll = useRef<ScrollView>(null);
+  useEffect(() => {
+    sheetScroll.current?.scrollTo({ y: 0, animated: false });
+  }, [stage]);
+
   const enrouteAt = job?.enrouteAt;
 
   useEffect(() => {
@@ -104,7 +116,7 @@ export const SOSJobScreen: React.FC = () => {
     const mid = { latitude: (garage.latitude + dest.latitude) / 2, longitude: (garage.longitude + dest.longitude) / 2 };
     return (
       <GoogleMap
-        style={[styles.map, { height: h }]}
+        style={styles.mapFull}
         center={mid}
         zoom={zoomToFit(distanceKm(garage, dest), mid.latitude, h)}
         fallbackColor="#ef4444"
@@ -176,7 +188,6 @@ export const SOSJobScreen: React.FC = () => {
       case 'enroute':
         return (
           <>
-            {map(240)}
             <View style={styles.card}>
               <View style={styles.etaRow}>
                 <View style={styles.etaItem}>
@@ -386,35 +397,45 @@ export const SOSJobScreen: React.FC = () => {
     }
   };
   const bottomBar = bottom();
+  const showMap = stage === 'enroute';
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      <View style={styles.header}>
-        <Gradient stops={GRADIENTS.sosHeader} />
-        <View style={styles.headerIcon}>
-          <Text style={styles.headerIconText}>🚨</Text>
+      {/* Like the owner SOS flow: the map (or, on steps without one, a red band) fills the top; the controls float over it. */}
+      <View style={[styles.topArea, showMap ? styles.topAreaMap : styles.topAreaBand]} onLayout={(e) => setTopH(Math.round(e.nativeEvent.layout.height))}>
+        {showMap ? map(topH) : <Gradient stops={GRADIENTS.sosHeader} />}
+        <View style={styles.topBar}>
+          <Pressable style={styles.roundBtn} onPress={closeSOS} accessibilityLabel="Minimize">
+            <Icon name="chevron-down" size={18} strokeWidth={2.5} color={Colors.textMain} />
+          </Pressable>
+          <View style={styles.stepPill}>
+            <View style={styles.stepPillIcon}>
+              <Text style={styles.headerIconText}>🚨</Text>
+            </View>
+            <View style={styles.flex1}>
+              <Text style={styles.stepPillTitle} numberOfLines={1}>
+                SOS · {job.customer.name}
+              </Text>
+              <Text style={styles.stepPillSub} numberOfLines={1}>
+                පියවර {stageIndex + 1}/{STAGES.length} · {STAGE_LABEL[stage]} · {job.garage.name}
+              </Text>
+            </View>
+          </View>
         </View>
-        <View style={styles.flex1}>
-          <Text style={styles.headerTitle} numberOfLines={1}>
-            SOS · {job.customer.name}
-          </Text>
-          <Text style={styles.headerSubtitle}>
-            පියවර {stageIndex + 1}/{STAGES.length} · {STAGE_LABEL[stage]} · {job.garage.name}
-          </Text>
+      </View>
+
+      <View style={styles.sheet}>
+        <View style={styles.handle} />
+        <View style={styles.stepper}>
+          {STAGES.map((s, i) => (
+            <View key={s} style={[styles.stepSeg, i < stageIndex && styles.stepDone, i === stageIndex && styles.stepActive]} />
+          ))}
         </View>
-        <Pressable style={styles.closeBtn} onPress={closeSOS} accessibilityLabel="Minimize">
-          <Icon name="chevron-down" size={16} strokeWidth={2.5} color="#fff" />
-        </Pressable>
+        <ScrollView ref={sheetScroll} style={styles.flex1} contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+          {body()}
+        </ScrollView>
+        {bottomBar && <View style={styles.bottomBar}>{bottomBar}</View>}
       </View>
-      <View style={styles.stepper}>
-        {STAGES.map((s, i) => (
-          <View key={s} style={[styles.stepSeg, i < stageIndex && styles.stepDone, i === stageIndex && styles.stepActive]} />
-        ))}
-      </View>
-      <ScrollView style={styles.flex1} contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-        {body()}
-      </ScrollView>
-      {bottomBar && <View style={styles.bottomBar}>{bottomBar}</View>}
     </SafeAreaView>
   );
 };
@@ -452,6 +473,9 @@ const Hero: React.FC<{ anim: Animated.Value; icon: string; title: string; text: 
 /** Used by the tab screens to label an SOS job's step. */
 export const sosStageLabel = (j: TechJob) => STAGE_LABEL[j.stage] ?? j.stage;
 
+// A stronger shadow for controls floating over the map.
+const FLOAT_SHADOW = { shadowColor: '#0f172a', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.16, shadowRadius: 14, elevation: 5 } as const;
+
 const styles = themedStyles(() =>
   StyleSheet.create({
     container: { flex: 1, backgroundColor: Colors.bgBody },
@@ -465,13 +489,13 @@ const styles = themedStyles(() =>
     headerTitle: { fontSize: 15, fontFamily: FONTS.titleBold, color: '#fff' },
     headerSubtitle: { fontSize: 10.5, fontFamily: FONTS.bodyMedium, color: 'rgba(255, 255, 255, 0.85)', marginTop: 1 },
     closeBtn: { width: 36, height: 36, borderRadius: 12, backgroundColor: 'rgba(0, 0, 0, 0.25)', justifyContent: 'center', alignItems: 'center' },
-    stepper: { flexDirection: 'row', gap: 4, paddingHorizontal: 16, paddingVertical: 10 },
+    stepper: { flexDirection: 'row', gap: 4, paddingHorizontal: 16, paddingTop: 10, paddingBottom: 4 },
     stepSeg: { flex: 1, height: 4, borderRadius: 2, backgroundColor: Colors.subtleBorder },
     stepDone: { backgroundColor: Colors.success },
     stepActive: { backgroundColor: '#ef4444' },
     body: { padding: 16, paddingTop: 4, gap: 12, paddingBottom: 30 },
-    sectionLabel: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, letterSpacing: 0.4 },
-    card: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.borderColor, borderRadius: 18, padding: 14, gap: 10 },
+    sectionLabel: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textMain },
+    card: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), borderRadius: 20, padding: 14, gap: 10, ...softShadow() },
     okCard: { borderColor: 'rgba(16, 185, 129, 0.5)' },
     warnCard: { borderColor: 'rgba(245, 158, 11, 0.5)' },
     cardTitle: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.textMain },
@@ -482,30 +506,54 @@ const styles = themedStyles(() =>
     hint: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 16 },
     feeNote: { fontSize: 11, fontFamily: FONTS.bodyMedium, color: Colors.successText, lineHeight: 17 },
     divider: { height: 1, backgroundColor: Colors.borderColor },
-    iconTile: { width: 42, height: 42, borderRadius: 14, backgroundColor: Colors.glassBg, borderWidth: 1, borderColor: Colors.glassBorder, justifyContent: 'center', alignItems: 'center' },
+    iconTile: { width: 42, height: 42, borderRadius: 18, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), justifyContent: 'center', alignItems: 'center', ...softShadow() },
     iconText: { fontSize: 20 },
-    map: { borderRadius: 18, borderWidth: 1, borderColor: Colors.borderColor },
+    mapFull: { ...StyleSheet.absoluteFill },
+    topArea: { overflow: 'hidden', backgroundColor: Colors.mapBg },
+    topAreaMap: { height: '42%' },
+    topAreaBand: { height: 130 },
+    topBar: { position: 'absolute', top: 12, left: 16, right: 16, flexDirection: 'row', alignItems: 'center', gap: 10 },
+    roundBtn: { width: 46, height: 46, borderRadius: 23, backgroundColor: Colors.bgCard, justifyContent: 'center', alignItems: 'center', ...FLOAT_SHADOW },
+    stepPill: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, height: 52, paddingLeft: 6, paddingRight: 16, borderRadius: 26, backgroundColor: Colors.bgCard, ...FLOAT_SHADOW },
+    stepPillIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: getThemeMode() === 'dark' ? 'rgba(239, 68, 68, 0.18)' : '#fee2e2', justifyContent: 'center', alignItems: 'center' },
+    stepPillTitle: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.textMain },
+    stepPillSub: { fontSize: 10.5, fontFamily: FONTS.bodySemiBold, color: '#dc2626' },
+    // The step lives in a rounded sheet that overlaps the map.
+    sheet: {
+      flex: 1,
+      marginTop: -24,
+      backgroundColor: Colors.bgBody,
+      borderTopLeftRadius: 28,
+      borderTopRightRadius: 28,
+      overflow: 'hidden',
+      shadowColor: '#0f172a',
+      shadowOffset: { width: 0, height: -6 },
+      shadowOpacity: 0.12,
+      shadowRadius: 16,
+      elevation: 12,
+    },
+    handle: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: Colors.subtleBorder, marginTop: 10 },
     pinAnchor: { position: 'absolute', transform: [{ translateX: '-50%' }, { translateY: '-50%' }] },
-    customerPin: { width: 34, height: 34, borderRadius: 17, backgroundColor: '#ef4444', borderWidth: 2, borderColor: '#fff', justifyContent: 'center', alignItems: 'center' },
-    techPin: { width: 32, height: 32, borderRadius: 10, backgroundColor: Colors.primary, borderWidth: 2, borderColor: '#fff', justifyContent: 'center', alignItems: 'center' },
+    customerPin: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#ef4444', borderWidth: 3, borderColor: '#fff', justifyContent: 'center', alignItems: 'center', shadowColor: '#dc2626', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 10, elevation: 5 },
+    techPin: { width: 36, height: 36, borderRadius: 18, backgroundColor: Colors.primary, borderWidth: 3, borderColor: '#fff', justifyContent: 'center', alignItems: 'center', shadowColor: '#0284c7', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 10, elevation: 5 },
     pinEmoji: { fontSize: 15 },
     etaRow: { flexDirection: 'row', alignItems: 'center' },
     etaItem: { flex: 1, alignItems: 'center' },
     etaValue: { fontSize: 18, fontFamily: FONTS.titleBold, color: Colors.textMain },
     etaDivider: { width: 1, height: 34, backgroundColor: Colors.borderColor },
     chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-    choice: { paddingHorizontal: 12, paddingVertical: 9, borderRadius: 12, borderWidth: 1, borderColor: Colors.borderColor, backgroundColor: Colors.subtleFill },
+    choice: { paddingHorizontal: 12, paddingVertical: 9, borderRadius: 20, borderWidth: 1, borderColor: 'transparent', backgroundColor: softFill() },
     choiceActive: { borderColor: Colors.primary, backgroundColor: 'rgba(56, 189, 248, 0.14)' },
     choiceText: { fontSize: 11.5, fontFamily: FONTS.bodyMedium, color: Colors.textMuted },
     choiceTextActive: { color: Colors.primary, fontFamily: FONTS.bodyBold },
-    priceRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, height: 54, borderRadius: 14, backgroundColor: Colors.subtleFill, borderWidth: 1, borderColor: Colors.borderColor },
+    priceRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, height: 54, borderRadius: 16, backgroundColor: softFill(), borderWidth: 1, borderColor: 'transparent' },
     currency: { fontSize: 16, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
     priceInput: { flex: 1, fontSize: 22, fontWeight: '800', color: Colors.textMain },
     track: { height: 6, borderRadius: 3, backgroundColor: Colors.subtleBorder, overflow: 'hidden' },
     fill: { height: 6, borderRadius: 3, backgroundColor: Colors.success },
     task: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 },
     taskSkipped: { opacity: 0.55 },
-    check: { width: 24, height: 24, borderRadius: 8, borderWidth: 1.5, borderColor: Colors.subtleBorder, justifyContent: 'center', alignItems: 'center' },
+    check: { width: 24, height: 24, borderRadius: 8, borderWidth: 1, borderColor: 'transparent', backgroundColor: softFill(), justifyContent: 'center', alignItems: 'center' },
     checkOn: { backgroundColor: Colors.success, borderColor: Colors.success },
     checkMark: { fontSize: 13, fontWeight: '900', color: '#fff' },
     taskText: { flex: 1, fontSize: 12.5, fontFamily: FONTS.bodyMedium, color: Colors.textMain },
@@ -525,10 +573,10 @@ const styles = themedStyles(() =>
       minWidth: 0,
       height: 50,
       paddingHorizontal: 14,
-      borderRadius: 14,
-      backgroundColor: Colors.subtleFill,
+      borderRadius: 16,
+      backgroundColor: softFill(),
       borderWidth: 1,
-      borderColor: Colors.borderColor,
+      borderColor: 'transparent',
       color: Colors.textMain,
       fontSize: 22,
       fontWeight: '800',
@@ -541,14 +589,14 @@ const styles = themedStyles(() =>
     hero: { alignItems: 'center', paddingVertical: 24, gap: 10 },
     heroCircle: { width: 90, height: 90, borderRadius: 45, justifyContent: 'center', alignItems: 'center' },
     heroSuccess: { backgroundColor: Colors.success },
-    heroGlass: { backgroundColor: Colors.glassBg, borderWidth: 1.5, borderColor: Colors.glassBorder },
+    heroGlass: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), ...softShadow() },
     heroIcon: { fontSize: 40, color: '#fff' },
     heroTitle: { fontSize: 17, fontFamily: FONTS.titleBold, color: Colors.textMain, textAlign: 'center' },
     heroText: { fontSize: 12, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, textAlign: 'center', lineHeight: 19, paddingHorizontal: 12 },
     radarWrap: { width: 110, height: 110, justifyContent: 'center', alignItems: 'center' },
     radarRing: { position: 'absolute', width: 100, height: 100, borderRadius: 50, borderWidth: 2, borderColor: 'rgba(56, 189, 248, 0.5)' },
-    radarCore: { width: 70, height: 70, borderRadius: 35, backgroundColor: Colors.glassBg, borderWidth: 1.5, borderColor: Colors.glassBorder, justifyContent: 'center', alignItems: 'center' },
+    radarCore: { width: 70, height: 70, borderRadius: 35, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), justifyContent: 'center', alignItems: 'center', ...softShadow() },
     radarEmoji: { fontSize: 30 },
-    bottomBar: { padding: 16, paddingTop: 10, borderTopWidth: 1, borderTopColor: Colors.borderColor, backgroundColor: Colors.barBg },
+    bottomBar: { padding: 16, paddingTop: 10, gap: 8, backgroundColor: Colors.bgBody },
   })
 );
