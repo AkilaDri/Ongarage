@@ -2,6 +2,7 @@ import React from 'react';
 import { Pressable, StyleSheet, Text } from 'react-native';
 import { Colors, FONTS, themedStyles } from '@ongarage/shared';
 import { allowedTypes, isNamedLine, useParts } from '../context/PartsContext';
+import { OwnerPartsSheet } from './OwnerPartsSheet';
 import { money } from '../utils/format';
 import type { Booking } from '../types';
 
@@ -10,7 +11,8 @@ import type { Booking } from '../types';
  * it is managed; this only starts a request or jumps there.
  */
 export const PartsStatusLine: React.FC<{ booking: Booking; onRequest: () => void; onOpen: (requestId: string) => void }> = ({ booking, onRequest, onOpen }) => {
-  const { requestFor, toOrderFor, quotes, orders } = useParts();
+  const { requestFor, toOrderFor, quotes, orders, ownerParts } = useParts();
+  const [ownerOpen, setOwnerOpen] = React.useState(false);
   const r = requestFor(booking.id);
   const toOrder = toOrderFor(booking);
   // Approved (or owner-named) parts not ordered yet: the next thing to do.
@@ -23,9 +25,23 @@ export const PartsStatusLine: React.FC<{ booking: Booking; onRequest: () => void
     </Pressable>
   );
 
+  // Parts the customer buys themselves (OnMart): waiting for the purchase, bought, or checked.
+  const owner = ownerParts(booking);
+  const waiting = owner.filter((x) => !x.buy).length;
+  const unchecked = owner.filter((x) => x.buy && !x.buy.checked).length;
+  const ownerLine = owner.length > 0 && (
+    <Pressable style={({ pressed }) => [styles.line, (unchecked > 0 || waiting > 0) && styles.lineAction, pressed && styles.pressed]} onPress={() => setOwnerOpen(true)} accessibilityLabel="Customer-bought parts">
+      <Text style={styles.text} numberOfLines={1}>
+        🛍️ {waiting > 0 ? `පාරිභෝගිකයා මිලදී ගත යුතු කොටස් ${waiting} — බලාපොරොත්තුවෙන්` : unchecked > 0 ? `පාරිභෝගිකයා කොටස් ${unchecked} ක් මිලදී ගත්තා — පරීක්ෂා කරන්න` : '✓ පාරිභෝගිකයාගේ කොටස් පරීක්ෂා කළා'}
+      </Text>
+      <Text style={styles.action}>›</Text>
+    </Pressable>
+  );
+  const ownerSheet = owner.length > 0 && <OwnerPartsSheet booking={booking} visible={ownerOpen} onClose={() => setOwnerOpen(false)} />;
+
   if (!r) {
     // Workshop jobs: parts only once the owner approved them (or named them in the post).
-    if (booking.progress) return orderLine || null;
+    if (booking.progress) return <>{orderLine || null}{ownerLine}{ownerSheet}</>;
     return (
       <Pressable style={({ pressed }) => [styles.line, pressed && styles.pressed]} onPress={onRequest}>
         <Text style={styles.text}>🔩 කොටස් අවශ්‍යද?</Text>
@@ -76,6 +92,8 @@ export const PartsStatusLine: React.FC<{ booking: Booking; onRequest: () => void
       <Text style={styles.action}>›</Text>
     </Pressable>
     {orderLine}
+    {ownerLine}
+    {ownerSheet}
     </>
   );
 };

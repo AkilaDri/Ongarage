@@ -170,6 +170,7 @@ const QuoteCard: React.FC<{
         <Text style={styles.sub}>
           ★ {q.shop.rating} ({q.shop.ratingCount}) · කි.මී. {q.shop.distanceKm}
         </Text>
+        {!!q.tradeDiscountPercent && <Text style={[styles.sub, { color: Colors.primary }]}>🤝 ගිවිසුම් මිල −{q.tradeDiscountPercent}%</Text>}
       </View>
       <View style={[styles.typeBadge, q.partType === 'Recon' && styles.typeRecon]}>
         <Text style={[styles.typeText, q.partType === 'Recon' && { color: Colors.warning }]}>{q.partType}</Text>

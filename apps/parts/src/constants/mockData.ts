@@ -1,26 +1,29 @@
-import { PART_TYPE_FACTOR, partMarketPrice, type LatLng, type PartLine, type PartType } from '@ongarage/shared';
+import { advanceReferral, closeReferral, MART_SHOPS, newReferral, PART_TYPE_FACTOR, partMarketPrice, type LatLng, type MartAudience, type PartLine, type PartReferral, type PartType, type PartVehicle } from '@ongarage/shared';
 import type { QuoteType, ShopProfile, ShopReview, StockItem } from '../types';
 
 const MIN = 60 * 1000;
 const HOUR = 60 * MIN;
 const DAY = 24 * HOUR;
 
-// The same shop the garage app simulates as "Galle Auto Parts" (constants/parts.ts, ps1).
+// The shop's identity comes from the shared OnMart directory (ps1), so every app agrees on it.
+const ps1 = MART_SHOPS.find((s) => s.id === 'ps1')!;
 export const SHOP: ShopProfile = {
-  id: 'ps1',
-  name: 'Galle Auto Parts',
-  rating: 4.7,
-  ratingCount: 212,
+  id: ps1.id,
+  name: ps1.name,
+  rating: ps1.rating,
+  ratingCount: ps1.ratingCount,
   distanceKm: 0,
-  phone: '091 223 4501',
-  address: 'පැරණි මාතර පාර, ගාල්ල',
-  coords: { latitude: 6.0335, longitude: 80.2168 },
-  openHours: 'පෙ.ව. 8:00 – ප.ව. 7:00',
+  phone: ps1.phone,
+  address: ps1.address,
+  coords: ps1.coords,
+  openHours: ps1.openHours,
   deliveryRadiusKm: 10,
   types: ['Genuine', 'OEM'],
   categories: ['1', '2', '4', '5', '7', '11'],
   courierEnabled: true,
   ownDelivery: true,
+  referralPercent: ps1.referralPercent ?? 3,
+  liveStock: ps1.liveStock,
   staff: [
     { id: 's1', name: 'රුවන් ද සිල්වා', phone: '0771230011' },
     { id: 's2', name: 'ඉසුරු මධුෂාන්', phone: '0771230012' },
@@ -30,7 +33,7 @@ export const SHOP: ShopProfile = {
 // Garages around the shop that send parts requests (TOPCODE is the garage app's own garage).
 export type GarageSeed = { id: string; name: string; phone: string; address: string; coords: LatLng; rating: number };
 export const GARAGES: GarageSeed[] = [
-  { id: 'g1', name: 'TOPCODE Tuning & Service', phone: '077 123 4567', address: 'කොටුවේගොඩ පාර, ගාල්ල', coords: { latitude: 6.0412, longitude: 80.2129 }, rating: 4.9 },
+  { id: 'g-topcode', name: 'TOPCODE Tuning & Service', phone: '077 123 4567', address: 'කොටුවේගොඩ පාර, ගාල්ල', coords: { latitude: 6.0412, longitude: 80.2129 }, rating: 4.9 },
   { id: 'g2', name: 'Southern Auto Care', phone: '077 555 1201', address: 'කරාපිටිය, ගාල්ල', coords: { latitude: 6.0602, longitude: 80.2321 }, rating: 4.5 },
   { id: 'g3', name: 'Matara Road Motors', phone: '077 555 1202', address: 'මාතර පාර, දඩැල්ල', coords: { latitude: 6.0221, longitude: 80.2398 }, rating: 4.3 },
   { id: 'g4', name: 'Unawatuna Car Clinic', phone: '077 555 1203', address: 'උනවටුන', coords: { latitude: 6.0128, longitude: 80.2489 }, rating: 4.6 },
@@ -100,6 +103,7 @@ export const STOCK: StockItem[] = [
   { id: 'i8', name: 'O2 sensor', categoryId: '5', variants: [v('Genuine', 17200, 1, 'Denso'), v('OEM', 11800, 2, 'NTK')] },
   { id: 'i9', name: 'Alternator', categoryId: '2', variants: [v('Genuine', 39500, 1, 'Denso'), v('OEM', 27800, 2, 'Bosch')] },
   { id: 'i10', name: 'Spark plugs (set)', categoryId: '5', variants: [v('Genuine', 7900, 6, 'Denso'), v('OEM', 5400, 9, 'NGK')] },
+  { id: 'i12', name: 'Brake disc', categoryId: '7', variants: [v('OEM', 9200, 4, 'Brembo')] },
   { id: 'i11', name: 'Cabin filter', categoryId: '4', variants: [v('OEM', 1750, 1, 'Sakura')] },
 ];
 
@@ -136,3 +140,96 @@ export const listPrice = (name: string, type: QuoteType) => partMarketPrice(name
 
 export const PART_TYPE_LABEL: Record<PartType, string> = { Genuine: 'Genuine', OEM: 'OEM', Recon: 'Recon', GarageChoice: 'ගරාජයේ තේරීම' };
 export const ALL_TYPES: QuoteType[] = ['Genuine', 'OEM', 'Recon'];
+
+// ---------- OnMart: customers ----------
+
+export type CustomerSeed = {
+  id: string;
+  buyer: { name: string; phone?: string };
+  vehicle: PartVehicle;
+  briefs: { name: string; qty: number; partType: PartType; partNo?: string; note?: string; photos?: number }[];
+  audience: MartAudience;
+  /** Where the buyer is (decides whether a direct enquiry reaches this shop, and shows distance). */
+  coords: LatLng;
+  ageMin: number;
+  windowMin: number;
+  /** A garage told the owner to buy this part and recommended these shops (ids). */
+  job?: { garage: number; bookingId: string; lineId: string; recommended: string[] };
+  /** Simulation: how the buyer takes the part when this shop answers. */
+  fulfilment?: 'pickup' | 'delivery';
+};
+
+export const CUSTOMER_POOL: CustomerSeed[] = [
+  {
+    // The demo job: TOPCODE's brake job, where the owner buys the brake discs themselves.
+    id: 'c1', buyer: { name: 'නිමල් පෙරේරා', phone: '0771234567' },
+    vehicle: { name: 'Premio', plate: 'CAD-8821', type: 'Sedan', make: 'Toyota', model: 'Premio', year: 2012, chassisNo: 'JMBF05090D6226789', engineNo: '3AZFE-2235601' },
+    briefs: [{ name: 'Brake disc', qty: 2, partType: 'OEM', partNo: '43512-20180', note: 'ඉදිරිපස ඩිස්ක් දෙකම.', photos: 2 }],
+    audience: 'shops', coords: { latitude: 6.0412, longitude: 80.2129 }, ageMin: 4, windowMin: 90,
+    job: { garage: 0, bookingId: 'bk-brake', lineId: 'ln-disc', recommended: ['ps1', 'ps3'] }, fulfilment: 'pickup',
+  },
+  {
+    id: 'c2', buyer: { name: 'කමල් රත්නායක' },
+    vehicle: { name: 'Axio', plate: 'CAA-3398', type: 'Sedan', make: 'Toyota', model: 'Axio', year: 2014 },
+    briefs: [{ name: 'Cabin filter', qty: 1, partType: 'OEM' }],
+    audience: 'shops', coords: { latitude: 6.0602, longitude: 80.2321 }, ageMin: 9, windowMin: 60,
+  },
+  {
+    id: 'w1', buyer: { name: 'අයිතිකරුවෙක්' },
+    vehicle: { name: 'Vitz', plate: 'CBA-4410', type: 'Hatchback', make: 'Toyota', model: 'Vitz', year: 2011, chassisNo: 'KSP130-2034567' },
+    briefs: [{ name: 'Alternator', qty: 1, partType: 'Genuine', partNo: '27060-21060', note: 'KSP130 සඳහා.', photos: 1 }],
+    audience: 'wall', coords: { latitude: 7.2906, longitude: 80.6337 }, ageMin: 35, windowMin: 24 * 60,
+  },
+  {
+    id: 'w2', buyer: { name: 'අයිතිකරුවෙක්' },
+    vehicle: { name: 'Axio', plate: 'CAC-1180', type: 'Sedan', make: 'Toyota', model: 'Axio NZE141' },
+    briefs: [{ name: 'Radiator', qty: 1, partType: 'GarageChoice' }],
+    audience: 'both', coords: { latitude: 6.9271, longitude: 79.8612 }, ageMin: 50, windowMin: 24 * 60,
+  },
+];
+
+/** Arrives a little later, so the inbox is visibly live. */
+export const LATE_CUSTOMER: CustomerSeed = {
+  id: 'c3', buyer: { name: 'චමර ජයවර්ධන' },
+  vehicle: { name: 'Fit GP5', plate: 'CAK-6610', type: 'Hatchback', make: 'Honda', model: 'Fit GP5' },
+  briefs: [{ name: 'Battery 12V 45Ah', qty: 1, partType: 'OEM' }],
+  audience: 'shops', coords: { latitude: 6.0255, longitude: 80.221 }, ageMin: 0, windowMin: 45, fulfilment: 'delivery',
+};
+
+export const LATE_CUSTOMER_MS = 60000;
+/** How long a buyer takes to choose after the shop answers (compressed). */
+export const BUYER_DECIDE_MS = 15000;
+
+/** Earlier referrals from garages (what a backend keeps), so this month's and last month's reports are not empty. */
+export const REFERRAL_SEED = (now: number): PartReferral[] => {
+  const d = new Date(now);
+  const monthStart = new Date(d.getFullYear(), d.getMonth(), 1).getTime();
+  const lastMonth = new Date(d.getFullYear(), d.getMonth() - 1, 12).getTime();
+  const at = (hours: number) => Math.min(now - HOUR, monthStart + hours * HOUR);
+  const shop = { id: 'ps1', name: 'Galle Auto Parts' };
+  const gar = (i: number) => ({ id: GARAGES[i].id, name: GARAGES[i].name });
+  type End = 'purchased' | 'fitted' | 'closed' | 'returned';
+  const sale = (id: string, g: number, part: string, amount: number, t: number, end: End = 'closed'): PartReferral => {
+    let r = newReferral({ id: `ref-${id}`, garage: gar(g), shop, bookingId: id, lineId: 'l1', partName: part, commissionPercent: 3, at: t });
+    r = advanceReferral(r, 'viewed', t + 500);
+    r = advanceReferral(r, 'reserved', t + 1000);
+    r = advanceReferral(r, 'purchased', t + 2000, amount);
+    if (end === 'purchased') return r;
+    r = advanceReferral(r, 'fitted', t + 3000);
+    if (end === 'fitted') return r;
+    r = closeReferral(r, t + 4000);
+    return end === 'returned' ? advanceReferral(r, 'returned', t + 5000) : r;
+  };
+  const lapsed = (id: string, g: number, part: string, t: number) => advanceReferral(newReferral({ id: `ref-${id}`, garage: gar(g), shop, bookingId: id, lineId: 'l1', partName: part, commissionPercent: 3, at: t }), 'lapsed', t + 3 * HOUR);
+  return [
+    sale('s1', 0, 'Brake pads (front)', 6900, at(3)),
+    sale('s2', 0, 'Alternator', 27800, at(26)),
+    sale('s3', 0, 'Timing belt', 7100, at(50), 'fitted'),
+    sale('s4', 1, 'Battery 12V 45Ah', 19800, at(10)),
+    sale('s5', 1, 'O2 sensor', 11800, at(60), 'returned'),
+    sale('s6', 2, 'Engine oil 4L', 6200, at(70), 'purchased'),
+    lapsed('s7', 0, 'Spark plugs (set)', at(80)),
+    sale('p1', 0, 'Brake pads (front)', 6900, lastMonth),
+    sale('p2', 3, 'Spark plugs (set)', 5400, lastMonth + DAY),
+  ];
+};

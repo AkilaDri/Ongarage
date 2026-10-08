@@ -34,6 +34,13 @@ export const AddVehicleSheet: React.FC<AddVehicleSheetProps> = ({ visible, onClo
   const [name, setName] = useState('');
   const [plate, setPlate] = useState('');
   const [type, setType] = useState<string>('Sedan');
+  const [registrationNo, setRegistrationNo] = useState('');
+  const [chassisNo, setChassisNo] = useState('');
+  const [engineNo, setEngineNo] = useState('');
+  const [make, setMake] = useState('');
+  const [model, setModel] = useState('');
+  const [color, setColor] = useState('');
+  const [insuranceNo, setInsuranceNo] = useState('');
   const [touched, setTouched] = useState(false);
   const [saved, setSaved] = useState<Vehicle | null>(null);
   const slide = useRef(new Animated.Value(0)).current;
@@ -46,6 +53,13 @@ export const AddVehicleSheet: React.FC<AddVehicleSheetProps> = ({ visible, onClo
       setName('');
       setPlate('');
       setType('Sedan');
+      setRegistrationNo('');
+      setChassisNo('');
+      setEngineNo('');
+      setMake('');
+      setModel('');
+      setColor('');
+      setInsuranceNo('');
       setTouched(false);
       setSaved(null);
       success.setValue(0);
@@ -82,7 +96,7 @@ export const AddVehicleSheet: React.FC<AddVehicleSheetProps> = ({ visible, onClo
   const save = () => {
     setTouched(true);
     if (!valid) return;
-    const vehicle = addVehicle({ name: name.trim(), plate: cleanPlate, type });
+    const vehicle = addVehicle({ name: name.trim(), plate: cleanPlate, type, registrationNo, chassisNo, engineNo, make, model, color, insuranceNo });
     setSaved(vehicle);
     Animated.spring(success, { toValue: 1, friction: 5, tension: 70, useNativeDriver: true }).start();
     setTimeout(() => onAdded(vehicle), 1100);
@@ -164,6 +178,15 @@ export const AddVehicleSheet: React.FC<AddVehicleSheetProps> = ({ visible, onClo
               maxLength={14}
             />
             {plateError && <Text style={styles.error}>{plateError}</Text>}
+
+            <Text style={styles.label}>වාහනයේ විස්තරයන්</Text>
+            <TextInput style={styles.input} placeholder="ලියාපදිංචි අංකය" placeholderTextColor={Colors.textMuted} value={registrationNo} onChangeText={setRegistrationNo} maxLength={32} />
+            <TextInput style={styles.input} placeholder="Chassis අංකය" placeholderTextColor={Colors.textMuted} value={chassisNo} onChangeText={setChassisNo} maxLength={32} />
+            <TextInput style={styles.input} placeholder="Engine අංකය" placeholderTextColor={Colors.textMuted} value={engineNo} onChangeText={setEngineNo} maxLength={32} />
+            <TextInput style={styles.input} placeholder="Make" placeholderTextColor={Colors.textMuted} value={make} onChangeText={setMake} maxLength={32} />
+            <TextInput style={styles.input} placeholder="Model" placeholderTextColor={Colors.textMuted} value={model} onChangeText={setModel} maxLength={32} />
+            <TextInput style={styles.input} placeholder="Color" placeholderTextColor={Colors.textMuted} value={color} onChangeText={setColor} maxLength={32} />
+            <TextInput style={styles.input} placeholder="Insurance Number" placeholderTextColor={Colors.textMuted} value={insuranceNo} onChangeText={setInsuranceNo} maxLength={32} />
           </ScrollView>
 
           <View style={styles.footer}>

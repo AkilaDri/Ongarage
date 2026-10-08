@@ -21,9 +21,9 @@ import { SOSDispatchScreen } from './screens/SOSDispatchScreen';
 import { JobFeedScreen } from './screens/JobFeedScreen';
 import { ScheduleScreen } from './screens/ScheduleScreen';
 import { GarageProfileScreen } from './screens/GarageProfileScreen';
-import { PartsScreen } from './screens/PartsScreen';
+import { OnMartScreen } from './screens/OnMartScreen';
 
-const TAB_TITLES: Partial<Record<TabId, string>> = { jobs: 'ඔබගේ රැකියා අවස්ථා', schedule: 'ඔබගේ රැකියා කාලසටහන', parts: 'රැකියා සඳහා ඔබ ඇණවුම් කර ඇති කොටස්' };
+const TAB_TITLES: Partial<Record<TabId, string>> = { jobs: 'ඔබගේ රැකියා අවස්ථා', schedule: 'ඔබගේ රැකියා කාලසටහන', parts: 'OnMart · කොටස් වෙළඳපොළ' };
 
 export default function App() {
   return (
@@ -92,7 +92,7 @@ function AppShell() {
           {tab === 'sos' && <SOSInboxScreen />}
           {tab === 'jobs' && <JobFeedScreen />}
           {tab === 'schedule' && <ScheduleScreen onOpenParts={openParts} />}
-          {tab === 'parts' && <PartsScreen focusId={partsFocus} onFocusHandled={() => setPartsFocus(null)} />}
+          {tab === 'parts' && <OnMartScreen focusId={partsFocus} onFocusHandled={() => setPartsFocus(null)} />}
           {tab === 'garage' && <GarageProfileScreen />}
         </View>
         <View style={styles.nav}>

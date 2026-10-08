@@ -7,6 +7,13 @@ export type Vehicle = {
   name: string;
   plate: string;
   type: string;
+  registrationNo?: string;
+  chassisNo?: string;
+  engineNo?: string;
+  make?: string;
+  model?: string;
+  color?: string;
+  insuranceNo?: string;
 };
 
 export type Garage = {
@@ -193,6 +200,8 @@ export type PartQuote = {
    * minutes after confirming, total without the delivery fee.
    */
   pickup?: { readyInMin: number; total: number };
+  /** The discount the shop agreed with this garage, already taken off the unit prices. */
+  tradeDiscountPercent?: number;
 };
 
 /**
@@ -346,8 +355,11 @@ export type DiagnosisLine = {
   qty: number;
   /** Parts: the type, which must respect the owner's choice (Recon instead of Genuine needs approval). */
   partType?: PartType;
-  /** Parts: already in the garage, or to be ordered from a shop. */
-  source?: 'stock' | 'order';
+  /** Parts: already in the garage, to be ordered from a shop by the garage, or bought by the owner ('owner', through OnMart). */
+  source?: 'stock' | 'order' | 'owner';
+  /** Owner-bought parts: the part number to match, and the shops the garage recommends (PartsShop ids). */
+  partNo?: string;
+  recommendedShopIds?: string[];
   /** Estimated price for the whole line (LKR). */
   price: number;
 };
@@ -492,3 +504,219 @@ export type GuaranteeClaim = {
   /** The garage's share (deductible) and the guarantee's share if approved. */
   split?: { garagePays: number; guaranteePays: number };
 };
+
+// ---------- OnMart (owners, garages and parts shops) ----------
+// The spare-parts marketplace. An owner (or a garage) finds a part at nearby shops, asks
+// every shop, or posts the request on the open wall for the whole country. A shop answers
+// "I have it" with an offer; the buyer reserves it and collects it (showing a purchase code)
+// or has it delivered. When a garage tells the owner to buy a part ('owner' lines), the shops it
+// recommends are recorded as referrals that both the garage and the shop can see.
+
+export type PartVehicle = { name: string; plate: string; type: string; make?: string; model?: string; year?: number; chassisNo?: string; engineNo?: string };
+
+/** One part being looked for, with what a shop needs to be sure it is the right one. */
+export type PartBrief = {
+  id: string;
+  /** Canonical part name where known (see ai PART_WORDS), else what the buyer wrote. */
+  name: string;
+  qty: number;
+  partType: PartType;
+  partNo?: string;
+  note?: string;
+  photos?: string[];
+  voiceNotes?: VoiceNote[];
+  vehicle: PartVehicle;
+  /** Service category (SERVICE_CATEGORIES id) the part belongs to, used to match shops. */
+  categoryId?: string;
+};
+
+/** Who is asked: the shops near the buyer, the open wall (every shop in the country), or both. */
+export type MartAudience = 'shops' | 'wall' | 'both';
+
+/** How far the search has reached: nearby, then wider, then the whole country. */
+export type SearchRing = 'nearby' | 'wider' | 'nationwide';
+
+/** What OnMart measures about a shop (a backend keeps these; the apps simulate them). */
+export type ShopStats = {
+  /** Average minutes the shop takes to answer an enquiry. */
+  avgResponseMin: number;
+  /** Share of orders it fulfilled (0–1). */
+  fulfilmentRate: number;
+  /** Share of "in stock" answers that really were in stock (0–1). */
+  stockAccuracy: number;
+  /** Share of orders sent back as the wrong part (0–1). */
+  wrongPartRate: number;
+  /** Share of orders it cancelled after accepting (0–1). */
+  cancelRate: number;
+  ordersDone: number;
+  /** Price against the market reference (1 = list price; lower is cheaper). */
+  priceLevel: number;
+};
+
+/** A shop as buyers see it in OnMart. */
+export type ShopListing = PartsShop & {
+  coords: LatLng;
+  district: string;
+  openHours: string;
+  isOpen: boolean;
+  types: Exclude<PartType, 'GarageChoice'>[];
+  /** Service categories it stocks parts for (SERVICE_CATEGORIES ids). */
+  categories: string[];
+  /** Keeps its stock up to date, so availability is shown live. */
+  liveStock: boolean;
+  courier: boolean;
+  ownDelivery: boolean;
+  counterPickup: boolean;
+  stats: ShopStats;
+  /** Referral commission the shop offers garages, % of parts value (never shown in rankings). */
+  referralPercent?: number;
+};
+
+/** The job a part is bought for, and who recommended where to buy it. */
+export type JobPartsRef = {
+  bookingId: string;
+  lineId: string;
+  garage: { id: string; name: string };
+  recommendedShopIds: string[];
+};
+
+export type PartEnquiryStatus = 'open' | 'reserved' | 'bought' | 'cancelled' | 'expired';
+
+export type PartEnquiry = {
+  id: string;
+  /** What shops and the wall see of the buyer (the wall never shows a phone number). */
+  buyer: { name: string; phone?: string };
+  briefs: PartBrief[];
+  audience: MartAudience;
+  ring: SearchRing;
+  coords: LatLng;
+  jobRef?: JobPartsRef;
+  createdAt: number;
+  /** Shops can answer until this time. */
+  quoteUntil: number;
+  status: PartEnquiryStatus;
+};
+
+/** A shop's answer to one part of an enquiry. */
+export type ShopOffer = {
+  id: string;
+  enquiryId: string;
+  briefId: string;
+  shop: PartsShop;
+  available: boolean;
+  partType: Exclude<PartType, 'GarageChoice'>;
+  brand?: string;
+  unitPrice: number;
+  qty: number;
+  total: number;
+  /** The shop checked the part against the vehicle's chassis / engine number. */
+  fitmentConfirmed: boolean;
+  warrantyMonths: number;
+  /** Minutes until it is ready at the counter after the buyer reserves it. */
+  readyInMin: number;
+  /** Hours the shop holds it for the buyer. */
+  holdHours: number;
+  delivery?: { courier?: string; fee: number; etaMin: number };
+  note?: string;
+  /** A running deal on this part at this shop: the discount, and the unit price before it. */
+  dealPercent?: number;
+  wasUnitPrice?: number;
+  at: number;
+};
+
+export type PartPurchaseStatus = 'reserved' | 'bought' | 'rejected' | 'released' | 'returned';
+
+/** A reserved part, then bought at the counter (the purchase code is shown there) or delivered. */
+export type PartPurchase = {
+  id: string;
+  enquiryId?: string;
+  offerId: string;
+  briefId: string;
+  shop: PartsShop;
+  /** Six digits (and QR) shown at the shop; for job parts it also proves the purchase to the garage. */
+  code: string;
+  status: PartPurchaseStatus;
+  fulfilment: 'pickup' | 'delivery';
+  reservedUntil: number;
+  /** What was actually paid for the part (the shop enters it when it verifies the code). */
+  amount?: number;
+  invoiceNo?: string;
+  boughtAt?: number;
+  rejectedReason?: string;
+  /** Last day the part can be brought back. */
+  returnBy?: number;
+  jobRef?: JobPartsRef;
+};
+
+export type ReferralStatus = 'recommended' | 'viewed' | 'reserved' | 'purchased' | 'fitted' | 'returned' | 'lapsed';
+
+/** A garage sent an owner to a shop for a part: both sides see this record. */
+export type PartReferral = {
+  id: string;
+  garage: { id: string; name: string };
+  shop: { id: string; name: string };
+  bookingId: string;
+  lineId: string;
+  partName: string;
+  status: ReferralStatus;
+  history: { status: ReferralStatus; at: number }[];
+  /** What the owner paid the shop (set when the purchase is verified). */
+  amount?: number;
+  /** % of parts value the shop pays the garage; the owner is told before choosing. */
+  commissionPercent: number;
+  /** Earned only when the part was fitted and the job closed with the owner's code. */
+  commission?: number;
+  jobClosedAt?: number;
+  disclosed: boolean;
+  recommendedAt: number;
+};
+
+/** One month of referrals between a garage and a shop, as either of them sees it. */
+export type ReferralStatement = {
+  month: string;
+  garageId: string;
+  shopId: string;
+  referrals: number;
+  purchases: number;
+  returned: number;
+  partsValue: number;
+  commission: number;
+};
+
+export type PartsQuickAsk = 'available' | 'price' | 'fits' | 'holdIt' | 'photo' | 'delivery';
+
+export type PartsMessage = {
+  id: string;
+  from: 'buyer' | 'shop';
+  quick?: PartsQuickAsk;
+  text?: string;
+  photos?: string[];
+  at: number;
+  /** The off-platform check flagged a phone number or payment move. */
+  flagged?: boolean;
+};
+
+/** A conversation between a buyer and one shop about one enquiry. */
+export type PartsThread = { id: string; enquiryId: string; shopId: string; messages: PartsMessage[] };
+
+// ---------- OnMart promotions (banners, offers, deals) ----------
+// What OnMart's landing page shows beyond the plain shop list. Banners and the Featured shop row are paid placements:
+// always labelled as ads and kept apart from the organic rows, which ads never change. Deals are discounts a shop
+// puts on a part it has in stock, for a limited time.
+
+export type MartGradientStop = { offset: string; color: string };
+
+/** Where a banner or offer tile leads. */
+export type MartTarget = { kind: 'shop'; shopId: string } | { kind: 'search'; query: string } | { kind: 'kit'; kitId: string } | { kind: 'wall' } | { kind: 'deals' };
+
+/** A paid banner from a shop (always labelled as an ad). */
+export type MartBanner = { id: string; shopId: string; title: string; subtitle: string; cta: string; emoji: string; stops: MartGradientStop[]; target: MartTarget; endsAt?: number };
+
+/** A coloured offer tile: a short title, one line, a big emoji, and where it leads. */
+export type MartOffer = { id: string; title: string; subtitle: string; emoji: string; stops: MartGradientStop[]; target: MartTarget; endsAt?: number };
+
+/** A shop's limited-time discount on one part it has in stock. */
+export type ShopDeal = { id: string; shopId: string; partName: string; partType: Exclude<PartType, 'GarageChoice'>; discountPercent: number; endsAt: number };
+
+/** A round icon on the landing page's part strip (the service-category photo, and the search it opens). */
+export type PartGroup = { id: string; name: string; emoji: string; serviceCategoryId: string; query: string };

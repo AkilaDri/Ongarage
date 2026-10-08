@@ -1,4 +1,4 @@
-import { PART_TYPE_FACTOR, partListPrice, type PartType, type PartsShop } from '@ongarage/shared';
+import { MART_SHOPS, PART_TYPE_FACTOR, partListPrice, type PartType, type PartsShop } from '@ongarage/shared';
 
 // Stand-ins for the parts shops around the garage until they have their own app.
 export type ShopSeed = PartsShop & {
@@ -15,28 +15,23 @@ export type ShopSeed = PartsShop & {
   replyAfterSec: number;
 };
 
-export const PARTS_SHOPS: ShopSeed[] = [
-  {
-    id: 'ps1', name: 'Galle Auto Parts', rating: 4.7, ratingCount: 212, distanceKm: 1.8, phone: '0912234501', address: 'ගාල්ල නගරය',
-    stocks: ['Genuine', 'OEM'], genuineCategories: ['1', '2', '5', '7'], delivery: 'courier', priceLevel: 1.04, replyAfterSec: 4,
-  },
-  {
-    id: 'ps2', name: 'Southern Spares', rating: 4.4, ratingCount: 138, distanceKm: 3.2, phone: '0912234502', address: 'කරාපිටිය',
-    stocks: ['OEM', 'Recon'], delivery: 'shop', priceLevel: 0.97, replyAfterSec: 7,
-  },
-  {
-    id: 'ps3', name: 'Karapitiya Recon Centre', rating: 4.2, ratingCount: 96, distanceKm: 2.5, phone: '0912234503', address: 'කරාපිටිය පාර',
-    stocks: ['Recon', 'OEM'], delivery: 'courier', priceLevel: 0.93, replyAfterSec: 10,
-  },
-  {
-    id: 'ps4', name: 'Lanka Genuine Parts', rating: 4.8, ratingCount: 301, distanceKm: 6.5, phone: '0912234504', address: 'මාතර පාර',
-    stocks: ['Genuine'], genuineCategories: ['1', '4', '7'], delivery: 'courier', priceLevel: 1.0, replyAfterSec: 13,
-  },
-  {
-    id: 'ps5', name: 'Hikkaduwa Motor Stores', rating: 4.0, ratingCount: 54, distanceKm: 9.0, phone: '0912234505', address: 'හික්කඩුව',
-    stocks: ['OEM', 'Recon'], delivery: 'shop', priceLevel: 0.84, unreliable: true, replyAfterSec: 16,
-  },
-];
+/**
+ * What differs per garage: how far each shop is from this garage and how it behaves in the
+ * simulation. Who the shops are (name, rating, phone, address, part types) comes from the
+ * shared OnMart directory, so the owner, garage and parts apps agree.
+ */
+const AROUND_GARAGE: Record<string, Pick<ShopSeed, 'distanceKm' | 'delivery' | 'priceLevel' | 'replyAfterSec' | 'genuineCategories' | 'unreliable'>> = {
+  ps1: { distanceKm: 1.8, genuineCategories: ['1', '2', '5', '7'], delivery: 'courier', priceLevel: 1.04, replyAfterSec: 4 },
+  ps2: { distanceKm: 3.2, delivery: 'shop', priceLevel: 0.97, replyAfterSec: 7 },
+  ps3: { distanceKm: 2.5, delivery: 'courier', priceLevel: 0.93, replyAfterSec: 10 },
+  ps4: { distanceKm: 6.5, genuineCategories: ['1', '4', '7'], delivery: 'courier', priceLevel: 1.0, replyAfterSec: 13 },
+  ps5: { distanceKm: 9.0, delivery: 'shop', priceLevel: 0.84, unreliable: true, replyAfterSec: 16 },
+};
+
+export const PARTS_SHOPS: ShopSeed[] = Object.entries(AROUND_GARAGE).map(([id, around]) => {
+  const s = MART_SHOPS.find((x) => x.id === id)!;
+  return { id, name: s.name, rating: s.rating, ratingCount: s.ratingCount, phone: s.phone, address: s.address, stocks: s.types, ...around };
+});
 
 /** What a garage usually orders for each service category (shown as quick picks). */
 export const PART_SUGGESTIONS: Record<string, string[]> = {

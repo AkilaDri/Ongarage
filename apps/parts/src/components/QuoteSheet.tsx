@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { ActionButton, Colors, FONTS, themedStyles, softEdge, softShadow } from '@ongarage/shared';
+import { ActionButton, Colors, FONTS, themedStyles, softEdge, softShadow, tradeDiscount } from '@ongarage/shared';
 import { allowedTypes, courierFee, defaultEtaMin, inStockFor, useShop, variantFor } from '../context/ShopContext';
 import { COURIER, listPrice } from '../constants/mockData';
 import { formatTime, money } from '../utils/format';
@@ -26,7 +26,9 @@ export const QuoteSheet: React.FC<{ request: IncomingRequest | null; onClose: ()
   const [readyMin, setReadyMin] = useState(15);
 
   const types = shown ? allowedTypes(shown, profile.types) : [];
-  const priceFor = (r: IncomingRequest, t: QuoteType) => r.lines.map((l) => String(variantFor(stock, l.name, t)?.price ?? listPrice(l.name, t)));
+  // A garage this shop has a trade agreement with starts from its agreed (discounted) price.
+  const discountFor = (r: IncomingRequest) => tradeDiscount(r.garage.id, profile.id);
+  const priceFor = (r: IncomingRequest, t: QuoteType) => r.lines.map((l) => String(Math.round((variantFor(stock, l.name, t)?.price ?? listPrice(l.name, t)) * (1 - discountFor(r) / 100))));
   const methods = [profile.courierEnabled && 'courier', profile.ownDelivery && 'shop'].filter(Boolean) as ('courier' | 'shop')[];
 
   const pickType = (r: IncomingRequest, t: QuoteType) => {
@@ -77,6 +79,7 @@ export const QuoteSheet: React.FC<{ request: IncomingRequest | null; onClose: ()
       onClose={onClose}
       footer={<ActionButton label={`මිල ගණන යවන්න · ${money(total)}`} icon="📨" variant="primary" disabled={!valid} onPress={submit} />}
     >
+      {discountFor(shown) > 0 && <Text style={styles.warn}>🤝 {shown.garage.name} සමඟ ගිවිසුම් මිල −{discountFor(shown)}% — මිල ස්වයංක්‍රීයව අඩු කර ඇත.</Text>}
       <Text style={styles.label}>කොටස් වර්ගය</Text>
       <View style={styles.chips}>
         {types.map((t) => {

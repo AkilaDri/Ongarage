@@ -21,10 +21,10 @@ export const MOCK_USER = {
 };
 
 export const MOCK_VEHICLES: Vehicle[] = [
-  { id: 'premio', name: 'Premio', plate: 'CAD-8821', type: 'Sedan' },
-  { id: 'alto', name: 'Alto K6A', plate: 'KV-4412', type: 'Hatchback' },
-  { id: 'march', name: 'March K11', plate: 'WP-1029', type: 'Hatchback' },
-  { id: 'vezel', name: 'Vezel', plate: 'CAB-5510', type: 'SUV' },
+  { id: 'premio', name: 'Premio', plate: 'CAD-8821', type: 'Sedan', registrationNo: 'CAD-8821', chassisNo: 'JMBF05090D6226789', engineNo: '3AZFE-2235601', make: 'Toyota', model: 'Premio', color: 'Silver', insuranceNo: 'INS-2024-001' },
+  { id: 'alto', name: 'Alto K6A', plate: 'KV-4412', type: 'Hatchback', registrationNo: 'KV-4412', chassisNo: 'MA3FG50P8KF123456', engineNo: 'F6A-1234567', make: 'Suzuki', model: 'Alto K6A', color: 'White', insuranceNo: 'INS-2024-002' },
+  { id: 'march', name: 'March K11', plate: 'WP-1029', type: 'Hatchback', registrationNo: 'WP-1029', chassisNo: 'FN10P000100789012', engineNo: 'CK10-7654321', make: 'Nissan', model: 'March K11', color: 'Blue', insuranceNo: 'INS-2024-003' },
+  { id: 'vezel', name: 'Vezel', plate: 'CAB-5510', type: 'SUV', registrationNo: 'CAB-5510', chassisNo: 'JHMZE3H56BM100234', engineNo: 'R18A-9876543', make: 'Honda', model: 'Vezel', color: 'Red', insuranceNo: 'INS-2024-004' },
 ];
 
 

@@ -59,6 +59,13 @@ export const PART_WORDS: Record<string, string[]> = {
   'Shock absorbers (pair)': ['shock absorber', 'shocks', 'ෂොක'],
   'Wiper blades': ['wiper', 'වයිපර'],
   'Tyre': ['new tyre', 'tyre replace', 'ටයරයක් මාරු', 'අලුත් ටයර'],
+  Radiator: ['radiator', 'රේඩියේටර'],
+  Headlight: ['headlight', 'head light', 'හෙඩ්ලයිට'],
+  'Fan belt': ['fan belt', 'v belt', 'ෆෑන් බෙල්ට්'],
+  'Wheel bearing': ['wheel bearing', 'බෙයාරිං'],
+  'Fuel pump': ['fuel pump', 'පෙට්‍රල් පොම්ප', 'fuel pump eka'],
+  'Tie rod end': ['tie rod', 'ටයි රොඩ්'],
+  'Ball joint': ['ball joint', 'බෝල් ජොයින්ට්'],
 };
 
 export const URGENT_WORDS = ['urgent', 'asap', 'today', 'right now', 'emergency', 'stuck', 'ඉක්මනින්', 'හදිසි', 'අදම', 'දැන්ම', 'නතර', 'ikmanata', 'adama'];

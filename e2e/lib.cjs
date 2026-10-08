@@ -127,7 +127,7 @@ const open = async (app, ready) => {
 };
 
 /** What the page shows once each app has loaded its seed data. */
-const READY = { user: 'Akila Drishan', garage: 'ලැබුණු ඉල්ලීම්', parts: 'නව ඉල්ලීම්', tech: 'රාජකාරියට පැමිණෙන්න' };
+const READY = { user: 'Akila Drishan', garage: 'ලැබුණු ඉල්ලීම්', parts: 'ගනුදෙනුකරු', tech: 'රාජකාරියට පැමිණෙන්න' };
 
 /** A spec: a named flow in one app. A step that fails stops the flow but keeps the results. */
 const spec = (name, app, flow) => ({

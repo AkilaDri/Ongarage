@@ -68,6 +68,15 @@ export const linesToOrder = (p: WorkshopProgress) => approvedLines(p).filter((l)
  */
 export const partsStillToOrder = (p: WorkshopProgress, coveredLineIds: string[]) => linesToOrder(p).filter((l) => !coveredLineIds.includes(l.id));
 
+/** Approved parts the owner buys themselves (through OnMart), not billed by the garage. */
+export const linesOwnerBuys = (p: WorkshopProgress) => approvedLines(p).filter((l) => l.kind === 'part' && l.source === 'owner');
+
+/**
+ * Owner-bought parts without a verified purchase yet (the shop confirmed the code): handover
+ * waits for these, like it waits for ordered parts that haven't arrived.
+ */
+export const ownerPartsPending = (p: WorkshopProgress, purchasedLineIds: string[]) => linesOwnerBuys(p).filter((l) => !purchasedLineIds.includes(l.id));
+
 /** A Recon request the owner hasn't answered yet (handover waits for it). */
 export const pendingRecon = (p: WorkshopProgress) => (p.recon ?? []).find((r) => r.status === 'pending');
 
@@ -82,9 +91,11 @@ export const pendingExtra = (p: WorkshopProgress) => (p.extras ?? []).find((x) =
 export const workshopBill = (agreedPrice: number, p: WorkshopProgress, orderedPartsCost?: number) => {
   const lines = approvedLines(p);
   const labour = agreedPrice + linesTotal(lines.filter((l) => l.kind === 'labour'));
-  const stockParts = linesTotal(lines.filter((l) => l.kind === 'part' && l.source !== 'order'));
+  const stockParts = linesTotal(lines.filter((l) => l.kind === 'part' && l.source !== 'order' && l.source !== 'owner'));
   const orderParts = orderedPartsCost ?? linesTotal(lines.filter((l) => l.kind === 'part' && l.source === 'order'));
-  return { labour, parts: stockParts + orderParts, total: labour + stockParts + orderParts };
+  // Parts the owner buys themselves are paid at the shop, not on the garage's bill (ownerParts is for display).
+  const ownerParts = linesTotal(lines.filter((l) => l.kind === 'part' && l.source === 'owner'));
+  return { labour, parts: stockParts + orderParts, total: labour + stockParts + orderParts, ownerParts };
 };
 
 /** Same day `months` later, clamped to the month's last day (31 Jan + 3 → 30 Apr). */

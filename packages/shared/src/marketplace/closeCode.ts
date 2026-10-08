@@ -11,3 +11,6 @@ export const formatCloseCode = (code: string) => `${code.slice(0, 3)} ${code.sli
 export const pickupCodePayload = (code: string) => `ongarage:pickup:${code}`;
 
 export const checkCloseCode = (expected: string, entered: string) => entered.replace(/\D/g, '') === expected;
+
+/** QR payload for an owner showing the purchase code at a parts shop (for a part a garage asked them to buy). */
+export const purchaseCodePayload = (code: string) => `ongarage:purchase:${code}`;

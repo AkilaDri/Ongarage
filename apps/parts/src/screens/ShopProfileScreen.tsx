@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Colors, FONTS, GlassIcon, SERVICE_CATEGORIES, ThemeToggle, themedStyles, useTheme, softEdge, softShadow, softFill, PinnedEdge, usePinnedEdge, getThemeMode } from '@ongarage/shared';
+import { Colors, FONTS, GlassIcon, SERVICE_CATEGORIES, ThemeToggle, themedStyles, useTheme, softEdge, softShadow, softFill, PinnedEdge, usePinnedEdge, getThemeMode, ShopCard, COMMISSION_CAP_PERCENT, monthKey, partCategory, partMarketPrice, shopStatement, statementTotals } from '@ongarage/shared';
 import { useShop } from '../context/ShopContext';
 import { COURIER } from '../constants/mockData';
 import { ago } from '../utils/format';
@@ -9,6 +9,8 @@ import { ReviewsSheet } from '../components/ReviewsSheet';
 import { ShopProfileHero } from '../components/ShopProfileHero';
 import { ShopDashboardTiles } from '../components/ShopDashboardTiles';
 import { CatalogueSheet } from '../components/CatalogueSheet';
+import { ReferralsSheet } from '../components/ReferralsSheet';
+import { PromoSheet } from '../components/PromoSheet';
 
 /*
  * Ordered by how often a shop owner needs it on a working day (as in the garage app):
@@ -18,10 +20,11 @@ import { CatalogueSheet } from '../components/CatalogueSheet';
  */
 
 const RADIUS_PRESETS = [3, 5, 10, 15, 20];
-type SheetId = 'reviews' | 'catalogue' | 'riders' | 'card' | null;
+type SheetId = 'reviews' | 'catalogue' | 'riders' | 'card' | 'referrals' | 'promo' | null;
 
 export const ShopProfileScreen: React.FC = () => {
-  const { profile, rating, reviews, setRadius, setDelivery } = useShop();
+  const { profile, rating, reviews, setRadius, setDelivery, listing, referrals, demand, setReferralPercent, setLiveStock, serviceScore, stats, addItem, deals, promo } = useShop();
+  const refTotals = statementTotals(shopStatement(referrals, profile.id, monthKey(Date.now())));
   const { isDark, toggle } = useTheme();
   const [sheet, setSheet] = useState<SheetId>(null);
   const close = () => setSheet(null);
@@ -102,11 +105,78 @@ export const ShopProfileScreen: React.FC = () => {
         )}
       </Pressable>
 
+      <Text style={styles.sectionLabel}>OnMart · ගරාජ නිර්දේශ</Text>
+      <Pressable style={({ pressed }) => [styles.card, pressed && styles.pressed]} onPress={() => setSheet('referrals')} accessibilityLabel="Open referrals">
+        <View style={styles.rowBetween}>
+          <Text style={styles.cardTitle}>🤝 ගරාජ නිර්දේශ සහ ආදායම</Text>
+          <Text style={styles.chevron}>›</Text>
+        </View>
+        <Text style={styles.sub}>
+          මෙම මාසය: නිර්දේශිත විකුණුම් රු. {refTotals.partsValue.toLocaleString()} · මිලදී ගැනීම් {refTotals.purchases} · ගරාජවලට ලැබිය යුතු කොමිස් රු. {refTotals.commission.toLocaleString()}
+        </Text>
+      </Pressable>
+      <View style={styles.card}>
+        <View style={styles.rowBetween}>
+          <View style={styles.flex1}>
+            <Text style={styles.cardTitle}>ගරාජයකට ගෙවන කොමිස්</Text>
+            <Text style={styles.sub}>ගරාජයක් යවපු ගනුදෙනුකරු ඔබෙන් මිලදී ගත් විට, කොටස සවි කර රැකියාව අවසන් වූ පසු. ගනුදෙනුකරුගේ මිලට එක් නොවේ; උපරිම {COMMISSION_CAP_PERCENT}%.</Text>
+          </View>
+          <View style={styles.stepper}>
+            <Pressable style={styles.stepBtn} onPress={() => setReferralPercent(profile.referralPercent - 1)} accessibilityLabel="Decrease commission">
+              <Text style={styles.stepText}>−</Text>
+            </Pressable>
+            <Text style={styles.stepValue}>{profile.referralPercent}%</Text>
+            <Pressable style={styles.stepBtn} onPress={() => setReferralPercent(profile.referralPercent + 1)} accessibilityLabel="Increase commission">
+              <Text style={styles.stepText}>+</Text>
+            </Pressable>
+          </View>
+        </View>
+      </View>
+      <View style={styles.card}>
+        <SwitchRow title="සජීවී තොගය" sub="ඔබගේ තොගය ගනුදෙනුකරුවන්ට සජීවීව පෙන්වන්න — ලැයිස්තුවේ ඉහළින් පෙනේ" on={profile.liveStock} onToggle={() => setLiveStock(!profile.liveStock)} />
+        <Text style={styles.sub}>
+          ප්‍රතිචාර වේලාව මිනි. {stats.avgResponseMin} · තොග නිරවද්‍යතාව {Math.round(stats.stockAccuracy * 100)}% · සේවා ලකුණු {serviceScore.toFixed(1)} (ගනුදෙනුකරුවන් මෙයින් වෙළඳසැල් අනුපිළිවෙල කරයි)
+        </Text>
+      </View>
+      {demand.length > 0 && (
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>📈 ඉල්ලුම — ඔබ සතුව නැති කොටස්</Text>
+          {demand.slice(0, 4).map((d) => (
+            <View key={d.name} style={styles.rowBetween}>
+              <View style={styles.flex1}>
+                <Text style={styles.cardTitle}>{d.name}</Text>
+                <Text style={styles.sub}>{d.count} වරක් ඉල්ලා ඇත</Text>
+              </View>
+              <Pressable
+                onPress={() => {
+                  const type = profile.types[0] ?? 'OEM';
+                  addItem({ name: d.name, categoryId: partCategory(d.name) ?? profile.categories[0] ?? '1', variants: [{ type, price: partMarketPrice(d.name, type), qty: 1 }] });
+                }}
+                accessibilityLabel={`Add ${d.name} to stock`}
+              >
+                <Text style={[styles.cardTitle, { color: Colors.primary }]}>＋ තොගයට</Text>
+              </Pressable>
+            </View>
+          ))}
+          <Text style={styles.sub}>මේවා තොගයට එක් කළොත් වැඩි ගනුදෙනුකරුවන් ලැබේ.</Text>
+        </View>
+      )}
+
+      <Pressable style={({ pressed }) => [styles.card, pressed && styles.pressed]} onPress={() => setSheet('promo')} accessibilityLabel="Open promotions">
+        <View style={styles.rowBetween}>
+          <Text style={styles.cardTitle}>📣 OnMart ප්‍රවර්ධන</Text>
+          <Text style={styles.chevron}>›</Text>
+        </View>
+        <Text style={styles.sub}>
+          දීමනා {deals.filter((d) => d.endsAt > Date.now()).length} · {promo.freeDeliveryOver ? `රු. ${promo.freeDeliveryOver.toLocaleString()}+ නොමිලේ බෙදාහැරීම` : 'නොමිලේ බෙදාහැරීමක් නැත'} · {promo.banner ? (promo.banner.status === 'live' ? 'දැන්වීම සක්‍රීයයි' : 'දැන්වීම සමාලෝචනයේ') : 'දැන්වීමක් නැත'}
+        </Text>
+      </Pressable>
+
       <Text style={styles.sectionLabel}>සැකසුම්</Text>
       <View style={styles.list}>
         <SettingRow icon="🧰" title="අලෙවි කරන කොටස්" value={`${profile.types.join(', ')} · ${catNames.slice(0, 3).join(', ')}${catNames.length > 3 ? '…' : ''}`} onPress={() => setSheet('catalogue')} />
         <SettingRow icon="🚚" title="රියදුරන්" value={profile.staff.map((s) => s.name).join(', ')} onPress={() => setSheet('riders')} divider />
-        <SettingRow icon="🪪" title="ගරාජවලට පෙනෙන ආකාරය" value="මිල ගණන් කාඩ්පත සහ තොරතුරු" onPress={() => setSheet('card')} divider />
+        <SettingRow icon="🪪" title="ගනුදෙනුකරුවන්ට සහ ගරාජවලට පෙනෙන ආකාරය" value="OnMart කාඩ්පත සහ තොරතුරු" onPress={() => setSheet('card')} divider />
         <View style={[styles.settingRow, styles.divider]}>
           <GlassIcon emoji={isDark ? '🌙' : '☀️'} small />
           <View style={styles.flex1}>
@@ -120,6 +190,8 @@ export const ShopProfileScreen: React.FC = () => {
 
       <ReviewsSheet visible={sheet === 'reviews'} onClose={close} />
       <CatalogueSheet visible={sheet === 'catalogue'} onClose={close} />
+      <ReferralsSheet visible={sheet === 'referrals'} onClose={close} />
+      <PromoSheet visible={sheet === 'promo'} onClose={close} />
       <Sheet visible={sheet === 'riders'} title="රියදුරන්" subtitle="ඔබගේම බෙදාහැරීම් සඳහා" onClose={close}>
         {profile.staff.map((s) => (
           <View key={s.id} style={[styles.card, styles.row]}>
@@ -131,20 +203,8 @@ export const ShopProfileScreen: React.FC = () => {
           </View>
         ))}
       </Sheet>
-      <Sheet visible={sheet === 'card'} title="ගරාජවලට පෙනෙන ආකාරය" subtitle="ඔබගේ සෑම මිල ගණනකම ඉහළින් මෙය පෙනේ" onClose={close}>
-        <View style={styles.card}>
-          <View style={styles.rowBetween}>
-            <View style={styles.flex1}>
-              <Text style={styles.cardTitle}>{profile.name}</Text>
-              <Text style={styles.sub}>
-                ★ {rating.average} ({rating.count}) · කි.මී. 1.8
-              </Text>
-            </View>
-            <View style={styles.typeBadge}>
-              <Text style={styles.typeText}>{profile.types[0]}</Text>
-            </View>
-          </View>
-        </View>
+      <Sheet visible={sheet === 'card'} title="ගනුදෙනුකරුවන්ට සහ ගරාජවලට පෙනෙන ආකාරය" subtitle="OnMart ලැයිස්තුවේ සහ ඔබගේ සෑම පිළිතුරකම ඉහළින් මෙය පෙනේ" onClose={close}>
+        <ShopCard shop={listing} />
         <View style={styles.card}>
           <Info icon="🕗" label="විවෘත වේලාවන්" value={profile.openHours} />
           <Info icon="📞" label="දුරකථනය" value={profile.phone} />

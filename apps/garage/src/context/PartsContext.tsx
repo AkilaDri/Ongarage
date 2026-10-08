@@ -2,18 +2,31 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 import {
   getAi,
   makeCloseCode,
+  advanceReferral,
+  availabilityAt,
+  closeReferral,
+  DEFAULT_COMMISSION_PERCENT,
+  linesOwnerBuys,
+  martShop,
+  newReferral,
+  ownerPartsPending,
+  partMarketPrice,
   partsStillToOrder,
+  suggestShops,
   SUGGEST_MIN_CONFIDENCE,
+  tradeDiscount,
   type DiagnosisLine,
   type PartLine,
   type PartQuote,
   type PartsOrder,
   type PartsRequest,
+  type PartReferral,
   type PartType,
 } from '@ongarage/shared';
 import { useGarage } from './GarageContext';
 import type { Booking } from '../types';
 import { COURIER, listPrice, PARTS_SHOPS, TYPE_FACTOR, type ShopSeed } from '../constants/parts';
+import { referralHistory } from '../constants/referrals';
 
 const SEC = 1000;
 const MIN = 60 * SEC;
@@ -27,6 +40,11 @@ const MIN_SEARCH_MS = 12 * SEC;
 const COLLECT_MS = 10 * SEC;
 /** Shops hold a pickup order at the counter this long. */
 const HOLD_MS = 3 * 60 * MIN;
+/** An owner buys a part the garage told them to buy this long after approving it (simulated). */
+const OWNER_BUY_MS = 14 * SEC;
+
+/** A part the customer bought themselves (a shop verified their purchase code). */
+export type OwnerBuy = { shopId: string; shopName: string; amount: number; boughtAt: number; /** The garage checked the part. */ checked?: boolean };
 
 /** Lines made from what the owner named in their post (orderable before the diagnosis). */
 export const isNamedLine = (l: DiagnosisLine) => l.id.startsWith('named-');
@@ -49,7 +67,9 @@ const canSupply = (shop: ShopSeed, type: QuoteType, categoryId?: string) =>
 const round50 = (n: number) => Math.round(n / 50) * 50;
 
 const makeQuote = (r: PartsRequest, shop: ShopSeed, type: QuoteType, rating: { rating: number; count: number }): PartQuote => {
-  const unitPrices = r.lines.map((l) => round50(listPrice(l.name) * TYPE_FACTOR[type] * shop.priceLevel));
+  // A shop this garage has a trade agreement with takes its agreed percentage off.
+  const trade = tradeDiscount(r.garage?.id, shop.id);
+  const unitPrices = r.lines.map((l) => round50(listPrice(l.name) * TYPE_FACTOR[type] * shop.priceLevel * (1 - trade / 100)));
   const partsTotal = unitPrices.reduce((s, p, i) => s + p * r.lines[i].qty, 0);
   const courier = shop.delivery === 'courier';
   const deliveryFee = courier ? round50(250 + shop.distanceKm * 45) : shop.distanceKm <= 3 ? 0 : 400;
@@ -69,6 +89,7 @@ const makeQuote = (r: PartsRequest, shop: ShopSeed, type: QuoteType, rating: { r
     at: Date.now(),
     // Every shop lets garages collect from the counter (most do), for the parts price only.
     pickup: { readyInMin: 10 + Math.round(shop.distanceKm), total: partsTotal },
+    tradeDiscountPercent: trade || undefined,
   };
 };
 
@@ -100,6 +121,17 @@ type PartsState = {
    * or, before the diagnosis, the parts the owner named in their post.
    */
   toOrderFor: (b: Booking) => DiagnosisLine[];
+  /** Referrals this garage has sent to parts shops (owner-bought parts), with their status. */
+  referrals: PartReferral[];
+  /** Approved parts the customer buys themselves (OnMart), with their purchase once a shop verified it. */
+  ownerParts: (b: Booking) => { line: DiagnosisLine; buy?: OwnerBuy }[];
+  /** Owner-bought parts with no verified purchase yet: handover waits for them. */
+  ownerPending: (b: Booking) => DiagnosisLine[];
+  /** The garage checked a part the customer bought (before fitting it). */
+  checkOwnerPart: (bookingId: string, lineId: string) => void;
+  /** Commission received from a shop for a month ("month:shopId" → when). Payments happen outside the app. */
+  settled: Record<string, number>;
+  settleReferrals: (month: string, shopId: string) => void;
 };
 
 const PartsContext = createContext<PartsState | null>(null);
@@ -323,6 +355,115 @@ export const PartsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     [requests, named]
   );
 
+  // ---------- Parts the customer buys themselves (OnMart) ----------
+  const [ownerBuys, setOwnerBuys] = useState<Record<string, OwnerBuy>>({});
+  const [referrals, setReferrals] = useState<PartReferral[]>(() => referralHistory({ id: profile.id, name: profile.name }, Date.now()));
+  const simulatedOwnerLines = useRef(new Set<string>());
+  const [settled, setSettled] = useState<Record<string, number>>({});
+  const refId = (bookingId: string, lineId: string, shopId: string) => `ref-${bookingId}-${lineId}-${shopId}`;
+  const moveRef = useCallback(
+    (bookingId: string, lineId: string, shopId: string, status: PartReferral['status'], amount?: number) =>
+      setReferrals((prev) => prev.map((r) => (r.bookingId === bookingId && r.lineId === lineId && r.shop.id === shopId ? advanceReferral(r, status, Date.now(), amount) : r))),
+    []
+  );
+
+  // An approved part the owner buys: the shops the garage recommended become referrals, and the owner buys (simulated).
+  useEffect(() => {
+    bookings.forEach((b) => {
+      if (!b.progress) return;
+      linesOwnerBuys(b.progress).forEach((l) => {
+        const key = `${b.id}:${l.id}`;
+        if (simulatedOwnerLines.current.has(key)) return;
+        simulatedOwnerLines.current.add(key);
+        const type = l.partType ?? 'GarageChoice';
+        const shopIds = l.recommendedShopIds ?? [];
+        setReferrals((prev) => [
+          ...prev,
+          ...shopIds
+            .filter((id) => !prev.some((r) => r.id === refId(b.id, l.id, id)))
+            .map((id) =>
+              newReferral({ id: refId(b.id, l.id, id), garage: { id: profile.id, name: profile.name }, shop: { id, name: martShop(id)?.name ?? id }, bookingId: b.id, lineId: l.id, partName: l.name, commissionPercent: martShop(id)?.referralPercent ?? DEFAULT_COMMISSION_PERCENT, at: Date.now() })
+            ),
+        ]);
+        notify({ icon: '🤝', title: 'කොටස් නිර්දේශ පාරිභෝගිකයාට යැව්වා', body: `${b.customer.name} · ${l.name} — OnMart හි මිලදී ගැනීමට`, tone: 'primary' });
+        later(() => {
+          const pick = shopIds[0] ?? suggestShops(l.name, type, profile.coords, 1)[0];
+          const shop = pick ? martShop(pick) : undefined;
+          if (!shop) return;
+          const unit = availabilityAt(shop.id, l.name, type)?.price ?? partMarketPrice(l.name, type === 'GarageChoice' ? 'OEM' : type);
+          const amount = unit * l.qty;
+          shopIds.forEach((id) => moveRef(b.id, l.id, id, 'viewed'));
+          moveRef(b.id, l.id, shop.id, 'reserved');
+          moveRef(b.id, l.id, shop.id, 'purchased', amount);
+          setOwnerBuys((prev) => ({ ...prev, [key]: { shopId: shop.id, shopName: shop.name, amount, boughtAt: Date.now() } }));
+          notify({ icon: '🛍️', title: `${b.customer.name} ${shop.name} වෙතින් ${l.name} මිලදී ගත්තා`, body: 'වෙළඳසැල කේතය තහවුරු කළා — කොටස පරීක්ෂා කර සවි කරන්න.', tone: 'success' });
+        }, OWNER_BUY_MS);
+      });
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bookings]);
+
+  // The job closed with the owner's code: a fitted part earns its commission; recommendations nobody bought from lapse.
+  useEffect(() => {
+    const closed = new Set(bookings.filter((b) => b.progress?.stage === 'closed').map((b) => b.id));
+    if (!closed.size) return;
+    setReferrals((prev) => {
+      let changed = false;
+      const next = prev.map((r) => {
+        if (!closed.has(r.bookingId)) return r;
+        const t = Date.now();
+        if (r.status === 'purchased') {
+          changed = true;
+          return closeReferral(advanceReferral(r, 'fitted', t), t);
+        }
+        if (r.status === 'fitted' && !r.jobClosedAt) {
+          changed = true;
+          return closeReferral(r, t);
+        }
+        if (r.status === 'recommended' || r.status === 'viewed' || r.status === 'reserved') {
+          changed = true;
+          return advanceReferral(r, 'lapsed', t);
+        }
+        return r;
+      });
+      return changed ? next : prev;
+    });
+  }, [bookings]);
+
+  const checkOwnerPart = useCallback(
+    (bookingId: string, lineId: string) => {
+      const key = `${bookingId}:${lineId}`;
+      const ob = ownerBuys[key];
+      if (!ob || ob.checked) return;
+      setOwnerBuys((prev) => ({ ...prev, [key]: { ...ob, checked: true } }));
+      moveRef(bookingId, lineId, ob.shopId, 'fitted');
+      notify({ icon: '🔧', title: 'කොටස පරීක්ෂා කළා', body: `${ob.shopName} වෙතින් පාරිභෝගිකයා ගෙනා කොටස නිවැරදියි — සවි කරන්න.`, tone: 'success' });
+    },
+    [moveRef, notify, ownerBuys]
+  );
+  const settleReferrals = useCallback(
+    (month: string, shopId: string) =>
+      setSettled((prev) => {
+        const key = `${month}:${shopId}`;
+        const next = { ...prev };
+        if (next[key]) delete next[key];
+        else next[key] = Date.now();
+        return next;
+      }),
+    []
+  );
+  const ownerParts = useCallback((b: Booking) => (b.progress ? linesOwnerBuys(b.progress).map((line) => ({ line, buy: ownerBuys[`${b.id}:${line.id}`] })) : []), [ownerBuys]);
+  const ownerPending = useCallback(
+    (b: Booking) =>
+      b.progress
+        ? ownerPartsPending(
+            b.progress,
+            Object.keys(ownerBuys).filter((k) => k.startsWith(`${b.id}:`)).map((k) => k.slice(b.id.length + 1))
+          )
+        : [],
+    [ownerBuys]
+  );
+
   const value: PartsState = {
     requests,
     quotes,
@@ -338,6 +479,12 @@ export const PartsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     requestFor,
     requestsFor,
     toOrderFor,
+    referrals,
+    ownerParts,
+    ownerPending,
+    checkOwnerPart,
+    settled,
+    settleReferrals,
   };
   return <PartsContext.Provider value={value}>{children}</PartsContext.Provider>;
 };

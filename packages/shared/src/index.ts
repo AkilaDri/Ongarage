@@ -11,6 +11,9 @@ export * from './theme/ThemeContext';
 export * from './constants/categories';
 export * from './constants/breakdowns';
 export * from './constants/vehicles';
+export * from './constants/martShops';
+export * from './constants/serviceKits';
+export * from './constants/martPromos';
 
 export * from './maps/googleMaps';
 export * from './maps/GoogleMap';
@@ -25,6 +28,9 @@ export * from './marketplace/guarantee';
 export * from './marketplace/closeCode';
 export * from './marketplace/workshop';
 export * from './marketplace/partPrices';
+export * from './marketplace/partsMart';
+export * from './marketplace/deals';
+export * from './marketplace/referral';
 
 // AI decisions layer (rules today; Claude / Laya through the back end later).
 export * from './ai';
@@ -33,6 +39,10 @@ export * from './ui/BottomNav';
 export * from './ui/PinnedEdge';
 export * from './ui/TitleBand';
 export * from './ui/CloseCode';
+export * from './ui/PurchaseCode';
+export * from './ui/ShopCard';
+export * from './ui/MartBits';
+export * from './ui/PartBriefForm';
 export * from './ui/GarageCard';
 export * from './ui/LevelBadge';
 export * from './ui/Glass';
@@ -49,6 +59,7 @@ export * from './ui/VoiceNotePlayer';
 
 // Workshop job forms the garage and technician apps share.
 export * from './ui/workshop/CheckInSheet';
+export * from './ui/workshop/ShopRecommender';
 export * from './ui/workshop/DiagnosisSheet';
 export * from './ui/workshop/HandoverSheet';
 export * from './ui/workshop/CloseJobSheet';
