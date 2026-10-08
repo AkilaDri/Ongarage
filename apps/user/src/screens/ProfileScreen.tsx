@@ -69,38 +69,48 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ activeVehicle, onV
         </Pressable>
 
         {/* My vehicles */}
-        <View style={styles.vehicleHero} accessibilityLabel="Active vehicle">
-          <ImageBackground source={vehiclePhoto(vehicle.type)} style={styles.vehicleBg} imageStyle={styles.vehicleImage}>
-            <Gradient stops={VEHICLE_SHADE} vertical />
+        <View style={styles.vehicleContainer}>
+          {/* Left: Vehicle Info */}
+          <View style={styles.vehicleInfoPanel}>
             <View style={styles.vehicleCopy}>
               <Text style={styles.vehicleName}>{vehicle.name}</Text>
               <View style={styles.plate}>
                 <Text style={styles.plateText}>{vehicle.plate}</Text>
               </View>
             </View>
-          </ImageBackground>
-        </View>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.vehicleRow}>
-          {vehicles.map((v) => {
-            const active = v.id === vehicle.id;
-            return (
-              <Pressable key={v.id} style={styles.vehicleItem} onPress={() => onVehicleChange(v.id)} accessibilityLabel={`Vehicle ${v.name}`}>
-                <View style={[styles.thumbRing, active && styles.thumbRingActive]}>
-                  <Image source={vehiclePhoto(v.type)} style={styles.thumb} />
-                </View>
-                <Text style={[styles.thumbLabel, active && styles.thumbLabelActive]} numberOfLines={1}>
-                  {v.name}
-                </Text>
-              </Pressable>
-            );
-          })}
-          <Pressable style={styles.vehicleItem} onPress={() => setAdding(true)} accessibilityLabel="Add vehicle">
-            <View style={[styles.thumbRing, styles.thumbAdd]}>
-              <Text style={styles.thumbPlus}>＋</Text>
+            <View style={styles.vehicleInfoList}>
+              {vehicle.registrationNo && <View style={styles.infoRow}><Text style={styles.infoLabel}>Reg No</Text><Text style={styles.infoValue}>{vehicle.registrationNo}</Text></View>}
+              {vehicle.chassisNo && <View style={styles.infoRow}><Text style={styles.infoLabel}>Chassis No</Text><Text style={styles.infoValue}>{vehicle.chassisNo}</Text></View>}
+              {vehicle.engineNo && <View style={styles.infoRow}><Text style={styles.infoLabel}>Engine No</Text><Text style={styles.infoValue}>{vehicle.engineNo}</Text></View>}
+              {vehicle.make && <View style={styles.infoRow}><Text style={styles.infoLabel}>Make</Text><Text style={styles.infoValue}>{vehicle.make}</Text></View>}
+              {vehicle.model && <View style={styles.infoRow}><Text style={styles.infoLabel}>Model</Text><Text style={styles.infoValue}>{vehicle.model}</Text></View>}
+              {vehicle.color && <View style={styles.infoRow}><Text style={styles.infoLabel}>Color</Text><Text style={styles.infoValue}>{vehicle.color}</Text></View>}
+              {vehicle.insuranceNo && <View style={styles.infoRow}><Text style={styles.infoLabel}>Insurance No</Text><Text style={styles.infoValue}>{vehicle.insuranceNo}</Text></View>}
             </View>
-            <Text style={styles.thumbLabel}>අලුත්</Text>
-          </Pressable>
-        </ScrollView>
+          </View>
+          {/* Right: Vehicle Selector */}
+          <View style={styles.vehicleRightPanel}>
+            <View style={styles.vehicleColumnRow}>
+              {vehicles.map((v) => {
+                const active = v.id === vehicle.id;
+                return (
+                  <Pressable key={v.id} style={[styles.vehicleColumnItem, active && styles.vehicleColumnItemActive]} onPress={() => onVehicleChange(v.id)} accessibilityLabel={`Vehicle ${v.name}`}>
+                    <Image source={vehiclePhoto(v.type)} style={styles.vehicleColumnThumb} />
+                    <Text style={[styles.vehicleColumnLabel, active && styles.vehicleColumnLabelActive]} numberOfLines={1}>
+                      {v.name}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+            <Pressable style={styles.vehicleAddButton} onPress={() => setAdding(true)} accessibilityLabel="Add vehicle">
+              <View style={styles.vehicleAddIcon}>
+                <Text style={styles.thumbPlus}>＋</Text>
+              </View>
+              <Text style={styles.vehicleAddLabel}>අලුත්</Text>
+            </Pressable>
+          </View>
+        </View>
 
         {/* Rows */}
         <View style={styles.menu}>
@@ -155,13 +165,19 @@ const styles = themedStyles(() =>
     member: { paddingHorizontal: 12, paddingVertical: 3, borderRadius: 10, backgroundColor: 'rgba(14, 165, 233, 0.16)' },
     memberText: { fontSize: 10.5, fontFamily: FONTS.bodyBold, color: Colors.primary },
     // White text sits on the photo's dark shade.
-    vehicleHero: { borderRadius: 18, overflow: 'hidden' },
-    vehicleBg: { height: 150, justifyContent: 'flex-end' },
+    vehicleContainer: { flexDirection: 'row', gap: 12, marginBottom: 12 },
+    vehicleInfoPanel: { flex: 1, gap: 12, paddingVertical: 12, paddingHorizontal: 16, backgroundColor: Colors.bgCard, borderRadius: 18, borderWidth: 1, borderColor: Colors.borderColor },
+    vehicleHero: { flex: 1, borderRadius: 18, overflow: 'hidden' },
+    vehicleBg: { flex: 1, justifyContent: 'flex-end' },
     vehicleImage: { borderRadius: 18, width: '100%', height: '100%' },
-    vehicleCopy: { padding: 14, gap: 6 },
-    vehicleName: { fontSize: 20, fontFamily: FONTS.titleBold, color: '#fff' },
-    plate: { alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 3, borderRadius: 8, backgroundColor: 'rgba(255, 255, 255, 0.9)' },
-    plateText: { fontSize: 12, fontWeight: '800', color: '#0f172a', letterSpacing: 1 },
+    vehicleCopy: { gap: 6 },
+    vehicleName: { fontSize: 18, fontFamily: FONTS.titleBold, color: Colors.textMain },
+    plate: { alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6, backgroundColor: Colors.bgDark },
+    plateText: { fontSize: 10, fontWeight: '800', color: Colors.primary, letterSpacing: 0.5 },
+    vehicleInfoList: { flex: 1, gap: 3, overflow: 'hidden' },
+    infoRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 2 },
+    infoLabel: { fontSize: 8.5, fontFamily: FONTS.bodyMedium, color: Colors.textMuted, maxWidth: '40%' },
+    infoValue: { fontSize: 9, fontFamily: FONTS.bodySemiBold, color: Colors.textMain, maxWidth: '60%', textAlign: 'right' },
     vehicleRow: { gap: 12, paddingRight: 8 },
     vehicleItem: { width: 66, alignItems: 'center', gap: 5 },
     thumbRing: { width: 58, height: 58, borderRadius: 29, borderWidth: 2, borderColor: Colors.borderColor, padding: 2 },
@@ -171,6 +187,16 @@ const styles = themedStyles(() =>
     thumbPlus: { fontSize: 22, color: Colors.primary },
     thumbLabel: { fontSize: 10.5, fontFamily: FONTS.bodyMedium, color: Colors.textMuted, textAlign: 'center' },
     thumbLabelActive: { color: Colors.primary, fontFamily: FONTS.bodySemiBold },
+    vehicleRightPanel: { flex: 1, gap: 8, paddingVertical: 8, paddingHorizontal: 8, backgroundColor: Colors.bgCard, borderRadius: 18, borderWidth: 1, borderColor: Colors.borderColor, justifyContent: 'space-between' },
+    vehicleColumnRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    vehicleColumnItem: { width: '48%', alignItems: 'center', gap: 3, paddingVertical: 4, paddingHorizontal: 4, borderRadius: 10 },
+    vehicleColumnItemActive: { backgroundColor: Colors.bgCardHover },
+    vehicleColumnThumb: { width: 44, height: 44, borderRadius: 10 },
+    vehicleAddButton: { alignItems: 'center', gap: 3, paddingVertical: 6, paddingHorizontal: 4, borderRadius: 10 },
+    vehicleAddIcon: { width: 44, height: 44, borderRadius: 10, borderWidth: 2, borderStyle: 'dashed', borderColor: Colors.subtleBorder, alignItems: 'center', justifyContent: 'center' },
+    vehicleColumnLabel: { fontSize: 8, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, textAlign: 'center', maxWidth: 50 },
+    vehicleColumnLabelActive: { color: Colors.primary, fontFamily: FONTS.bodySemiBold },
+    vehicleAddLabel: { fontSize: 8, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, textAlign: 'center', maxWidth: 50 },
     // One white rounded row per item, like PickMe's account list.
     menu: { gap: 10 },
     menuRow: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 16, paddingVertical: 16, borderRadius: 14, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.borderColor },

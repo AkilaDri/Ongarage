@@ -8,6 +8,7 @@ import {
   INSPECTION_FEE,
   newWorkshopProgress,
   partMarketPrice,
+  ownerPartsPending,
   pendingExtra,
   pendingRecon,
   RATING_DIMENSIONS,
@@ -77,6 +78,8 @@ export type OwnerWorkshop = {
   receiptNo?: string;
   /** The owner's review, and later the garage's public reply. */
   review?: GarageReview;
+  /** Parts the garage asked the owner to buy (OnMart), by line id, once a shop verified the purchase. */
+  partsBought?: Record<string, { shopName: string; amount: number; at: number }>;
 };
 
 export type WorkshopStart = Omit<OwnerWorkshop, 'progress' | 'warrantyMonths' | 'acknowledged' | 'receiptNo' | 'review' | 'technician'> & {
@@ -111,6 +114,8 @@ type WorkshopState = {
   /** Rework didn't fix it, or the garage won't: OnGarage steps in (admin app). */
   escalate: (id: string) => void;
   claimWarranty: (id: string, text: string, photos?: string[]) => void;
+  /** A part the garage asked the owner to buy was bought at a shop (the shop verified the purchase code). */
+  markPartBought: (id: string, lineId: string, info: { shopName: string; amount: number }) => void;
 };
 
 const WorkshopContext = createContext<WorkshopState | null>(null);
@@ -287,7 +292,8 @@ export const WorkshopProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             reason: 'පෑඩ් ගලවද්දී ඉදිරිපස බ්‍රේක් ඩිස්ක් දෙකම ගැඹුරට කැපී ඇති බව පෙනුණා. අලුත් පෑඩ් ඉක්මනින් ගෙවී යයි.',
             photos: [SAMPLE_UPLOAD_PHOTOS[0]],
             lines: [
-              { id: `x-${id}-l1`, kind: 'part', name: 'Brake disc', qty: 2, partType: 'OEM', source: 'order', price: partMarketPrice('Brake disc', 'OEM') * 2 },
+              // The garage can't fetch the discs itself: the owner buys them in OnMart, from shops it recommends.
+              { id: `x-${id}-l1`, kind: 'part', name: 'Brake disc', qty: 2, partType: 'OEM', source: 'owner', partNo: '43512-20180', recommendedShopIds: ['ps1', 'ps3'], price: partMarketPrice('Brake disc', 'OEM') * 2 },
               { id: `x-${id}-l2`, kind: 'labour', name: 'Disc fitting', qty: 1, price: 1500 },
             ],
             sentAt: Date.now(),
@@ -296,6 +302,8 @@ export const WorkshopProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           notify({ icon: '➕', title: `${w.garageName}: අමතර වැඩක් හමු විය`, body: 'ඔබ අනුමත කරන තුරු ඔවුන් එය කරන්නේ හෝ කොටස් ගෙන්වන්නේ නැත.', tone: 'primary' });
           return;
         }
+        // Parts the owner buys themselves (OnMart): the garage waits for the shop-verified purchase.
+        if (ownerPartsPending(w.progress, Object.keys(w.partsBought ?? {})).length) return;
         const lines = approvedLines(w.progress);
         patch(id, {
           stage: 'readyForHandover',
@@ -451,6 +459,17 @@ export const WorkshopProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     [later, notify, patchJob]
   );
 
+  const markPartBought = useCallback(
+    (id: string, lineId: string, info: { shopName: string; amount: number }) => {
+      const w = live.current[id];
+      if (!w) return;
+      patchJob(id, { partsBought: { ...(w.partsBought ?? {}), [lineId]: { ...info, at: Date.now() } } });
+      notify({ icon: '✅', title: 'ගරාජයට දැනුම් දුන්නා', body: `${info.shopName} වෙතින් කොටස මිලදී ගත් බව ${w.garageName} හට පෙනේ — එය පරීක්ෂා කර සවි කරයි.`, tone: 'success' });
+      repairThenHandover(id);
+    },
+    [notify, patchJob, repairThenHandover]
+  );
+
   const decideExtra = useCallback(
     (id: string, extraId: string, approvedLineIds: string[]) => {
       const w = live.current[id];
@@ -461,7 +480,11 @@ export const WorkshopProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       notify({
         icon: '✅',
         title: approvedLineIds.length ? 'අමතර වැඩ අනුමත කළා' : 'අමතර වැඩ එපා කිව්වා',
-        body: approvedLineIds.length ? `${w.garageName} එය කර අවසන් කරයි.` : `${w.garageName} එකඟ වූ වැඩ පමණක් අවසන් කරයි.`,
+        body: approvedLineIds.length
+          ? x.lines.some((l) => approvedLineIds.includes(l.id) && l.kind === 'part' && l.source === 'owner')
+            ? `${w.garageName}: කොටස් ඔබ OnMart හි මිලදී ගත යුතුයි — එතෙක් භාරදීම නතර වේ.`
+            : `${w.garageName} එය කර අවසන් කරයි.`
+          : `${w.garageName} එකඟ වූ වැඩ පමණක් අවසන් කරයි.`,
         tone: 'success',
       });
       repairThenHandover(id);
@@ -551,7 +574,7 @@ export const WorkshopProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   );
 
   return (
-    <WorkshopContext.Provider value={{ workshops, startWorkshop, approveDiagnosis, decideExtra, decideRecon, claimGuarantee, rateJob, declineDiagnosis, showCloseCode, acknowledgeClosed, reportProblem, escalate, claimWarranty }}>
+    <WorkshopContext.Provider value={{ workshops, startWorkshop, approveDiagnosis, decideExtra, decideRecon, claimGuarantee, rateJob, declineDiagnosis, showCloseCode, acknowledgeClosed, reportProblem, escalate, claimWarranty, markPartBought }}>
       {children}
     </WorkshopContext.Provider>
   );

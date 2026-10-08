@@ -70,7 +70,7 @@ export const WorkshopPanel: React.FC<{ booking: Booking }> = ({ booking: b }) =>
                 </Text>
                 <Text style={[styles.lineName, s === 'declined' && styles.struck]} numberOfLines={1}>
                   {l.kind === 'part' ? '🔩' : '🔧'} {l.name}
-                  {l.kind === 'part' ? ` · ${l.partType}${l.source === 'order' ? ' · ඇණවුම්' : ' · තොගයේ'}` : ''}
+                  {l.kind === 'part' ? ` · ${l.partType}${l.source === 'order' ? ' · ඇණවුම්' : l.source === 'owner' ? ' · පාරිභෝගිකයා මිලදී ගනී' : ' · තොගයේ'}` : ''}
                 </Text>
                 <Text style={[styles.linePrice, s === 'declined' && styles.struck]}>{money(l.price)}</Text>
               </View>

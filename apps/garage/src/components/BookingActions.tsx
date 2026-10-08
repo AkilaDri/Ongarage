@@ -77,7 +77,7 @@ type SheetId = 'checkIn' | 'diagnosis' | 'extra' | 'handover' | 'close' | null;
  */
 export const BookingActions: React.FC<{ booking: Booking }> = ({ booking: b }) => {
   const { profile, shareLocation, receiveVehicle, sendDiagnosis, requestExtraWork, markReadyForHandover, startRework, closeWorkshopJob } = useGarage();
-  const { requestFor, requestsFor, toOrderFor } = useParts();
+  const { requestFor, requestsFor, toOrderFor, ownerPending } = useParts();
   const mode = serviceMode(b);
   const [sheet, setSheet] = useState<SheetId>(null);
   const close = () => setSheet(null);
@@ -94,11 +94,14 @@ export const BookingActions: React.FC<{ booking: Booking }> = ({ booking: b }) =
   const bill = p ? workshopBill(b.price, p, parts?.status === 'received' ? b.partsCost : undefined) : { labour: b.price, parts: 0, total: b.price };
   const extraWaiting = p ? pendingExtra(p) : undefined;
   const notOrdered = toOrderFor(b).length;
+  const ownerWaiting = ownerPending(b).length;
   const blockedReason = extraWaiting
     ? 'අයිතිකරු අමතර වැඩ ගැන තීරණය කරන තුරු භාර දිය නොහැක.'
     : notOrdered
       ? `අනුමත කොටස් ${notOrdered} ක් තවම ඇණවුම් කර නැත — කාඩ්පතේ “කොටස්” පේළියෙන් ඇණවුම් කරන්න.`
-      : undefined;
+      : ownerWaiting
+        ? `පාරිභෝගිකයා OnMart හි මිලදී ගත යුතු කොටස් ${ownerWaiting} ක් තවම තහවුරු වී නැත — එතෙක් භාර දිය නොහැක.`
+        : undefined;
 
   const step = () => {
     if (!p) return null;
@@ -175,6 +178,8 @@ export const BookingActions: React.FC<{ booking: Booking }> = ({ booking: b }) =
             agreedPrice={b.price}
             ownerPartType={b.job?.sparePart}
             priceFor={partMarketPrice}
+            viewerCoords={profile.coords}
+            showCommission
             samplePhotos={JOB_PHOTOS}
             onSend={(r) => sendDiagnosis(b.id, r)}
           />
@@ -187,6 +192,8 @@ export const BookingActions: React.FC<{ booking: Booking }> = ({ booking: b }) =
             agreedPrice={bill.total}
             ownerPartType={b.job?.sparePart}
             priceFor={partMarketPrice}
+            viewerCoords={profile.coords}
+            showCommission
             samplePhotos={JOB_PHOTOS}
             onSend={(r) => requestExtraWork(b.id, { id: `x-${Date.now()}`, reason: r.findings, photos: r.photos, lines: r.lines, sentAt: Date.now() })}
           />

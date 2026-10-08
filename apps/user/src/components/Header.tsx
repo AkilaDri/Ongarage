@@ -6,6 +6,8 @@ import { useProfile } from '../context/ProfileContext';
 import { useVehicles } from '../context/VehiclesContext';
 import { vehicleIcon } from '@ongarage/shared';
 import { Gradient, GRADIENTS } from '@ongarage/shared';
+import WeatherAnimation from './WeatherAnimation';
+import { MOCK_USER } from '../constants/mockData';
 
 const POPOVER_WIDTH = 264;
 const EDGE_GAP = 12;
@@ -142,10 +144,10 @@ export const VehiclePicker: React.FC<VehiclePickerProps> = ({ visible, activeVeh
 };
 
 const greetingFor = (hour: number) => {
-  if (hour < 12) return 'සුභ උදෑසනක් 🌅';
-  if (hour < 17) return 'සුභ දහවලක් ☀️';
-  if (hour < 20) return 'සුභ සන්ධ්‍යාවක් 🌅';
-  return 'සුභ රාත්‍රියක් 🌙';
+  if (hour < 12) return 'සුභ උදෑසනක්';
+  if (hour < 17) return 'සුභ දහවලක්';
+  if (hour < 20) return 'සුභ සන්ධ්‍යාවක්';
+  return 'සුභ රාත්‍රියක්';
 };
 
 /** The band other tabs show instead of the greeting: just the tab's title, same colour as Home's. */
@@ -166,17 +168,21 @@ export const Header: React.FC<HeaderProps> = ({ activeVehicle, onVehicleChange }
   const [showDropdown, setShowDropdown] = useState(false);
   const triggerRef = useRef<View>(null);
   const activeCar = useVehicles().findVehicle(activeVehicle);
-  const { fullName } = useProfile();
+  const { fullName, profile } = useProfile();
 
   return (
     <View style={styles.header}>
-      <View style={styles.greetingText}>
-        <Text style={styles.hi} numberOfLines={1}>
-          Hi {fullName},
-        </Text>
-        <Text style={styles.greeting} numberOfLines={1}>
-          {greetingFor(new Date().getHours())}
-        </Text>
+      <View style={styles.greetingRow}>
+        <View style={styles.greetingText}>
+          <Text style={styles.city}>📍 {MOCK_USER.city}</Text>
+          <Text style={styles.hi} numberOfLines={1}>
+            Hi {fullName},
+          </Text>
+          <Text style={styles.greeting} numberOfLines={1}>
+            {greetingFor(new Date().getHours())}
+          </Text>
+        </View>
+        <WeatherAnimation hour={new Date().getHours()} />
       </View>
 
       <Pressable ref={triggerRef} style={[styles.vehiclePill, showDropdown && styles.vehiclePillOpen]} onPress={() => setShowDropdown(true)} accessibilityLabel="Change vehicle">
@@ -214,7 +220,9 @@ const styles = themedStyles(() => StyleSheet.create({
   },
   titleBand: { paddingHorizontal: 18, paddingTop: 14, paddingBottom: 34, backgroundColor: getThemeMode() === 'dark' ? '#0e2a3f' : '#bfe4fa' },
   titleBandText: { fontSize: 20, fontFamily: FONTS.titleBold, color: getThemeMode() === 'dark' ? '#d6eefc' : '#0f2a3d' },
-  greetingText: { flexShrink: 1, gap: 1 },
+  city: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: getThemeMode() === 'dark' ? '#8fc3e3' : '#2b4a63', marginBottom: 2 },
+  greetingRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 6 },
+  greetingText: { gap: 1, flex: 1 },
   hi: { fontSize: 15, fontFamily: FONTS.titleBold, color: getThemeMode() === 'dark' ? '#d6eefc' : '#0f2a3d' },
   greeting: { fontSize: 12.5, fontFamily: FONTS.bodyMedium, color: getThemeMode() === 'dark' ? '#8fc3e3' : '#2b4a63' },
   vehiclePill: {

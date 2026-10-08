@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { categoryInfo, Colors, EmptyState, FONTS, GlassIcon, SERVICE_CATEGORIES, themedStyles, softEdge, softShadow, softFill, PinnedEdge, usePinnedEdge } from '@ongarage/shared';
+import { categoryInfo, Colors, EmptyState, FONTS, GlassIcon, SERVICE_CATEGORIES, themedStyles, softEdge, softShadow, softFill, PinnedEdge, usePinnedEdge, dealLabel } from '@ongarage/shared';
 import { useShop } from '../context/ShopContext';
 import { StockEditSheet, type StockTarget } from '../components/StockEditSheet';
+import { DealSheet } from '../components/DealSheet';
 import { money } from '../utils/format';
 import type { StockItem } from '../types';
 
@@ -13,10 +14,11 @@ const LOW = 1;
 
 export const StockScreen: React.FC = () => {
   const { progress: edge, scrollProps } = usePinnedEdge();
-  const { stock, profile, adjustQty } = useShop();
+  const { stock, profile, adjustQty, liveDeal } = useShop();
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
   const [editing, setEditing] = useState<StockTarget | null>(null);
+  const [dealing, setDealing] = useState<StockTarget | null>(null);
 
   const isLow = (i: StockItem) => i.variants.some((v) => v.qty <= LOW);
   const lowCount = stock.filter(isLow).length;
@@ -60,8 +62,10 @@ export const StockScreen: React.FC = () => {
               {item.variants.map((v) => {
                 const out = v.qty === 0;
                 const low = !out && v.qty <= LOW;
+                const deal = liveDeal(item.name, v.type);
                 return (
-                  <View key={v.type} style={styles.variant}>
+                  <View key={v.type} style={styles.variantWrap}>
+                  <View style={styles.variant}>
                     <Pressable style={styles.variantInfo} onPress={() => setEditing({ item, type: v.type })} accessibilityLabel={`Edit ${item.name} ${v.type}`}>
                       <View style={[styles.type, v.type === 'Recon' && styles.typeRecon]}>
                         <Text style={[styles.typeText, v.type === 'Recon' && { color: Colors.warning }]}>{v.type}</Text>
@@ -84,6 +88,10 @@ export const StockScreen: React.FC = () => {
                       </Pressable>
                     </View>
                   </View>
+                  <Pressable onPress={() => setDealing({ item, type: v.type })} accessibilityLabel={`Deal ${item.name} ${v.type}`}>
+                    <Text style={[styles.dealLink, !!deal && styles.dealLive]}>{deal ? `🏷️ ${dealLabel(deal.discountPercent)} දීමනාව ක්‍රියාත්මකයි · සංස්කරණය` : '🏷️ දීමනාවක් දමන්න'}</Text>
+                  </Pressable>
+                  </View>
                 );
               })}
             </View>
@@ -91,6 +99,7 @@ export const StockScreen: React.FC = () => {
         )}
       </ScrollView>
       <StockEditSheet target={editing} onClose={() => setEditing(null)} />
+      <DealSheet target={dealing} onClose={() => setDealing(null)} />
     </View>
   );
 };
@@ -104,6 +113,9 @@ const FilterChip: React.FC<{ label: string; on: boolean; onPress: () => void; wa
 const styles = themedStyles(() =>
   StyleSheet.create({
     flex1: { flex: 1 },
+    variantWrap: { gap: 4 },
+    dealLink: { fontSize: 10.5, fontFamily: FONTS.bodySemiBold, color: Colors.primary, paddingLeft: 4 },
+    dealLive: { color: Colors.successText },
     row: { flexDirection: 'row', alignItems: 'center', gap: 10 },
     body: { padding: 16, gap: 12, paddingBottom: 100 },
     filters: { zIndex: 5, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 8, gap: 12 },

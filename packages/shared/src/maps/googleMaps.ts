@@ -1,5 +1,8 @@
 import type { LatLng } from '../types';
 import { getThemeMode } from '../theme/colors';
+import { distanceKm } from '../utils/geo';
+
+export { distanceKm };
 
 export const GOOGLE_MAPS_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ?? '';
 
@@ -80,15 +83,6 @@ export function mapPointToLatLng(x: number, y: number, center: LatLng, zoom: num
   };
 }
 
-export function distanceKm(a: LatLng, b: LatLng): number {
-  const R = 6371;
-  const dLat = ((b.latitude - a.latitude) * Math.PI) / 180;
-  const dLng = ((b.longitude - a.longitude) * Math.PI) / 180;
-  const h =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos((a.latitude * Math.PI) / 180) * Math.cos((b.latitude * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
-  return 2 * R * Math.asin(Math.sqrt(h));
-}
 
 export function offsetCoordinate(origin: LatLng, km: number, bearingDeg: number): LatLng {
   const R = 6371;

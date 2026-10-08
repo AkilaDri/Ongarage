@@ -31,10 +31,10 @@ test('steps', () => {
 
 test('bill: only approved lines; labour and parts separate', () => {
   assert.equal(w.approvedLines(base).length, 0);
-  assert.deepEqual(w.workshopBill(3800, base), { labour: 3800, parts: 0, total: 3800 });
-  assert.deepEqual(w.workshopBill(3800, decided(['p1', 'p2', 'l1'])), { labour: 5600, parts: 8200, total: 13800 });
-  assert.deepEqual(w.workshopBill(3800, decided(['p1', 'p2', 'l1']), 6000), { labour: 5600, parts: 7350, total: 12950 }, 'real ordered-parts cost replaces the estimate');
-  assert.deepEqual(w.workshopBill(3800, decided(['p1'])), { labour: 3800, parts: 6850, total: 10650 });
+  assert.deepEqual(w.workshopBill(3800, base), { labour: 3800, parts: 0, total: 3800, ownerParts: 0 });
+  assert.deepEqual(w.workshopBill(3800, decided(['p1', 'p2', 'l1'])), { labour: 5600, parts: 8200, total: 13800, ownerParts: 0 });
+  assert.deepEqual(w.workshopBill(3800, decided(['p1', 'p2', 'l1']), 6000), { labour: 5600, parts: 7350, total: 12950, ownerParts: 0 }, 'real ordered-parts cost replaces the estimate');
+  assert.deepEqual(w.workshopBill(3800, decided(['p1'])), { labour: 3800, parts: 6850, total: 10650, ownerParts: 0 });
 });
 
 test('parts at the right time: ordered once, only after approval', () => {

@@ -14,12 +14,14 @@ import { Colors, FONTS, getThemeMode, Gradient, Pulse, themedStyles } from '@ong
 import { ThemeProvider, useTheme } from '@ongarage/shared';
 import { VehiclesProvider } from './context/VehiclesContext';
 import { LocationProvider } from './context/LocationContext';
+import { MartProvider } from './context/MartContext';
 import { BidsProvider } from './context/BidsContext';
 import { NoticeProvider } from './context/NoticeContext';
 import { BookingsProvider } from './context/BookingsContext';
 import { WorkshopProvider } from './context/WorkshopContext';
 import { ProfileProvider } from './context/ProfileContext';
 import { Header, TitleBand } from './components/Header';
+import { MartHeader } from './components/mart/MartHeader';
 import { Toast } from './components/Toast';
 import { DirectBookingSheet } from './components/DirectBookingSheet';
 import { HomeScreen } from './screens/HomeScreen';
@@ -30,6 +32,7 @@ import { PostJobScreen } from './screens/PostJobScreen';
 import { BidsScreen, type BidsTab } from './screens/BidsScreen';
 import { ActivityScreen } from './screens/ActivityScreen';
 import { ProfileScreen } from './screens/ProfileScreen';
+import { MartScreen } from './screens/MartScreen';
 import { BottomNav } from '@ongarage/shared';
 import { USER_TABS, type TabId } from './constants/tabs';
 import { categoryInfo, type Garage, type JobDraft, type PickedLocation, type ServiceCategory } from '@ongarage/shared';
@@ -143,6 +146,7 @@ function AppShell() {
 
   return (
     <LocationProvider>
+    <MartProvider>
     <BidsProvider>
     <SafeAreaProvider>
       <StatusBar style={isDark ? "light" : "dark"} />
@@ -152,6 +156,8 @@ function AppShell() {
           <View onLayout={(e) => setHeaderH(Math.round(e.nativeEvent.layout.height))}>
             <Header activeVehicle={selectedVehicle} onVehicleChange={setSelectedVehicle} />
           </View>
+        ) : activeTab === 'mart' ? (
+          <MartHeader activeVehicle={selectedVehicle} onVehicleChange={setSelectedVehicle} />
         ) : TAB_TITLES[activeTab] ? (
           <TitleBand title={TAB_TITLES[activeTab]!} />
         ) : null}
@@ -238,7 +244,9 @@ function AppShell() {
               onViewActivity={() => setActiveTab('activity')}
             />
           ) : activeTab === 'activity' ? (
-            <ActivityScreen onOpenBids={() => setActiveTab('bids')} onBookAgain={(b) => setSelectedService(categoryInfo(b.categoryId))} />
+            <ActivityScreen onOpenMart={() => setActiveTab('mart')} onOpenBids={() => setActiveTab('bids')} onBookAgain={(b) => setSelectedService(categoryInfo(b.categoryId))} />
+          ) : activeTab === 'mart' ? (
+            <MartScreen activeVehicle={selectedVehicle} />
           ) : (
             <ProfileScreen activeVehicle={selectedVehicle} onVehicleChange={setSelectedVehicle} />
           )}
@@ -312,6 +320,7 @@ function AppShell() {
       <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: fadeColor, opacity: fade }]} />
     </SafeAreaProvider>
     </BidsProvider>
+    </MartProvider>
     </LocationProvider>
   );
 }

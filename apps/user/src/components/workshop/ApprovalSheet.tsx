@@ -32,7 +32,8 @@ export const ApprovalSheet: React.FC<{ workshop: OwnerWorkshop | null; extraId?:
   if (!w || !d) return null;
   // Extra work builds on what is already approved; a diagnosis on the agreed price.
   const base = x ? workshopBill(w.agreedPrice, w.progress).total : w.agreedPrice;
-  const extra = d.lines.filter((l) => picked.includes(l.id)).reduce((s, l) => s + l.price, 0);
+  // Parts the owner buys themselves (in OnMart) are paid to the shop, not added to the garage's bill.
+  const extra = d.lines.filter((l) => picked.includes(l.id) && l.source !== 'owner').reduce((s, l) => s + l.price, 0);
   const total = base + extra;
   const toggle = (id: string) => setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
 
@@ -116,7 +117,7 @@ export const ApprovalSheet: React.FC<{ workshop: OwnerWorkshop | null; extraId?:
               </Text>
               {l.kind === 'part' && (
                 <Text style={styles.sub}>
-                  {l.partType} · {l.source === 'order' ? 'ඔබ අනුමත කළ පසු ඇණවුම් කරයි' : 'ගරාජයේ තොගයේ'}
+                  {l.partType} · {l.source === 'order' ? 'ඔබ අනුමත කළ පසු ඇණවුම් කරයි' : l.source === 'owner' ? 'ඔබ OnMart හි මිලදී ගන්න — වෙළඳසැලට ගෙවන්න, ගරාජයේ බිලට නොවේ' : 'ගරාජයේ තොගයේ'}
                 </Text>
               )}
             </View>

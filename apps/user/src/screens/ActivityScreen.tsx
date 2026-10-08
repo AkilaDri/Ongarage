@@ -13,6 +13,8 @@ import { useUserLocation } from '../context/LocationContext';
 import { directionsUrl } from '@ongarage/shared';
 import { useBookings } from '../context/BookingsContext';
 import { DirectBookingCard } from '../components/DirectBookingCard';
+import { OrdersList } from '../components/mart/OrdersList';
+import { JobPartsToBuy } from '../components/mart/JobPartsToBuy';
 import { WorkshopTracker } from '../components/workshop/WorkshopTracker';
 import { useWorkshops } from '../context/WorkshopContext';
 import { money } from '../utils/format';
@@ -22,7 +24,7 @@ const MONTHS = ['ජන.', 'පෙබ.', 'මාර්තු', 'අප්‍ර�
 
 const formatDate = (d: Date) => `${d.getFullYear()} ${MONTHS[d.getMonth()]} ${d.getDate()}`;
 
-export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b: DirectBooking) => void }> = ({ onOpenBids, onBookAgain }) => {
+export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b: DirectBooking) => void; onOpenMart?: () => void }> = ({ onOpenBids, onBookAgain, onOpenMart }) => {
   const { jobs } = useBids();
   const { bookings } = useBookings();
   const { workshops } = useWorkshops();
@@ -122,6 +124,9 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
         </View>
           <PinnedEdge progress={edge} />
         </View>
+
+        <JobPartsToBuy compact onOpenMart={onOpenMart} />
+        <OrdersList compact />
 
         <Text style={styles.sectionLabel}>දැනට පවතින වෙන් කිරීම්</Text>
         {(liveBookings.length > 0 || ongoing.length > 0) && <Text style={styles.swipeHint}>සම්පූර්ණ විස්තර සඳහා කාඩ්පතක් පැත්තට ස්වයිප් කරන්න</Text>}

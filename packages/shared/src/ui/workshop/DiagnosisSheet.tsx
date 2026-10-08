@@ -5,10 +5,12 @@ import { FONTS } from '../../theme/fonts';
 import { ActionButton, softEdge, softFill, softShadow } from '../Glass';
 import { Sheet } from '../Sheet';
 import { PhotoStrip } from '../PhotoStrip';
+import { ShopRecommender } from './ShopRecommender';
+import { suggestShops } from '../../constants/martShops';
 import { getAi } from '../../ai';
 import { linesTotal } from '../../marketplace/workshop';
 import { formatDate, formatTime, money } from '../../utils/format';
-import type { DiagnosisLine, DiagnosisReport, PartType } from '../../types';
+import type { DiagnosisLine, DiagnosisReport, LatLng, PartType } from '../../types';
 
 const HOUR = 60 * 60 * 1000;
 const PART_TYPES: PartType[] = ['Genuine', 'OEM', 'Recon'];
@@ -44,7 +46,11 @@ export const DiagnosisSheet: React.FC<{
    * current total and at least one line is needed.
    */
   extra?: boolean;
-}> = ({ visible, onClose, overlay, subject, agreedPrice, ownerPartType = 'GarageChoice', priceFor, samplePhotos, onSend, extra }) => {
+  /** Where the garage is: shops recommended for owner-bought parts are measured from here. */
+  viewerCoords?: LatLng;
+  /** Garages see the referral fee shops pay; technicians do not. */
+  showCommission?: boolean;
+}> = ({ visible, onClose, overlay, subject, agreedPrice, ownerPartType = 'GarageChoice', priceFor, samplePhotos, onSend, extra, viewerCoords, showCommission }) => {
   const [findings, setFindings] = useState('');
   const [photos, setPhotos] = useState<string[]>([]);
   const [lines, setLines] = useState<DiagnosisLine[]>([]);
@@ -91,7 +97,10 @@ export const DiagnosisSheet: React.FC<{
     setAiNote(r.value.parts.length ? `🤖 සටහනෙන් කොටස් ${r.value.parts.length}ක් හමු විය — මිල සහ වර්ගය පරීක්ෂා කරන්න.` : '🤖 සටහනේ කොටස් නම් හමු නොවීය — අතින් එක් කරන්න.');
   };
 
-  const total = agreedPrice + linesTotal(lines);
+  // Parts the owner buys themselves (through OnMart) are paid to the shop, not billed by the garage.
+  const billable = lines.filter((l) => l.source !== 'owner');
+  const ownerLines = lines.filter((l) => l.kind === 'part' && l.source === 'owner');
+  const total = agreedPrice + linesTotal(billable);
   const valid = findings.trim().length >= 5 && (!extra || lines.length > 0);
   const finishOptions = [
     { t: at(0, 17), label: 'අද ප.ව. 5ට' },
@@ -151,6 +160,11 @@ export const DiagnosisSheet: React.FC<{
               <>
                 <Chip label="තොගයේ" on={l.source === 'stock'} onPress={() => patch(l.id, { source: 'stock' })} />
                 <Chip label="ඇණවුම් කළ යුතුයි" on={l.source === 'order'} onPress={() => patch(l.id, { source: 'order' })} />
+                <Chip
+                  label="පාරිභෝගිකයා මිලදී ගනී"
+                  on={l.source === 'owner'}
+                  onPress={() => patch(l.id, { source: 'owner', recommendedShopIds: l.recommendedShopIds?.length ? l.recommendedShopIds : suggestShops(l.name, l.partType ?? 'GarageChoice', viewerCoords) })}
+                />
               </>
             )}
             <View style={styles.priceBox}>
@@ -172,6 +186,13 @@ export const DiagnosisSheet: React.FC<{
               ) : (
                 PART_TYPES.map((t) => <Chip key={t} label={t} on={l.partType === t} onPress={() => patch(l.id, { partType: t, price: price(l.name, t) * l.qty || l.price })} small />)
               )}
+            </View>
+          )}
+          {l.kind === 'part' && l.source === 'owner' && (
+            <View style={styles.ownerBox}>
+              <TextInput style={styles.input} value={l.partNo ?? ''} onChangeText={(t) => patch(l.id, { partNo: t || undefined })} placeholder="කොටස් අංකය (ඇත්නම්)" placeholderTextColor={Colors.textMuted} autoCapitalize="characters" accessibilityLabel={`Part number ${l.name}`} />
+              <Text style={styles.hint}>ගනුදෙනුකරු මෙය OnMart හි මිලදී ගනී — ඔබගේ බිලට එක් නොවේ; මිල වෙළඳසැලට ගෙවයි. ඔබ නිර්දේශ කරන වෙළඳසැල්:</Text>
+              <ShopRecommender name={l.name} partType={l.partType ?? 'GarageChoice'} coords={viewerCoords} value={l.recommendedShopIds ?? []} onChange={(ids) => patch(l.id, { recommendedShopIds: ids })} showCommission={showCommission} />
             </View>
           )}
         </View>
@@ -215,7 +236,8 @@ export const DiagnosisSheet: React.FC<{
 
       <View style={styles.summary}>
         <Row label={extra ? 'දැනට එකතුව' : 'එකඟ වූ මිල'} value={money(agreedPrice)} />
-        <Row label={`අමතර පේළි ${lines.length}`} value={money(linesTotal(lines))} />
+        <Row label={`අමතර පේළි ${billable.length}`} value={money(linesTotal(billable))} />
+        {ownerLines.length > 0 && <Row label={`ගනුදෙනුකරු වෙළඳසැලට ගෙවන කොටස් ${ownerLines.length}`} value={money(linesTotal(ownerLines))} />}
         <Row label="අනුමත කළහොත් නව එකතුව" value={money(total)} strong />
         <Text style={styles.hint}>
           අයිතිකරු අනුමත කරන පේළි පමණක් අය කෙරේ · අවසන් කිරීම {formatDate(finishBy)} {formatTime(finishBy)}
@@ -241,6 +263,7 @@ const Row: React.FC<{ label: string; value: string; strong?: boolean }> = ({ lab
 const styles = themedStyles(() =>
   StyleSheet.create({
     flex1: { flex: 1, minWidth: 0 },
+    ownerBox: { gap: 8 },
     rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
     label: { fontSize: 13.5, fontFamily: FONTS.titleBold, color: Colors.textMain, marginTop: 6 },
     hint: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 16 },
