@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Colors, FONTS, GlassIcon, glassStyle, themedStyles } from '@ongarage/shared';
+import { Colors, FONTS, GlassIcon, glassStyle, themedStyles, softEdge, softShadow, softFill } from '@ongarage/shared';
 import { useGarage } from '../context/GarageContext';
 import { VANS } from '../constants/mockData';
 import { Sheet } from './Sheet';
@@ -86,8 +86,8 @@ const styles = themedStyles(() =>
   StyleSheet.create({
     flex1: { flex: 1 },
     row: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-    section: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, letterSpacing: 0.4, marginTop: 4 },
-    list: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.borderColor, borderRadius: 16, overflow: 'hidden' },
+    section: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textMain, marginTop: 4 },
+    list: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), borderRadius: 20, overflow: 'hidden', ...softShadow() },
     item: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 12 },
     divider: { borderTopWidth: 1, borderTopColor: Colors.borderColor },
     avatar: { width: 38, height: 38, borderRadius: 19, ...glassStyle(), justifyContent: 'center', alignItems: 'center' },
@@ -97,7 +97,7 @@ const styles = themedStyles(() =>
     name: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.textMain },
     sub: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 1 },
     tag: { fontSize: 10.5, fontFamily: FONTS.bodySemiBold },
-    removeBtn: { width: 28, height: 28, borderRadius: 14, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.subtleFill, borderWidth: 1, borderColor: Colors.borderColor },
+    removeBtn: { width: 28, height: 28, borderRadius: 16, justifyContent: 'center', alignItems: 'center', backgroundColor: softFill(), borderWidth: 1, borderColor: 'transparent' },
     removeText: { fontSize: 11, color: Colors.textMuted },
     cancelBtn: { paddingHorizontal: 8, paddingVertical: 6 },
     cancelText: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },

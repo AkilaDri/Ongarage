@@ -10,7 +10,7 @@ import {
   NotoSansSinhala_600SemiBold,
   NotoSansSinhala_700Bold,
 } from '@expo-google-fonts/noto-sans-sinhala';
-import { BottomNav, Colors, ThemeProvider, themedStyles, useTheme } from '@ongarage/shared';
+import { BottomNav, Colors, ThemeProvider, themedStyles, useTheme, headerBand, getThemeMode } from '@ongarage/shared';
 import { ShopProvider, useShop } from './context/ShopContext';
 import { PARTS_TABS, type TabId } from './constants/tabs';
 import { ShopHeader } from './components/ShopHeader';
@@ -71,7 +71,8 @@ function AppShell() {
       <StatusBar style={isDark ? 'light' : 'dark'} />
       <SafeAreaView style={styles.container} edges={['top']}>
         <ShopHeader />
-        <View style={styles.flex1}>
+        {/* The tab's screen overlaps the header band with rounded top corners, like the owner app. */}
+        <View style={styles.sheet}>
           {tab === 'requests' && <RequestsScreen />}
           {tab === 'orders' && <OrdersScreen />}
           {tab === 'stock' && <StockScreen />}
@@ -90,8 +91,9 @@ function AppShell() {
 
 const styles = themedStyles(() =>
   StyleSheet.create({
-    container: { flex: 1, backgroundColor: Colors.bgBody },
+    container: { flex: 1, backgroundColor: headerBand().bg },
     flex1: { flex: 1 },
+    sheet: { flex: 1, marginTop: -18, borderTopLeftRadius: 24, borderTopRightRadius: 24, overflow: 'hidden', backgroundColor: getThemeMode() === 'dark' ? Colors.bgBody : '#ffffff' },
     nav: { position: 'absolute', left: 0, right: 0, bottom: 0 },
   })
 );

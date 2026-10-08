@@ -1,6 +1,6 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { ActionButton, Colors, FONTS, GlassIcon, themedStyles } from '@ongarage/shared';
+import { ActionButton, Colors, FONTS, GlassIcon, themedStyles, softEdge, softShadow } from '@ongarage/shared';
 import { useTech } from '../context/TechContext';
 import { ago } from '../utils/format';
 import { Sheet } from './Sheet';
@@ -65,12 +65,12 @@ const styles = themedStyles(() =>
     flex1: { flex: 1 },
     row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
     actions: { flexDirection: 'row', gap: 8 },
-    card: { padding: 14, borderRadius: 16, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.borderColor, gap: 8 },
+    card: { padding: 14, borderRadius: 20, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), gap: 8, ...softShadow() },
     current: { borderColor: 'rgba(16, 185, 129, 0.5)' },
     pressed: { opacity: 0.75 },
     title: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.textMain },
     sub: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 1 },
-    label: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, letterSpacing: 0.4, marginTop: 6 },
+    label: { fontSize: 13.5, fontFamily: FONTS.titleBold, color: Colors.textMain, marginTop: 6 },
     hint: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 16 },
     go: { fontSize: 11.5, fontFamily: FONTS.bodyBold, color: Colors.primary },
   })

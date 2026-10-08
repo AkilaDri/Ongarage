@@ -54,7 +54,7 @@ export const CheckInSheet: React.FC<{
 
 const styles = themedStyles(() =>
   StyleSheet.create({
-    label: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, letterSpacing: 0.4 },
+    label: { fontSize: 13.5, fontFamily: FONTS.titleBold, color: Colors.textMain },
     hint: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 16 },
   })
 );

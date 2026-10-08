@@ -21,6 +21,10 @@ import {
   zoomToFit,
   type BreakdownId,
   type LatLng,
+  softEdge,
+  softShadow,
+  softFill,
+  getThemeMode,
 } from '@ongarage/shared';
 import { isCommitted, useGarage } from '../context/GarageContext';
 import { VANS } from '../constants/mockData';
@@ -75,6 +79,14 @@ export const SOSDispatchScreen: React.FC = () => {
   const popAnim = useRef(new Animated.Value(0)).current;
 
   const stage = dispatch?.stage ?? 'review';
+  // Height of the top layer (map or band), measured so the map zooms to fit what is visible.
+  const [topH, setTopH] = useState(320);
+  // Each step opens at the top of the sheet.
+  const sheetScroll = useRef<ScrollView>(null);
+  useEffect(() => {
+    sheetScroll.current?.scrollTo({ y: 0, animated: false });
+  }, [stage]);
+
   const stageIndex = STAGES.indexOf(stage);
 
   // Trip progress comes from when the van left, so it survives closing this screen.
@@ -147,7 +159,7 @@ export const SOSDispatchScreen: React.FC = () => {
     };
     return (
       <GoogleMap
-        style={[styles.map, { height }]}
+        style={styles.mapFull}
         center={mid}
         zoom={zoomToFit(request.distanceKm, mid.latitude, height)}
         fallbackColor="#ef4444"
@@ -272,7 +284,6 @@ export const SOSDispatchScreen: React.FC = () => {
       case 'review':
         return (
           <>
-            {renderMap(180)}
             {requestCard}
             <Text style={styles.hint}>ආසන්න ගමන් කාලය: මිනි. ~{baseEta}</Text>
           </>
@@ -398,7 +409,6 @@ export const SOSDispatchScreen: React.FC = () => {
       case 'enroute':
         return (
           <>
-            {renderMap(260)}
             <View style={styles.card}>
               <View style={styles.etaRow}>
                 <View style={styles.etaItem}>
@@ -604,40 +614,45 @@ export const SOSDispatchScreen: React.FC = () => {
   };
 
   const bottomBar = bottom();
+  const showMap = stage === 'review' || stage === 'enroute';
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      <View style={styles.header}>
-        <Gradient stops={GRADIENTS.sosHeader} />
-        <View style={styles.headerIcon}>
-          <Text style={styles.headerIconText}>🚨</Text>
+      {/* Like the owner SOS flow: the map (or, on steps without one, a red band) fills the top; the controls float over it. */}
+      <View style={[styles.topArea, showMap ? styles.topAreaMap : styles.topAreaBand]} onLayout={(e) => setTopH(Math.round(e.nativeEvent.layout.height))}>
+        {showMap ? renderMap(topH) : <Gradient stops={GRADIENTS.sosHeader} />}
+        <View style={styles.topBar}>
+          <Pressable style={styles.roundBtn} onPress={leave} accessibilityLabel={committed ? 'Minimize' : 'Close'}>
+            <Icon name={committed ? 'chevron-down' : 'x'} size={18} strokeWidth={2.5} color={Colors.textMain} />
+          </Pressable>
+          <View style={styles.stepPill}>
+            <View style={styles.stepPillIcon}>
+              <Text style={styles.headerIconText}>🚨</Text>
+            </View>
+            <View style={styles.flex1}>
+              <Text style={styles.stepPillTitle} numberOfLines={1}>
+                SOS රැකියාව · {request.customer.name}
+              </Text>
+              <Text style={styles.stepPillSub} numberOfLines={1}>
+                පියවර {stageIndex + 1}/{STAGES.length} · {STAGE_LABEL[stage]}
+              </Text>
+            </View>
+          </View>
         </View>
-        <View style={styles.flex1}>
-          <Text style={styles.headerTitle}>SOS රැකියාව · {request.customer.name}</Text>
-          <Text style={styles.headerSubtitle}>
-            පියවර {stageIndex + 1}/{STAGES.length} · {STAGE_LABEL[stage]}
-          </Text>
-        </View>
-        <Pressable
-          style={styles.closeBtn}
-          onPress={leave}
-          accessibilityLabel={committed ? 'Minimize' : 'Close'}
-        >
-          <Icon name={committed ? 'chevron-down' : 'x'} size={16} strokeWidth={2.5} color="#fff" />
-        </Pressable>
       </View>
 
-      <View style={styles.stepper}>
-        {STAGES.map((s, i) => (
-          <View key={s} style={[styles.stepSeg, i < stageIndex && styles.stepSegDone, i === stageIndex && styles.stepSegActive]} />
-        ))}
+      <View style={styles.sheet}>
+        <View style={styles.handle} />
+        <View style={styles.stepper}>
+          {STAGES.map((s, i) => (
+            <View key={s} style={[styles.stepSeg, i < stageIndex && styles.stepSegDone, i === stageIndex && styles.stepSegActive]} />
+          ))}
+        </View>
+        <ScrollView ref={sheetScroll} style={styles.flex1} contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+          {body()}
+        </ScrollView>
+        {bottomBar && <View style={styles.bottomBar}>{bottomBar}</View>}
       </View>
-
-      <ScrollView style={styles.flex1} contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-        {body()}
-      </ScrollView>
-
-      {bottomBar && <View style={styles.bottomBar}>{bottomBar}</View>}
     </SafeAreaView>
   );
 };
@@ -685,6 +700,9 @@ const Hero: React.FC<{ anim: Animated.Value; icon: string; title: string; text: 
   </View>
 );
 
+// A stronger shadow for controls floating over the map.
+const FLOAT_SHADOW = { shadowColor: '#0f172a', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.16, shadowRadius: 14, elevation: 5 } as const;
+
 const styles = themedStyles(() =>
   StyleSheet.create({
     container: { flex: 1, backgroundColor: Colors.bgBody },
@@ -715,7 +733,7 @@ const styles = themedStyles(() =>
       justifyContent: 'center',
       alignItems: 'center',
     },
-    stepper: { flexDirection: 'row', gap: 3, paddingHorizontal: 16, paddingVertical: 8 },
+    stepper: { flexDirection: 'row', gap: 4, paddingHorizontal: 16, paddingTop: 10, paddingBottom: 4 },
     stepSeg: { flex: 1, height: 4, borderRadius: 2, backgroundColor: Colors.subtleBorder },
     stepSegDone: { backgroundColor: 'rgba(239, 68, 68, 0.6)' },
     stepSegActive: { backgroundColor: '#ef4444' },
@@ -726,33 +744,44 @@ const styles = themedStyles(() =>
     liveCallText: { fontSize: 16 },
     takeOver: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
     approvalCard: { borderColor: 'rgba(245, 158, 11, 0.55)', backgroundColor: 'rgba(245, 158, 11, 0.08)' },
-    map: { borderRadius: 18, borderWidth: 1, borderColor: Colors.borderColor },
-    pinAnchor: { position: 'absolute', transform: [{ translateX: '-50%' }, { translateY: '-50%' }] },
-    garagePin: { width: 32, height: 32, borderRadius: 10, backgroundColor: Colors.success, borderWidth: 2, borderColor: '#fff', justifyContent: 'center', alignItems: 'center' },
-    customerPin: {
-      width: 34,
-      height: 34,
-      borderRadius: 17,
-      backgroundColor: '#ef4444',
-      borderWidth: 2,
-      borderColor: '#fff',
-      justifyContent: 'center',
-      alignItems: 'center',
-      shadowColor: '#ef4444',
-      shadowOpacity: 0.9,
-      shadowRadius: 12,
-      elevation: 6,
+    mapFull: { ...StyleSheet.absoluteFill },
+    topArea: { overflow: 'hidden', backgroundColor: Colors.mapBg },
+    topAreaMap: { height: '42%' },
+    topAreaBand: { height: 130 },
+    topBar: { position: 'absolute', top: 12, left: 16, right: 16, flexDirection: 'row', alignItems: 'center', gap: 10 },
+    roundBtn: { width: 46, height: 46, borderRadius: 23, backgroundColor: Colors.bgCard, justifyContent: 'center', alignItems: 'center', ...FLOAT_SHADOW },
+    stepPill: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, height: 52, paddingLeft: 6, paddingRight: 16, borderRadius: 26, backgroundColor: Colors.bgCard, ...FLOAT_SHADOW },
+    stepPillIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: getThemeMode() === 'dark' ? 'rgba(239, 68, 68, 0.18)' : '#fee2e2', justifyContent: 'center', alignItems: 'center' },
+    stepPillTitle: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.textMain },
+    stepPillSub: { fontSize: 10.5, fontFamily: FONTS.bodySemiBold, color: '#dc2626' },
+    // The step lives in a rounded sheet that overlaps the map.
+    sheet: {
+      flex: 1,
+      marginTop: -24,
+      backgroundColor: Colors.bgBody,
+      borderTopLeftRadius: 28,
+      borderTopRightRadius: 28,
+      overflow: 'hidden',
+      shadowColor: '#0f172a',
+      shadowOffset: { width: 0, height: -6 },
+      shadowOpacity: 0.12,
+      shadowRadius: 16,
+      elevation: 12,
     },
-    vanPin: { width: 34, height: 34, borderRadius: 17, backgroundColor: Colors.primary, borderWidth: 2, borderColor: '#fff', justifyContent: 'center', alignItems: 'center' },
+    handle: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: Colors.subtleBorder, marginTop: 10 },
+    pinAnchor: { position: 'absolute', transform: [{ translateX: '-50%' }, { translateY: '-50%' }] },
+    garagePin: { width: 36, height: 36, borderRadius: 18, backgroundColor: Colors.success, borderWidth: 3, borderColor: '#fff', justifyContent: 'center', alignItems: 'center', shadowColor: '#059669', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 10, elevation: 5 },
+    customerPin: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#ef4444', borderWidth: 3, borderColor: '#fff', justifyContent: 'center', alignItems: 'center', shadowColor: '#dc2626', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 10, elevation: 5 },
+    vanPin: { width: 36, height: 36, borderRadius: 18, backgroundColor: Colors.primary, borderWidth: 3, borderColor: '#fff', justifyContent: 'center', alignItems: 'center', shadowColor: '#0284c7', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 10, elevation: 5 },
     pinEmoji: { fontSize: 15 },
-    card: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.borderColor, borderRadius: 18, padding: 14, gap: 10 },
+    card: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), borderRadius: 20, padding: 14, gap: 10, ...softShadow() },
     centerCard: { alignItems: 'center' },
     selected: { borderColor: Colors.success, backgroundColor: 'rgba(16, 185, 129, 0.08)' },
     disabledCard: { opacity: 0.5 },
     cardTitle: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.textMain },
     sub: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 1 },
-    label: { fontSize: 10.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, letterSpacing: 0.4 },
-    sectionLabel: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, letterSpacing: 0.5, marginTop: 4 },
+    label: { fontSize: 13.5, fontFamily: FONTS.titleBold, color: Colors.textMain },
+    sectionLabel: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textMain, marginTop: 4 },
     hint: { fontSize: 11, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, textAlign: 'center' },
     note: { fontSize: 12, fontFamily: FONTS.bodyRegular, color: Colors.textSoft, fontStyle: 'italic', textAlign: 'center' },
     divider: { height: 1, backgroundColor: Colors.borderColor },
@@ -768,7 +797,7 @@ const styles = themedStyles(() =>
     currency: { fontSize: 18, fontFamily: FONTS.titleBold, color: Colors.textMuted },
     priceInput: { flex: 1, fontSize: 28, fontWeight: '800', color: Colors.textMain, paddingVertical: 2 },
     chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-    choice: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, borderWidth: 1, borderColor: Colors.borderColor, backgroundColor: Colors.subtleFill },
+    choice: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: 'transparent', backgroundColor: softFill() },
     choiceActive: { borderColor: Colors.success, backgroundColor: 'rgba(16, 185, 129, 0.14)' },
     choiceText: { fontSize: 11.5, fontFamily: FONTS.bodyMedium, color: Colors.textMuted },
     choiceTextActive: { color: Colors.successText, fontFamily: FONTS.bodyBold },
@@ -780,7 +809,7 @@ const styles = themedStyles(() =>
     progressTrack: { height: 6, borderRadius: 3, backgroundColor: Colors.subtleBorder, overflow: 'hidden' },
     progressFill: { height: '100%', borderRadius: 3, backgroundColor: Colors.success },
     task: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 4 },
-    check: { width: 24, height: 24, borderRadius: 8, borderWidth: 1.5, borderColor: Colors.subtleBorder, justifyContent: 'center', alignItems: 'center' },
+    check: { width: 24, height: 24, borderRadius: 8, borderWidth: 1, borderColor: 'transparent', backgroundColor: softFill(), justifyContent: 'center', alignItems: 'center' },
     checkOn: { backgroundColor: Colors.success, borderColor: Colors.success },
     checkMark: { fontSize: 13, fontWeight: '900', color: '#fff' },
     taskText: { flex: 1, fontSize: 12.5, fontFamily: FONTS.bodyMedium, color: Colors.textMain },
@@ -817,6 +846,6 @@ const styles = themedStyles(() =>
     radarCore: { width: 64, height: 64, borderRadius: 32, backgroundColor: '#ef4444', justifyContent: 'center', alignItems: 'center' },
     radarEmoji: { fontSize: 28 },
     stars: { fontSize: 30, color: Colors.warning, letterSpacing: 4 },
-    bottomBar: { padding: 16, paddingTop: 12, gap: 8, backgroundColor: Colors.barBg, borderTopWidth: 1, borderTopColor: Colors.borderColor },
+    bottomBar: { padding: 16, paddingTop: 10, gap: 8, backgroundColor: Colors.bgBody },
   })
 );

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { ActionButton, categoryInfo, Colors, EmptyState, FONTS, GlassIcon, Icon, SwipeCard, themedStyles, vehicleIcon, type IconName } from '@ongarage/shared';
+import { ActionButton, categoryInfo, Colors, EmptyState, FONTS, GlassIcon, Icon, SwipeCard, themedStyles, vehicleIcon, type IconName, softEdge, softShadow, NAVY, softFill, getThemeMode } from '@ongarage/shared';
 import { allowedTypes, useShop } from '../context/ShopContext';
 import { PART_TYPE_LABEL } from '../constants/mockData';
 import { QuoteSheet } from '../components/QuoteSheet';
@@ -149,7 +149,7 @@ export const RequestsScreen: React.FC = () => {
           const active = segment === t.id;
           return (
             <Pressable key={t.id} style={[styles.tab, active && styles.tabActive]} onPress={() => setSegment(t.id)}>
-              <Icon name={t.icon} size={14} color={active ? Colors.primary : Colors.textMuted} />
+              <Icon name={t.icon} size={14} color={active ? '#ffffff' : Colors.textMuted} />
               <Text style={[styles.tabText, active && styles.tabTextActive]}>{t.label}</Text>
               {t.count > 0 && (
                 <View style={[styles.tabCount, active && styles.tabCountActive, t.alert && styles.tabCountAlert]}>
@@ -204,21 +204,10 @@ const styles = themedStyles(() =>
     rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
     actions: { flexDirection: 'row', gap: 8 },
     tabBar: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 6 },
-    tab: {
-      flex: 1,
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: 6,
-      paddingVertical: 10,
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: Colors.borderColor,
-      backgroundColor: Colors.bgCard,
-    },
-    tabActive: { backgroundColor: 'rgba(56, 189, 248, 0.14)', borderColor: 'rgba(56, 189, 248, 0.5)' },
+    tab: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10, paddingHorizontal: 8, borderRadius: 22, backgroundColor: softFill() },
+    tabActive: { backgroundColor: NAVY, shadowColor: NAVY, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.28, shadowRadius: 8, elevation: 4 },
     tabText: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
-    tabTextActive: { color: Colors.primary },
+    tabTextActive: { color: '#ffffff' },
     tabCount: {
       position: 'absolute',
       top: -7,
@@ -228,17 +217,17 @@ const styles = themedStyles(() =>
       paddingHorizontal: 5,
       borderRadius: 10,
       borderWidth: 2,
-      borderColor: Colors.bgBody,
+      borderColor: getThemeMode() === 'dark' ? Colors.bgBody : '#ffffff',
       backgroundColor: Colors.bgCardHover,
       alignItems: 'center',
       justifyContent: 'center',
     },
-    tabCountActive: { backgroundColor: Colors.primary },
+    tabCountActive: { backgroundColor: '#4ca1d1' },
     tabCountAlert: { backgroundColor: '#ef4444' },
     tabCountText: { fontSize: 9.5, fontWeight: '800', color: Colors.textMuted },
     body: { padding: 16, paddingTop: 8, gap: 12, paddingBottom: 100 },
     hint: { fontSize: 10.5, fontFamily: FONTS.bodyMedium, color: Colors.textMuted, textAlign: 'center' },
-    card: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.borderColor, borderRadius: 18, padding: 14, gap: 10 },
+    card: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), borderRadius: 20, padding: 14, gap: 10, ...softShadow() },
     dim: { opacity: 0.55 },
     title: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.textMain },
     sub: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 1, lineHeight: 16 },
@@ -256,7 +245,7 @@ const styles = themedStyles(() =>
     status: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: 10 },
     statusText: { fontSize: 10.5, fontFamily: FONTS.bodySemiBold },
     link: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
-    closed: { padding: 16, borderRadius: 18, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.borderColor, gap: 10, alignItems: 'center' },
+    closed: { padding: 16, borderRadius: 20, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), gap: 10, alignItems: 'center', ...softShadow() },
     closedTitle: { fontSize: 15, fontFamily: FONTS.titleBold, color: Colors.textMain },
   })
 );

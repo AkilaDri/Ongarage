@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Colors, FONTS, Pulse, themedStyles } from '@ongarage/shared';
+import { Colors, FONTS, Pulse, themedStyles, softShadow, headerBand, getThemeMode } from '@ongarage/shared';
 import { useTech } from '../context/TechContext';
 import { DutySheet } from './DutySheet';
 
@@ -58,30 +58,21 @@ export const TechHeader: React.FC = () => {
 
 const styles = themedStyles(() =>
   StyleSheet.create({
-    header: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      paddingHorizontal: 14,
-      paddingVertical: 12,
-      backgroundColor: Colors.bgBody,
-      borderBottomWidth: 1,
-      borderBottomColor: Colors.borderColor,
-    },
+    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 18, paddingTop: 12, paddingBottom: 30, backgroundColor: headerBand().bg },
     brandBox: { flexDirection: 'row', alignItems: 'center', gap: 12, flexShrink: 1, marginRight: 8 },
     flexShrink: { flexShrink: 1 },
     badgeWrap: { width: 52, height: 52, justifyContent: 'center', alignItems: 'center' },
-    pulseRing: { position: 'absolute', width: 50, height: 50, borderRadius: 16, borderWidth: 2, borderColor: 'rgba(34, 197, 94, 0.55)' },
-    badge: { width: 46, height: 46, borderRadius: 15, backgroundColor: Colors.glassBg, borderWidth: 1.5, borderColor: Colors.glassBorder, justifyContent: 'center', alignItems: 'center' },
+    pulseRing: { position: 'absolute', width: 52, height: 52, borderRadius: 26, borderWidth: 2, borderColor: 'rgba(34, 197, 94, 0.55)' },
+    badge: { width: 46, height: 46, borderRadius: 23, backgroundColor: '#ffffff', justifyContent: 'center', alignItems: 'center', ...softShadow() },
     badgeEmoji: { fontSize: 22 },
-    statusDot: { position: 'absolute', right: 1, bottom: 1, width: 13, height: 13, borderRadius: 7, borderWidth: 2.5, borderColor: Colors.bgBody },
-    greeting: { fontSize: 10.5, color: Colors.textMuted, fontFamily: FONTS.bodyRegular },
-    name: { fontSize: 15, fontFamily: FONTS.titleBold, color: Colors.textMain, marginTop: 2 },
-    location: { fontSize: 9.5, color: Colors.textMuted, fontFamily: FONTS.bodyRegular, marginTop: 1 },
-    statusPill: { flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6 },
-    pillOn: { backgroundColor: 'rgba(16, 185, 129, 0.12)', borderColor: 'rgba(16, 185, 129, 0.4)' },
-    pillBreak: { backgroundColor: 'rgba(245, 158, 11, 0.12)', borderColor: 'rgba(245, 158, 11, 0.45)' },
-    pillOff: { backgroundColor: Colors.subtleFill, borderColor: Colors.subtleBorder },
+    statusDot: { position: 'absolute', right: 1, bottom: 1, width: 13, height: 13, borderRadius: 7, borderWidth: 2.5, borderColor: headerBand().bg },
+    greeting: { fontSize: 11.5, color: headerBand().sub, fontFamily: FONTS.bodyMedium },
+    name: { fontSize: 16, fontFamily: FONTS.titleBold, color: headerBand().title, marginTop: 1 },
+    location: { fontSize: 10, color: headerBand().sub, fontFamily: FONTS.bodyRegular, marginTop: 1 },
+    statusPill: { flexDirection: 'row', alignItems: 'center', gap: 6, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 7, backgroundColor: getThemeMode() === 'dark' ? headerBand().pill : '#ffffff', ...softShadow() },
+    pillOn: {},
+    pillBreak: {},
+    pillOff: {},
     pillDot: { width: 8, height: 8, borderRadius: 4 },
     pillText: { fontSize: 11, fontFamily: FONTS.bodySemiBold },
   })

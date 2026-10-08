@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Colors, themedStyles } from '../../theme/colors';
 import { FONTS } from '../../theme/fonts';
-import { ActionButton } from '../Glass';
+import { ActionButton, softEdge, softFill, softShadow } from '../Glass';
 import { Sheet } from '../Sheet';
 import { PhotoStrip } from '../PhotoStrip';
 import { STANDARD_HANDOVER_CHECKS } from '../../marketplace/workshop';
@@ -106,18 +106,18 @@ const Row: React.FC<{ label: string; value: string; strong?: boolean }> = ({ lab
 const styles = themedStyles(() =>
   StyleSheet.create({
     row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-    label: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, letterSpacing: 0.4, marginTop: 6 },
+    label: { fontSize: 13.5, fontFamily: FONTS.titleBold, color: Colors.textMain, marginTop: 6 },
     hint: { fontSize: 11, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
     warn: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.warning, lineHeight: 17 },
     check: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 6 },
-    box: { width: 24, height: 24, borderRadius: 8, borderWidth: 1.5, borderColor: Colors.subtleBorder, justifyContent: 'center', alignItems: 'center' },
+    box: { width: 24, height: 24, borderRadius: 8, borderWidth: 1, borderColor: 'transparent', backgroundColor: softFill(), justifyContent: 'center', alignItems: 'center' },
     boxOn: { backgroundColor: Colors.success, borderColor: Colors.success },
     tick: { fontSize: 13, fontWeight: '900', color: '#fff' },
     checkText: { flex: 1, fontSize: 12.5, fontFamily: FONTS.bodyMedium, color: Colors.textMain },
     checkDone: { color: Colors.textMuted, textDecorationLine: 'line-through' },
-    toggle: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 14, borderWidth: 1, borderColor: Colors.borderColor, backgroundColor: Colors.bgCard, marginTop: 4 },
+    toggle: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 18, borderWidth: 1, borderColor: softEdge(), backgroundColor: Colors.bgCard, marginTop: 4, ...softShadow() },
     toggleOn: { borderColor: 'rgba(16, 185, 129, 0.45)' },
-    summary: { padding: 12, borderRadius: 14, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.borderColor, gap: 6, marginTop: 4 },
+    summary: { padding: 12, borderRadius: 18, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), gap: 6, marginTop: 4, ...softShadow() },
     value: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
     strong: { fontSize: 12.5, fontFamily: FONTS.bodyBold, color: Colors.textMain },
     strongValue: { fontSize: 15, fontFamily: FONTS.titleBold, color: Colors.success },

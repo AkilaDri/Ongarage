@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { ActionButton, categoryInfo, Colors, dayStart, EmptyState, FONTS, GlassIcon, Icon, isHighValueJob, levelForFeature, marketPrice, SwipeCard, themedStyles, vehicleIcon, type IconName } from '@ongarage/shared';
+import { ActionButton, categoryInfo, Colors, dayStart, EmptyState, FONTS, GlassIcon, Icon, isHighValueJob, levelForFeature, marketPrice, SwipeCard, themedStyles, vehicleIcon, type IconName, softFill, softEdge, softShadow, NAVY, getThemeMode } from '@ongarage/shared';
 import { bidDeadline, useGarage } from '../context/GarageContext';
 import { BidSheet } from '../components/BidSheet';
 import { DirectReplySheet, type ReplyMode } from '../components/DirectReplySheet';
@@ -287,7 +287,7 @@ export const JobFeedScreen: React.FC = () => {
           const active = segment === t.id;
           return (
             <Pressable key={t.id} style={[styles.tab, active && styles.tabActive]} onPress={() => setSegment(t.id)}>
-              <Icon name={t.icon} size={14} color={active ? Colors.primary : Colors.textMuted} />
+              <Icon name={t.icon} size={14} color={active ? '#ffffff' : Colors.textMuted} />
               <Text style={[styles.tabText, active && styles.tabTextActive]} numberOfLines={1}>
                 {t.label}
               </Text>
@@ -381,7 +381,7 @@ const Chip: React.FC<{ text: string; accent?: boolean }> = ({ text, accent }) =>
 
 const styles = themedStyles(() =>
   StyleSheet.create({
-    locked: { padding: 10, borderRadius: 12, backgroundColor: Colors.subtleFill, borderWidth: 1, borderColor: Colors.borderColor },
+    locked: { padding: 10, borderRadius: 16, backgroundColor: softFill(), borderWidth: 1, borderColor: 'transparent' },
     lockedText: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, lineHeight: 17 },
     flex1: { flex: 1 },
     flex2: { flex: 2 },
@@ -389,22 +389,10 @@ const styles = themedStyles(() =>
     rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
     actionsRow: { flexDirection: 'row', gap: 8 },
     tabBar: { flexDirection: 'row', gap: 6, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 6 },
-    tab: {
-      flex: 1,
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: 5,
-      paddingVertical: 10,
-      paddingHorizontal: 4,
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: Colors.borderColor,
-      backgroundColor: Colors.bgCard,
-    },
-    tabActive: { backgroundColor: 'rgba(56, 189, 248, 0.14)', borderColor: 'rgba(56, 189, 248, 0.5)' },
+    tab: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10, paddingHorizontal: 8, borderRadius: 22, backgroundColor: softFill() },
+    tabActive: { backgroundColor: NAVY, shadowColor: NAVY, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.28, shadowRadius: 8, elevation: 4 },
     tabText: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, flexShrink: 1 },
-    tabTextActive: { color: Colors.primary },
+    tabTextActive: { color: '#ffffff' },
     tabCount: {
       position: 'absolute',
       top: -7,
@@ -414,16 +402,16 @@ const styles = themedStyles(() =>
       paddingHorizontal: 5,
       borderRadius: 10,
       borderWidth: 2,
-      borderColor: Colors.bgBody,
+      borderColor: getThemeMode() === 'dark' ? Colors.bgBody : '#ffffff',
       backgroundColor: Colors.bgCardHover,
       alignItems: 'center',
       justifyContent: 'center',
     },
-    tabCountActive: { backgroundColor: Colors.primary },
+    tabCountActive: { backgroundColor: '#4ca1d1' },
     tabCountAlert: { backgroundColor: '#ef4444' },
     tabCountText: { fontSize: 9.5, fontWeight: '800', color: Colors.textMuted },
     body: { padding: 16, paddingTop: 8, gap: 12, paddingBottom: 100 },
-    filter: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, borderWidth: 1, borderColor: Colors.borderColor, backgroundColor: Colors.bgCard },
+    filter: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, borderWidth: 1, borderColor: softEdge(), backgroundColor: Colors.bgCard, ...softShadow() },
     filterActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
     filterText: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
     filterTextActive: { color: '#fff' },
@@ -431,7 +419,7 @@ const styles = themedStyles(() =>
     swipeHintText: { fontSize: 10.5, fontFamily: FONTS.bodyMedium, color: Colors.textMuted, textAlign: 'center' },
     explain: { padding: 12, borderRadius: 14, backgroundColor: 'rgba(16, 185, 129, 0.08)', borderWidth: 1, borderColor: 'rgba(16, 185, 129, 0.35)' },
     explainText: { fontSize: 11, fontFamily: FONTS.bodyRegular, color: Colors.textSoft, lineHeight: 17 },
-    card: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.borderColor, borderRadius: 18, padding: 14, gap: 10 },
+    card: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), borderRadius: 20, padding: 14, gap: 10, ...softShadow() },
     cardBid: { borderColor: 'rgba(245, 158, 11, 0.45)' },
     cardDirect: { borderColor: 'rgba(16, 185, 129, 0.45)' },
     dim: { opacity: 0.55 },

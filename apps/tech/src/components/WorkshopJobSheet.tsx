@@ -22,6 +22,9 @@ import {
   workshopBill,
   workshopStepIndex,
   type TechPartsStatus,
+  softEdge,
+  softShadow,
+  softFill,
 } from '@ongarage/shared';
 import { useTech } from '../context/TechContext';
 import { SAMPLE_PHOTOS } from '../constants/mockData';
@@ -283,7 +286,7 @@ const styles = themedStyles(() =>
     actions: { flexDirection: 'row', gap: 8 },
     photos: { gap: 8 },
     photo: { width: 260, height: 160, borderRadius: 14 },
-    card: { padding: 14, borderRadius: 16, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.borderColor, gap: 8 },
+    card: { padding: 14, borderRadius: 20, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), gap: 8, ...softShadow() },
     cardTitle: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.textMain },
     desc: { fontSize: 12.5, fontFamily: FONTS.bodyRegular, color: Colors.textSoft, lineHeight: 20 },
     sub: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 16 },
@@ -296,10 +299,10 @@ const styles = themedStyles(() =>
     input: {
       minHeight: 60,
       padding: 12,
-      borderRadius: 12,
-      backgroundColor: Colors.subtleFill,
+      borderRadius: 16,
+      backgroundColor: softFill(),
       borderWidth: 1,
-      borderColor: Colors.borderColor,
+      borderColor: 'transparent',
       color: Colors.textMain,
       fontSize: 12.5,
       fontFamily: FONTS.bodyRegular,

@@ -15,6 +15,8 @@ import {
   WORKSHOP_STAGE_TEXT,
   WORKSHOP_STEP_LABELS,
   workshopStepIndex,
+  softEdge,
+  softShadow,
 } from '@ongarage/shared';
 import { isActiveSOS, useTech } from '../context/TechContext';
 import { WorkshopJobSheet, PARTS_LABEL } from '../components/WorkshopJobSheet';
@@ -232,7 +234,7 @@ const styles = themedStyles(() =>
     actions: { flexDirection: 'row', gap: 8 },
     body: { padding: 16, gap: 12, paddingBottom: 100 },
     pressed: { opacity: 0.8 },
-    card: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.borderColor, borderRadius: 18, padding: 14, gap: 10 },
+    card: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), borderRadius: 20, padding: 14, gap: 10, ...softShadow() },
     cardWorking: { borderColor: 'rgba(56, 189, 248, 0.55)' },
     cardOffer: { borderColor: 'rgba(245, 158, 11, 0.5)' },
     dutyCard: { borderColor: 'rgba(16, 185, 129, 0.45)', gap: 8 },
@@ -252,7 +254,7 @@ const styles = themedStyles(() =>
     sub: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 1, lineHeight: 16 },
     note: { fontSize: 11.5, fontFamily: FONTS.bodyRegular, color: Colors.textSoft, fontStyle: 'italic' },
     pay: { fontSize: 13.5, fontFamily: FONTS.titleBold, color: Colors.success },
-    section: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, letterSpacing: 0.5, marginTop: 4 },
+    section: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textMain, marginTop: 4 },
     hint: { fontSize: 10.5, fontFamily: FONTS.bodyMedium, color: Colors.textMuted, textAlign: 'center' },
     chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
     chip: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: 10, backgroundColor: Colors.subtleFill },

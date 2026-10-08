@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
-import { ActionButton, CloseCode, Colors, FONTS, pickupCodePayload, themedStyles, type PartQuote, type PartsOrder } from '@ongarage/shared';
+import { ActionButton, CloseCode, Colors, FONTS, pickupCodePayload, themedStyles, type PartQuote, type PartsOrder, softEdge, softShadow } from '@ongarage/shared';
 import { allowedTypes, linesSummary, orderTotal, useParts } from '../context/PartsContext';
 import { useGarage } from '../context/GarageContext';
 import { PART_TYPE_LABEL } from '../constants/parts';
@@ -346,7 +346,7 @@ const styles = themedStyles(() =>
     rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
     rowLabel: { width: 84, fontSize: 11, fontFamily: FONTS.bodyMedium, color: Colors.textMuted },
     rowValue: { flex: 1, fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
-    summary: { padding: 12, borderRadius: 14, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.borderColor, gap: 6 },
+    summary: { padding: 12, borderRadius: 18, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), gap: 6, ...softShadow() },
     statusRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     statusText: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
     title: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.textMain },
@@ -356,12 +356,12 @@ const styles = themedStyles(() =>
     infoBox: { padding: 10, borderRadius: 12, backgroundColor: 'rgba(56, 189, 248, 0.1)' },
     infoText: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
     chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-    chip: { paddingHorizontal: 11, paddingVertical: 6, borderRadius: 12, borderWidth: 1, borderColor: Colors.borderColor, backgroundColor: Colors.bgCard },
+    chip: { paddingHorizontal: 11, paddingVertical: 6, borderRadius: 16, borderWidth: 1, borderColor: softEdge(), backgroundColor: Colors.bgCard, ...softShadow() },
     chipOn: { backgroundColor: Colors.primary, borderColor: Colors.primary },
     chipDanger: { borderColor: 'rgba(239, 68, 68, 0.45)' },
     chipText: { fontSize: 10.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
     chipTextOn: { color: '#fff' },
-    card: { padding: 12, borderRadius: 16, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.borderColor, gap: 6 },
+    card: { padding: 12, borderRadius: 20, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), gap: 6, ...softShadow() },
     cardBest: { borderColor: 'rgba(16, 185, 129, 0.55)' },
     cardFailed: { borderColor: 'rgba(239, 68, 68, 0.4)', opacity: 0.85 },
     typeBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, backgroundColor: 'rgba(56, 189, 248, 0.12)' },

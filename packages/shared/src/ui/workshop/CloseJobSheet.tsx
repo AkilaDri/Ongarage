@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Colors, themedStyles } from '../../theme/colors';
 import { FONTS } from '../../theme/fonts';
-import { ActionButton } from '../Glass';
+import { ActionButton, softEdge, softShadow } from '../Glass';
 import { Sheet } from '../Sheet';
 import { checkCloseCode } from '../../marketplace/closeCode';
 import { money } from '../../utils/format';
@@ -85,14 +85,15 @@ const styles = themedStyles(() =>
       minWidth: 0,
       height: 52,
       paddingHorizontal: 14,
-      borderRadius: 14,
+      borderRadius: 18,
       backgroundColor: Colors.bgCard,
       borderWidth: 1,
-      borderColor: Colors.borderColor,
+      borderColor: softEdge(),
       color: Colors.textMain,
       fontSize: 22,
       fontWeight: '800',
       letterSpacing: 6,
+      ...softShadow(),
     },
     inputError: { borderColor: Colors.errorText },
     btn: { paddingHorizontal: 14, height: 52, borderRadius: 14, backgroundColor: Colors.primary, justifyContent: 'center' },

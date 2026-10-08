@@ -10,7 +10,7 @@ import { VehiclePicker } from '../components/Header';
 import { GoogleMap, type Project } from '@ongarage/shared';
 import { Gradient, GRADIENTS, Pulse } from '@ongarage/shared';
 import { ActionButton as SharedButton } from '@ongarage/shared';
-import { OwnerModalCard as ModalCard } from '../components/OwnerModalCard';
+import { ModalCard } from '@ongarage/shared';
 import { etaMinutes, kmToMapPixels, offsetCoordinate, zoomToFit } from '@ongarage/shared';
 import type { LatLng, PickedLocation } from '@ongarage/shared';
 

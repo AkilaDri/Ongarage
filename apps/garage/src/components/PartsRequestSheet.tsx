@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { ActionButton, Colors, FONTS, GlassIcon, SERVICE_CATEGORIES, themedStyles, vehicleIcon, type DiagnosisLine, type PartLine, type PartType } from '@ongarage/shared';
+import { ActionButton, Colors, FONTS, GlassIcon, SERVICE_CATEGORIES, themedStyles, vehicleIcon, type DiagnosisLine, type PartLine, type PartType, softEdge, softShadow, softFill } from '@ongarage/shared';
 import { isNamedLine, useParts } from '../context/PartsContext';
 import { DEFAULT_SUGGESTIONS, PART_SUGGESTIONS, PART_TYPE_LABEL } from '../constants/parts';
 import { formatDate, formatTime } from '../utils/format';
@@ -241,43 +241,44 @@ export const PartsRequestSheet: React.FC<{ booking: Booking | null; onClose: () 
 const styles = themedStyles(() =>
   StyleSheet.create({
     flex1: { flex: 1 },
-    booking: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: 16, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.borderColor },
+    booking: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: 20, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), ...softShadow() },
     title: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.textMain },
     sub: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 1, lineHeight: 16 },
-    label: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, letterSpacing: 0.4, marginTop: 6 },
+    label: { fontSize: 13.5, fontFamily: FONTS.titleBold, color: Colors.textMain, marginTop: 6 },
     hint: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 16, marginTop: 4 },
     locked: { padding: 12, borderRadius: 14, backgroundColor: 'rgba(56, 189, 248, 0.08)', borderWidth: 1, borderColor: 'rgba(56, 189, 248, 0.35)', gap: 2 },
     lockedTitle: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
     chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-    chip: { paddingHorizontal: 11, paddingVertical: 7, borderRadius: 12, borderWidth: 1, borderColor: Colors.borderColor, backgroundColor: Colors.bgCard },
+    chip: { paddingHorizontal: 11, paddingVertical: 7, borderRadius: 16, borderWidth: 1, borderColor: softEdge(), backgroundColor: Colors.bgCard, ...softShadow() },
     chipOn: { backgroundColor: Colors.primary, borderColor: Colors.primary },
     chipText: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
     chipTextOn: { color: '#fff' },
     suggest: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, borderWidth: 1, borderStyle: 'dashed', borderColor: Colors.subtleBorder },
     suggestText: { fontSize: 11, fontFamily: FONTS.bodyMedium, color: Colors.primary },
-    line: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.borderColor },
+    line: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 16, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), ...softShadow() },
     qty: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-    qtyBtn: { width: 28, height: 28, borderRadius: 14, backgroundColor: Colors.subtleFill, borderWidth: 1, borderColor: Colors.borderColor, justifyContent: 'center', alignItems: 'center' },
+    qtyBtn: { width: 28, height: 28, borderRadius: 16, backgroundColor: softFill(), borderWidth: 1, borderColor: 'transparent', justifyContent: 'center', alignItems: 'center' },
     qtyText: { fontSize: 14, fontWeight: '700', color: Colors.textMain },
     qtyValue: { fontSize: 13, fontFamily: FONTS.bodyBold, color: Colors.textMain, minWidth: 16, textAlign: 'center' },
     addRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },
     input: {
       height: 44,
       paddingHorizontal: 12,
-      borderRadius: 12,
+      borderRadius: 16,
       backgroundColor: Colors.bgCard,
       borderWidth: 1,
-      borderColor: Colors.borderColor,
+      borderColor: softEdge(),
       color: Colors.textMain,
       fontSize: 12.5,
       fontFamily: FONTS.bodyMedium,
+      ...softShadow(),
     },
     addBtn: { paddingHorizontal: 12, height: 44, borderRadius: 12, backgroundColor: Colors.primary, justifyContent: 'center' },
     addText: { fontSize: 11.5, fontFamily: FONTS.bodyBold, color: '#fff' },
     off: { opacity: 0.4 },
-    toggle: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: 14, borderWidth: 1, borderColor: Colors.borderColor, backgroundColor: Colors.bgCard },
+    toggle: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: 18, borderWidth: 1, borderColor: softEdge(), backgroundColor: Colors.bgCard, ...softShadow() },
     toggleOn: { borderColor: 'rgba(16, 185, 129, 0.45)' },
-    check: { width: 22, height: 22, borderRadius: 7, borderWidth: 1.5, borderColor: Colors.subtleBorder, justifyContent: 'center', alignItems: 'center' },
+    check: { width: 22, height: 22, borderRadius: 7, borderWidth: 1, borderColor: 'transparent', backgroundColor: softFill(), justifyContent: 'center', alignItems: 'center' },
     checkOn: { backgroundColor: Colors.success, borderColor: Colors.success },
     checkMark: { fontSize: 12, fontWeight: '900', color: '#fff' },
     twoCol: { flexDirection: 'row', gap: 10 },

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Linking, StyleSheet, Text, View } from 'react-native';
-import { ActionButton, CloseCode, Colors, directionsUrl, FONTS, pickupCodePayload, themedStyles, type PartsCollectTask } from '@ongarage/shared';
+import { ActionButton, CloseCode, Colors, directionsUrl, FONTS, pickupCodePayload, themedStyles, type PartsCollectTask, softEdge, softShadow } from '@ongarage/shared';
 import { useTech } from '../context/TechContext';
 import { formatTime, money } from '../utils/format';
 import { Sheet } from './Sheet';
@@ -79,7 +79,7 @@ const styles = themedStyles(() =>
   StyleSheet.create({
     flex1: { flex: 1 },
     actions: { flexDirection: 'row', gap: 8 },
-    card: { padding: 14, borderRadius: 16, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.borderColor, gap: 6 },
+    card: { padding: 14, borderRadius: 20, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), gap: 6, ...softShadow() },
     title: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.textMain },
     line: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
     sub: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 16 },

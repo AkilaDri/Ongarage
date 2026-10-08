@@ -4,6 +4,7 @@ import { Colors, getThemeMode, themedStyles } from '../theme/colors';
 import { type Garage } from '../types';
 import { Gradient, GRADIENTS } from './Visuals';
 import { LevelBadge } from './LevelBadge';
+import { softEdge, softFill, softShadow } from './Glass';
 
 interface GarageCardProps {
   garage: Garage;
@@ -112,25 +113,26 @@ const cardShadow = () =>
 
 const styles = themedStyles(() => StyleSheet.create({
   card: {
-    backgroundColor: Colors.cardGlass,
+    backgroundColor: Colors.bgCard,
     borderWidth: 1,
-    borderColor: Colors.borderColor,
+    borderColor: softEdge(),
     borderRadius: 20,
     padding: 14,
     gap: 12,
     ...cardShadow(),
+    ...softShadow(),
   },
   topRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   mainInfo: { flexDirection: 'row', gap: 10, flex: 1, alignItems: 'flex-start' },
   thumb: {
     width: 52,
     height: 52,
-    borderRadius: 14,
+    borderRadius: 18,
     borderWidth: 1,
-    borderColor: Colors.glassBorder,
+    borderColor: softEdge(),
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Colors.glassBg,
+    backgroundColor: Colors.bgCard,
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
@@ -167,10 +169,10 @@ const styles = themedStyles(() => StyleSheet.create({
   saveBtn: {
     width: 32,
     height: 32,
-    borderRadius: 10,
-    backgroundColor: Colors.subtleFill,
+    borderRadius: 14,
+    backgroundColor: softFill(),
     borderWidth: 1,
-    borderColor: Colors.borderColor,
+    borderColor: 'transparent',
     justifyContent: 'center',
     alignItems: 'center',
     marginLeft: 8,

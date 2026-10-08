@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Colors, themedStyles } from '../theme/colors';
+import { Colors, getThemeMode, themedStyles } from '../theme/colors';
 import { FONTS } from '../theme/fonts';
 
 /** A bottom sheet with a title, scrolling body and an optional fixed footer. */
@@ -65,9 +65,9 @@ const styles = themedStyles(() =>
     sheet: {
       maxHeight: '90%',
       backgroundColor: Colors.sheetBg,
-      borderTopLeftRadius: 26,
-      borderTopRightRadius: 26,
-      borderWidth: 1,
+      borderTopLeftRadius: 28,
+      borderTopRightRadius: 28,
+      borderWidth: getThemeMode() === 'dark' ? 1 : 0,
       borderBottomWidth: 0,
       borderColor: Colors.borderColor,
       paddingTop: 10,
@@ -75,11 +75,20 @@ const styles = themedStyles(() =>
     },
     handle: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: Colors.subtleBorder },
     headerRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 18, paddingTop: 12 },
-    title: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textMain },
+    title: { fontSize: 17, fontFamily: FONTS.titleBold, color: Colors.textMain },
     subtitle: { fontSize: 11, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 2 },
-    closeBtn: { width: 30, height: 30, borderRadius: 15, backgroundColor: Colors.subtleFill, borderWidth: 1, borderColor: Colors.borderColor, justifyContent: 'center', alignItems: 'center' },
-    closeText: { fontSize: 12, color: Colors.textMain },
+    closeBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: getThemeMode() === 'dark' ? Colors.subtleFill : '#eef2f7', justifyContent: 'center', alignItems: 'center' },
+    closeText: { fontSize: 13, fontWeight: '700', color: Colors.textMain },
     body: { padding: 18, gap: 10 },
-    footer: { padding: 16, paddingTop: 10, borderTopWidth: 1, borderTopColor: Colors.borderColor, backgroundColor: Colors.barBg },
+    footer: {
+      padding: 16,
+      paddingTop: 12,
+      backgroundColor: Colors.sheetBg,
+      shadowColor: '#0f172a',
+      shadowOffset: { width: 0, height: -6 },
+      shadowOpacity: getThemeMode() === 'dark' ? 0.3 : 0.08,
+      shadowRadius: 12,
+      elevation: 8,
+    },
   })
 );

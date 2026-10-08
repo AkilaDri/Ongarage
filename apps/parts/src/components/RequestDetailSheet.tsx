@@ -1,6 +1,6 @@
 import React from 'react';
 import { Image, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
-import { ActionButton, categoryInfo, Colors, FONTS, GoogleMap, themedStyles, vehicleIcon, zoomToFit } from '@ongarage/shared';
+import { ActionButton, categoryInfo, Colors, FONTS, GoogleMap, themedStyles, vehicleIcon, zoomToFit, softEdge, softShadow } from '@ongarage/shared';
 import { allowedTypes, useShop } from '../context/ShopContext';
 import { PART_TYPE_LABEL } from '../constants/mockData';
 import { countdown, formatDate, formatTime } from '../utils/format';
@@ -135,12 +135,12 @@ const styles = themedStyles(() =>
     flex1: { flex: 1 },
     flex2: { flex: 2 },
     actions: { flexDirection: 'row', gap: 8 },
-    label: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, letterSpacing: 0.4, marginTop: 4 },
+    label: { fontSize: 13.5, fontFamily: FONTS.titleBold, color: Colors.textMain, marginTop: 4 },
     sub: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 16 },
     warn: { fontSize: 10.5, fontFamily: FONTS.bodySemiBold, color: Colors.warning },
     value: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
-    card: { padding: 12, borderRadius: 14, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.borderColor, gap: 8 },
-    timing: { flexDirection: 'row', alignItems: 'center', padding: 12, borderRadius: 14, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.borderColor },
+    card: { padding: 12, borderRadius: 18, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), gap: 8, ...softShadow() },
+    timing: { flexDirection: 'row', alignItems: 'center', padding: 12, borderRadius: 18, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), ...softShadow() },
     cell: { flex: 1, alignItems: 'center', gap: 3 },
     cellLabel: { fontSize: 10, fontFamily: FONTS.bodyMedium, color: Colors.textMuted },
     cellValue: { fontSize: 12, fontFamily: FONTS.titleBold, color: Colors.textMain, textAlign: 'center' },
@@ -149,10 +149,10 @@ const styles = themedStyles(() =>
     type: { fontSize: 10, fontWeight: '800', color: Colors.primary, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, backgroundColor: 'rgba(56, 189, 248, 0.12)', overflow: 'hidden' },
     recon: { color: Colors.warning, backgroundColor: 'rgba(245, 158, 11, 0.14)' },
     photo: { height: 170, borderRadius: 14 },
-    map: { borderRadius: 14, borderWidth: 1, borderColor: Colors.borderColor },
+    map: { borderRadius: 20, overflow: 'hidden', borderWidth: 1, borderColor: softEdge(), ...softShadow() },
     pinAnchor: { position: 'absolute', transform: [{ translateX: '-50%' }, { translateY: '-50%' }] },
-    shopPin: { width: 30, height: 30, borderRadius: 10, backgroundColor: Colors.primary, borderWidth: 2, borderColor: '#fff', justifyContent: 'center', alignItems: 'center' },
-    garagePin: { width: 30, height: 30, borderRadius: 10, backgroundColor: Colors.success, borderWidth: 2, borderColor: '#fff', justifyContent: 'center', alignItems: 'center' },
+    shopPin: { width: 36, height: 36, borderRadius: 18, backgroundColor: Colors.primary, borderWidth: 3, borderColor: '#fff', justifyContent: 'center', alignItems: 'center', shadowColor: '#0284c7', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 10, elevation: 5 },
+    garagePin: { width: 36, height: 36, borderRadius: 18, backgroundColor: Colors.success, borderWidth: 3, borderColor: '#fff', justifyContent: 'center', alignItems: 'center', shadowColor: '#059669', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 10, elevation: 5 },
     pinEmoji: { fontSize: 14 },
     garageRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     callBtn: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10, backgroundColor: 'rgba(16, 185, 129, 0.12)' },

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { ActionButton, Colors, FONTS, SERVICE_CATEGORIES, themedStyles } from '@ongarage/shared';
+import { ActionButton, Colors, FONTS, SERVICE_CATEGORIES, themedStyles, softEdge, softShadow } from '@ongarage/shared';
 import { useGarage } from '../context/GarageContext';
 import { Sheet } from './Sheet';
 
@@ -70,7 +70,7 @@ export const ServicesSheet: React.FC<{ visible: boolean; onClose: () => void }> 
 const styles = themedStyles(() =>
   StyleSheet.create({
     flex1: { flex: 1 },
-    row: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 14, borderWidth: 1, borderColor: Colors.borderColor, backgroundColor: Colors.bgCard },
+    row: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 18, borderWidth: 1, borderColor: softEdge(), backgroundColor: Colors.bgCard, ...softShadow() },
     rowOn: { borderColor: 'rgba(56, 189, 248, 0.45)' },
     icon: { fontSize: 22, width: 30, textAlign: 'center' },
     name: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.textMain },

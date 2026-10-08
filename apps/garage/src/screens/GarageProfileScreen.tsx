@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Colors, dayStart, FONTS, GlassIcon, glassStyle, LevelBadge, levelProgress, nextLevel, SERVICE_CATEGORIES, ThemeToggle, themedStyles, useTheme } from '@ongarage/shared';
+import { Colors, dayStart, FONTS, GlassIcon, glassStyle, LevelBadge, levelProgress, nextLevel, SERVICE_CATEGORIES, ThemeToggle, themedStyles, useTheme, softEdge, softShadow, softFill } from '@ongarage/shared';
 import { useGarage } from '../context/GarageContext';
 import { VANS } from '../constants/mockData';
 import { ago } from '../utils/format';
@@ -286,9 +286,9 @@ const styles = themedStyles(() =>
     row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
     rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
     body: { padding: 16, gap: 12, paddingBottom: 100 },
-    sectionLabel: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, letterSpacing: 0.5, marginTop: 4 },
+    sectionLabel: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textMain, marginTop: 4 },
     hint: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 16 },
-    card: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.borderColor, borderRadius: 18, padding: 14, gap: 10 },
+    card: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), borderRadius: 20, padding: 14, gap: 10, ...softShadow() },
     cardTitle: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.textMain },
     sub: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 1 },
     link: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
@@ -309,19 +309,19 @@ const styles = themedStyles(() =>
     pill: { paddingHorizontal: 9, paddingVertical: 6, borderRadius: 10, borderWidth: 1 },
     pillJob: { backgroundColor: 'rgba(56, 189, 248, 0.12)', borderColor: 'rgba(56, 189, 248, 0.4)' },
     pillText: { fontSize: 10.5, fontFamily: FONTS.bodySemiBold },
-    segment: { flexDirection: 'row', padding: 3, borderRadius: 12, backgroundColor: Colors.subtleFill, borderWidth: 1, borderColor: Colors.borderColor },
+    segment: { flexDirection: 'row', padding: 3, borderRadius: 20, backgroundColor: softFill(), borderWidth: 1, borderColor: 'transparent' },
     segBtn: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 9 },
     segReady: { backgroundColor: Colors.success },
     segBreak: { backgroundColor: Colors.warning },
     segText: { fontSize: 10.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
     absentRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: Colors.borderColor },
     stepper: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-    stepBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: Colors.subtleFill, borderWidth: 1, borderColor: Colors.borderColor, justifyContent: 'center', alignItems: 'center' },
+    stepBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: softFill(), borderWidth: 1, borderColor: 'transparent', justifyContent: 'center', alignItems: 'center' },
     stepOff: { opacity: 0.35 },
     stepText: { fontSize: 18, fontWeight: '700', color: Colors.textMain, lineHeight: 20 },
     stepValue: { fontSize: 13, fontFamily: FONTS.bodyBold, color: Colors.primary, minWidth: 54, textAlign: 'center' },
     presets: { flexDirection: 'row', gap: 6 },
-    preset: { flex: 1, alignItems: 'center', paddingVertical: 7, borderRadius: 10, borderWidth: 1, borderColor: Colors.borderColor, backgroundColor: Colors.subtleFill },
+    preset: { flex: 1, alignItems: 'center', paddingVertical: 7, borderRadius: 18, borderWidth: 1, borderColor: 'transparent', backgroundColor: softFill() },
     presetActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
     presetText: { fontSize: 12, fontFamily: FONTS.bodyBold, color: Colors.textMain },
     ratingBig: { fontSize: 22, fontWeight: '900', color: Colors.warning },
@@ -329,7 +329,7 @@ const styles = themedStyles(() =>
     badgeText: { fontSize: 11, fontWeight: '800', color: '#fff' },
     chevron: { fontSize: 20, color: Colors.textMuted },
     latest: { fontSize: 11.5, fontFamily: FONTS.bodyRegular, color: Colors.textSoft, lineHeight: 18 },
-    list: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.borderColor, borderRadius: 18, overflow: 'hidden' },
+    list: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), borderRadius: 20, overflow: 'hidden', ...softShadow() },
     settingRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 12 },
     divider: { borderTopWidth: 1, borderTopColor: Colors.borderColor },
     version: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, textAlign: 'center', opacity: 0.6, marginTop: 4 },

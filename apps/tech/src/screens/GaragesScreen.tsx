@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { ActionButton, Colors, FONTS, GlassIcon, themedStyles } from '@ongarage/shared';
+import { ActionButton, Colors, FONTS, GlassIcon, themedStyles, softEdge, softShadow, softFill } from '@ongarage/shared';
 import { useTech } from '../context/TechContext';
 import { ago, money } from '../utils/format';
 
@@ -134,8 +134,8 @@ const styles = themedStyles(() =>
     row: { flexDirection: 'row', alignItems: 'center', gap: 10 },
     actions: { flexDirection: 'row', gap: 8 },
     body: { padding: 16, gap: 12, paddingBottom: 100 },
-    section: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, letterSpacing: 0.5, marginTop: 4 },
-    card: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.borderColor, borderRadius: 18, padding: 14, gap: 10 },
+    section: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textMain, marginTop: 4 },
+    card: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), borderRadius: 20, padding: 14, gap: 10, ...softShadow() },
     inviteCard: { borderColor: 'rgba(56, 189, 248, 0.55)' },
     hereCard: { borderColor: 'rgba(16, 185, 129, 0.55)' },
     title: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.textMain },
@@ -157,10 +157,10 @@ const styles = themedStyles(() =>
       minWidth: 0,
       height: 46,
       paddingHorizontal: 12,
-      borderRadius: 12,
-      backgroundColor: Colors.subtleFill,
+      borderRadius: 16,
+      backgroundColor: softFill(),
       borderWidth: 1,
-      borderColor: Colors.borderColor,
+      borderColor: 'transparent',
       color: Colors.textMain,
       fontSize: 14,
       fontWeight: '700',

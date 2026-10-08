@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { ActionButton, categoryInfo, CloseJobSheet, Colors, EmptyState, FONTS, GlassIcon, Icon, themedStyles, type IconName } from '@ongarage/shared';
+import { ActionButton, categoryInfo, CloseJobSheet, Colors, EmptyState, FONTS, GlassIcon, Icon, themedStyles, type IconName, softEdge, softShadow, NAVY, softFill, getThemeMode } from '@ongarage/shared';
 import { Toast } from '../components/Toast';
 import { useShop } from '../context/ShopContext';
 import { DispatchSheet } from '../components/DispatchSheet';
@@ -230,25 +230,14 @@ const styles = themedStyles(() =>
     actions: { flexDirection: 'row', gap: 8 },
     body: { padding: 16, gap: 12, paddingBottom: 100 },
     statsRow: { flexDirection: 'row', gap: 8 },
-    stat: { flex: 1, alignItems: 'center', paddingVertical: 12, paddingHorizontal: 6, borderRadius: 16, borderWidth: 1, borderColor: Colors.borderColor, backgroundColor: Colors.bgCard },
+    stat: { flex: 1, alignItems: 'center', paddingVertical: 12, paddingHorizontal: 6, borderRadius: 20, borderWidth: 1, borderColor: softEdge(), backgroundColor: Colors.bgCard, ...softShadow() },
     statValue: { fontSize: 15, fontFamily: FONTS.titleBold },
     statLabel: { fontSize: 10, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 2 },
     tabBar: { flexDirection: 'row', gap: 8, paddingTop: 4 },
-    tab: {
-      flex: 1,
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: 6,
-      paddingVertical: 10,
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: Colors.borderColor,
-      backgroundColor: Colors.bgCard,
-    },
-    tabActive: { backgroundColor: 'rgba(56, 189, 248, 0.14)', borderColor: 'rgba(56, 189, 248, 0.5)' },
+    tab: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10, paddingHorizontal: 8, borderRadius: 22, backgroundColor: softFill() },
+    tabActive: { backgroundColor: NAVY, shadowColor: NAVY, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.28, shadowRadius: 8, elevation: 4 },
     tabText: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
-    tabTextActive: { color: Colors.primary },
+    tabTextActive: { color: '#ffffff' },
     tabCount: {
       position: 'absolute',
       top: -7,
@@ -258,15 +247,15 @@ const styles = themedStyles(() =>
       paddingHorizontal: 5,
       borderRadius: 10,
       borderWidth: 2,
-      borderColor: Colors.bgBody,
+      borderColor: getThemeMode() === 'dark' ? Colors.bgBody : '#ffffff',
       backgroundColor: Colors.bgCardHover,
       alignItems: 'center',
       justifyContent: 'center',
     },
-    tabCountActive: { backgroundColor: Colors.primary },
+    tabCountActive: { backgroundColor: '#4ca1d1' },
     tabCountAlert: { backgroundColor: '#ef4444' },
     tabCountText: { fontSize: 9.5, fontWeight: '800', color: Colors.textMuted },
-    card: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.borderColor, borderRadius: 18, padding: 14, gap: 10 },
+    card: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), borderRadius: 20, padding: 14, gap: 10, ...softShadow() },
     cardUrgent: { borderColor: 'rgba(245, 158, 11, 0.55)' },
     cardFailed: { borderColor: 'rgba(239, 68, 68, 0.4)' },
     title: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.textMain },
