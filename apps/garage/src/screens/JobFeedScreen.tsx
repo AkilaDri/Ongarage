@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { ActionButton, categoryInfo, Colors, dayStart, EmptyState, FONTS, GlassIcon, Icon, isHighValueJob, levelForFeature, marketPrice, SwipeCard, themedStyles, vehicleIcon, type IconName, softFill, softEdge, softShadow, NAVY, getThemeMode } from '@ongarage/shared';
+import { ActionButton, categoryInfo, Colors, dayStart, EmptyState, FONTS, GlassIcon, Icon, isHighValueJob, levelForFeature, marketPrice, SwipeCard, themedStyles, vehicleIcon, type IconName, softFill, softEdge, softShadow, NAVY, getThemeMode, PinnedEdge, usePinnedEdge } from '@ongarage/shared';
 import { bidDeadline, useGarage } from '../context/GarageContext';
 import { BidSheet } from '../components/BidSheet';
 import { DirectReplySheet, type ReplyMode } from '../components/DirectReplySheet';
@@ -21,6 +21,7 @@ const STATUS: Record<BidStatus, { label: string; color: () => string; bg: string
 };
 
 export const JobFeedScreen: React.FC = () => {
+  const { progress: edge, scrollProps } = usePinnedEdge();
   const { feed, directs, bids, profile, withdrawBid, has, headStartUntil, intakeOn, limitFrom } = useGarage();
   const [segment, setSegment] = useState<Segment>('open');
   const [scope, setScope] = useState<Scope>('services');
@@ -123,7 +124,7 @@ export const JobFeedScreen: React.FC = () => {
         />
       );
     }
-    return <Text style={styles.hint}>මෙම සේවාව ඔබගේ ලැයිස්තුවේ නැත — “ගරාජය” ටැබයෙන් එක් කරන්න.</Text>;
+    return <Text style={styles.hint}>මෙම සේවාව ඔබගේ ලැයිස්තුවේ නැත — “Profile” ටැබයෙන් එක් කරන්න.</Text>;
   };
 
   const directActions = (d: DirectRequest, fromDetail = false) => {
@@ -283,6 +284,7 @@ export const JobFeedScreen: React.FC = () => {
   return (
     <View style={styles.flex1}>
       <View style={styles.tabBar}>
+        <PinnedEdge progress={edge} />
         {segments.map((t) => {
           const active = segment === t.id;
           return (
@@ -301,12 +303,12 @@ export const JobFeedScreen: React.FC = () => {
         })}
       </View>
 
-      <ScrollView style={styles.flex1} contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.flex1} {...scrollProps} contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
         {limitFrom !== undefined && Date.now() >= limitFrom && (() => {
           const t = intakeOn(dayStart(Date.now()) + 24 * 60 * 60 * 1000);
           return (
             <View style={styles.locked} accessibilityLabel="Intake banner">
-              <Text style={styles.lockedText}>⚖️ සාධාරණ බෙදාහැරීම: හෙට නව වැඩ {money(t.used)} / {money(t.limit)} · ඉඩ {money(t.remaining)} (“ගරාජය” ටැබය)</Text>
+              <Text style={styles.lockedText}>⚖️ සාධාරණ බෙදාහැරීම: හෙට නව වැඩ {money(t.used)} / {money(t.limit)} · ඉඩ {money(t.remaining)} (“Profile” ටැබය)</Text>
             </View>
           );
         })()}
@@ -388,7 +390,7 @@ const styles = themedStyles(() =>
     row: { flexDirection: 'row', alignItems: 'center', gap: 10 },
     rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
     actionsRow: { flexDirection: 'row', gap: 8 },
-    tabBar: { flexDirection: 'row', gap: 6, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 6 },
+    tabBar: { zIndex: 5, flexDirection: 'row', gap: 6, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 6 },
     tab: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10, paddingHorizontal: 8, borderRadius: 22, backgroundColor: softFill() },
     tabActive: { backgroundColor: NAVY, shadowColor: NAVY, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.28, shadowRadius: 8, elevation: 4 },
     tabText: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, flexShrink: 1 },

@@ -174,9 +174,9 @@ export const SOSInboxScreen: React.FC = () => {
   const listed = filter ? requests.filter((r) => r.breakdownId === filter) : requests;
 
   const lat = profile.coords.latitude;
-  // Frame the requests when there are some, otherwise the whole coverage area.
-  const farthest = requests.length ? Math.max(1.2, ...requests.map((r) => r.distanceKm)) : profile.coverageKm;
-  const zoom = zoomToFit(Math.min(farthest, profile.coverageKm) * 2.4, lat, Math.max(200, mapH - PEEK_H - (showBanner ? bannerOffset : 0)));
+  // Always frame the whole coverage ring so the owner sees how far their SOS perimeter reaches.
+  // Fit tightly to the shorter side so the ring fills as much of the map as a whole zoom level allows.
+  const zoom = zoomToFit(profile.coverageKm * 1.7, lat, Math.max(200, Math.min(screenW, mapH - PEEK_H - (showBanner ? bannerOffset : 0))));
   // Until today's attendance is confirmed, a prompt replaces capacity.
   const needsAttendance = isOpen && !crew.confirmed;
   // The active-job card sits just below the floating banner so it is never covered.
@@ -261,10 +261,9 @@ export const SOSInboxScreen: React.FC = () => {
       <View style={styles.flex1}>
         <View style={styles.liveBadge}>
           <Pulse style={styles.liveDot} />
-          <Text style={styles.liveText}>සජීවී · කි.මී. {profile.coverageKm} කලාපය</Text>
+          <Text style={styles.liveText}>Live · {profile.coverageKm}Km Range</Text>
         </View>
-        <Text style={styles.bannerTitle}>හදිසි SOS ඉල්ලීම් ලැබෙමින්</Text>
-        <Text style={styles.bannerDesc}>ඔබගේ කලාපයේ නතර වූ වාහන හිමියන් ඔබ වෙත දැනුම් දෙනු ලැබේ.</Text>
+        <Text style={styles.bannerTitle}>ඔබට OnGarage SOS ඉල්ලීම් ලැබෙමින් පවතී</Text>
         <View style={styles.crewBadge}>
           <Text style={styles.crewText}>
             👨‍🔧 {crew.confirmed ? `නිදහස් කාර්මිකයන් ${crew.free}/${crew.presentIds.length}` : 'අද පැමිණීම තහවුරු කර නැත'}
@@ -357,12 +356,17 @@ export const SOSInboxScreen: React.FC = () => {
                         cx={g.x}
                         cy={g.y}
                         r={kmToMapPixels(profile.coverageKm, lat, zoom)}
-                        fill={isOpen ? 'rgba(239, 68, 68, 0.08)' : 'rgba(148, 163, 184, 0.08)'}
+                        fill={isOpen ? 'rgba(239, 68, 68, 0.06)' : 'rgba(148, 163, 184, 0.08)'}
                         stroke={isOpen ? 'rgba(239, 68, 68, 0.7)' : 'rgba(148, 163, 184, 0.6)'}
-                        strokeWidth={1.5}
+                        strokeWidth={2}
                         strokeDasharray="6 4"
                       />
                     </Svg>
+                  )}
+                  {g && (
+                    <View pointerEvents="none" style={[styles.ringTag, { left: g.x - 40, top: g.y - kmToMapPixels(profile.coverageKm, lat, zoom) - 11, backgroundColor: isOpen ? "#ef4444" : "#64748b" }]}>
+                      <Text style={styles.ringTagText}>{profile.coverageKm} km</Text>
+                    </View>
                   )}
                   {requests.map((r) => {
                     const p = project(r.location.coords);
@@ -569,8 +573,9 @@ const styles = themedStyles(() =>
     liveBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'flex-start', backgroundColor: 'rgba(255, 255, 255, 0.18)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, marginBottom: 4 },
     liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#fff' },
     liveText: { fontSize: 9.5, fontWeight: '800', color: '#fff' },
+    ringTag: { position: "absolute", width: 80, height: 22, borderRadius: 11, alignItems: "center", justifyContent: "center" },
+    ringTagText: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: "#fff" },
     bannerTitle: { fontSize: 17, fontFamily: FONTS.titleBold, color: '#fff' },
-    bannerDesc: { fontSize: 11.5, fontFamily: FONTS.bodyMedium, color: 'rgba(255, 255, 255, 0.9)', lineHeight: 16, marginTop: 2 },
     countTile: { width: 60, height: 60, borderRadius: 30, backgroundColor: 'rgba(255, 255, 255, 0.15)', borderWidth: 3, borderColor: 'rgba(255, 255, 255, 0.85)', justifyContent: 'center', alignItems: 'center' },
     countNum: { fontSize: 20, fontWeight: '900', color: '#fff', lineHeight: 22 },
     countLabel: { fontSize: 9.5, fontFamily: FONTS.bodyBold, color: '#fff' },

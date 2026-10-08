@@ -31,11 +31,11 @@ export const TechHeader: React.FC = () => {
           <View style={[styles.statusDot, { backgroundColor: state === 'on' ? '#22c55e' : state === 'break' ? '#f59e0b' : Colors.textMuted }]} />
         </View>
         <View style={styles.flexShrink}>
+          <Text style={styles.name} numberOfLines={1}>
+            Hi {profile.name},
+          </Text>
           <Text style={styles.greeting} numberOfLines={1}>
             {greetingFor(new Date().getHours())}
-          </Text>
-          <Text style={styles.name} numberOfLines={1}>
-            {profile.name}
           </Text>
           <Text style={styles.location} numberOfLines={1}>
             {garage ? `🛠️ ${garage.name}` : `${profile.role} · රාජකාරියෙන් පිට`}
@@ -58,17 +58,17 @@ export const TechHeader: React.FC = () => {
 
 const styles = themedStyles(() =>
   StyleSheet.create({
-    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 18, paddingTop: 12, paddingBottom: 30, backgroundColor: headerBand().bg },
-    brandBox: { flexDirection: 'row', alignItems: 'center', gap: 12, flexShrink: 1, marginRight: 8 },
+    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 18, paddingTop: 18, paddingBottom: 38, backgroundColor: headerBand().bg },
+    brandBox: { flexDirection: 'row', alignItems: 'center', gap: 14, flexShrink: 1, marginRight: 8 },
     flexShrink: { flexShrink: 1 },
     badgeWrap: { width: 52, height: 52, justifyContent: 'center', alignItems: 'center' },
     pulseRing: { position: 'absolute', width: 52, height: 52, borderRadius: 26, borderWidth: 2, borderColor: 'rgba(34, 197, 94, 0.55)' },
     badge: { width: 46, height: 46, borderRadius: 23, backgroundColor: '#ffffff', justifyContent: 'center', alignItems: 'center', ...softShadow() },
     badgeEmoji: { fontSize: 22 },
     statusDot: { position: 'absolute', right: 1, bottom: 1, width: 13, height: 13, borderRadius: 7, borderWidth: 2.5, borderColor: headerBand().bg },
-    greeting: { fontSize: 11.5, color: headerBand().sub, fontFamily: FONTS.bodyMedium },
+    greeting: { fontSize: 11.5, color: headerBand().sub, fontFamily: FONTS.bodyMedium , marginTop: 3 },
     name: { fontSize: 16, fontFamily: FONTS.titleBold, color: headerBand().title, marginTop: 1 },
-    location: { fontSize: 10, color: headerBand().sub, fontFamily: FONTS.bodyRegular, marginTop: 1 },
+    location: { fontSize: 10, color: headerBand().sub, fontFamily: FONTS.bodyRegular, marginTop: 6 },
     statusPill: { flexDirection: 'row', alignItems: 'center', gap: 6, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 7, backgroundColor: getThemeMode() === 'dark' ? headerBand().pill : '#ffffff', ...softShadow() },
     pillOn: {},
     pillBreak: {},

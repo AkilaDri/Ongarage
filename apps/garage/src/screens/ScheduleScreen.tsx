@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Colors, EmptyState, FONTS, GlassIcon, Icon, SwipeCard, themedStyles, vehicleIcon, type IconName, softEdge, softShadow, NAVY, softFill, getThemeMode } from '@ongarage/shared';
+import { Colors, EmptyState, FONTS, GlassIcon, Icon, SwipeCard, themedStyles, vehicleIcon, type IconName, softEdge, softShadow, NAVY, softFill, getThemeMode, PinnedEdge, usePinnedEdge } from '@ongarage/shared';
 import { useGarage } from '../context/GarageContext';
 import { BookingActions, ServiceModeNote, WorkshopStatus } from '../components/BookingActions';
 import { JobDetailView, type DetailTarget } from '../components/JobDetailView';
@@ -11,7 +11,6 @@ import { formatDate, formatTime, isSameDay, money } from '../utils/format';
 import type { Booking } from '../types';
 
 type Segment = 'upcoming' | 'completed';
-const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
 
 const dayLabel = (t: number) => {
@@ -22,6 +21,7 @@ const dayLabel = (t: number) => {
 };
 
 export const ScheduleScreen: React.FC<{ onOpenParts: (requestId: string) => void }> = ({ onOpenParts }) => {
+  const { progress: edge, scrollProps } = usePinnedEdge();
   const { bookings } = useGarage();
   const { requestFor, toOrderFor } = useParts();
   // Parts only for lines the owner approved (or named in the post), or once a request exists.
@@ -39,8 +39,6 @@ export const ScheduleScreen: React.FC<{ onOpenParts: (requestId: string) => void
 
   const upcoming = bookings.filter((b) => b.status !== 'completed').sort((a, b) => a.scheduledAt - b.scheduledAt);
   const completed = bookings.filter((b) => b.status === 'completed').sort((a, b) => (b.completedAt ?? 0) - (a.completedAt ?? 0));
-  const today = completed.filter((b) => b.completedAt && isSameDay(b.completedAt, now)).reduce((s, b) => s + b.price, 0);
-  const week = completed.filter((b) => b.completedAt && now - b.completedAt < WEEK_MS).reduce((s, b) => s + b.price, 0);
 
   const segments: { id: Segment; label: string; icon: IconName; count: number }[] = [
     { id: 'upcoming', label: 'ඉදිරියට', icon: 'clock', count: upcoming.length },
@@ -100,14 +98,9 @@ export const ScheduleScreen: React.FC<{ onOpenParts: (requestId: string) => void
   const list = segment === 'upcoming' ? upcoming : completed;
 
   return (
-    <ScrollView style={styles.flex1} contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
-      <View style={styles.statsRow}>
-        <Stat value={money(today)} label="අද ආදායම" color={Colors.success} />
-        <Stat value={money(week)} label="දින 7 ආදායම" color={Colors.primary} />
-        <Stat value={String(completed.length)} label="සම්පූර්ණ රැකියා" color={Colors.warning} />
-      </View>
-
+    <View style={styles.flex1}>
       <View style={styles.tabBar}>
+        <PinnedEdge progress={edge} />
         {segments.map((t) => {
           const active = segment === t.id;
           return (
@@ -123,6 +116,7 @@ export const ScheduleScreen: React.FC<{ onOpenParts: (requestId: string) => void
           );
         })}
       </View>
+      <ScrollView style={styles.flex1} {...scrollProps} contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
 
       {list.length > 0 && <Text style={styles.hint}>⇆ කාඩ්පතක් තට්ටු කරන්න හෝ පැත්තට ස්වයිප් කරන්න — රැකියාවේ සම්පූර්ණ විස්තර සහ පාරිභෝගිකයා</Text>}
       {list.length === 0 ? (
@@ -136,18 +130,10 @@ export const ScheduleScreen: React.FC<{ onOpenParts: (requestId: string) => void
       )}
       <PartsRequestSheet booking={partsFor} onClose={() => setPartsFor(null)} />
       <JobDetailView target={detail} onClose={() => setDetailId(null)} renderActions={(t) => (t.kind === 'booking' ? <BookingActions booking={t.booking} /> : null)} />
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 };
-
-const Stat: React.FC<{ value: string; label: string; color: string }> = ({ value, label, color }) => (
-  <View style={styles.stat}>
-    <Text style={[styles.statValue, { color }]} numberOfLines={1} adjustsFontSizeToFit>
-      {value}
-    </Text>
-    <Text style={styles.statLabel}>{label}</Text>
-  </View>
-);
 
 const Chip: React.FC<{ text: string }> = ({ text }) => (
   <View style={styles.chip}>
@@ -163,11 +149,7 @@ const styles = themedStyles(() =>
     row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     body: { padding: 16, gap: 12, paddingBottom: 100 },
-    statsRow: { flexDirection: 'row', gap: 8 },
-    stat: { flex: 1, alignItems: 'center', paddingVertical: 12, paddingHorizontal: 6, borderRadius: 20, borderWidth: 1, borderColor: softEdge(), backgroundColor: Colors.bgCard, ...softShadow() },
-    statValue: { fontSize: 15, fontFamily: FONTS.titleBold },
-    statLabel: { fontSize: 10, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 2 },
-    tabBar: { flexDirection: 'row', gap: 8, paddingTop: 4 },
+    tabBar: { zIndex: 5, flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 6 },
     tab: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10, paddingHorizontal: 8, borderRadius: 22, backgroundColor: softFill() },
     tabActive: { backgroundColor: NAVY, shadowColor: NAVY, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.28, shadowRadius: 8, elevation: 4 },
     tabText: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },

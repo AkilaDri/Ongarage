@@ -1,6 +1,6 @@
 import React from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Colors, currentLevel, FONTS, GlassIcon, glassStyle, LevelBadge, levelProgress, nextLevel, ThemeToggle, themedStyles, useTheme, type LevelStats, softEdge, softShadow } from '@ongarage/shared';
+import { Colors, currentLevel, FONTS, GlassIcon, glassStyle, LevelBadge, levelProgress, nextLevel, ThemeToggle, themedStyles, useTheme, type LevelStats, softEdge, softShadow, PinnedEdge, usePinnedEdge, getThemeMode } from '@ongarage/shared';
 import { useTech } from '../context/TechContext';
 import { ago } from '../utils/format';
 
@@ -21,9 +21,12 @@ export const ProfileScreen: React.FC = () => {
   const next = nextLevel(level.id);
   const missing = next ? levelProgress(next, stats).filter((x) => !x.met) : [];
 
+  const { progress: edge, scrollProps } = usePinnedEdge();
   return (
-    <ScrollView style={styles.flex1} contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
-      <View style={[styles.card, styles.center]}>
+    <View style={styles.flex1}>
+      <View style={styles.pinned}>
+        <PinnedEdge progress={edge} />
+      <View style={styles.hero}>
         <View style={styles.avatar}>
           <Text style={styles.avatarEmoji}>👨‍🔧</Text>
         </View>
@@ -32,6 +35,7 @@ export const ProfileScreen: React.FC = () => {
           {profile.role} · {profile.phone}
         </Text>
         <View style={styles.badges}>
+          <LevelBadge level={level.id} compact />
           {profile.nicVerified && (
             <View style={[styles.badge, styles.badgeOk]}>
               <Text style={[styles.badgeText, { color: Colors.successText }]}>✓ ජා.හැ.අ. තහවුරුයි</Text>
@@ -41,11 +45,16 @@ export const ProfileScreen: React.FC = () => {
             <Text style={styles.badgeText}>{profile.techCode}</Text>
           </View>
         </View>
-        <View style={styles.stats}>
-          <Stat value={`★ ${rating.average}`} label={`ශ්‍රේණි ${rating.count}`} color={Colors.warning} />
-          <Stat value={String(links.reduce((s, l) => s + l.jobsDone, 0))} label="කළ රැකියා" color={Colors.success} />
-          <Stat value={String(links.length)} label="ගරාජ" color={Colors.primary} />
-        </View>
+      </View>
+      </View>
+    <ScrollView style={styles.flex1} {...scrollProps} contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
+
+      <Text style={styles.section}>උපකරණ පුවරුව</Text>
+      <View style={styles.tiles}>
+        <Tile value={`★ ${rating.average}`} label={`ශ්‍රේණි ${rating.count}`} color={Colors.warning} />
+        <Tile value={String(links.reduce((s, l) => s + l.jobsDone, 0))} label="කළ රැකියා" color={Colors.success} />
+        <Tile value={String(links.length)} label="සම්බන්ධ ගරාජ" color={Colors.primary} />
+        <Tile value={`${level.icon} ${level.name}`} label="ඔබගේ මට්ටම" color={Colors.textMain} />
       </View>
 
       <View style={styles.card} accessibilityLabel="Technician level">
@@ -108,12 +117,15 @@ export const ProfileScreen: React.FC = () => {
       </View>
       <Text style={styles.version}>OnGarage Technician · v0.1.0</Text>
     </ScrollView>
+    </View>
   );
 };
 
-const Stat: React.FC<{ value: string; label: string; color: string }> = ({ value, label, color }) => (
-  <View style={styles.stat}>
-    <Text style={[styles.statValue, { color }]}>{value}</Text>
+const Tile: React.FC<{ value: string; label: string; color: string }> = ({ value, label, color }) => (
+  <View style={styles.tile}>
+    <Text style={[styles.tileValue, { color }]} numberOfLines={1} adjustsFontSizeToFit>
+      {value}
+    </Text>
     <Text style={styles.statLabel}>{label}</Text>
   </View>
 );
@@ -128,6 +140,11 @@ const styles = themedStyles(() =>
     rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     body: { padding: 16, gap: 12, paddingBottom: 100 },
     card: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), borderRadius: 20, padding: 14, gap: 8, ...softShadow() },
+    pinned: { zIndex: 5, paddingHorizontal: 16, paddingBottom: 10, backgroundColor: getThemeMode() === 'dark' ? Colors.bgBody : '#ffffff' },
+    hero: { alignItems: 'center', gap: 6, paddingTop: 6 },
+    tiles: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    tile: { width: '48.5%', flexGrow: 1, borderRadius: 20, padding: 14, gap: 2, borderWidth: 1, borderColor: softEdge(), backgroundColor: Colors.bgCard, ...softShadow() },
+    tileValue: { fontSize: 20, fontFamily: FONTS.titleBold },
     center: { alignItems: 'center', gap: 6 },
     avatar: { width: 76, height: 76, borderRadius: 38, ...glassStyle(), justifyContent: 'center', alignItems: 'center' },
     avatarEmoji: { fontSize: 36 },

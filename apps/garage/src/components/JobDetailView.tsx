@@ -353,7 +353,7 @@ export const JobDetailView: React.FC<{
                 <>
                   <Fact icon="📞" label="දුරකථනය" value={maskPhone(job.customer.phone)} />
                   <Text style={styles.empty}>
-                    {direct ? 'වෙන්කිරීම තහවුරු කළ පසු' : 'ලංසුව දිනූ පසු'} සම්පූර්ණ අංකය මෙහි සහ “කාලසටහන” ටැබයේ පෙනේ.
+                    {direct ? 'වෙන්කිරීම තහවුරු කළ පසු' : 'ලංසුව දිනූ පසු'} සම්පූර්ණ අංකය මෙහි සහ “Schedule” ටැබයේ පෙනේ.
                   </Text>
                 </>
               )}

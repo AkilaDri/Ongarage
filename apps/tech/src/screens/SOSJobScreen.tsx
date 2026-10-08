@@ -354,7 +354,7 @@ export const SOSJobScreen: React.FC = () => {
             <View style={styles.card}>
               <Bill label="අයිතිකරු ගෙවූ මුළු මුදල" value={money(total)} />
               <Bill label="ගෙවූ ආකාරය" value={job.paidOnline ? 'ඔන්ලයින්' : 'මුදලින් (ඔබ ළඟ)'} />
-              {!!job.collected && <Text style={styles.feeNote}>💵 ගරාජයට භාර දිය යුතු මුදල්: {money(job.collected)} — “ආදායම” ටැබයේ පෙනේ.</Text>}
+              {!!job.collected && <Text style={styles.feeNote}>💵 ගරාජයට භාර දිය යුතු මුදල්: {money(job.collected)} — “Earnings” ටැබයේ පෙනේ.</Text>}
             </View>
           </>
         );

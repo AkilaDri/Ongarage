@@ -1046,7 +1046,7 @@ export const GarageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   useEffect(() => {
     if (below && belowSince === undefined) {
       setBelowSince(Date.now());
-      notify({ icon: '⚠️', title: 'ඔබගේ මට්ටම අවදානමේ', body: 'අවශ්‍යතාවලට වඩා පහළ ගියා — නැවත ළඟා වීමට දින 30ක්. “ගරාජය” ටැබය බලන්න.', tone: 'danger' });
+      notify({ icon: '⚠️', title: 'ඔබගේ මට්ටම අවදානමේ', body: 'අවශ්‍යතාවලට වඩා පහළ ගියා — නැවත ළඟා වීමට දින 30ක්. “Profile” ටැබය බලන්න.', tone: 'danger' });
     }
     if (!below && belowSince !== undefined) setBelowSince(undefined);
   }, [below, belowSince, notify]);

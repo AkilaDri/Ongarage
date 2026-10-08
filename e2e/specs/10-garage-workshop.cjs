@@ -4,7 +4,7 @@ const { spec } = require('../lib.cjs');
 // approval, counter pickup by a technician, extra work, handover rules, closing with the
 // owner's code.
 module.exports = spec('Garage · workshop jobs, parts and pickup', 'garage', async (t) => {
-  await t.clickText('කාලසටහන');
+  await t.clickText('Schedule');
   t.check('battery post named a part: orderable before the diagnosis', await t.has('අයිතිකරු සඳහන් කළ කොටස් 1 ක් ඇණවුම් කරන්න'));
 
   // Battery: pre-order → no Genuine → Recon approval → technician collects from the counter
@@ -29,7 +29,7 @@ module.exports = spec('Garage · workshop jobs, parts and pickup', 'garage', asy
   await t.escape();
 
   // ECU: receive → diagnosis → approval → order exactly the approved parts → extra work
-  await t.clickText('කාලසටහන');
+  await t.clickText('Schedule');
   await t.clickText('වාහනය ලැබුණා');
   await t.clickText('+ ඡායාරූපයක්');
   await t.clickText('+ ඡායාරූපයක්');
@@ -65,7 +65,7 @@ module.exports = spec('Garage · workshop jobs, parts and pickup', 'garage', asy
   await t.escape();
 
   // Handover and close with the owner's code
-  await t.clickText('කාලසටහන');
+  await t.clickText('Schedule');
   await t.clickText('භාරදීමට සූදානම්');
   t.check('handover allowed once parts arrived; extra labour in the checklist', !(await t.has('තවම ඇණවුම් කර නැත')) && (await t.has('Wheel alignment')));
   const checks = (await t.labels('Handover check')).length;
