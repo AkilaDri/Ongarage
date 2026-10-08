@@ -30,16 +30,7 @@ module.exports = spec('Owner · bids: swipe a garage, not the job', 'user', asyn
     await t.wait(900);
     return { seen, selected };
   };
-  // The outermost card (the job) — its translateX while a bid is dragged.
-  const outerX = () =>
-    p.evaluate(() => {
-      const cards = [...document.querySelectorAll('div')].filter((e) => e.style.transform && e.textContent.includes('Mechanical') && e.textContent.includes('Apex Motors'));
-      cards.sort((a, b) => b.textContent.length - a.textContent.length);
-      return cards[0]?.style.transform ?? '';
-    });
-
-  const swipe = await drag(await pointIn('Apex Motors & Hybrid Hub bid details'), -120, outerX);
-  t.check('the job card stays still while a bid is swiped', swipe.seen.every((x) => x === 'translateX(0px)'), swipe.seen);
+  const swipe = await drag(await pointIn('Apex Motors & Hybrid Hub bid details'), -120);
   t.check('no text selected while dragging', swipe.selected === '', swipe.selected);
   t.check('swiping a bid opens that garage, not the job', (await t.has('ඔබගේ රැකියාවට ලංසුව')) && !(await t.has('රැකියා විස්තර')));
   t.check('bid and garage profile agree', await t.has('★ 4.9 · සමාලෝචන 124'));
@@ -47,8 +38,23 @@ module.exports = spec('Owner · bids: swipe a garage, not the job', 'user', asyn
   t.check('accepting from the garage asks to confirm', await t.has('ලංසුව පිළිගන්නද?'));
   await t.clickText('අවලංගු');
 
+  // The job's own card does not swipe; its details open from the link.
   await drag(await pointIn('Mechanical details'), 120);
-  t.check('swiping the job header opens the job', await t.has('රැකියා විස්තර'));
+  t.check('swiping the job card does nothing', !(await t.has('රැකියා විස්තර')));
+  await t.clickLabel('Mechanical details');
+  t.check('the details link opens the job', await t.has('රැකියා විස්තර'));
+  // Regression: the live countdown re-renders this screen every second, and that used to restart the details view's fade-in, so it flashed.
+  await t.wait(700);
+  const opacities = [];
+  for (let i = 0; i < 6; i++) {
+    opacities.push(await p.evaluate(() => {
+      const els = [...document.querySelectorAll('div')].filter((e) => e.style.opacity !== '' && e.textContent.includes('රැකියා විස්තර'));
+      els.sort((x, y) => y.textContent.length - x.textContent.length);
+      return els.length ? Number(els[0].style.opacity) : 1;
+    }));
+    await t.wait(450);
+  }
+  t.check('the open details view does not flash (stays fully opaque across countdown ticks)', opacities.every((o) => o >= 0.99), opacities);
   await t.clickLabel('Close details');
 
   await t.clickLabel('TOPCODE Tuning & Service bid details');

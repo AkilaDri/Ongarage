@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
-import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Colors, themedStyles } from '@ongarage/shared';
+import React, { useRef, useState } from 'react';
+import { Animated, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Colors, getThemeMode, themedStyles } from '@ongarage/shared';
 import { FONTS } from '@ongarage/shared';
 import { categoryInfo, SERVICE_CATEGORIES } from '@ongarage/shared';
 import { useVehicles } from '../context/VehiclesContext';
 import { EmptyState, SwipeCard } from '@ongarage/shared';
+import { PinnedEdge } from '../components/PinnedEdge';
 import { CategoryPhoto } from '../components/home/CategoryPhoto';
 import { OwnerDetailView, type OwnerDetailTarget } from '../components/OwnerDetailView';
 import { useBids } from '../context/BidsContext';
@@ -50,6 +51,8 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
     </SwipeCard>
   );
   const { findVehicle } = useVehicles();
+  // 0 to 1 as the summary tiles pin at the top; fades the edge shadow in.
+  const edge = useRef(new Animated.Value(0)).current;
   const vehicleName = (id: string) => findVehicle(id).name;
   const user = useUserLocation();
 
@@ -102,15 +105,26 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
 
   return (
     <View style={styles.container}>
-      <ScrollView style={styles.flex1} contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.flex1}
+        contentContainerStyle={styles.body}
+        showsVerticalScrollIndicator={false}
+        stickyHeaderIndices={[0]}
+        scrollEventThrottle={16}
+        onScroll={(e) => edge.setValue(Math.min(1, Math.max(0, (e.nativeEvent.contentOffset.y - 8) / 30)))}
+      >
+        {/* Pinned: the three summary tiles stay at the top while the lists scroll beneath */}
+        <View style={styles.statsPinned}>
         <View style={styles.statsRow}>
           <Stat value={String(ongoing.length + liveBookings.length)} label="දැනට පවතින" color={Colors.warning} />
           <Stat value={String(history.length + doneBookings.length + doneJobs.length)} label="සම්පූර්ණ කළ" color={Colors.success} />
           <Stat value={money(totalSpent)} label="මුළු වියදම" color={Colors.primary} />
         </View>
+          <PinnedEdge progress={edge} />
+        </View>
 
         <Text style={styles.sectionLabel}>දැනට පවතින වෙන් කිරීම්</Text>
-        {(liveBookings.length > 0 || ongoing.length > 0) && <Text style={styles.swipeHint}>⇆ සම්පූර්ණ විස්තර සඳහා කාඩ්පතක් පැත්තට ස්වයිප් කරන්න</Text>}
+        {(liveBookings.length > 0 || ongoing.length > 0) && <Text style={styles.swipeHint}>සම්පූර්ණ විස්තර සඳහා කාඩ්පතක් පැත්තට ස්වයිප් කරන්න</Text>}
         {liveBookings.map(bookingCard)}
         {ongoing.length === 0 && liveBookings.length === 0 ? (
           <View style={styles.card}>
@@ -168,29 +182,38 @@ const Stat: React.FC<{ value: string; label: string; color: string }> = ({ value
 const styles = themedStyles(() => StyleSheet.create({
   // Transparent: the rounded sheet in App.tsx supplies the background.
   container: { flex: 1 },
-  swipeWrap: { borderRadius: 18 },
-  swipeHint: { fontSize: 10.5, fontFamily: FONTS.bodyMedium, color: Colors.textMuted, textAlign: 'center' },
+  swipeWrap: { borderRadius: 20 },
+  swipeHint: { fontSize: 10.5, fontFamily: FONTS.bodyMedium, color: Colors.textMuted },
   flex1: { flex: 1 },
   selfCenter: { alignSelf: 'center' },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
-  body: { padding: 16, gap: 12, paddingBottom: 100 },
+  body: { padding: 16, paddingTop: 8, gap: 12, paddingBottom: 100 },
+  // Opaque and full width (the negative margin cancels the body padding), so the lists scroll underneath it.
+  statsPinned: { marginHorizontal: -16, paddingHorizontal: 16, paddingTop: 8, paddingBottom: 8, backgroundColor: getThemeMode() === 'dark' ? Colors.bgBody : '#ffffff' },
   statsRow: { flexDirection: 'row', gap: 8 },
   stat: {
     flex: 1,
     alignItems: 'center',
     paddingVertical: 12,
     paddingHorizontal: 6,
-    borderRadius: 16,
-    borderWidth: 1,
+    borderRadius: 20,
+    borderWidth: getThemeMode() === 'dark' ? 1 : 0,
     borderColor: Colors.borderColor,
     backgroundColor: Colors.bgCard,
+    shadowColor: '#0f172a',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.1,
+    shadowRadius: 16,
+    elevation: 3,
   },
   statValue: { fontSize: 15, fontFamily: FONTS.titleBold },
   statLabel: { fontSize: 10, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 2 },
-  sectionLabel: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, letterSpacing: 0.5, marginTop: 6 },
-  card: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.borderColor, borderRadius: 18, padding: 14, gap: 10 },
-  cardOngoing: { borderColor: 'rgba(245, 158, 11, 0.4)' },
+  // Same heading style as the Home screen's sections.
+  sectionLabel: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textMain, marginTop: 8 },
+  // Soft shadow instead of an outline (an outline only on dark, where a shadow would not show), like Home and Bids.
+  card: { backgroundColor: Colors.bgCard, borderWidth: getThemeMode() === 'dark' ? 1 : 0, borderColor: Colors.borderColor, borderRadius: 20, padding: 14, gap: 10, shadowColor: '#0f172a', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.1, shadowRadius: 16, elevation: 3 },
+  cardOngoing: {},
   divider: { height: 1, backgroundColor: Colors.borderColor },
   title: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.textMain },
   sub: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 1 },

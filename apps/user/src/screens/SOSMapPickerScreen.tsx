@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, Pressable, StyleSheet, TextInput, ActivityIndicator } from 'react-native';
+import { View, Text, Pressable, Platform, StyleSheet, TextInput, ActivityIndicator } from 'react-native';
 import { useNotice } from '../context/NoticeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Colors, getThemeMode, themedStyles } from '@ongarage/shared';
+import { Colors, FONTS, getThemeMode, themedStyles } from '@ongarage/shared';
 import { LOCATION_SUGGESTIONS } from '../constants/mockData';
 import { Gradient, GRADIENTS } from '@ongarage/shared';
 import { GoogleMap } from '@ongarage/shared';
@@ -121,73 +121,53 @@ export const SOSMapPickerScreen: React.FC<SOSMapPickerScreenProps> = ({ initialL
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      <View style={styles.header}>
-        <Gradient stops={GRADIENTS.slate} />
-        <View style={styles.flex1}>
-          <Text style={styles.headerTitle}>වාහනය නැවතී ඇති තැන තෝරන්න</Text>
-          <Text style={styles.headerSubtitle}>ස්ථානය සිතියමේ නිවැරදි කරන්න</Text>
-        </View>
-        <Pressable style={styles.closeBtn} onPress={onClose}>
-          <Text style={styles.closeBtnText}>✕</Text>
-        </Pressable>
-      </View>
-
-      <View style={styles.searchBarWrap}>
-        <View style={styles.searchInputBox}>
-          <Text style={styles.searchIcon}>🔍</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="ප්‍රදේශය හෝ ලිපිනය සොයන්න (උදා: ගාල්ල, වැලිගම)..."
-            placeholderTextColor={Colors.textMuted}
-            value={searchText}
-            onFocus={() => setShowSuggestions(true)}
-            onChangeText={(text) => {
-              setSearchText(text);
-              setShowSuggestions(true);
-            }}
-            onSubmitEditing={handleSearch}
-            returnKeyType="search"
-          />
-        </View>
-        <Pressable style={styles.searchBtn} onPress={handleSearch}>
-          <Text style={styles.searchBtnText}>සොයන්න</Text>
-        </Pressable>
-      </View>
-
-      <GoogleMap
-        style={styles.mapCanvas}
-        center={center}
-        zoom={zoom}
-        onPressCoordinate={(coords) => {
-          setShowSuggestions(false);
-          moveTo(coords);
-        }}
-      >
-        <View style={styles.instructionOverlay} pointerEvents="none">
-          <Text style={styles.instructionText}>📍 බ්‍රේක්ඩවුන් වූ ස්ථානය සිතියම මත ස්පර්ශ කරන්න</Text>
-          <Text style={styles.instructionSubText} numberOfLines={1}>
-            {address}
-          </Text>
-        </View>
-
-        <View style={styles.centerMarker} pointerEvents="none">
-          <View style={styles.pinBubble}>
-            <Text style={styles.pinText}>🚗</Text>
-            <Text style={styles.pinText}>මෙතැනද?</Text>
+      {/* PickMe-style: the map fills the screen; the close button and search float over it, and a card at the bottom confirms. */}
+      <View style={styles.mapArea}>
+        <GoogleMap
+          style={styles.mapCanvas}
+          center={center}
+          zoom={zoom}
+          onPressCoordinate={(coords) => {
+            setShowSuggestions(false);
+            moveTo(coords);
+          }}
+        >
+          {/* The pin: a label on a stem, a dot, and its shadow on the ground. */}
+          <View style={styles.centerMarker} pointerEvents="none">
+            <View style={styles.pinBubble}>
+              <Text style={styles.pinText}>🚗  මෙතැනද?</Text>
+            </View>
+            <View style={styles.pinStem} />
+            <View style={styles.pinPoint} />
+            <View style={styles.pinShadow} />
           </View>
-          <View style={styles.pinPoint} />
-        </View>
+        </GoogleMap>
 
-        <View style={styles.mapControls}>
-          <Pressable style={styles.mapControlBtn} onPress={useMyLocation}>
-            <Text style={styles.mapControlText}>◎</Text>
+        <View style={styles.topBar}>
+          <Pressable style={styles.roundBtn} onPress={onClose} accessibilityLabel="Close location picker">
+            <Text style={styles.roundBtnText}>✕</Text>
           </Pressable>
-          <Pressable style={styles.mapControlBtn} onPress={() => setZoom((z) => Math.min(z + 1, MAX_ZOOM))}>
-            <Text style={styles.mapControlText}>＋</Text>
-          </Pressable>
-          <Pressable style={styles.mapControlBtn} onPress={() => setZoom((z) => Math.max(z - 1, MIN_ZOOM))}>
-            <Text style={styles.mapControlText}>－</Text>
-          </Pressable>
+          <View style={styles.searchPill}>
+            <Text style={styles.searchIcon}>🔍</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="ප්‍රදේශය හෝ ලිපිනය සොයන්න"
+              placeholderTextColor={Colors.textMuted}
+              value={searchText}
+              onFocus={() => setShowSuggestions(true)}
+              onChangeText={(text) => {
+                setSearchText(text);
+                setShowSuggestions(true);
+              }}
+              onSubmitEditing={handleSearch}
+              returnKeyType="search"
+            />
+            {searchText.length > 0 && (
+              <Pressable style={styles.searchGo} onPress={handleSearch} accessibilityLabel="Search">
+                <Text style={styles.searchGoText}>→</Text>
+              </Pressable>
+            )}
+          </View>
         </View>
 
         {showSuggestions && suggestions.length > 0 && (
@@ -214,11 +194,28 @@ export const SOSMapPickerScreen: React.FC<SOSMapPickerScreenProps> = ({ initialL
             ))}
           </View>
         )}
-      </GoogleMap>
+
+        <View style={styles.mapControls}>
+          <Pressable style={styles.roundBtn} onPress={useMyLocation} accessibilityLabel="Use my location">
+            <Text style={styles.mapControlText}>◎</Text>
+          </Pressable>
+          <Pressable style={styles.roundBtn} onPress={() => setZoom((z) => Math.min(z + 1, MAX_ZOOM))} accessibilityLabel="Zoom in">
+            <Text style={styles.mapControlText}>＋</Text>
+          </Pressable>
+          <Pressable style={styles.roundBtn} onPress={() => setZoom((z) => Math.max(z - 1, MIN_ZOOM))} accessibilityLabel="Zoom out">
+            <Text style={styles.mapControlText}>－</Text>
+          </Pressable>
+        </View>
+      </View>
 
       <View style={styles.bottomSheet}>
-        <View style={styles.locationInfoBox}>
-          <Text style={styles.locationIcon}>📍</Text>
+        <View style={styles.handle} />
+        <Text style={styles.sheetTitle}>වාහනය නැවතී ඇති තැන තෝරන්න</Text>
+        <Text style={styles.sheetSub}>සිතියම මත ස්පර්ශ කර හෝ සොයා පින් එක නිවැරදි තැනට ගෙන එන්න</Text>
+        <View style={styles.locationRow}>
+          <View style={styles.locationDisc}>
+            <Text style={styles.locationIcon}>📍</Text>
+          </View>
           <View style={styles.flex1}>
             <Text style={styles.locationName} numberOfLines={2}>
               {address}
@@ -230,9 +227,8 @@ export const SOSMapPickerScreen: React.FC<SOSMapPickerScreenProps> = ({ initialL
           </View>
           {resolving && <ActivityIndicator size="small" color={Colors.primary} />}
         </View>
-        <Pressable style={styles.confirmBtn} onPress={() => onConfirm({ address, coords: center })}>
+        <Pressable style={({ pressed }) => [styles.confirmBtn, pressed && { opacity: 0.92, transform: [{ scale: 0.99 }] }]} onPress={() => onConfirm({ address, coords: center })}>
           <Gradient stops={GRADIENTS.sos} />
-          <Text style={styles.confirmBtnText}>✓</Text>
           <Text style={styles.confirmBtnText}>ස්ථානය තහවුරු කර ඉදිරියට යන්න</Text>
         </Pressable>
       </View>
@@ -240,178 +236,74 @@ export const SOSMapPickerScreen: React.FC<SOSMapPickerScreenProps> = ({ initialL
   );
 };
 
+// Soft shadow in place of an outline, like Home and the other tabs.
+const SOFT_SHADOW = { shadowColor: '#0f172a', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.14, shadowRadius: 16, elevation: 4 } as const;
+
 const styles = themedStyles(() => StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.bgBody },
   flex1: { flex: 1 },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    overflow: 'hidden',
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.borderColor,
-  },
-  headerTitle: { fontSize: 15, fontWeight: '800', color: '#fff' },
-  headerSubtitle: { fontSize: 10, color: Colors.primary, fontWeight: '700' },
-  closeBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderWidth: 1,
-    borderColor: Colors.borderColor,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  closeBtnText: { fontSize: 14, color: '#fff' },
-  searchBarWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    backgroundColor: Colors.bgCard,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.borderColor,
-  },
-  searchInputBox: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.bgDark,
-    borderWidth: 1,
-    borderColor: Colors.borderColor,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    height: 40,
-  },
-  searchIcon: { fontSize: 14, marginRight: 8 },
-  input: { flex: 1, color: Colors.textMain, fontSize: 12, fontWeight: '600', paddingVertical: 0 },
-  searchBtn: {
-    backgroundColor: Colors.primary,
-    paddingHorizontal: 14,
-    height: 40,
-    borderRadius: 12,
-    justifyContent: 'center',
-  },
-  searchBtnText: { fontSize: 12, fontWeight: '800', color: Colors.bgDark },
-  mapCanvas: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  mapControls: { position: 'absolute', right: 12, bottom: 16, gap: 8 },
-  mapControlBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: Colors.cardGlass,
-    borderWidth: 1,
-    borderColor: Colors.glassBorder,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  mapControlText: { fontSize: 18, color: Colors.textMain, fontWeight: '700' },
-  suggestionSubText: { fontSize: 10, color: Colors.textMuted, marginTop: 2, marginLeft: 18 },
+  mapArea: { flex: 1 },
+  mapCanvas: { ...StyleSheet.absoluteFill, justifyContent: 'center', alignItems: 'center' },
+
+  // Floating over the map
+  topBar: { position: 'absolute', top: 12, left: 16, right: 16, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  roundBtn: { width: 46, height: 46, borderRadius: 23, backgroundColor: Colors.bgCard, justifyContent: 'center', alignItems: 'center', ...SOFT_SHADOW },
+  roundBtnText: { fontSize: 16, fontWeight: '700', color: Colors.textMain },
+  searchPill: { flex: 1, height: 46, flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: 16, paddingRight: 5, borderRadius: 23, backgroundColor: Colors.bgCard, ...SOFT_SHADOW },
+  searchIcon: { fontSize: 14 },
+  // No browser focus outline on the web; the pill itself is the field.
+  input: { flex: 1, color: Colors.textMain, fontSize: 12.5, fontFamily: FONTS.bodyMedium, paddingVertical: 0, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as object) : {}) },
+  searchGo: { width: 36, height: 36, borderRadius: 18, backgroundColor: Colors.primary, justifyContent: 'center', alignItems: 'center' },
+  searchGoText: { fontSize: 16, fontWeight: '800', color: '#fff' },
   suggestionsDropdown: {
     position: 'absolute',
-    top: 0,
+    top: 66,
     left: 16,
     right: 16,
     backgroundColor: Colors.bgCard,
-    borderWidth: 1,
-    borderColor: Colors.borderColor,
-    borderRadius: 12,
+    borderRadius: 20,
     overflow: 'hidden',
     zIndex: 100,
-    elevation: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: getThemeMode() === 'dark' ? 0.5 : 0.1,
-    shadowRadius: 25,
+    ...SOFT_SHADOW,
   },
-  suggestionItem: {
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.borderColor,
-  },
-  suggestionText: { fontSize: 11.5, fontWeight: '700', color: Colors.textMain },
-  instructionOverlay: {
-    position: 'absolute',
-    top: 16,
-    left: 16,
-    right: 16,
-    backgroundColor: Colors.cardGlass,
-    borderWidth: 1,
-    borderColor: Colors.borderColor,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  instructionText: { fontSize: 11.5, fontWeight: '700', color: Colors.textMain, textAlign: 'center' },
-  instructionSubText: { fontSize: 10, color: Colors.textMuted, fontWeight: '500', textAlign: 'center' },
-  centerMarker: { alignItems: 'center', gap: 4, transform: [{ translateY: -16 }] },
-  pinBubble: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#ef4444',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    shadowColor: '#ef4444',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.5,
-    shadowRadius: 15,
-    elevation: 6,
-  },
-  pinText: { fontSize: 11, fontWeight: '800', color: '#fff' },
-  pinPoint: {
-    width: 12,
-    height: 12,
-    backgroundColor: '#ef4444',
-    borderRadius: 6,
-    borderWidth: 2,
-    borderColor: '#fff',
-    shadowColor: '#ef4444',
-    shadowOpacity: 1,
-    shadowRadius: 10,
-  },
+  suggestionItem: { paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: Colors.borderColor },
+  suggestionText: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
+  suggestionSubText: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 2, marginLeft: 20 },
+  mapControls: { position: 'absolute', right: 16, bottom: 40, gap: 10 },
+  mapControlText: { fontSize: 19, color: Colors.textMain, fontWeight: '700' },
+
+  // The pin (its dot sits on the map's centre)
+  centerMarker: { alignItems: 'center', transform: [{ translateY: -30 }] },
+  pinBubble: { backgroundColor: '#dc2626', paddingHorizontal: 14, paddingVertical: 7, borderRadius: 18, shadowColor: '#dc2626', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.35, shadowRadius: 12, elevation: 6 },
+  pinText: { fontSize: 11.5, fontFamily: FONTS.bodyBold, color: '#fff' },
+  pinStem: { width: 3, height: 16, backgroundColor: '#dc2626' },
+  pinPoint: { width: 14, height: 14, borderRadius: 7, backgroundColor: '#dc2626', borderWidth: 3, borderColor: '#fff', marginTop: -2 },
+  pinShadow: { width: 18, height: 6, borderRadius: 9, backgroundColor: 'rgba(15, 23, 42, 0.22)', marginTop: 2 },
+
+  // Bottom card, overlapping the map with rounded corners
   bottomSheet: {
-    backgroundColor: Colors.cardGlass,
-    borderTopWidth: 1,
-    borderTopColor: Colors.borderColor,
-    padding: 16,
-    gap: 12,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-  },
-  locationInfoBox: {
-    backgroundColor: Colors.bgDark,
-    borderWidth: 1,
-    borderColor: Colors.borderColor,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
+    marginTop: -24,
+    backgroundColor: Colors.bgCard,
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 16,
     gap: 10,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    shadowColor: '#0f172a',
+    shadowOffset: { width: 0, height: -6 },
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    elevation: 12,
   },
-  locationIcon: { fontSize: 20 },
-  locationName: { fontSize: 12.5, fontWeight: '800', color: Colors.textMain },
-  locationStatus: { fontSize: 10, color: Colors.success, fontWeight: '700', marginTop: 1 },
-  confirmBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    padding: 13,
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  confirmBtnText: { fontSize: 13, fontWeight: '800', color: '#fff' },
+  handle: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: Colors.subtleBorder, marginBottom: 4 },
+  sheetTitle: { fontSize: 17, fontFamily: FONTS.titleBold, color: Colors.textMain },
+  sheetSub: { fontSize: 11.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: -4 },
+  locationRow: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 20, backgroundColor: Colors.subtleFill },
+  locationDisc: { width: 40, height: 40, borderRadius: 20, backgroundColor: getThemeMode() === 'dark' ? 'rgba(239, 68, 68, 0.18)' : '#fee2e2', justifyContent: 'center', alignItems: 'center' },
+  locationIcon: { fontSize: 18 },
+  locationName: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.textMain },
+  locationStatus: { fontSize: 10.5, fontFamily: FONTS.bodySemiBold, color: Colors.success, marginTop: 2 },
+  confirmBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 16, borderRadius: 28, overflow: 'hidden' },
+  confirmBtnText: { fontSize: 14, fontFamily: FONTS.bodyBold, color: '#fff' },
 }));

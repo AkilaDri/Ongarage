@@ -6,7 +6,6 @@ import {
   distanceKm,
   FONTS,
   getThemeMode,
-  Gradient,
   SERVICE_CATEGORIES,
   themedStyles,
   type Garage,
@@ -15,6 +14,7 @@ import {
 import { MOCK_GARAGES } from '../constants/mockData';
 import { GARAGE_INFO, NEW_GARAGE_DAYS, OFFERS, PROMO_BANNERS, SPONSORED_GARAGE_IDS, type Offer } from '../constants/home';
 import { AllServicesSheet } from '../components/AllServicesSheet';
+import { PinnedEdge } from '../components/PinnedEdge';
 import { CategoryStrip } from '../components/home/CategoryStrip';
 import { PromoCarousel } from '../components/home/PromoCarousel';
 import { OfferTiles } from '../components/home/OfferTiles';
@@ -26,12 +26,6 @@ import { GarageReviewsSheet } from '../components/GarageReviewsSheet';
 
 const DAY = 24 * 60 * 60 * 1000;
 
-
-// A soft fall-off below the pinned ads, so the lists read as passing underneath: a shadow on white, a faint sky-blue glow on dark (a shadow would not show there).
-const edgeShadow = () =>
-  getThemeMode() === 'dark'
-    ? [{ offset: '0', color: '#38bdf8', opacity: 0.2 }, { offset: '1', color: '#38bdf8', opacity: 0 }]
-    : [{ offset: '0', color: '#0f172a', opacity: 0.16 }, { offset: '1', color: '#0f172a', opacity: 0 }];
 
 interface HomeScreenProps {
   onSOSPress: () => void;
@@ -101,9 +95,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onSOSPress, onPostJob, o
               if (g) setOpen(g);
             }}
             />
-          <Animated.View style={[styles.edgeShadow, { opacity: edge }]} pointerEvents="none">
-            <Gradient vertical stops={edgeShadow()} />
-          </Animated.View>
+          <PinnedEdge progress={edge} />
         </View>
 
         {/* Deals */}
@@ -152,7 +144,6 @@ const styles = themedStyles(() => StyleSheet.create({
   categoriesBlock: { gap: 10 },
   // Opaque and full width (the negative margin cancels the content padding), so the lists scroll underneath it.
   adsPinned: { marginHorizontal: -16, paddingHorizontal: 16, paddingVertical: 6, backgroundColor: getThemeMode() === 'dark' ? Colors.bgBody : '#ffffff' },
-  edgeShadow: { position: 'absolute', left: 0, right: 0, bottom: -22, height: 22, zIndex: 5 },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 },
   viewAllLink: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
   sectionTitle: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textMain },

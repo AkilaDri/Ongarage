@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Animated, Easing, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Colors, themedStyles } from '@ongarage/shared';
+import { Colors, getThemeMode, themedStyles } from '@ongarage/shared';
 import { FONTS } from '@ongarage/shared';
 import { MOCK_GARAGES } from '../constants/mockData';
 import { SERVICE_CATEGORIES, type PartType } from '@ongarage/shared';
@@ -16,6 +16,7 @@ import { useBids } from '../context/BidsContext';
 import type { JobDraft, VoiceNote } from '@ongarage/shared';
 import { MediaAttachments } from '../components/MediaAttachments';
 import { SPARE_PARTS } from '../constants/labels';
+import { CategoryPhoto } from '../components/home/CategoryPhoto';
 
 type Question = { id: string; question: string; options: string[] };
 type Profile = {
@@ -422,9 +423,9 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, defaultVehi
             return (
               <Pressable key={c.id} style={({ pressed }) => [styles.gridItem, pressed && { transform: [{ scale: 1.06 }] }]} onPress={() => setCategoryId(c.id)}>
                 <View style={[styles.tile, active && styles.tileActive]}>
-                  <Text style={styles.tileEmoji}>{c.icon}</Text>
+                  <CategoryPhoto categoryId={c.id} size={58} />
                 </View>
-                <Text style={[styles.tileLabel, active && { color: Colors.primary }]} numberOfLines={1}>
+                <Text style={[styles.tileLabel, active && styles.tileLabelActive]} numberOfLines={2}>
                   {c.name}
                 </Text>
               </Pressable>
@@ -536,6 +537,9 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, defaultVehi
   );
 };
 
+// Soft shadow in place of an outline, like Home and the other tabs.
+const SOFT_SHADOW = { shadowColor: '#0f172a', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.1, shadowRadius: 16, elevation: 3 } as const;
+
 const styles = themedStyles(() => StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.bgBody },
   flex1: { flex: 1 },
@@ -548,30 +552,31 @@ const styles = themedStyles(() => StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     overflow: 'hidden',
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(56, 189, 248, 0.25)',
+    paddingTop: 14,
+    paddingBottom: 18,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
   },
   headerTitle: { fontSize: 15, fontFamily: FONTS.titleBold, color: '#fff' },
   headerSub: { fontSize: 10.5, fontFamily: FONTS.bodyMedium, color: '#93c5fd' },
   closeBtn: {
     width: 32,
     height: 32,
-    borderRadius: 10,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.18)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   closeText: { fontSize: 14, color: '#fff' },
-  progressTrack: { height: 4, backgroundColor: Colors.subtleBorder },
-  progressFill: { height: '100%', backgroundColor: Colors.primary },
+  progressTrack: { height: 4, marginHorizontal: 16, marginTop: 10, borderRadius: 2, overflow: 'hidden', backgroundColor: Colors.subtleBorder },
+  progressFill: { height: '100%', borderRadius: 2, backgroundColor: Colors.primary },
   body: { padding: 16, gap: 12, paddingBottom: 28 },
-  sectionLabel: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, letterSpacing: 0.5, marginTop: 4 },
+  // Same heading style as the Home screen's sections.
+  sectionLabel: { fontSize: 14.5, fontFamily: FONTS.titleBold, color: Colors.textMain, marginTop: 6 },
   required: { fontSize: 10, fontFamily: FONTS.bodySemiBold, color: Colors.warning, marginTop: 4 },
   hint: { fontSize: 11, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
-  card: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.borderColor, borderRadius: 18, padding: 14, gap: 10 },
-  cardActive: { borderColor: Colors.primary, backgroundColor: 'rgba(56, 189, 248, 0.08)' },
+  card: { backgroundColor: Colors.bgCard, borderWidth: getThemeMode() === 'dark' ? 1 : 0, borderColor: Colors.borderColor, borderRadius: 20, padding: 14, gap: 10, ...SOFT_SHADOW },
+  cardActive: { borderWidth: 1, borderColor: Colors.primary, backgroundColor: 'rgba(56, 189, 248, 0.08)' },
   cardTitle: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.textMain },
   cardSub: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 1 },
   link: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
@@ -611,20 +616,22 @@ const styles = themedStyles(() => StyleSheet.create({
   resultBtn: { marginTop: 4, paddingVertical: 11, borderRadius: 12, alignItems: 'center', backgroundColor: 'rgba(255, 255, 255, 0.22)' },
   resultBtnText: { fontSize: 12.5, fontFamily: FONTS.bodyBold, color: '#fff' },
 
-  grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 12 },
-  gridItem: { width: '23%', alignItems: 'center', gap: 5 },
-  tile: { width: 64, height: 64, borderRadius: 18, ...glassStyle(), justifyContent: 'center', alignItems: 'center' },
-  tileActive: { backgroundColor: 'rgba(56, 189, 248, 0.22)', borderColor: Colors.primary, shadowColor: Colors.primary, shadowOpacity: 0.5 },
-  tileEmoji: { fontSize: 28 },
-  tileLabel: { fontSize: 9.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain, textAlign: 'center' },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 6 },
+  gridItem: { width: '23%', alignItems: 'center', gap: 2 },
+  // No box: the artwork stands on the page; the chosen category sits on a soft sky-blue disc.
+  tile: { width: 72, height: 72, borderRadius: 36, justifyContent: 'center', alignItems: 'center' },
+  tileActive: { backgroundColor: 'rgba(76, 161, 209, 0.22)' },
+  tileLabel: { fontSize: 10.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain, textAlign: 'center', lineHeight: 13, minHeight: 26 },
+  tileLabelActive: { color: Colors.primary, fontFamily: FONTS.bodyBold },
 
   textArea: {
     minHeight: 90,
     backgroundColor: Colors.bgCard,
-    borderWidth: 1,
+    borderWidth: getThemeMode() === 'dark' ? 1 : 0,
     borderColor: Colors.borderColor,
-    borderRadius: 16,
-    padding: 12,
+    borderRadius: 20,
+    padding: 14,
+    ...SOFT_SHADOW,
     color: Colors.textMain,
     fontSize: 13,
     fontFamily: FONTS.bodyRegular,
@@ -634,17 +641,18 @@ const styles = themedStyles(() => StyleSheet.create({
   choice: {
     width: '48.5%',
     flexGrow: 1,
-    paddingVertical: 11,
-    borderRadius: 12,
-    borderWidth: 1,
+    paddingVertical: 12,
+    borderRadius: 16,
+    borderWidth: getThemeMode() === 'dark' ? 1 : 0,
     borderColor: Colors.borderColor,
     backgroundColor: Colors.bgCard,
     alignItems: 'center',
+    ...SOFT_SHADOW,
   },
-  choiceActive: { borderColor: Colors.success, backgroundColor: 'rgba(16, 185, 129, 0.15)' },
+  choiceActive: { borderWidth: 1, borderColor: Colors.success, backgroundColor: 'rgba(16, 185, 129, 0.15)' },
   choiceText: { fontSize: 11.5, fontFamily: FONTS.bodyMedium, color: Colors.textMuted },
   choiceTextActive: { color: Colors.successText, fontFamily: FONTS.bodyBold },
-  map: { height: 170, borderRadius: 18, borderWidth: 1, borderColor: Colors.borderColor },
+  map: { height: 170, borderRadius: 20, overflow: 'hidden' },
   pinAnchor: { position: 'absolute', transform: [{ translateX: '-50%' }, { translateY: '-50%' }] },
   garagePin: {
     width: 26,
@@ -674,5 +682,5 @@ const styles = themedStyles(() => StyleSheet.create({
   timerCard: { borderStyle: 'dashed', borderColor: 'rgba(56, 189, 248, 0.35)' },
   timerValue: { paddingHorizontal: 12, paddingVertical: 3, borderRadius: 10, backgroundColor: 'rgba(56, 189, 248, 0.15)' },
   timerValueText: { fontSize: 12.5, fontFamily: FONTS.bodyBold, color: Colors.primary },
-  footer: { padding: 16, paddingTop: 12, backgroundColor: Colors.barBg, borderTopWidth: 1, borderTopColor: Colors.borderColor },
+  footer: { padding: 16, paddingTop: 12, backgroundColor: Colors.barBg, borderTopLeftRadius: 24, borderTopRightRadius: 24, shadowColor: '#0f172a', shadowOffset: { width: 0, height: -6 }, shadowOpacity: 0.1, shadowRadius: 14, elevation: 10 },
 }));

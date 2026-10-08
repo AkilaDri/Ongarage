@@ -65,6 +65,13 @@ export const OwnerDetailView: React.FC<{
   const [now, setNow] = useState(Date.now());
   const fade = useRef(new Animated.Value(0)).current;
 
+  // Fade in / out only when a different job or booking opens or it closes, not whenever the parent
+  // passes a new (equal) target object; live changes just refresh what is shown.
+  const targetKey = target ? `${target.kind}:${target.kind === 'job' ? target.job.id : target.booking.id}` : null;
+  useEffect(() => {
+    if (target) setShown(target);
+  }, [target]);
+
   useEffect(() => {
     if (target) {
       setShown(target);
@@ -75,7 +82,7 @@ export const OwnerDetailView: React.FC<{
       Animated.timing(fade, { toValue: 0, duration: 240, easing: Easing.in(Easing.cubic), useNativeDriver: true }).start(() => setMounted(false));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [target]);
+  }, [targetKey]);
 
   useEffect(() => {
     if (!mounted) return;

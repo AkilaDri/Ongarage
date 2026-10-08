@@ -5,13 +5,24 @@ import Svg, { Circle, Line } from 'react-native-svg';
 import { CloseCode, Colors, makeCloseCode, RATING_DIMENSIONS, themedStyles, type DimensionRating } from '@ongarage/shared';
 import { FONTS } from '@ongarage/shared';
 import { useVehicles } from '../context/VehiclesContext';
-import { BREAKDOWN_TYPES } from '@ongarage/shared';
+import { BREAKDOWN_TYPES, getThemeMode } from '@ongarage/shared';
 import { VehiclePicker } from '../components/Header';
 import { GoogleMap, type Project } from '@ongarage/shared';
 import { Gradient, GRADIENTS, Pulse } from '@ongarage/shared';
-import { ActionButton, GlassIcon, ModalCard, glassStyle as glass } from '@ongarage/shared';
+import { ActionButton as SharedButton } from '@ongarage/shared';
+import { OwnerModalCard as ModalCard } from '../components/OwnerModalCard';
 import { etaMinutes, kmToMapPixels, offsetCoordinate, zoomToFit } from '@ongarage/shared';
 import type { LatLng, PickedLocation } from '@ongarage/shared';
+
+// An icon on a soft disc (no outline), in place of the shared bordered glass square.
+const GlassIcon: React.FC<{ emoji: string; small?: boolean }> = ({ emoji, small }) => (
+  <View style={[styles.softIcon, small && styles.softIconSmall]}>
+    <Text style={small ? styles.softIconEmojiSmall : styles.softIconEmoji}>{emoji}</Text>
+  </View>
+);
+
+// The flow's buttons are pills (the owner app's style).
+const ActionButton: React.FC<React.ComponentProps<typeof SharedButton>> = (props) => <SharedButton pill {...props} />;
 
 type Step =
   | 'confirm'
@@ -341,17 +352,25 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
       );
     });
 
+  // Height of the top layer (map or band); measured, so the maps zoom to fit what is visible.
+  const [topH, setTopH] = useState(320);
+  // Each step opens at the top of the sheet, not where the last one was scrolled to.
+  const sheetScroll = useRef<ScrollView>(null);
+  useEffect(() => {
+    sheetScroll.current?.scrollTo({ y: 0, animated: false });
+  }, [baseStep]);
+
   const renderMap = (height: number, kind: 'confirm' | 'searching' | 'bids' | 'tracking') => {
     if (kind === 'confirm') {
       return (
-        <GoogleMap style={[styles.map, { height }]} center={location.coords} zoom={16} fallbackColor="#ef4444" renderOverlay={(p) => userPin(p)} />
+        <GoogleMap style={styles.mapFull} center={location.coords} zoom={16} fallbackColor="#ef4444" renderOverlay={(p) => userPin(p)} />
       );
     }
     if (kind === 'searching') {
       const zoom = zoomToFit(radius * 2, lat, height);
       return (
         <GoogleMap
-          style={[styles.map, { height }]}
+          style={styles.mapFull}
           center={location.coords}
           zoom={zoom}
           fallbackColor="#ef4444"
@@ -384,7 +403,7 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
       const far = Math.max(...responders.map((w) => w.distanceKm), 1);
       return (
         <GoogleMap
-          style={[styles.map, { height }]}
+          style={styles.mapFull}
           center={location.coords}
           zoom={zoomToFit(far * 2, lat, height)}
           renderOverlay={(project) => (
@@ -402,7 +421,7 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
     };
     return (
       <GoogleMap
-        style={[styles.map, { height }]}
+        style={styles.mapFull}
         center={mid}
         zoom={zoomToFit(job.distanceKm, mid.latitude, height)}
         fallbackColor="#10b981"
@@ -461,7 +480,6 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
 
   const renderConfirm = () => (
     <>
-      {renderMap(170, 'confirm')}
       <View style={styles.card}>
         <Pressable ref={vehicleRef} style={styles.selectRow} onPress={() => setShowVehiclePicker(true)}>
           <GlassIcon emoji="🚗" />
@@ -509,7 +527,6 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
 
   const renderSearching = () => (
     <>
-      {renderMap(220, 'searching')}
       <View style={[styles.card, styles.rowCenter]}>
         <View style={styles.radarWrap}>
           <Pulse style={styles.radarRing} maxScale={1.6} />
@@ -569,7 +586,6 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
 
   const renderBids = () => (
     <>
-      {renderMap(170, 'bids')}
       <View style={[styles.card, styles.centerCard]}>
         <GlassIcon emoji="🤝" />
         <Text style={styles.heroTitle}>ලංසු ලැබී ඇත</Text>
@@ -635,7 +651,6 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
 
   const renderTracking = () => (
     <>
-      {renderMap(280, 'tracking')}
       <View style={styles.card}>
         <View style={styles.rowCenter}>
           <View style={styles.avatar}>
@@ -868,44 +883,54 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
   };
 
   const bottomBar = renderBottomBar();
+  const mapKind: 'confirm' | 'searching' | 'bids' | 'tracking' | null =
+    baseStep === 'confirm' || baseStep === 'searching' || baseStep === 'bids' || baseStep === 'tracking' ? baseStep : null;
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      <View style={styles.header}>
-        <Gradient stops={GRADIENTS.sosHeader} />
-        <View style={styles.headerIcon}>
-          <Text style={styles.headerIconText}>🚨</Text>
+      {/* PickMe-style: the map (or, on steps without one, a red band) fills the top; the controls float over it. */}
+      <View style={[styles.topArea, mapKind ? styles.topAreaMap : styles.topAreaBand]} onLayout={(e) => setTopH(Math.round(e.nativeEvent.layout.height))}>
+        {mapKind ? renderMap(topH, mapKind) : <Gradient stops={GRADIENTS.sosHeader} />}
+        <View style={styles.topBar}>
+          <Pressable style={styles.roundBtn} onPress={requestClose} accessibilityLabel="Close SOS">
+            <Text style={styles.roundBtnText}>✕</Text>
+          </Pressable>
+          <View style={styles.stepPill}>
+            <View style={styles.stepPillIcon}>
+              <Text style={styles.headerIconText}>🚨</Text>
+            </View>
+            <View style={styles.flex1}>
+              <Text style={styles.stepPillTitle} numberOfLines={1}>හදිසි මාර්ග ආධාර (SOS)</Text>
+              <Text style={styles.stepPillSub} numberOfLines={1}>
+                පියවර {stepIndex + 1}/{STEPS.length} · {STEPS[stepIndex].label}
+              </Text>
+            </View>
+          </View>
         </View>
-        <View style={styles.flex1}>
-          <Text style={styles.headerTitle}>හදිසි මාර්ග ආධාර (SOS)</Text>
-          <Text style={styles.headerSubtitle}>
-            පියවර {stepIndex + 1}/{STEPS.length} · {STEPS[stepIndex].label}
-          </Text>
-        </View>
-        <Pressable style={styles.closeBtn} onPress={requestClose}>
-          <Text style={styles.closeBtnText}>✕</Text>
-        </Pressable>
       </View>
 
-      <View style={styles.stepper}>
-        {STEPS.map((s, i) => (
-          <View key={s.key} style={[styles.stepSeg, i < stepIndex && styles.stepSegDone, i === stepIndex && styles.stepSegActive]} />
-        ))}
+      <View style={styles.sheet}>
+        <View style={styles.handle} />
+        <View style={styles.stepper}>
+          {STEPS.map((s, i) => (
+            <View key={s.key} style={[styles.stepSeg, i < stepIndex && styles.stepSegDone, i === stepIndex && styles.stepSegActive]} />
+          ))}
+        </View>
+
+        <ScrollView ref={sheetScroll} style={styles.flex1} contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
+          {baseStep === 'confirm' && renderConfirm()}
+          {baseStep === 'searching' && renderSearching()}
+          {baseStep === 'bids' && renderBids()}
+          {baseStep === 'accepted' && renderAccepted()}
+          {baseStep === 'tracking' && renderTracking()}
+          {baseStep === 'arrived' && renderArrived()}
+          {baseStep === 'repairing' && renderRepairing()}
+          {baseStep === 'qrScan' && renderQrScan()}
+          {baseStep === 'rating' && renderRating()}
+        </ScrollView>
+
+        {bottomBar && <View style={styles.bottomBar}>{bottomBar}</View>}
       </View>
-
-      <ScrollView style={styles.flex1} contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
-        {baseStep === 'confirm' && renderConfirm()}
-        {baseStep === 'searching' && renderSearching()}
-        {baseStep === 'bids' && renderBids()}
-        {baseStep === 'accepted' && renderAccepted()}
-        {baseStep === 'tracking' && renderTracking()}
-        {baseStep === 'arrived' && renderArrived()}
-        {baseStep === 'repairing' && renderRepairing()}
-        {baseStep === 'qrScan' && renderQrScan()}
-        {baseStep === 'rating' && renderRating()}
-      </ScrollView>
-
-      {bottomBar && <View style={styles.bottomBar}>{bottomBar}</View>}
 
       {showConfetti && (
         <View pointerEvents="none" style={styles.confettiLayer}>
@@ -991,6 +1016,12 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
   );
 };
 
+// A stronger shadow for controls floating over the map.
+const FLOAT_SHADOW = { shadowColor: '#0f172a', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.16, shadowRadius: 14, elevation: 5 } as const;
+
+// Soft shadow in place of an outline, like Home and the other tabs.
+const SOFT_SHADOW = { shadowColor: '#0f172a', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.1, shadowRadius: 16, elevation: 3 } as const;
+
 const styles = themedStyles(() => StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.bgBody },
   flex1: { flex: 1 },
@@ -1000,39 +1031,68 @@ const styles = themedStyles(() => StyleSheet.create({
     alignItems: 'center',
     gap: 10,
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingTop: 14,
+    paddingBottom: 18,
     overflow: 'hidden',
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(239, 68, 68, 0.3)',
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
   },
-  headerIcon: { width: 36, height: 36, borderRadius: 11, ...glass(), justifyContent: 'center', alignItems: 'center' },
+  headerIcon: { width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(255, 255, 255, 0.2)', justifyContent: 'center', alignItems: 'center' },
+  softIcon: { width: 46, height: 46, borderRadius: 23, backgroundColor: Colors.subtleFill, justifyContent: 'center', alignItems: 'center' },
+  softIconSmall: { width: 40, height: 40, borderRadius: 20 },
+  softIconEmoji: { fontSize: 21 },
+  softIconEmojiSmall: { fontSize: 18 },
   headerIconText: { fontSize: 18 },
   headerTitle: { fontSize: 15, fontFamily: FONTS.titleBold, color: '#fff' },
   headerSubtitle: { fontSize: 10.5, fontFamily: FONTS.bodyMedium, color: '#fca5a5' },
   closeBtn: {
     width: 32,
     height: 32,
-    borderRadius: 10,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.18)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   closeBtnText: { fontSize: 14, color: '#fff' },
-  stepper: { flexDirection: 'row', gap: 3, paddingHorizontal: 16, paddingVertical: 8 },
+  stepper: { flexDirection: 'row', gap: 4, paddingHorizontal: 16, paddingTop: 10, paddingBottom: 4 },
   stepSeg: { flex: 1, height: 4, borderRadius: 2, backgroundColor: Colors.subtleBorder },
   stepSegDone: { backgroundColor: 'rgba(239, 68, 68, 0.6)' },
   stepSegActive: { backgroundColor: '#ef4444' },
   body: { padding: 16, paddingTop: 6, gap: 12, paddingBottom: 24 },
-  map: { borderRadius: 18, borderWidth: 1, borderColor: Colors.borderColor },
+  mapFull: { ...StyleSheet.absoluteFill },
+  topArea: { overflow: 'hidden' },
+  topAreaMap: { height: '42%' },
+  topAreaBand: { height: 130 },
+  topBar: { position: 'absolute', top: 12, left: 16, right: 16, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  roundBtn: { width: 46, height: 46, borderRadius: 23, backgroundColor: Colors.bgCard, justifyContent: 'center', alignItems: 'center', ...FLOAT_SHADOW },
+  roundBtnText: { fontSize: 16, fontWeight: '700', color: Colors.textMain },
+  stepPill: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, height: 52, paddingLeft: 6, paddingRight: 16, borderRadius: 26, backgroundColor: Colors.bgCard, ...FLOAT_SHADOW },
+  stepPillIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: getThemeMode() === 'dark' ? 'rgba(239, 68, 68, 0.18)' : '#fee2e2', justifyContent: 'center', alignItems: 'center' },
+  stepPillTitle: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.textMain },
+  stepPillSub: { fontSize: 10.5, fontFamily: FONTS.bodySemiBold, color: '#dc2626' },
+  // The step lives in a rounded sheet that overlaps the map, like the location picker's card.
+  sheet: {
+    flex: 1,
+    marginTop: -24,
+    backgroundColor: Colors.bgBody,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    overflow: 'hidden',
+    shadowColor: '#0f172a',
+    shadowOffset: { width: 0, height: -6 },
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    elevation: 12,
+  },
+  handle: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: Colors.subtleBorder, marginTop: 10 },
   card: {
     backgroundColor: Colors.bgCard,
-    borderWidth: 1,
+    borderWidth: getThemeMode() === 'dark' ? 1 : 0,
     borderColor: Colors.borderColor,
-    borderRadius: 18,
+    borderRadius: 20,
     padding: 14,
     gap: 10,
+    ...SOFT_SHADOW,
   },
   centerCard: { alignItems: 'center' },
   rowCenter: { flexDirection: 'row', alignItems: 'center', gap: 12 },
@@ -1043,16 +1103,17 @@ const styles = themedStyles(() => StyleSheet.create({
   linkText: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
   cardTitle: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.textMain },
   cardSub: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 1 },
-  sectionLabel: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, letterSpacing: 0.6, marginTop: 4 },
+  // Same heading style as the Home screen's sections.
+  sectionLabel: { fontSize: 14.5, fontFamily: FONTS.titleBold, color: Colors.textMain, marginTop: 6 },
   hint: { fontSize: 11, fontFamily: FONTS.bodyMedium, color: Colors.textMuted, textAlign: 'center' },
 
 
   grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 14 },
   gridItem: { width: '31%', alignItems: 'center', gap: 6 },
-  glassTile: { width: 72, height: 72, borderRadius: 20, ...glass(), justifyContent: 'center', alignItems: 'center' },
-  glassTileActive: { backgroundColor: 'rgba(239, 68, 68, 0.22)', borderColor: '#ef4444', shadowColor: '#ef4444', shadowOpacity: 0.5 },
+  glassTile: { width: 76, height: 76, borderRadius: 38, backgroundColor: Colors.bgCard, borderWidth: getThemeMode() === 'dark' ? 1 : 0, borderColor: Colors.borderColor, justifyContent: 'center', alignItems: 'center', ...SOFT_SHADOW },
+  glassTileActive: { backgroundColor: 'rgba(239, 68, 68, 0.14)', borderWidth: 2, borderColor: '#ef4444' },
   gridEmoji: { fontSize: 30 },
-  gridLabel: { fontSize: 10, fontFamily: FONTS.bodySemiBold, color: Colors.textMain, textAlign: 'center' },
+  gridLabel: { fontSize: 10.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain, textAlign: 'center' },
 
   pinAnchor: { position: 'absolute', transform: [{ translateX: '-50%' }, { translateY: '-50%' }] },
   userPin: {
@@ -1103,11 +1164,12 @@ const styles = themedStyles(() => StyleSheet.create({
   statBox: {
     flex: 1,
     backgroundColor: Colors.bgCard,
-    borderWidth: 1,
+    borderWidth: getThemeMode() === 'dark' ? 1 : 0,
     borderColor: Colors.borderColor,
-    borderRadius: 14,
-    paddingVertical: 10,
+    borderRadius: 18,
+    paddingVertical: 12,
     alignItems: 'center',
+    ...SOFT_SHADOW,
   },
   statValue: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.textMain },
   statLabel: { fontSize: 9.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 2 },
@@ -1123,7 +1185,7 @@ const styles = themedStyles(() => StyleSheet.create({
   bidPillText: { fontSize: 12, fontFamily: FONTS.titleBold, color: Colors.success },
   ratingPill: { backgroundColor: 'rgba(245, 158, 11, 0.14)', borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3 },
   ratingPillText: { fontSize: 10.5, fontWeight: '800', color: Colors.warning },
-  avatar: { width: 46, height: 46, borderRadius: 23, ...glass(), justifyContent: 'center', alignItems: 'center' },
+  avatar: { width: 46, height: 46, borderRadius: 23, backgroundColor: Colors.subtleFill, justifyContent: 'center', alignItems: 'center' },
   avatarSmall: { width: 36, height: 36, borderRadius: 18 },
   avatarLarge: { width: 76, height: 76, borderRadius: 38 },
   avatarRing: { padding: 4, borderRadius: 44, borderWidth: 2, borderColor: Colors.primary },
@@ -1138,7 +1200,7 @@ const styles = themedStyles(() => StyleSheet.create({
   hero: { alignItems: 'center', gap: 6, paddingVertical: 10 },
   heroCircle: { width: 84, height: 84, borderRadius: 42, justifyContent: 'center', alignItems: 'center', marginBottom: 6 },
   heroCircleSuccess: { backgroundColor: Colors.success, shadowColor: Colors.success, shadowOpacity: 0.6, shadowRadius: 24, elevation: 8 },
-  heroCircleGlass: { ...glass() },
+  heroCircleGlass: { backgroundColor: Colors.bgCard, ...SOFT_SHADOW },
   heroCircleIcon: { fontSize: 36, color: '#fff', fontWeight: '900' },
   heroTitle: { fontSize: 17, fontFamily: FONTS.titleBold, color: Colors.textMain, textAlign: 'center' },
   heroText: { fontSize: 12, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, textAlign: 'center', lineHeight: 18 },
@@ -1161,14 +1223,7 @@ const styles = themedStyles(() => StyleSheet.create({
   pointsText: { fontSize: 12, fontWeight: '800', color: '#fff' },
   confettiLayer: { ...StyleSheet.absoluteFill, justifyContent: 'center', alignItems: 'center', zIndex: 50 },
 
-  bottomBar: {
-    padding: 16,
-    paddingTop: 12,
-    gap: 8,
-    backgroundColor: Colors.barBg,
-    borderTopWidth: 1,
-    borderTopColor: Colors.borderColor,
-  },
+  bottomBar: { padding: 16, paddingTop: 10, gap: 8, backgroundColor: Colors.bgBody },
   dimStars: { flexDirection: 'row', gap: 3 },
   dimStar: { fontSize: 20, color: Colors.subtleBorder },
   dimStarOn: { color: Colors.warning },

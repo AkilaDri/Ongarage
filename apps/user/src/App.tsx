@@ -234,7 +234,6 @@ function AppShell() {
             <BidsScreen
               tab={bidsTab}
               onTabChange={setBidsTab}
-              onPostJob={() => setPostJob({ draft: null })}
               onRepublish={(draft) => setPostJob({ draft })}
               onViewActivity={() => setActiveTab('activity')}
             />

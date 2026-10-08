@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Linking, Pressable, ScrollView, StyleSheet, Text, View, Image } from 'react-native';
-import { Colors, Gradient, LevelBadge, getThemeMode, themedStyles, LEVELS } from '@ongarage/shared';
+import { Colors, LevelBadge, getThemeMode, themedStyles, LEVELS } from '@ongarage/shared';
 import { FONTS } from '@ongarage/shared';
 import { SERVICE_CATEGORIES } from '@ongarage/shared';
 import { useVehicles } from '../context/VehiclesContext';
@@ -17,13 +17,6 @@ import { biddingEndsAt, isExpired, lowestBidId, useBids } from '../context/BidsC
 import { useUserLocation } from '../context/LocationContext';
 import { directionsUrl } from '@ongarage/shared';
 import type { Bid, JobDraft, RepairJob } from '@ongarage/shared';
-
-// Same wash as the Home screen's Post Job banner.
-const JOB_GRADIENT = [
-  { offset: '0', color: '#2a4690' },
-  { offset: '0.55', color: '#162b63' },
-  { offset: '1', color: '#0f2050' },
-];
 
 export type BidsTab = 'received' | 'pending' | 'expired';
 
@@ -47,7 +40,6 @@ const ago = (ms: number) => {
 interface BidsScreenProps {
   tab: BidsTab;
   onTabChange: (tab: BidsTab) => void;
-  onPostJob: () => void;
   onRepublish: (draft: JobDraft) => void;
   onViewActivity: () => void;
 }
@@ -59,7 +51,7 @@ const NAV_HEIGHT = 72;
 /** 3,700 → "3.7k": a price short enough for a small badge. */
 const shortMoney = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(n % 1000 === 0 ? 0 : 1)}k` : String(n));
 
-export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, onPostJob, onRepublish, onViewActivity }) => {
+export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, onRepublish, onViewActivity }) => {
   const { jobs, acceptBid } = useBids();
   const { findVehicle } = useVehicles();
   const user = useUserLocation();
@@ -72,6 +64,7 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, onPost
   const [booked, setBooked] = useState<{ job: RepairJob; bid: Bid } | null>(null);
   // Swipe (or tap the header of) a job card for everything about it.
   const [detailId, setDetailId] = useState<string | null>(null);
+  const pressStart = useRef({ x: 0, y: 0 });
   const detailJob = jobs.find((j) => j.id === detailId) ?? null;
 
   useEffect(() => {
@@ -95,7 +88,16 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, onPost
     const vehicle = findVehicle(job.vehicleId);
     const media = [job.photos?.length && `📷 ${job.photos.length}`, job.voiceNotes?.length && `🎙️ ${job.voiceNotes.length}`].filter(Boolean).join('  ');
     return (
-      <Pressable style={styles.jobHead} onPress={() => setDetailId(job.id)} accessibilityLabel={`${cat?.name ?? 'Job'} details`}>
+      <Pressable
+        style={styles.jobHead}
+        onPressIn={(e) => (pressStart.current = { x: e.nativeEvent.pageX, y: e.nativeEvent.pageY })}
+        // A tap opens the job; a drag that merely ends inside the header (a swipe) does not.
+        onPress={(e) => {
+          const moved = Math.hypot(e.nativeEvent.pageX - pressStart.current.x, e.nativeEvent.pageY - pressStart.current.y);
+          if (moved < 12) setDetailId(job.id);
+        }}
+        accessibilityLabel={`${cat?.name ?? 'Job'} details`}
+      >
         <CategoryPhoto categoryId={job.categoryId} size={50} />
         <View style={styles.flex1}>
           <Text style={styles.cardTitle} numberOfLines={1}>
@@ -169,7 +171,7 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, onPost
         received.map((job) => {
           const shown = job.acceptedBidId ? job.bids.filter((b) => b.id === job.acceptedBidId) : [...job.bids].sort((a, b) => a.price - b.price);
           return (
-            <SwipeCard key={job.id} style={styles.card} onOpen={() => setDetailId(job.id)}>
+            <View key={job.id} style={styles.card}>
               {jobHeader(
                 job,
                 <View style={[styles.badge, job.acceptedBidId ? styles.badgeSuccess : styles.badgePrimary]}>
@@ -185,7 +187,7 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, onPost
               {job.acceptedBidId && job.bids.length > 1 && (
                 <Text style={styles.hint}>අනෙකුත් ලංසු {job.bids.length - 1}ක් වසා දමන ලදී.</Text>
               )}
-            </SwipeCard>
+            </View>
           );
         })
       )}
@@ -204,7 +206,7 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, onPost
         const left = biddingEndsAt(job) - now;
         const isPending = kind === 'pending';
         return (
-          <SwipeCard key={job.id} style={[styles.card, !isPending && styles.cardExpired]} onOpen={() => setDetailId(job.id)}>
+          <View key={job.id} style={[styles.card, !isPending && styles.cardExpired]}>
             {jobHeader(
               job,
               <View style={[styles.badge, styles.badgeRow, isPending ? styles.badgePrimary : styles.badgeDanger]}>
@@ -226,7 +228,7 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, onPost
               variant={isPending ? 'primary' : 'sos'}
               onPress={() => onRepublish(draftFor(job))}
             />
-          </SwipeCard>
+          </View>
         );
       })
     );
@@ -324,19 +326,7 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, onPost
                 scrollEventThrottle={16}
                 onScroll={(e) => api.onScroll(e.nativeEvent.contentOffset.y)}
               >
-                {/* The same navy banner as the Home screen */}
-                <Pressable style={({ pressed }) => [styles.newJobBtn, pressed && { opacity: 0.9, transform: [{ scale: 0.99 }] }]} onPress={onPostJob} accessibilityLabel="Post a repair job">
-                  <Gradient stops={JOB_GRADIENT} />
-                  <View style={styles.newJobCopy}>
-                    <Text style={styles.newJobTitle}>වාහනයේ Repair එකක්ද?</Text>
-                    <Text style={styles.newJobSub}>OnGarage වලින් Quotes ගන්න</Text>
-                  </View>
-                  <View style={styles.newJobPlus}>
-                    <View style={styles.plusBarH} />
-                    <View style={styles.plusBarV} />
-                  </View>
-                </Pressable>
-                {jobs.length > 0 && <Text style={styles.swipeHint}>ලංසු, ඡායාරූප සහ සම්පූර්ණ විස්තර සඳහා රැකියා කාඩ්පතක් පැත්තට ස්වයිප් කරන්න</Text>}
+                {tab === 'received' && allBids.length > 0 && <Text style={styles.swipeHint}>ලංසුවක සම්පූර්ණ විස්තර සඳහා ගරාජ කාඩ්පතක් පැත්තට ස්වයිප් කරන්න</Text>}
                 {tab === 'received' && renderReceived()}
                 {tab === 'pending' && renderWaiting(pending, 'pending')}
                 {tab === 'expired' && renderWaiting(expired, 'expired')}
@@ -424,13 +414,6 @@ const styles = themedStyles(() => StyleSheet.create({
   flex1: { flex: 1 },
   rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
   // Same "add" button as the garage app's Parts tab.
-  newJobBtn: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 14, borderRadius: 18, overflow: 'hidden', backgroundColor: '#162b63', shadowColor: '#162b63', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.25, shadowRadius: 16, elevation: 5 },
-  newJobCopy: { flex: 1, gap: 2 },
-  newJobTitle: { fontSize: 16, fontFamily: FONTS.titleBold, color: '#fff' },
-  newJobSub: { fontSize: 11, fontFamily: FONTS.bodyMedium, color: 'rgba(255, 255, 255, 0.9)' },
-  newJobPlus: { width: 44, height: 44, borderRadius: 22, borderWidth: 2, borderColor: 'rgba(255, 255, 255, 0.85)', backgroundColor: 'rgba(255, 255, 255, 0.2)', alignItems: 'center', justifyContent: 'center' },
-  plusBarH: { position: 'absolute', width: 16, height: 2.5, borderRadius: 2, backgroundColor: '#fff' },
-  plusBarV: { position: 'absolute', width: 2.5, height: 16, borderRadius: 2, backgroundColor: '#fff' },
   swipeHint: { fontSize: 10.5, fontFamily: FONTS.bodyMedium, color: Colors.textMuted },
   detailsLink: { fontSize: 10.5, fontFamily: FONTS.bodySemiBold, color: Colors.primary, marginTop: 4 },
   tabBar: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 6 },
