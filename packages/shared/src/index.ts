@@ -30,6 +30,8 @@ export * from './marketplace/partPrices';
 export * from './ai';
 
 export * from './ui/BottomNav';
+export * from './ui/PinnedEdge';
+export * from './ui/TitleBand';
 export * from './ui/CloseCode';
 export * from './ui/GarageCard';
 export * from './ui/LevelBadge';

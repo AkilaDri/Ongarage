@@ -10,7 +10,7 @@ import {
   NotoSansSinhala_600SemiBold,
   NotoSansSinhala_700Bold,
 } from '@expo-google-fonts/noto-sans-sinhala';
-import { BottomNav, Colors, ThemeProvider, themedStyles, useTheme, headerBand, getThemeMode } from '@ongarage/shared';
+import { BottomNav, TitleBand, Colors, ThemeProvider, themedStyles, useTheme, headerBand, getThemeMode } from '@ongarage/shared';
 import { GarageProvider, useGarage } from './context/GarageContext';
 import { PartsProvider, useParts } from './context/PartsContext';
 import { GARAGE_TABS, type TabId } from './constants/tabs';
@@ -22,6 +22,8 @@ import { JobFeedScreen } from './screens/JobFeedScreen';
 import { ScheduleScreen } from './screens/ScheduleScreen';
 import { GarageProfileScreen } from './screens/GarageProfileScreen';
 import { PartsScreen } from './screens/PartsScreen';
+
+const TAB_TITLES: Partial<Record<TabId, string>> = { jobs: 'ඔබගේ රැකියා අවස්ථා', schedule: 'ඔබගේ රැකියා කාලසටහන', parts: 'රැකියා සඳහා ඔබ ඇණවුම් කර ඇති කොටස්' };
 
 export default function App() {
   return (
@@ -83,10 +85,10 @@ function AppShell() {
   return (
     <SafeAreaProvider>
       <StatusBar style={isDark ? 'light' : 'dark'} />
-      <SafeAreaView style={styles.container} edges={['top']}>
-        <GarageHeader />
+      <SafeAreaView style={[styles.container, tab === 'garage' && styles.containerFull]} edges={['top']}>
+        {tab === 'sos' ? <GarageHeader /> : TAB_TITLES[tab] ? <TitleBand title={TAB_TITLES[tab]!} /> : null}
         {/* The tab's screen overlaps the header band with rounded top corners, like the owner app. */}
-        <View style={styles.sheet}>
+        <View style={[styles.sheet, tab === 'garage' && styles.sheetFull]}>
           {tab === 'sos' && <SOSInboxScreen />}
           {tab === 'jobs' && <JobFeedScreen />}
           {tab === 'schedule' && <ScheduleScreen onOpenParts={openParts} />}
@@ -113,6 +115,8 @@ function AppShell() {
 const styles = themedStyles(() =>
   StyleSheet.create({
     container: { flex: 1, backgroundColor: headerBand().bg },
+    containerFull: { backgroundColor: getThemeMode() === 'dark' ? Colors.bgBody : '#ffffff' },
+    sheetFull: { marginTop: 0, borderTopLeftRadius: 0, borderTopRightRadius: 0 },
     flex1: { flex: 1 },
     sheet: { flex: 1, marginTop: -18, borderTopLeftRadius: 24, borderTopRightRadius: 24, overflow: 'hidden', backgroundColor: getThemeMode() === 'dark' ? Colors.bgBody : '#ffffff' },
     nav: { position: 'absolute', left: 0, right: 0, bottom: 0 },

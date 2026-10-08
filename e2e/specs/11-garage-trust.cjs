@@ -4,7 +4,7 @@ const { spec } = require('../lib.cjs');
 // with a 30-day grace period.
 module.exports = spec('Garage · trust score, levels, grace period', 'garage', async (t) => {
   t.check('level badge in the header', (await t.labels('Level ')).includes('Level trusted'));
-  await t.clickText('ගරාජය');
+  await t.clickText('Profile');
   await t.clickLabel('Open level and trust');
   t.check('weakest-dimension tip', await t.has('වැඩිදියුණු කළ හැකි'));
   t.check('current level marked', await t.has('● ඔබ මෙහි'));
@@ -12,7 +12,7 @@ module.exports = spec('Garage · trust score, levels, grace period', 'garage', a
   await t.escape();
 
   // Battery job: the owner reports a problem → rework counts as a dispute
-  await t.clickText('කාලසටහන');
+  await t.clickText('Schedule');
   await t.clickText('අයිතිකරු වෙත පැමිණියා');
   await t.clickText('+ ඡායාරූපයක්');
   await t.clickText('+ ඡායාරූපයක්');
@@ -30,7 +30,7 @@ module.exports = spec('Garage · trust score, levels, grace period', 'garage', a
   t.check('owner reported a problem', await t.has('ඩෑෂ්බෝඩ් බැටරි ලයිට්'));
   await t.clickText('නැවත පරීක්ෂා කර හදන්න');
   t.check('rework starts', await t.has('නැවත හදමින්'));
-  await t.clickText('ගරාජය');
+  await t.clickText('Profile');
   t.check('level at risk (the rework counts as a dispute)', await t.has('⚠️ මට්ටම අවදානමේ'));
   t.check('grace period shown, level kept', (await t.has('දින 30ක්')) && (await t.labels('Level ')).includes('Level trusted'));
   await t.shot('garage-trust');

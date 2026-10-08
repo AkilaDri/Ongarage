@@ -8,7 +8,7 @@ module.exports = spec('Parts shop · counter pickup', 'parts', async (t) => {
   await t.clickText('මිල ගණන යවන්න ·');
   await t.wait(16500);
   t.check('won; the garage will collect', await t.has('කවුන්ටරයෙන් එකතු කරයි'));
-  await t.clickText('ඇණවුම්');
+  await t.clickText('Orders');
   await t.clickText('තොගයේ ඇත');
   await t.clickText('ඇසුරුම් කළා · කවුන්ටරයේ සූදානම්');
   await t.wait(9000);

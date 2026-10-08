@@ -16,6 +16,12 @@ export type NavItem<T extends string> = {
   badge?: number;
 };
 
+/** The two colours of a two-tone tab icon: the dark "ink" body and the light "accent" details. */
+export const navIconTones = (active: boolean) =>
+  active
+    ? { ink: getThemeMode() === 'dark' ? '#cfe6ff' : '#162b63', accent: '#4ca1d1' }
+    : { ink: Colors.textMuted, accent: Colors.subtleBorder };
+
 interface BottomNavProps<T extends string> {
   items: NavItem<T>[];
   activeTab: T;

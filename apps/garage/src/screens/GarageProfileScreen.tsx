@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Colors, dayStart, FONTS, GlassIcon, glassStyle, LevelBadge, levelProgress, nextLevel, SERVICE_CATEGORIES, ThemeToggle, themedStyles, useTheme, softEdge, softShadow, softFill } from '@ongarage/shared';
+import { Colors, dayStart, FONTS, GlassIcon, glassStyle, LevelBadge, levelProgress, nextLevel, SERVICE_CATEGORIES, ThemeToggle, themedStyles, useTheme, softEdge, softShadow, softFill, PinnedEdge, usePinnedEdge, getThemeMode } from '@ongarage/shared';
 import { useGarage } from '../context/GarageContext';
 import { VANS } from '../constants/mockData';
 import { ago } from '../utils/format';
@@ -11,6 +11,9 @@ import { TeamManageSheet } from '../components/TeamManageSheet';
 import { PublicProfileSheet } from '../components/PublicProfileSheet';
 import { LevelSheet } from '../components/LevelSheet';
 import { FairShareSheet } from '../components/FairShareSheet';
+import { EarningsStats } from '../components/EarningsStats';
+import { ProfileHero } from '../components/ProfileHero';
+import { DashboardTiles } from '../components/DashboardTiles';
 
 /*
  * Ordered by how often a garage owner needs it on a working day:
@@ -35,6 +38,7 @@ export const GarageProfileScreen: React.FC = () => {
   const nextItems = next ? levelProgress(next, levelStats) : [];
   const nextMet = nextItems.filter((x) => x.met).length;
   const { isDark, toggle } = useTheme();
+  const { progress: edge, scrollProps } = usePinnedEdge();
   const [sheet, setSheet] = useState<SheetId>(null);
   const close = () => setSheet(null);
 
@@ -45,7 +49,17 @@ export const GarageProfileScreen: React.FC = () => {
   const serviceNames = SERVICE_CATEGORIES.filter((c) => profile.services.includes(c.id)).map((c) => c.name);
 
   return (
-    <ScrollView style={styles.flex1} contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
+    <View style={styles.flex1}>
+    <View style={styles.pinned}>
+      <PinnedEdge progress={edge} />
+      <ProfileHero onOpenCard={() => setSheet('profile')} />
+    </View>
+    <ScrollView style={styles.flex1} {...scrollProps} contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
+
+      <Text style={styles.sectionLabel}>උපකරණ පුවරුව</Text>
+      <EarningsStats />
+      <DashboardTiles onReviews={() => setSheet('reviews')} onLevel={() => setSheet('level')} />
+
       {/* ---------- Today ---------- */}
       <Text style={styles.sectionLabel}>අද</Text>
 
@@ -253,6 +267,7 @@ export const GarageProfileScreen: React.FC = () => {
       <LevelSheet visible={sheet === 'level'} onClose={close} />
       <FairShareSheet visible={sheet === 'fair'} onClose={close} />
     </ScrollView>
+    </View>
   );
 };
 
@@ -283,6 +298,7 @@ const styles = themedStyles(() =>
     levelBar: { height: 6, borderRadius: 3, backgroundColor: Colors.subtleFill, overflow: 'hidden' },
     levelBarFill: { height: 6, borderRadius: 3, backgroundColor: Colors.primary },
     flex1: { flex: 1 },
+    pinned: { zIndex: 5, paddingHorizontal: 16, paddingBottom: 10, backgroundColor: getThemeMode() === 'dark' ? Colors.bgBody : '#ffffff' },
     row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
     rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
     body: { padding: 16, gap: 12, paddingBottom: 100 },

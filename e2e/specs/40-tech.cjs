@@ -46,7 +46,7 @@ module.exports = spec('Technician · pickup task, workshop job, level', 'tech', 
   t.check('closed with the owner\'s code and paid', await t.has('කේතයෙන් තහවුරු කළා'));
   await t.escape();
 
-  await t.clickText('මම');
+  await t.clickText('Profile');
   t.check('level card', (await t.labels('Technician level')).length === 1 && (await t.has('ඊළඟ:')));
   await t.shot('tech');
 });

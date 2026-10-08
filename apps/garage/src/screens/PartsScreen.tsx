@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Colors, EmptyState, FONTS, GlassIcon, Icon, themedStyles, vehicleIcon, type IconName, type PartsRequest, softEdge, softShadow, NAVY, softFill, getThemeMode } from '@ongarage/shared';
+import { Colors, EmptyState, FONTS, GlassIcon, Icon, themedStyles, vehicleIcon, type IconName, type PartsRequest, softEdge, softShadow, NAVY, softFill, getThemeMode, PinnedEdge, usePinnedEdge } from '@ongarage/shared';
 import { useGarage } from '../context/GarageContext';
 import { allowedTypes, linesSummary, useParts, orderTotal } from '../context/PartsContext';
 import { PART_TYPE_LABEL } from '../constants/parts';
@@ -16,6 +16,7 @@ import type { Booking } from '../types';
 type Segment = 'quotes' | 'orders' | 'received';
 
 export const PartsScreen: React.FC<{ focusId?: string | null; onFocusHandled?: () => void }> = ({ focusId, onFocusHandled }) => {
+  const { progress: edge, scrollProps } = usePinnedEdge();
   const { bookings } = useGarage();
   const { requests, quotes, orders, requestFor, toOrderFor } = useParts();
   const [segment, setSegment] = useState<Segment>('quotes');
@@ -126,6 +127,7 @@ export const PartsScreen: React.FC<{ focusId?: string | null; onFocusHandled?: (
   return (
     <View style={styles.flex1}>
       <View style={styles.tabBar}>
+        <PinnedEdge progress={edge} />
         {segments.map((t) => {
           const active = segment === t.id;
           return (
@@ -142,7 +144,7 @@ export const PartsScreen: React.FC<{ focusId?: string | null; onFocusHandled?: (
         })}
       </View>
 
-      <ScrollView style={styles.flex1} contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.flex1} {...scrollProps} contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
         <Pressable style={({ pressed }) => [styles.newBtn, pressed && styles.pressed]} onPress={() => setPickerOpen(true)}>
           <Text style={styles.newText}>＋ නව කොටස් ඉල්ලීමක්</Text>
         </Pressable>
@@ -195,7 +197,7 @@ const styles = themedStyles(() =>
     flex1: { flex: 1 },
     row: { flexDirection: 'row', alignItems: 'center', gap: 10 },
     rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
-    tabBar: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 6 },
+    tabBar: { zIndex: 5, flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 6 },
     tab: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10, paddingHorizontal: 8, borderRadius: 22, backgroundColor: softFill() },
     tabActive: { backgroundColor: NAVY, shadowColor: NAVY, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.28, shadowRadius: 8, elevation: 4 },
     tabText: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },

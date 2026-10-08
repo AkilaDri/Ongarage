@@ -275,7 +275,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!o || o.status !== 'confirming') return false;
       const { lines } = o.quote.request;
       if (!inStockFor(live.current.stock, lines, o.quote.partType)) {
-        notify({ icon: '⚠️', title: 'තොගය ප්‍රමාණවත් නැත', body: '“තොගය” ටැබයේ ප්‍රමාණය යාවත්කාලීන කරන්න, නැත්නම් “තොග නැත” ඔබන්න.', tone: 'danger' });
+        notify({ icon: '⚠️', title: 'තොගය ප්‍රමාණවත් නැත', body: '“Stock” ටැබයේ ප්‍රමාණය යාවත්කාලීන කරන්න, නැත්නම් “තොග නැත” ඔබන්න.', tone: 'danger' });
         return false;
       }
       restock(lines, o.quote.partType, -1);

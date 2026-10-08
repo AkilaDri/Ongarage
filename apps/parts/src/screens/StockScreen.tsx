@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { categoryInfo, Colors, EmptyState, FONTS, GlassIcon, SERVICE_CATEGORIES, themedStyles, softEdge, softShadow, softFill } from '@ongarage/shared';
+import { categoryInfo, Colors, EmptyState, FONTS, GlassIcon, SERVICE_CATEGORIES, themedStyles, softEdge, softShadow, softFill, PinnedEdge, usePinnedEdge } from '@ongarage/shared';
 import { useShop } from '../context/ShopContext';
 import { StockEditSheet, type StockTarget } from '../components/StockEditSheet';
 import { money } from '../utils/format';
@@ -12,6 +12,7 @@ type Filter = 'all' | 'low' | string;
 const LOW = 1;
 
 export const StockScreen: React.FC = () => {
+  const { progress: edge, scrollProps } = usePinnedEdge();
   const { stock, profile, adjustQty } = useShop();
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
@@ -26,7 +27,8 @@ export const StockScreen: React.FC = () => {
 
   return (
     <View style={styles.flex1}>
-      <ScrollView style={styles.flex1} contentContainerStyle={styles.body} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+      <View style={styles.filters}>
+        <PinnedEdge progress={edge} />
         <View style={styles.searchRow}>
           <TextInput style={styles.search} value={query} onChangeText={setQuery} placeholder="🔍 කොටසක් සොයන්න" placeholderTextColor={Colors.textMuted} />
           <Pressable style={({ pressed }) => [styles.addBtn, pressed && styles.pressed]} onPress={() => setEditing({ item: null })} accessibilityLabel="Add stock item">
@@ -40,6 +42,8 @@ export const StockScreen: React.FC = () => {
             <FilterChip key={c.id} label={`${c.icon} ${c.name}`} on={filter === c.id} onPress={() => setFilter(c.id)} />
           ))}
         </ScrollView>
+      </View>
+      <ScrollView style={styles.flex1} {...scrollProps} contentContainerStyle={styles.body} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
 
         {shown.length === 0 ? (
           <EmptyState icon="📦" title="අයිතම නැත" text="“＋” ඔබා තොගයේ ඇති කොටසක් එක් කරන්න." />
@@ -102,6 +106,7 @@ const styles = themedStyles(() =>
     flex1: { flex: 1 },
     row: { flexDirection: 'row', alignItems: 'center', gap: 10 },
     body: { padding: 16, gap: 12, paddingBottom: 100 },
+    filters: { zIndex: 5, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 8, gap: 12 },
     pressed: { opacity: 0.75 },
     searchRow: { flexDirection: 'row', gap: 8 },
     search: {

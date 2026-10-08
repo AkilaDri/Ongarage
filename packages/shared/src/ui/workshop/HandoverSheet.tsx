@@ -60,7 +60,7 @@ export const HandoverSheet: React.FC<{
       footer={<ActionButton label={`භාරදීමට සූදානම් ලෙස දන්වන්න · ${money(bill.total)}`} icon="✓" variant="success" disabled={!valid} onPress={submit} />}
     >
       {!!blockedReason && <Text style={styles.warn}>⚠️ {blockedReason}</Text>}
-      {partsPending && <Text style={styles.warn}>⚠️ ඇණවුම් කළ කොටස් තවම ලැබී නැත — “කොටස්” ටැබයෙන් ලැබුණු බව සලකුණු කළ පසු භාර දිය හැක.</Text>}
+      {partsPending && <Text style={styles.warn}>⚠️ ඇණවුම් කළ කොටස් තවම ලැබී නැත — “Parts” ටැබයෙන් ලැබුණු බව සලකුණු කළ පසු භාර දිය හැක.</Text>}
       <Text style={styles.label}>
         කළ වැඩ ({done.filter(Boolean).length}/{checks.length})
       </Text>

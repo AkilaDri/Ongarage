@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { ActionButton, categoryInfo, Colors, EmptyState, FONTS, GlassIcon, Icon, SwipeCard, themedStyles, vehicleIcon, type IconName, softEdge, softShadow, NAVY, softFill, getThemeMode } from '@ongarage/shared';
+import { ActionButton, categoryInfo, Colors, EmptyState, FONTS, GlassIcon, Icon, SwipeCard, themedStyles, vehicleIcon, type IconName, softEdge, softShadow, NAVY, softFill, getThemeMode, PinnedEdge, usePinnedEdge } from '@ongarage/shared';
 import { allowedTypes, useShop } from '../context/ShopContext';
 import { PART_TYPE_LABEL } from '../constants/mockData';
 import { QuoteSheet } from '../components/QuoteSheet';
@@ -21,6 +21,7 @@ const STATUS: Record<QuoteStatus, { label: string; color: () => string; bg: stri
 };
 
 export const RequestsScreen: React.FC = () => {
+  const { progress: edge, scrollProps } = usePinnedEdge();
   const { isOpen, setOpen, profile, newRequests, quotes, passRequest, withdrawQuote } = useShop();
   const [segment, setSegment] = useState<Segment>('new');
   const [detail, setDetail] = useState<IncomingRequest | null>(null);
@@ -145,6 +146,7 @@ export const RequestsScreen: React.FC = () => {
   return (
     <View style={styles.flex1}>
       <View style={styles.tabBar}>
+        <PinnedEdge progress={edge} />
         {segments.map((t) => {
           const active = segment === t.id;
           return (
@@ -161,7 +163,7 @@ export const RequestsScreen: React.FC = () => {
         })}
       </View>
 
-      <ScrollView style={styles.flex1} contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.flex1} {...scrollProps} contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
         {segment === 'new' ? (
           !isOpen ? (
             <View style={styles.closed}>
@@ -203,7 +205,7 @@ const styles = themedStyles(() =>
     row: { flexDirection: 'row', alignItems: 'center', gap: 10 },
     rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
     actions: { flexDirection: 'row', gap: 8 },
-    tabBar: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 6 },
+    tabBar: { zIndex: 5, flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 6 },
     tab: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10, paddingHorizontal: 8, borderRadius: 22, backgroundColor: softFill() },
     tabActive: { backgroundColor: NAVY, shadowColor: NAVY, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.28, shadowRadius: 8, elevation: 4 },
     tabText: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },

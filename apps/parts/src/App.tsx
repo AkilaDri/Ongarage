@@ -13,7 +13,6 @@ import {
 import { BottomNav, Colors, ThemeProvider, themedStyles, useTheme, headerBand, getThemeMode } from '@ongarage/shared';
 import { ShopProvider, useShop } from './context/ShopContext';
 import { PARTS_TABS, type TabId } from './constants/tabs';
-import { ShopHeader } from './components/ShopHeader';
 import { Toast } from './components/Toast';
 import { RequestsScreen } from './screens/RequestsScreen';
 import { OrdersScreen } from './screens/OrdersScreen';
@@ -70,7 +69,6 @@ function AppShell() {
     <SafeAreaProvider>
       <StatusBar style={isDark ? 'light' : 'dark'} />
       <SafeAreaView style={styles.container} edges={['top']}>
-        <ShopHeader />
         {/* The tab's screen overlaps the header band with rounded top corners, like the owner app. */}
         <View style={styles.sheet}>
           {tab === 'requests' && <RequestsScreen />}

@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Colors, FONTS, GlassIcon, SERVICE_CATEGORIES, ThemeToggle, themedStyles, useTheme, softEdge, softShadow, softFill } from '@ongarage/shared';
+import { Colors, FONTS, GlassIcon, SERVICE_CATEGORIES, ThemeToggle, themedStyles, useTheme, softEdge, softShadow, softFill, PinnedEdge, usePinnedEdge, getThemeMode } from '@ongarage/shared';
 import { useShop } from '../context/ShopContext';
 import { COURIER } from '../constants/mockData';
 import { ago } from '../utils/format';
 import { Sheet } from '../components/Sheet';
 import { ReviewsSheet } from '../components/ReviewsSheet';
+import { ShopProfileHero } from '../components/ShopProfileHero';
+import { ShopDashboardTiles } from '../components/ShopDashboardTiles';
 import { CatalogueSheet } from '../components/CatalogueSheet';
 
 /*
@@ -27,8 +29,17 @@ export const ShopProfileScreen: React.FC = () => {
   const latest = reviews[0];
   const catNames = SERVICE_CATEGORIES.filter((c) => profile.categories.includes(c.id)).map((c) => c.name);
 
+  const { progress: edge, scrollProps } = usePinnedEdge();
   return (
-    <ScrollView style={styles.flex1} contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
+    <View style={styles.flex1}>
+    <View style={styles.pinned}>
+      <PinnedEdge progress={edge} />
+      <ShopProfileHero onOpenCard={() => setSheet('card')} />
+    </View>
+    <ScrollView style={styles.flex1} {...scrollProps} contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
+      <Text style={styles.section}>උපකරණ පුවරුව</Text>
+      <ShopDashboardTiles onReviews={() => setSheet('reviews')} />
+
       <Text style={styles.sectionLabel}>අද</Text>
       <View style={styles.card}>
         <View style={styles.rowBetween}>
@@ -142,6 +153,7 @@ export const ShopProfileScreen: React.FC = () => {
         </View>
       </Sheet>
     </ScrollView>
+    </View>
   );
 };
 
@@ -183,6 +195,8 @@ const Info: React.FC<{ icon: string; label: string; value: string }> = ({ icon, 
 const styles = themedStyles(() =>
   StyleSheet.create({
     flex1: { flex: 1 },
+    section: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textMain, marginTop: 4 },
+    pinned: { zIndex: 5, paddingHorizontal: 16, paddingBottom: 10, backgroundColor: getThemeMode() === 'dark' ? Colors.bgBody : '#ffffff' },
     row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
     rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
     body: { padding: 16, gap: 12, paddingBottom: 100 },
