@@ -31,14 +31,17 @@ export const ActionButton: React.FC<{
   variant: keyof typeof BUTTON_GRADIENTS | 'ghost';
   disabled?: boolean;
   compact?: boolean;
+  /** Fully rounded ends (the owner app's style). */
+  pill?: boolean;
   onPress: () => void;
-}> = ({ label, icon, variant, disabled, compact, onPress }) => (
+}> = ({ label, icon, variant, disabled, compact, pill, onPress }) => (
   <Pressable
     disabled={disabled}
     onPress={onPress}
     style={({ pressed }) => [
       styles.actionBtn,
       compact && styles.actionBtnCompact,
+      pill && styles.actionBtnPill,
       variant === 'ghost' && styles.actionBtnGhost,
       disabled && styles.actionBtnDisabled,
       pressed && !disabled && { transform: [{ scale: 0.97 }] },
@@ -125,6 +128,7 @@ const styles = themedStyles(() => StyleSheet.create({
     overflow: 'hidden',
   },
   actionBtnCompact: { flex: 1, paddingVertical: 12 },
+  actionBtnPill: { borderRadius: 28 },
   actionBtnGhost: { borderWidth: 1, borderColor: Colors.subtleBorder, backgroundColor: Colors.subtleFill },
   actionBtnDisabled: { backgroundColor: Colors.subtleFill, borderWidth: 1, borderColor: Colors.borderColor },
   actionBtnText: { fontSize: 13, fontFamily: FONTS.bodyBold, color: '#fff' },

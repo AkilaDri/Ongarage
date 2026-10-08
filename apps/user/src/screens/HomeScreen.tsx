@@ -5,7 +5,6 @@ import {
   directionsUrl,
   distanceKm,
   FONTS,
-  Gradient,
   getThemeMode,
   SERVICE_CATEGORIES,
   themedStyles,
@@ -15,6 +14,7 @@ import {
 import { MOCK_GARAGES } from '../constants/mockData';
 import { GARAGE_INFO, NEW_GARAGE_DAYS, OFFERS, PROMO_BANNERS, SPONSORED_GARAGE_IDS, type Offer } from '../constants/home';
 import { AllServicesSheet } from '../components/AllServicesSheet';
+import { PinnedEdge } from '../components/PinnedEdge';
 import { CategoryStrip } from '../components/home/CategoryStrip';
 import { PromoCarousel } from '../components/home/PromoCarousel';
 import { OfferTiles } from '../components/home/OfferTiles';
@@ -26,11 +26,6 @@ import { GarageReviewsSheet } from '../components/GarageReviewsSheet';
 
 const DAY = 24 * 60 * 60 * 1000;
 
-// A soft fall-off below the pinned categories, so the lists read as passing underneath: a shadow on white, a faint sky-blue glow on dark (a shadow would not show there).
-const edgeShadow = () =>
-  getThemeMode() === 'dark'
-    ? [{ offset: '0', color: '#38bdf8', opacity: 0.2 }, { offset: '1', color: '#38bdf8', opacity: 0 }]
-    : [{ offset: '0', color: '#0f172a', opacity: 0.16 }, { offset: '1', color: '#0f172a', opacity: 0 }];
 
 interface HomeScreenProps {
   onSOSPress: () => void;
@@ -44,6 +39,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onSOSPress, onPostJob, o
   const user = useUserLocation();
   const [allServices, setAllServices] = useState(false);
   const { notify } = useNotice();
+  // Where the ads sit in the scroll content; the edge shadow fades in once they have reached the top and are pinned.
+  const adsY = useRef(0);
+  const edge = useRef(new Animated.Value(0)).current;
   const [list, setList] = useState<{ title: string; garages: Garage[]; ad?: boolean } | null>(null);
 
   // Distances from where the owner is; the rows below are organic (ratings, distance,
@@ -59,8 +57,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onSOSPress, onPostJob, o
   const nearest = [...garages].sort((a, b) => a.distance - b.distance);
   const protectedGarages = garages.filter((g) => g.level === 'premier');
 
-  // Fades in a soft shadow under the pinned categories once the lists start moving beneath them.
-  const edge = useRef(new Animated.Value(0)).current;
   const [open, setOpen] = useState<Garage | null>(null);
   const save = (g: Garage, saved: boolean) =>
     notify({ icon: saved ? '♥' : '♡', title: saved ? 'සුරැකි ගරාජ වලට එක් කළා' : 'සුරැකි ලැයිස්තුවෙන් ඉවත් කළා', body: g.name, tone: 'primary' });
@@ -74,13 +70,13 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onSOSPress, onPostJob, o
 
   return (
     <View style={styles.container}>
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} stickyHeaderIndices={[0]} scrollEventThrottle={16} onScroll={(e) => {
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} stickyHeaderIndices={[1]} scrollEventThrottle={16} onScroll={(e) => {
           const y = e.nativeEvent.contentOffset.y;
-          edge.setValue(Math.min(1, Math.max(0, y / 40)));
+          edge.setValue(Math.min(1, Math.max(0, (y - adsY.current) / 30)));
           onScrollChange?.(y);
         }}>
-        {/* Categories: round photos, two rows, slide sideways. Pinned under the banners while the rest scrolls. */}
-        <View style={styles.stickyCategories}>
+        {/* Categories: cut-out icons, two rows, slide sideways. They scroll away with the page. */}
+        <View style={styles.categoriesBlock}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>සේවා අංශ</Text>
           <Pressable onPress={() => setAllServices(true)} hitSlop={6}>
@@ -88,19 +84,19 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onSOSPress, onPostJob, o
           </Pressable>
         </View>
         <CategoryStrip onSelect={onServicePress} />
-        <Animated.View style={[styles.edgeShadow, { opacity: edge }]} pointerEvents="none">
-          <Gradient vertical stops={edgeShadow()} />
-        </Animated.View>
         </View>
 
-        {/* Ads */}
-        <PromoCarousel
-          banners={PROMO_BANNERS}
-          onOpen={(b) => {
-            const g = byId(b.garageId);
-            if (g) setOpen(g);
-          }}
-        />
+        {/* Ads: the first thing to pin under the banners; everything after them scrolls beneath */}
+        <View style={styles.adsPinned} onLayout={(e) => (adsY.current = e.nativeEvent.layout.y)}>
+          <PromoCarousel
+            banners={PROMO_BANNERS}
+            onOpen={(b) => {
+              const g = byId(b.garageId);
+              if (g) setOpen(g);
+            }}
+            />
+          <PinnedEdge progress={edge} />
+        </View>
 
         {/* Deals */}
         <Text style={styles.sectionTitle}>ගනුදෙනු සහ දීමනා</Text>
@@ -145,9 +141,9 @@ const styles = themedStyles(() => StyleSheet.create({
   container: { flex: 1 },
   scroll: { flex: 1 },
   content: { paddingTop: 16, paddingHorizontal: 16, paddingBottom: 90, gap: 16 },
-  // Opaque, so the lists scroll underneath it.
-  stickyCategories: { gap: 10, paddingTop: 2, paddingBottom: 6, backgroundColor: getThemeMode() === 'dark' ? Colors.bgBody : '#ffffff' },
-  edgeShadow: { position: 'absolute', left: -16, right: -16, bottom: -22, height: 22, zIndex: 5 },
+  categoriesBlock: { gap: 10 },
+  // Opaque and full width (the negative margin cancels the content padding), so the lists scroll underneath it.
+  adsPinned: { marginHorizontal: -16, paddingHorizontal: 16, paddingVertical: 6, backgroundColor: getThemeMode() === 'dark' ? Colors.bgBody : '#ffffff' },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 },
   viewAllLink: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
   sectionTitle: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textMain },

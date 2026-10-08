@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
-import { ActionButton, categoryInfo, Colors, directionsUrl, FONTS, themedStyles, vehicleIcon } from '@ongarage/shared';
+import { ActionButton, categoryInfo, Colors, directionsUrl, FONTS, getThemeMode, themedStyles, vehicleIcon } from '@ongarage/shared';
 import { useBookings } from '../context/BookingsContext';
 import { useVehicles } from '../context/VehiclesContext';
 import { useWorkshops } from '../context/WorkshopContext';
@@ -141,9 +141,10 @@ const styles = themedStyles(() =>
     row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
     rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
     actions: { flexDirection: 'row', gap: 8 },
-    card: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.borderColor, borderRadius: 18, padding: 14, gap: 10 },
-    confirmed: { borderColor: 'rgba(16, 185, 129, 0.5)' },
-    proposed: { borderColor: 'rgba(245, 158, 11, 0.55)' },
+    card: { backgroundColor: Colors.bgCard, borderWidth: getThemeMode() === 'dark' ? 1 : 0, borderColor: Colors.borderColor, borderRadius: 20, padding: 14, gap: 10, shadowColor: '#0f172a', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.1, shadowRadius: 16, elevation: 3 },
+    // A state that needs the owner's eye keeps a coloured outline in either theme.
+    confirmed: { borderWidth: 1, borderColor: 'rgba(16, 185, 129, 0.5)' },
+    proposed: { borderWidth: 1, borderColor: 'rgba(245, 158, 11, 0.55)' },
     ended: { opacity: 0.7 },
     title: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.textMain },
     sub: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 1, lineHeight: 16 },

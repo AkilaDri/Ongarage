@@ -51,11 +51,14 @@ export const GoogleMap: React.FC<GoogleMapProps> = ({
       {onPressCoordinate && (
         <Pressable
           style={StyleSheet.absoluteFill}
-          onPress={(e) =>
-            onPressCoordinate(
-              mapPointToLatLng(e.nativeEvent.locationX, e.nativeEvent.locationY, center, zoom, size.width, size.height)
-            )
-          }
+          onPress={(e) => {
+            // Native gives locationX/Y; on the web the press is a mouse click, which only has offsetX/Y.
+            const ne = e.nativeEvent as unknown as { locationX?: number; locationY?: number; offsetX?: number; offsetY?: number };
+            const x = ne.locationX ?? ne.offsetX;
+            const y = ne.locationY ?? ne.offsetY;
+            if (!Number.isFinite(x) || !Number.isFinite(y) || size.width === 0) return;
+            onPressCoordinate(mapPointToLatLng(x as number, y as number, center, zoom, size.width, size.height));
+          }}
         />
       )}
 
