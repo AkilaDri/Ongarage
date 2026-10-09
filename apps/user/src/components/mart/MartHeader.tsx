@@ -4,28 +4,36 @@ import { FONTS, getThemeMode, themedStyles, vehicleIcon } from '@ongarage/shared
 import { useUserLocation } from '../../context/LocationContext';
 import { useVehicles } from '../../context/VehiclesContext';
 import { VehiclePicker } from '../Header';
+import WeatherAnimation, { periodOf, skyInk } from '../WeatherAnimation';
 
 /**
  * OnMart's top band, in the owner Home's style: a round shop badge, the marketplace name with where the owner is,
  * and the active vehicle (parts are matched to it) with the same picker as Home.
  */
-export const MartHeader: React.FC<{ activeVehicle: string; onVehicleChange: (vehicleId: string) => void }> = ({ activeVehicle, onVehicleChange }) => {
+export const MartHeader: React.FC<{ activeVehicle: string; onVehicleChange: (vehicleId: string) => void; onBack: () => void }> = ({ activeVehicle, onVehicleChange, onBack }) => {
   const { locality } = useUserLocation();
   const car = useVehicles().findVehicle(activeVehicle);
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<View>(null);
 
+  const hour = new Date().getHours();
+  const ink = skyInk(periodOf(hour));
+
   return (
     <View style={styles.header}>
+      <WeatherAnimation hour={hour} />
       <View style={styles.left}>
+        <Pressable style={styles.back} onPress={onBack} accessibilityRole="button" accessibilityLabel="Back to main app">
+          <Text style={[styles.backArrow, { color: ink.main }]}>‹</Text>
+        </Pressable>
         <View style={styles.badge}>
           <Text style={styles.badgeEmoji}>🛍️</Text>
         </View>
         <View style={styles.texts}>
-          <Text style={styles.title} numberOfLines={1}>
+          <Text style={[styles.title, { color: ink.main }]} numberOfLines={1}>
             OnMart
           </Text>
-          <Text style={styles.sub} numberOfLines={1}>
+          <Text style={[styles.sub, { color: ink.sub }]} numberOfLines={1}>
             📍 {locality} · වාහන කොටස් වෙළඳපොළ
           </Text>
         </View>
@@ -50,8 +58,10 @@ const dark = () => getThemeMode() === 'dark';
 
 const styles = themedStyles(() =>
   StyleSheet.create({
-    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12, paddingHorizontal: 18, paddingTop: 12, paddingBottom: 34, backgroundColor: dark() ? '#0e2a3f' : '#bfe4fa' },
-    left: { flexDirection: 'row', alignItems: 'center', gap: 12, flexShrink: 1 },
+    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12, paddingHorizontal: 18, paddingTop: 12, paddingBottom: 34, overflow: 'hidden', backgroundColor: dark() ? '#0e2a3f' : '#bfe4fa' },
+    left: { flexDirection: 'row', alignItems: 'center', gap: 10, flexShrink: 1 },
+    back: { width: 34, height: 38, alignItems: 'center', justifyContent: 'center' },
+    backArrow: { marginTop: -4, fontSize: 34, lineHeight: 36, color: dark() ? '#d6eefc' : '#0f2a3d' },
     badge: { width: 44, height: 44, borderRadius: 22, backgroundColor: dark() ? '#16415f' : '#ffffff', alignItems: 'center', justifyContent: 'center' },
     badgeEmoji: { fontSize: 22 },
     texts: { flexShrink: 1, gap: 1 },

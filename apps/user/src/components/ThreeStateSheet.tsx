@@ -110,13 +110,18 @@ export const ThreeStateSheet: React.FC<{
 
   const reveal = height.interpolate({ inputRange: [peekHeight, peekHeight + 90], outputRange: [0, 1], extrapolate: 'clamp' });
   const radius = height.interpolate({ inputRange: [Math.max(full - 60, peekHeight + 1), Math.max(full, peekHeight + 2)], outputRange: [26, 0], extrapolate: 'clamp' });
+  // The grip strip melts away as the sheet reaches the top, so the list sits right under the top bar.
+  const gripRange = [Math.max(full - 70, peekHeight + 1), Math.max(full, peekHeight + 2)];
+  const gripSpace = height.interpolate({ inputRange: gripRange, outputRange: [12, 0], extrapolate: 'clamp' });
+  const gripOpacity = height.interpolate({ inputRange: gripRange, outputRange: [1, 0], extrapolate: 'clamp' });
+  const gripHeight = height.interpolate({ inputRange: gripRange, outputRange: [4, 0], extrapolate: 'clamp' });
   const handleWidth = height.interpolate({ inputRange: [peekHeight, collapsed, Math.max(full, collapsed + 1)], outputRange: [48, 36, 28], extrapolate: 'clamp' });
 
   return (
     <Animated.View style={[styles.sheet, NO_SELECT, { bottom: bottomInset, height, borderTopLeftRadius: radius, borderTopRightRadius: radius }]} {...pan.panHandlers}>
-      <View style={styles.handleArea} {...handlePan.panHandlers} accessibilityLabel="Sheet handle">
-        <Animated.View style={[styles.handle, { width: handleWidth }]} />
-      </View>
+      <Animated.View style={[styles.handleArea, { paddingVertical: gripSpace }]} {...handlePan.panHandlers} accessibilityLabel="Sheet handle">
+        <Animated.View style={[styles.handle, { width: handleWidth, height: gripHeight, opacity: gripOpacity }]} />
+      </Animated.View>
       <View style={styles.flex1}>
         <Animated.View style={[StyleSheet.absoluteFill, { opacity: reveal.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }) }]} pointerEvents={state === 'peek' ? 'auto' : 'none'}>
           {peek}

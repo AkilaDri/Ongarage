@@ -6,7 +6,7 @@ import { useProfile } from '../context/ProfileContext';
 import { useVehicles } from '../context/VehiclesContext';
 import { vehicleIcon } from '@ongarage/shared';
 import { Gradient, GRADIENTS } from '@ongarage/shared';
-import WeatherAnimation from './WeatherAnimation';
+import WeatherAnimation, { periodOf, skyInk } from './WeatherAnimation';
 import { MOCK_USER } from '../constants/mockData';
 
 const POPOVER_WIDTH = 264;
@@ -151,13 +151,22 @@ const greetingFor = (hour: number) => {
 };
 
 /** The band other tabs show instead of the greeting: just the tab's title, same colour as Home's. */
-export const TitleBand: React.FC<{ title: string }> = ({ title }) => (
-  <View style={styles.titleBand}>
-    <Text style={styles.titleBandText} accessibilityRole="header">
-      {title}
-    </Text>
-  </View>
-);
+export const TitleBand: React.FC<{ title: string; action?: { label: string; onPress: () => void } }> = ({ title, action }) => {
+  const hour = new Date().getHours();
+  return (
+    <View style={styles.titleBand}>
+      <WeatherAnimation hour={hour} bodyRight={action ? 150 : 24} />
+      <Text style={[styles.titleBandText, { color: skyInk(periodOf(hour)).main }, action && styles.titleWithAction]} accessibilityRole="header">
+        {title}
+      </Text>
+      {action && (
+        <Pressable style={styles.titleBandAction} onPress={action.onPress} accessibilityLabel={action.label}>
+          <Text style={styles.titleBandActionText}>{action.label}</Text>
+        </Pressable>
+      )}
+    </View>
+  );
+};
 
 interface HeaderProps {
   activeVehicle: string;
@@ -170,19 +179,22 @@ export const Header: React.FC<HeaderProps> = ({ activeVehicle, onVehicleChange }
   const activeCar = useVehicles().findVehicle(activeVehicle);
   const { fullName, profile } = useProfile();
 
+  const hour = new Date().getHours();
+  const night = periodOf(hour) === 'night';
+
   return (
     <View style={styles.header}>
+      <WeatherAnimation hour={hour} />
       <View style={styles.greetingRow}>
         <View style={styles.greetingText}>
-          <Text style={styles.city}>📍 {MOCK_USER.city}</Text>
-          <Text style={styles.hi} numberOfLines={1}>
+          <Text style={[styles.city, night ? styles.cityNight : styles.cityDay]}>📍 {MOCK_USER.city}</Text>
+          <Text style={[styles.hi, night ? styles.hiNight : styles.hiDay]} numberOfLines={1}>
             Hi {fullName},
           </Text>
-          <Text style={styles.greeting} numberOfLines={1}>
-            {greetingFor(new Date().getHours())}
+          <Text style={[styles.greeting, night ? styles.greetingNight : styles.greetingDay]} numberOfLines={1}>
+            {greetingFor(hour)}
           </Text>
         </View>
-        <WeatherAnimation hour={new Date().getHours()} />
       </View>
 
       <Pressable ref={triggerRef} style={[styles.vehiclePill, showDropdown && styles.vehiclePillOpen]} onPress={() => setShowDropdown(true)} accessibilityLabel="Change vehicle">
@@ -216,9 +228,21 @@ const styles = themedStyles(() => StyleSheet.create({
     paddingHorizontal: 18,
     paddingTop: 12,
     paddingBottom: 34,
+    overflow: 'hidden',
     backgroundColor: getThemeMode() === 'dark' ? '#0e2a3f' : '#bfe4fa',
   },
-  titleBand: { paddingHorizontal: 18, paddingTop: 14, paddingBottom: 34, backgroundColor: getThemeMode() === 'dark' ? '#0e2a3f' : '#bfe4fa' },
+  // The sky behind the greeting is light by day and dark at night in either theme, so the text colour follows it.
+  cityDay: { color: '#2b4a63' },
+  hiDay: { color: '#0f2a3d' },
+  greetingDay: { color: '#2b4a63' },
+  cityNight: { color: '#a9cbe6' },
+  hiNight: { color: '#e6f3fc' },
+  greetingNight: { color: '#a9cbe6' },
+  titleBandAction: { paddingHorizontal: 14, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? '#16415f' : '#0f2f4a' },
+  titleBandActionText: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: '#ffffff' },
+  // Leaves room for the sun / moon between the title and the action button.
+  titleWithAction: { flexShrink: 1, maxWidth: '44%' },
+  titleBand: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, paddingHorizontal: 18, paddingTop: 14, paddingBottom: 34, overflow: 'hidden', backgroundColor: getThemeMode() === 'dark' ? '#0e2a3f' : '#bfe4fa' },
   titleBandText: { fontSize: 20, fontFamily: FONTS.titleBold, color: getThemeMode() === 'dark' ? '#d6eefc' : '#0f2a3d' },
   city: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: getThemeMode() === 'dark' ? '#8fc3e3' : '#2b4a63', marginBottom: 2 },
   greetingRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 6 },
