@@ -14,7 +14,7 @@ module.exports = spec('Owner · OnMart search, reserve and buy', 'user', async (
   await t.wait(500);
   const collapsedHeaderHeight = await t.page.$eval('[aria-label="Back to main app"]', (el) => el.parentElement.parentElement.parentElement.getBoundingClientRect().height);
   t.check('expanding the shop panel hides the OnMart header', collapsedHeaderHeight < martHeaderHeight);
-  await t.clickLabel('Toggle shop list');
+  // The panel is open now, so its grip is gone: the map shortcut brings the panel back down.
   await t.clickLabel('Show map');
   const restoredHeaderHeight = await t.page.$eval('[aria-label="Back to main app"]', (el) => el.parentElement.parentElement.parentElement.getBoundingClientRect().height);
   t.check('map shortcut restores the header and map view', restoredHeaderHeight > collapsedHeaderHeight);
@@ -26,7 +26,7 @@ module.exports = spec('Owner · OnMart search, reserve and buy', 'user', async (
   await t.clickLabel('Open shop stock');
   t.check('shop stock opens in a separate window', (await t.has('වෙළඳසැල් තොගයේ කොටස්')) && (await t.has('Galle Auto Parts')));
   await t.clickLabel('Close shop stock');
-  t.check('the landing page: part strip, ad banners, offer tiles, kits and deals', (await t.has('කොටස් වර්ග')) && (await t.has('දැන්වීම')) && (await t.has('ගනුදෙනු සහ දීමනා')) && (await t.has('සේවා කට්ටල')) && (await t.has('ඔබට ළඟම දීමනා')));
+  t.check('the landing page: ad banners, offer tiles, kits and deals', (await t.has('දැන්වීම')) && (await t.has('ගනුදෙනු සහ දීමනා')) && (await t.has('සේවා කට්ටල')) && (await t.has('ඔබට ළඟම දීමනා')));
   t.check('deal cards show the discount', await t.has('−15%'));
   t.check('shop rows: the paid Featured row and the organic rows', (await t.has('විශේෂාංග · දැන්වීම්')) && (await t.has('ඉක්මනින් පිළිතුරු දෙන')) && (await t.has('ඉහළම ශ්‍රේණිගත')));
   await t.clickLabel('Part group brakes');
@@ -71,5 +71,44 @@ module.exports = spec('Owner · OnMart search, reserve and buy', 'user', async (
 
   // The open wall
   await t.clickLabel('OnMart wall');
-  t.check('the wall explains who sees a post', (await t.has('විවෘත දුර්ලභ කොටස් සෙවීමේ වෝල්')) && (await t.has('නව පෝස්ට් එකක්')));
+  await t.wait(600);
+  t.check('the wall is a feed: a "what part do you need?" box and other owners\' posts', (await t.has('ඔබට අවශ්‍ය දුර්ලභ කොටස කුමක්ද?')) && (await t.has('Toyota Aqua headlamp')) && (await t.has('Honda Fit Hybrid IMA battery')));
+  t.check('the wall has no search box and no separate post button', (await t.labels('Search wall posts')).length === 0 && !(await t.has('පෝස්ට් කරන්න')));
+  t.check('category buttons sit above the feed', (await t.labels('Filter Mechanical')).length > 0 && (await t.labels('Filter Hybrid / EV')).length > 0);
+
+  // Like and comment
+  await t.clickLabel('Like post');
+  t.check('a like is counted', await t.has('👍 4'));
+  await t.clickLabel('Comment on post');
+  t.check('comments open with a box to write one', (await t.labels('Write a comment')).length > 0);
+
+  // Tell the poster directly that you have the part
+  await t.clickLabel('I have this part');
+  t.check('"I have it" opens a private reply to the poster', await t.has('පෝස්ට් කළ අයට පෞද්ගලිකව දැනුම් දෙන්න'));
+  await t.clickLabel('Send reply to poster');
+  t.check('the poster is told directly', await t.has('සෘජුවම දැනුම් දුන්නා'));
+
+  // Filter by service category
+  await t.page.evaluate(() => { window.scrollTo(0, 0); document.querySelectorAll('*').forEach((e) => { if (e.scrollTop) e.scrollTop = 0; }); });
+  await t.wait(300);
+  await t.clickLabel('Filter Hybrid / EV');
+  await t.wait(400);
+  t.check('a category button filters the posts', (await t.has('Honda Fit Hybrid IMA battery')) && !(await t.has('Toyota Aqua headlamp')));
+  await t.clickLabel('Filter සියල්ල');
+  await t.wait(400);
+
+  // Post a part of your own, find it under "my posts", then delete it
+  await t.clickLabel('What part do you need?');
+  await t.wait(800);
+  await t.type('Part name', 'Wagon R wiper motor');
+  await t.clickText('ඉල්ලීම යවන්න');
+  await t.wait(1500);
+  await t.clickText('මගේ පෝස්ට් (');
+  await t.wait(500);
+  t.check('"my posts" shows only my post', (await t.has('Wagon R wiper motor')) && !(await t.has('Toyota Aqua headlamp')));
+  await t.clickLabel('Delete my post');
+  t.check('deleting asks first', await t.has('මෙම පෝස්ට් එක මකන්නද?'));
+  await t.clickLabel('Confirm delete post');
+  await t.wait(600);
+  t.check('the post is deleted from my posts', await t.has('ඔබගේ පෝස්ට් නැත'));
 });

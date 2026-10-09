@@ -42,6 +42,8 @@ interface BidsScreenProps {
   onTabChange: (tab: BidsTab) => void;
   onRepublish: (draft: JobDraft) => void;
   onViewActivity: () => void;
+  /** The top bar folds away while the sheet is fully open (and returns when it comes back down). */
+  onHeaderVisibilityChange?: (visible: boolean) => void;
 }
 
 /** Minimised sheet: a handle and one row of round photos. */
@@ -51,7 +53,7 @@ const NAV_HEIGHT = 72;
 /** 3,700 → "3.7k": a price short enough for a small badge. */
 const shortMoney = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(n % 1000 === 0 ? 0 : 1)}k` : String(n));
 
-export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, onRepublish, onViewActivity }) => {
+export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, onRepublish, onViewActivity, onHeaderVisibilityChange }) => {
   const { jobs, acceptBid } = useBids();
   const { findVehicle } = useVehicles();
   const user = useUserLocation();
@@ -274,6 +276,7 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, onRepu
 
       {area > 0 && (
         <ThreeStateSheet
+          onStateChange={(s) => onHeaderVisibilityChange?.(s !== 'expanded')}
           areaHeight={area}
           peekHeight={PEEK_HEIGHT}
           bottomInset={NAV_HEIGHT}

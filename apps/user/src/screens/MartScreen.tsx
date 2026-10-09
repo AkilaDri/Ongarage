@@ -480,7 +480,7 @@ export const MartScreen: React.FC<MartScreenProps> = ({ activeVehicle, segment, 
             </View>}
           </>
         )}
-      <ScrollView ref={scrollRef} style={styles.flex1} {...scrollProps} scrollEnabled={segment !== 'shops' || sheetUp} onScroll={onScroll} contentContainerStyle={segment === 'shops' ? styles.sheetBody : styles.body} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+      <ScrollView ref={scrollRef} style={[styles.flex1, segment === 'wall' && styles.wallBackdrop]} {...scrollProps} scrollEnabled={segment !== 'shops' || sheetUp} onScroll={onScroll} contentContainerStyle={segment === 'shops' ? styles.sheetBody : styles.body} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         {(segment === 'shops' || segment === 'orders') && <JobPartsToBuy onBuy={buyForJob} />}
 
         {segment === 'shops' && !searching && (
@@ -666,6 +666,8 @@ export const MartScreen: React.FC<MartScreenProps> = ({ activeVehicle, segment, 
 const styles = themedStyles(() =>
   StyleSheet.create({
     flex1: { flex: 1 },
+    // Day theme: the wall sits on a light grey so each white post stands apart from the page (dark theme keeps its own surfaces).
+    wallBackdrop: getThemeMode() === 'dark' ? {} : { backgroundColor: '#e9edf2' },
     pinned: { zIndex: 5, paddingTop: 12, paddingBottom: 10, gap: 10, backgroundColor: getThemeMode() === 'dark' ? Colors.bgBody : '#ffffff' },
     searchRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16 },
     search: { flex: 1, height: 42, paddingHorizontal: 18, paddingRight: 42, borderRadius: 21, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), color: Colors.textMain, fontSize: 13, fontFamily: FONTS.bodyRegular, ...softShadow() },

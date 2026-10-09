@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Animated, View, StyleSheet, Modal, Text, Pressable } from 'react-native';
+import { Animated, Easing, View, StyleSheet, Modal, Text, Pressable } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
@@ -10,7 +10,7 @@ import {
   NotoSansSinhala_600SemiBold,
   NotoSansSinhala_700Bold,
 } from '@expo-google-fonts/noto-sans-sinhala';
-import { Colors, FONTS, getThemeMode, Gradient, Pulse, themedStyles } from '@ongarage/shared';
+import { ActionButton, Colors, FONTS, getThemeMode, Gradient, ModalCard, Pulse, themedStyles } from '@ongarage/shared';
 import { ThemeProvider, useTheme } from '@ongarage/shared';
 import { VehiclesProvider } from './context/VehiclesContext';
 import { LocationProvider } from './context/LocationContext';
@@ -119,6 +119,12 @@ function AppShell() {
   const [activeTab, setActiveTab] = useState<TabId>('home');
   const [martSegment, setMartSegment] = useState<MartSegment>('shops');
   const martHeaderCollapse = useRef(new Animated.Value(0)).current;
+  // Natural height of the title band (the inner view keeps it even while the wrapper folds), so the band can fold to nothing.
+  const [titleH, setTitleH] = useState(0);
+  // OnMart asks the owner for permission the first time its tab is tapped (remembered for the session).
+  const [martAllowed, setMartAllowed] = useState(false);
+  const [askMart, setAskMart] = useState(false);
+  const foldableBar = activeTab === 'activity' || activeTab === 'bids';
   const [sosStage, setSOSStage] = useState<SOSStage>('closed');
   const [sosLocation, setSOSLocation] = useState<PickedLocation | null>(null);
   const [selectedVehicle, setSelectedVehicle] = useState('premio');
@@ -130,7 +136,7 @@ function AppShell() {
 
   const closeSOS = useCallback(() => setSOSStage('closed'), []);
   const setMartHeaderVisible = useCallback((visible: boolean) => {
-    Animated.timing(martHeaderCollapse, { toValue: visible ? 0 : 1, duration: 200, useNativeDriver: false }).start();
+    Animated.timing(martHeaderCollapse, { toValue: visible ? 0 : 1, duration: 280, easing: Easing.out(Easing.cubic), useNativeDriver: false }).start();
   }, [martHeaderCollapse]);
 
   const handleHomeScroll = useCallback((y: number) => {
@@ -147,7 +153,7 @@ function AppShell() {
   }, [fontsLoaded]);
 
   React.useEffect(() => {
-    if (activeTab === 'mart') setMartHeaderVisible(true);
+    if (activeTab === 'mart' || activeTab === 'activity' || activeTab === 'bids') setMartHeaderVisible(true);
   }, [activeTab, setMartHeaderVisible]);
 
   if (!fontsLoaded) {
@@ -172,10 +178,18 @@ function AppShell() {
             <MartHeader activeVehicle={selectedVehicle} onVehicleChange={setSelectedVehicle} onBack={() => setActiveTab('home')} />
           </Animated.View>
         ) : TAB_TITLES[activeTab] ? (
-          <TitleBand
-            title={TAB_TITLES[activeTab]!}
-            action={activeTab === 'bids' ? { label: '＋ නව ලංසුවක්', onPress: () => setPostJob({ draft: null }) } : undefined}
-          />
+          // Activity and Bids: the top bar folds away completely while the page scrolls (the same fold as OnMart's header).
+          // Its natural height is measured once per tab so it can fold to nothing.
+          <Animated.View
+            style={foldableBar && titleH > 0 ? { height: martHeaderCollapse.interpolate({ inputRange: [0, 1], outputRange: [titleH, 0] }), overflow: 'hidden' } : undefined}
+          >
+            <View onLayout={(e) => foldableBar && setTitleH(Math.round(e.nativeEvent.layout.height))}>
+              <TitleBand
+                title={TAB_TITLES[activeTab]!}
+                action={activeTab === 'bids' ? { label: '＋ නව ලංසුවක්', onPress: () => setPostJob({ draft: null }) } : undefined}
+              />
+            </View>
+          </Animated.View>
         ) : null}
 
         {/* Sticky banners on Home with animated rounded bottom corners */}
@@ -263,9 +277,11 @@ function AppShell() {
               tab={bidsTab}
               onTabChange={setBidsTab}
               onRepublish={(draft) => setPostJob({ draft })}
-              onViewActivity={() => setActiveTab('activity')}            />
+              onViewActivity={() => setActiveTab('activity')}
+              onHeaderVisibilityChange={setMartHeaderVisible}
+            />
           ) : activeTab === 'activity' ? (
-            <ActivityScreen onOpenMart={() => setActiveTab('mart')} onOpenBids={() => setActiveTab('bids')} onBookAgain={(b) => setSelectedService(categoryInfo(b.categoryId))} />
+            <ActivityScreen onHeaderVisibilityChange={setMartHeaderVisible} onOpenMart={() => setActiveTab('mart')} onOpenBids={() => setActiveTab('bids')} onBookAgain={(b) => setSelectedService(categoryInfo(b.categoryId))} />
           ) : activeTab === 'mart' ? (
             <MartScreen
               activeVehicle={selectedVehicle}
@@ -289,10 +305,34 @@ function AppShell() {
               }}
             />
           ) : (
-            <BottomNav items={USER_TABS} activeTab={activeTab} onTabChange={setActiveTab} />
+            <BottomNav
+              items={USER_TABS}
+              activeTab={activeTab}
+              onTabChange={(next) => (next === 'mart' && !martAllowed ? setAskMart(true) : setActiveTab(next))}
+            />
           )}
         </View>
         <Toast />
+        {askMart && (
+          <ModalCard
+            icon="🛍️"
+            tone="primary"
+            title="OnMart විවෘත කරන්නද?"
+            body="වාහන කොටස් වෙළඳසැල් සොයා ගැනීමට OnMart හට ඔබගේ ස්ථානය සහ තෝරාගත් වාහනයේ තොරතුරු (මාදිලිය, අංක තහඩුව) භාවිතා කිරීමට ඔබගේ අවසරය අවශ්‍යයි. ඔබගේ දුරකථන අංකය වෙළඳසැල්වලට පෙන්වන්නේ නැත."
+          >
+            <ActionButton label="අවලංගු" variant="ghost" compact onPress={() => setAskMart(false)} />
+            <ActionButton
+              label="අවසර දෙන්න"
+              variant="success"
+              compact
+              onPress={() => {
+                setAskMart(false);
+                setMartAllowed(true);
+                setActiveTab('mart');
+              }}
+            />
+          </ModalCard>
+        )}
       </SafeAreaView>
 
       <Modal visible={sosStage !== 'closed'} animationType="fade" statusBarTranslucent onRequestClose={closeSOS}>

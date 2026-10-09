@@ -24,7 +24,7 @@ const MONTHS = ['ජන.', 'පෙබ.', 'මාර්තු', 'අප්‍ර�
 
 const formatDate = (d: Date) => `${d.getFullYear()} ${MONTHS[d.getMonth()]} ${d.getDate()}`;
 
-export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b: DirectBooking) => void; onOpenMart?: () => void }> = ({ onOpenBids, onBookAgain, onOpenMart }) => {
+export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b: DirectBooking) => void; onOpenMart?: () => void; onHeaderVisibilityChange?: (visible: boolean) => void }> = ({ onOpenBids, onBookAgain, onOpenMart, onHeaderVisibilityChange }) => {
   const { jobs } = useBids();
   const { bookings } = useBookings();
   const { workshops } = useWorkshops();
@@ -55,6 +55,9 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
   const { findVehicle } = useVehicles();
   // 0 to 1 as the summary tiles pin at the top; fades the edge shadow in.
   const edge = useRef(new Animated.Value(0)).current;
+  const lastY = useRef(0);
+  const barHidden = useRef(false);
+  const lastToggle = useRef(0);
   const vehicleName = (id: string) => findVehicle(id).name;
   const user = useUserLocation();
 
@@ -113,7 +116,24 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
         showsVerticalScrollIndicator={false}
         stickyHeaderIndices={[0]}
         scrollEventThrottle={16}
-        onScroll={(e) => edge.setValue(Math.min(1, Math.max(0, (e.nativeEvent.contentOffset.y - 8) / 30)))}
+        onScroll={(e) => {
+          const y = e.nativeEvent.contentOffset.y;
+          edge.setValue(Math.min(1, Math.max(0, (y - 8) / 30)));
+          // Scrolling down folds the top bar away completely so the page rises to the top; scrolling back up brings it back.
+          // Folding the bar makes the viewport taller, which nudges the offset back by itself; ignore that for a moment
+          // so it does not read as the owner scrolling up.
+          const settling = Date.now() - lastToggle.current < 600;
+          if (y > lastY.current + 8 && y > 12 && !barHidden.current) {
+            barHidden.current = true;
+            lastToggle.current = Date.now();
+            onHeaderVisibilityChange?.(false);
+          } else if (barHidden.current && !settling && (y < lastY.current - 8 || y <= 0)) {
+            barHidden.current = false;
+            lastToggle.current = Date.now();
+            onHeaderVisibilityChange?.(true);
+          }
+          lastY.current = y;
+        }}
       >
         {/* Pinned: the three summary tiles stay at the top while the lists scroll beneath */}
         <View style={styles.statsPinned}>

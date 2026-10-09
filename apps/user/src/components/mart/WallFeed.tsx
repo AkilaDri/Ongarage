@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { ago, Colors, EmptyState, FONTS, money, SERVICE_CATEGORIES, softEdge, softFill, softShadow, themedStyles } from '@ongarage/shared';
+import Svg, { Path } from 'react-native-svg';
+import { ago, Colors, EmptyState, FONTS, getThemeMode, money, SERVICE_CATEGORIES, softEdge, softFill, softShadow, themedStyles } from '@ongarage/shared';
 import { useWall, type WallPost } from '../../context/WallContext';
 import { useNotice } from '../../context/NoticeContext';
 
@@ -13,8 +14,21 @@ export type FeedPost = WallPost & {
   onDelete?: () => void;
 };
 
-const Avatar: React.FC<{ name: string; mine?: boolean }> = ({ name, mine }) => (
-  <View style={[styles.avatar, mine && styles.avatarMine]}>
+/** The post action icons: the same outlined thumbs-up and speech bubble a social feed uses (filled when switched on). */
+const ICON_PATHS = {
+  like: 'M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3',
+  comment: 'M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z',
+  send: 'M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z',
+  inbox: 'M22 12h-6l-2 3h-4l-2-3H2M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z',
+};
+const ActionIcon: React.FC<{ name: keyof typeof ICON_PATHS; color: string; filled?: boolean }> = ({ name, color, filled }) => (
+  <Svg width={22} height={22} viewBox="0 0 24 24">
+    <Path d={ICON_PATHS[name]} stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" fill={filled ? color : 'none'} />
+  </Svg>
+);
+
+const Avatar: React.FC<{ name: string; mine?: boolean; big?: boolean }> = ({ name, mine, big }) => (
+  <View style={[styles.avatar, big && styles.avatarBig, mine && styles.avatarMine]}>
     <Text style={styles.avatarText}>{mine ? '👤' : name.trim().charAt(0)}</Text>
   </View>
 );
@@ -51,7 +65,7 @@ const PostCard: React.FC<{ post: FeedPost; now: number }> = ({ post, now }) => {
   return (
     <View style={styles.card}>
       <View style={styles.head}>
-        <Avatar name={post.author} mine={post.mine} />
+        <Avatar name={post.author} mine={post.mine} big />
         <View style={styles.flex1}>
           <Text style={styles.author} numberOfLines={1}>
             {post.mine ? 'ඔබ' : post.author}
@@ -88,9 +102,9 @@ const PostCard: React.FC<{ post: FeedPost; now: number }> = ({ post, now }) => {
         </View>
       )}
 
-      <Text style={styles.part}>🔧 {post.part}</Text>
-      {!!post.description && <Text style={styles.body}>{post.description}</Text>}
-      <View style={styles.vehicleChip}>
+      <View style={styles.textBlock}>
+        <Text style={styles.part}>🔧 {post.part}</Text>
+        {!!post.description && <Text style={styles.body}>{post.description}</Text>}
         <Text style={styles.vehicleText}>🚗 {post.vehicle}</Text>
       </View>
       {post.photos.length > 0 && !photoFailed && (
@@ -103,23 +117,24 @@ const PostCard: React.FC<{ post: FeedPost; now: number }> = ({ post, now }) => {
           <Text style={styles.countText}>අදහස් {comments.length}</Text>
         </Pressable>
       </View>
+      <View style={styles.rule} />
 
       <View style={styles.actions}>
         <Pressable style={styles.action} onPress={() => wall.toggleLike(post.id)} accessibilityLabel="Like post">
-          <Text style={[styles.actionText, liked && styles.actionOn]}>👍 කැමතියි</Text>
+          <ActionIcon name="like" color={liked ? Colors.primary : Colors.textMuted} filled={liked} />
         </Pressable>
         <Pressable style={styles.action} onPress={() => setShowComments((s) => !s)} accessibilityLabel="Comment on post">
-          <Text style={styles.actionText}>💬 අදහසක්</Text>
+          <ActionIcon name="comment" color={showComments ? Colors.primary : Colors.textMuted} />
         </Pressable>
         {post.mine ? (
           post.details ? (
             <Pressable style={styles.action} onPress={() => setShowDetails((s) => !s)} accessibilityLabel="Show answers">
-              <Text style={[styles.actionText, styles.actionOn]}>📥 පිළිතුරු</Text>
+              <ActionIcon name="inbox" color={showDetails ? Colors.primary : Colors.textMuted} />
             </Pressable>
           ) : null
         ) : (
           <Pressable style={styles.action} onPress={() => setReplying((r) => !r)} accessibilityLabel="I have this part">
-            <Text style={[styles.actionText, styles.actionHave]}>🙋 මා ළඟ ඇත</Text>
+            <ActionIcon name="send" color={sent ? Colors.success : replying ? Colors.primary : Colors.textMuted} filled={!!sent} />
           </Pressable>
         )}
       </View>
@@ -158,7 +173,7 @@ const PostCard: React.FC<{ post: FeedPost; now: number }> = ({ post, now }) => {
             </View>
           ))}
           <View style={styles.commentInputRow}>
-            <TextInput style={[styles.input, styles.flex1]} value={comment} onChangeText={setComment} onSubmitEditing={submitComment} placeholder="අදහසක් දක්වන්න…" placeholderTextColor={Colors.textMuted} />
+            <TextInput style={[styles.input, styles.flex1]} value={comment} onChangeText={setComment} onSubmitEditing={submitComment} accessibilityLabel="Write a comment" placeholder="අදහසක් දක්වන්න…" placeholderTextColor={Colors.textMuted} />
             <Pressable style={styles.commentSend} onPress={submitComment} accessibilityLabel="Post comment">
               <Text style={styles.sendText}>➤</Text>
             </Pressable>
@@ -241,43 +256,47 @@ const styles = themedStyles(() =>
     composePhoto: { fontSize: 20 },
     composeBox: { flex: 1, height: 46, borderRadius: 23, paddingLeft: 18, paddingRight: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, backgroundColor: softFill(), borderWidth: 1, borderColor: softEdge() },
     composeText: { flex: 1, fontSize: 13, fontFamily: FONTS.bodyMedium, color: Colors.textMuted },
-    card: { gap: 8, padding: 12, borderRadius: 18, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), ...softShadow() },
-    head: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    // A Facebook-style post: edge to edge (the negative margin cancels the list's side padding), hairlines above and below,
+    // 12px of inner padding for text, the photo full width, a reactions row and three equal action buttons.
+    card: { marginHorizontal: -16, paddingTop: 12, paddingBottom: 6, backgroundColor: Colors.bgCard, borderTopWidth: 1, borderBottomWidth: 1, borderColor: getThemeMode() === 'dark' ? softEdge() : '#d3d9e2' },
+    textBlock: { paddingHorizontal: 12, gap: 6, paddingBottom: 10 },
+    rule: { height: 1, marginHorizontal: 12, backgroundColor: softEdge() },
+    avatarBig: { width: 40, height: 40, borderRadius: 20 },
+    head: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 12, paddingBottom: 10 },
     avatar: { width: 38, height: 38, borderRadius: 19, backgroundColor: Colors.primary, alignItems: 'center', justifyContent: 'center' },
     avatarMine: { backgroundColor: softFill() },
     avatarText: { fontSize: 15, fontFamily: FONTS.titleBold, color: '#ffffff' },
-    author: { fontSize: 13.5, fontFamily: FONTS.titleBold, color: Colors.textMain },
-    meta: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 1 },
+    author: { fontSize: 15, fontFamily: FONTS.titleBold, color: Colors.textMain },
+    meta: { fontSize: 12, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 1 },
     deleteBtn: { paddingHorizontal: 10, height: 30, borderRadius: 15, justifyContent: 'center', backgroundColor: softFill() },
     deleteText: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.errorText },
-    confirm: { gap: 8, padding: 10, borderRadius: 14, backgroundColor: softFill() },
+    confirm: { gap: 8, padding: 10, borderRadius: 14, backgroundColor: softFill(), marginHorizontal: 12 },
     confirmText: { fontSize: 11.5, lineHeight: 16, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
     confirmRow: { flexDirection: 'row', gap: 8 },
     confirmCancel: { flex: 1, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge() },
     confirmCancelText: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
     confirmDelete: { flex: 1, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.errorText },
     confirmDeleteText: { fontSize: 12, fontFamily: FONTS.bodyBold, color: '#ffffff' },
-    part: { fontSize: 14, fontFamily: FONTS.titleBold, color: Colors.textMain },
-    body: { fontSize: 12.5, lineHeight: 18, fontFamily: FONTS.bodyRegular, color: Colors.textMain },
-    vehicleChip: { alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, backgroundColor: softFill() },
-    vehicleText: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
-    photo: { width: '100%', height: 190, borderRadius: 14, backgroundColor: softFill() },
-    counts: { flexDirection: 'row', justifyContent: 'space-between', paddingTop: 2 },
+    part: { fontSize: 15, fontFamily: FONTS.titleBold, color: Colors.textMain },
+    body: { fontSize: 14, lineHeight: 20, fontFamily: FONTS.bodyRegular, color: Colors.textMain },
+    vehicleText: { fontSize: 12, fontFamily: FONTS.bodyMedium, color: Colors.textMuted },
+    photo: { width: '100%', height: 280, backgroundColor: softFill() },
+    counts: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10 },
     countText: { fontSize: 11, fontFamily: FONTS.bodyMedium, color: Colors.textMuted },
-    actions: { flexDirection: 'row', borderTopWidth: 1, borderTopColor: softEdge(), paddingTop: 4 },
-    action: { flex: 1, alignItems: 'center', paddingVertical: 8 },
+    actions: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 8, paddingVertical: 2 },
+    action: { width: 48, alignItems: 'center', justifyContent: 'center', height: 42, borderRadius: 21 },
     actionText: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
     actionOn: { color: Colors.primary },
     actionHave: { color: Colors.success },
-    sent: { padding: 10, borderRadius: 12, backgroundColor: softFill() },
+    sent: { padding: 10, borderRadius: 12, backgroundColor: softFill(), marginHorizontal: 12 },
     sentText: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: Colors.success },
-    reply: { gap: 8, padding: 10, borderRadius: 14, backgroundColor: softFill() },
+    reply: { gap: 8, padding: 10, borderRadius: 14, backgroundColor: softFill(), marginHorizontal: 12 },
     replyTitle: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
     input: { minHeight: 38, paddingHorizontal: 12, borderRadius: 12, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), color: Colors.textMain, fontSize: 12.5, fontFamily: FONTS.bodyRegular },
     inputTall: { minHeight: 64, paddingTop: 8, textAlignVertical: 'top' },
     send: { height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.success },
     sendText: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: '#ffffff' },
-    comments: { gap: 8, paddingTop: 4 },
+    comments: { gap: 8, paddingTop: 4, marginHorizontal: 12 },
     commentRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
     bubble: { flex: 1, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 14, backgroundColor: softFill() },
     commentAuthor: { fontSize: 11.5, fontFamily: FONTS.bodyBold, color: Colors.textMain },
