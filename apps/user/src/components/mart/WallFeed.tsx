@@ -256,9 +256,9 @@ const styles = themedStyles(() =>
     composePhoto: { fontSize: 20 },
     composeBox: { flex: 1, height: 46, borderRadius: 23, paddingLeft: 18, paddingRight: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, backgroundColor: softFill(), borderWidth: 1, borderColor: softEdge() },
     composeText: { flex: 1, fontSize: 13, fontFamily: FONTS.bodyMedium, color: Colors.textMuted },
-    // A Facebook-style post: edge to edge (the negative margin cancels the list's side padding), hairlines above and below,
+    // A Facebook-style post: edge to edge (the negative margin cancels the list's side padding (6px)), hairlines above and below,
     // 12px of inner padding for text, the photo full width, a reactions row and three equal action buttons.
-    card: { marginHorizontal: -16, paddingTop: 12, paddingBottom: 6, backgroundColor: Colors.bgCard, borderTopWidth: 1, borderBottomWidth: 1, borderColor: getThemeMode() === 'dark' ? softEdge() : '#d3d9e2' },
+    card: { marginHorizontal: -6, paddingTop: 12, paddingBottom: 6, backgroundColor: Colors.bgCard, borderTopWidth: 1, borderBottomWidth: 1, borderColor: getThemeMode() === 'dark' ? softEdge() : '#d3d9e2' },
     textBlock: { paddingHorizontal: 12, gap: 6, paddingBottom: 10 },
     rule: { height: 1, marginHorizontal: 12, backgroundColor: softEdge() },
     avatarBig: { width: 40, height: 40, borderRadius: 20 },

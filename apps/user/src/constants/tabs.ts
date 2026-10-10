@@ -1,13 +1,17 @@
 import type { NavItem } from '@ongarage/shared';
 import { AccountIcon, HomeIcon } from '../components/NavIcons';
 import { ActivityListIcon } from '../components/ActivityListIcon';
+import { OnGarageIcon } from '../components/OnGarageIcon';
 import { BidsBillIcon } from '../components/BidsBillIcon';
 import { MartIcon, OrdersIcon, RequestsIcon, ShopsIcon, WallIcon } from '../components/MartNavIcon';
 
 export type TabId = 'home' | 'bids' | 'activity' | 'mart' | 'profile';
 export type MartSegment = 'shops' | 'mine' | 'wall' | 'orders';
 
-export const MART_TABS: NavItem<MartSegment>[] = [
+/** OnMart's bar: its four sections, with a way back to the OnGarage app in the middle. */
+export type MartNavId = MartSegment | 'ongarage';
+
+export const MART_TABS: NavItem<MartNavId>[] = [
   {
     id: 'shops',
     label: 'වෙළඳසැල්',
@@ -19,6 +23,12 @@ export const MART_TABS: NavItem<MartSegment>[] = [
     label: 'මගේ ඉල්ලීම්',
     accessibilityLabel: 'OnMart mine',
     icon: RequestsIcon,
+  },
+  {
+    id: 'ongarage',
+    label: 'OnGarage',
+    accessibilityLabel: 'Back to OnGarage',
+    icon: OnGarageIcon,
   },
   {
     id: 'wall',

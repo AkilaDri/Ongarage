@@ -154,7 +154,7 @@ const styles = themedStyles(() =>
   StyleSheet.create({
     flex1: { flex: 1 },
     container: { flex: 1, backgroundColor: Colors.bgBody },
-    body: { padding: 16, gap: 14, paddingBottom: 100 },
+    body: { paddingHorizontal: 6, paddingTop: 16, gap: 14, paddingBottom: 100 },
     top: { alignItems: 'center', gap: 8, paddingTop: 4 },
     avatar: { width: 84, height: 84, borderRadius: 42 },
     avatarEmpty: { backgroundColor: Colors.subtleFill, alignItems: 'center', justifyContent: 'center' },

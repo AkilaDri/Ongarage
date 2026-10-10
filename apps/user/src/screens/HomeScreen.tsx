@@ -140,10 +140,10 @@ const styles = themedStyles(() => StyleSheet.create({
   // Transparent: the rounded sheet in App.tsx supplies the background.
   container: { flex: 1 },
   scroll: { flex: 1 },
-  content: { paddingTop: 16, paddingHorizontal: 16, paddingBottom: 90, gap: 16 },
+  content: { paddingTop: 16, paddingHorizontal: 6, paddingBottom: 90, gap: 16 },
   categoriesBlock: { gap: 10 },
   // Opaque and full width (the negative margin cancels the content padding), so the lists scroll underneath it.
-  adsPinned: { marginHorizontal: -16, paddingHorizontal: 16, paddingVertical: 6, backgroundColor: getThemeMode() === 'dark' ? Colors.bgBody : '#ffffff' },
+  adsPinned: { marginHorizontal: -6, paddingHorizontal: 6, paddingVertical: 6, backgroundColor: getThemeMode() === 'dark' ? Colors.bgBody : '#ffffff' },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 },
   viewAllLink: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
   sectionTitle: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textMain },

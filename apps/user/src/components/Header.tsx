@@ -6,7 +6,7 @@ import { useProfile } from '../context/ProfileContext';
 import { useVehicles } from '../context/VehiclesContext';
 import { vehicleIcon } from '@ongarage/shared';
 import { Gradient, GRADIENTS } from '@ongarage/shared';
-import WeatherAnimation, { periodOf, skyInk } from './WeatherAnimation';
+import WeatherAnimation, { periodOf, skyInk, useHour } from './WeatherAnimation';
 import { MOCK_USER } from '../constants/mockData';
 
 const POPOVER_WIDTH = 264;
@@ -152,10 +152,10 @@ const greetingFor = (hour: number) => {
 
 /** The band other tabs show instead of the greeting: just the tab's title, same colour as Home's. */
 export const TitleBand: React.FC<{ title: string; action?: { label: string; onPress: () => void } }> = ({ title, action }) => {
-  const hour = new Date().getHours();
+  const hour = useHour();
   return (
     <View style={styles.titleBand}>
-      <WeatherAnimation hour={hour} bodyRight={action ? 150 : 24} />
+      <WeatherAnimation hour={hour} />
       <Text style={[styles.titleBandText, { color: skyInk(periodOf(hour)).main }, action && styles.titleWithAction]} accessibilityRole="header">
         {title}
       </Text>
@@ -179,7 +179,7 @@ export const Header: React.FC<HeaderProps> = ({ activeVehicle, onVehicleChange }
   const activeCar = useVehicles().findVehicle(activeVehicle);
   const { fullName, profile } = useProfile();
 
-  const hour = new Date().getHours();
+  const hour = useHour();
   const night = periodOf(hour) === 'night';
 
   return (

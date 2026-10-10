@@ -380,7 +380,7 @@ const styles = themedStyles(() => StyleSheet.create({
     borderTopRightRadius: 24,
     overflow: 'hidden',
     paddingTop: 10,
-    paddingHorizontal: 14,
+    paddingHorizontal: 6,
     paddingBottom: 20,
     gap: 10,
     shadowColor: '#000',

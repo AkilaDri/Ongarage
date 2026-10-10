@@ -19,6 +19,7 @@ import { WallProvider } from './context/WallContext';
 import { BidsProvider } from './context/BidsContext';
 import { NoticeProvider } from './context/NoticeContext';
 import { BookingsProvider } from './context/BookingsContext';
+import { SOSRecordsProvider } from './context/SOSRecordsContext';
 import { WorkshopProvider } from './context/WorkshopContext';
 import { ProfileProvider } from './context/ProfileContext';
 import { Header, TitleBand } from './components/Header';
@@ -71,7 +72,9 @@ export default function App() {
           <ProfileProvider>
           <VehiclesProvider>
             <BookingsProvider>
-              <AppShell />
+              <SOSRecordsProvider>
+                <AppShell />
+              </SOSRecordsProvider>
             </BookingsProvider>
           </VehiclesProvider>
           </ProfileProvider>
@@ -126,6 +129,10 @@ function AppShell() {
   const [askMart, setAskMart] = useState(false);
   const foldableBar = activeTab === 'activity' || activeTab === 'bids';
   const [sosStage, setSOSStage] = useState<SOSStage>('closed');
+  // The owner can leave a running SOS job for OnMart (to buy a part the technician needs) and come back to it.
+  const [sosHidden, setSosHidden] = useState(false);
+  const [martSeed, setMartSeed] = useState('');
+  const [martShopReq, setMartShopReq] = useState<{ id: string; at: number } | null>(null);
   const [sosLocation, setSOSLocation] = useState<PickedLocation | null>(null);
   const [selectedVehicle, setSelectedVehicle] = useState('premio');
   const [selectedService, setSelectedService] = useState<ServiceCategory | null>(null);
@@ -134,7 +141,12 @@ function AppShell() {
   // Booking a garage directly (from Home, a service list, or "book again").
   const [booking, setBooking] = useState<{ garage: Garage; categoryId?: string } | null>(null);
 
-  const closeSOS = useCallback(() => setSOSStage('closed'), []);
+  const closeSOS = useCallback(() => {
+    setSOSStage('closed');
+    setSosHidden(false);
+    setMartSeed('');
+    setMartShopReq(null);
+  }, []);
   const setMartHeaderVisible = useCallback((visible: boolean) => {
     Animated.timing(martHeaderCollapse, { toValue: visible ? 0 : 1, duration: 280, easing: Easing.out(Easing.cubic), useNativeDriver: false }).start();
   }, [martHeaderCollapse]);
@@ -175,7 +187,7 @@ function AppShell() {
           </View>
         ) : activeTab === 'mart' ? (
           <Animated.View style={{ height: martHeaderCollapse.interpolate({ inputRange: [0, 1], outputRange: [90, 0] }), overflow: 'hidden' }}>
-            <MartHeader activeVehicle={selectedVehicle} onVehicleChange={setSelectedVehicle} onBack={() => setActiveTab('home')} />
+            <MartHeader activeVehicle={selectedVehicle} onVehicleChange={setSelectedVehicle} />
           </Animated.View>
         ) : TAB_TITLES[activeTab] ? (
           // Activity and Bids: the top bar folds away completely while the page scrolls (the same fold as OnMart's header).
@@ -287,6 +299,8 @@ function AppShell() {
               activeVehicle={selectedVehicle}
               segment={martSegment}
               onSegmentChange={setMartSegment}
+              searchSeed={martSeed}
+              openShopRequest={martShopReq}
               onHeaderVisibilityChange={setMartHeaderVisible}
             />
           ) : (
@@ -300,6 +314,11 @@ function AppShell() {
               items={MART_TABS}
               activeTab={martSegment}
               onTabChange={(next) => {
+                // The garage in the middle takes the owner back to the OnGarage app.
+                if (next === 'ongarage') {
+                  setActiveTab('home');
+                  return;
+                }
                 setMartSegment(next);
                 setMartHeaderVisible(true);
               }}
@@ -335,7 +354,7 @@ function AppShell() {
         )}
       </SafeAreaView>
 
-      <Modal visible={sosStage !== 'closed'} animationType="fade" statusBarTranslucent onRequestClose={closeSOS}>
+      <Modal visible={sosStage === 'map'} animationType="fade" statusBarTranslucent onRequestClose={closeSOS}>
         {sosStage === 'map' && (
           <SOSMapPickerScreen
             initialLocation={sosLocation}
@@ -346,17 +365,39 @@ function AppShell() {
             onClose={closeSOS}
           />
         )}
-        {sosStage === 'flow' && sosLocation && (
+        <Toast topOffset={84} />
+      </Modal>
+
+      {/* The running SOS job is a full-screen layer (not a modal) so it can step aside for OnMart without losing its place. */}
+      {sosStage === 'flow' && sosLocation && (
+        <View style={[StyleSheet.absoluteFill, styles.sosLayer, sosHidden && styles.sosLayerHidden]} pointerEvents={sosHidden ? 'none' : 'auto'}>
           <SOSFlowScreen
             location={sosLocation}
             vehicleId={selectedVehicle}
             onVehicleChange={setSelectedVehicle}
             onChangeLocation={() => setSOSStage('map')}
             onClose={closeSOS}
+            onOpenShop={(shopId) => {
+              setMartShopReq({ id: shopId, at: Date.now() });
+              setMartSegment('shops');
+              setSosHidden(true);
+              setActiveTab('mart');
+            }}
+            onOpenMart={(part) => {
+              setMartSeed(part);
+              setMartSegment('shops');
+              setSosHidden(true);
+              setActiveTab('mart');
+            }}
           />
-        )}
-        <Toast topOffset={84} />
-      </Modal>
+          <Toast topOffset={84} />
+        </View>
+      )}
+      {sosStage === 'flow' && sosHidden && (
+        <Pressable style={styles.sosReturn} onPress={() => setSosHidden(false)} accessibilityLabel="Back to the SOS job">
+          <Text style={styles.sosReturnText}>🚨 SOS රැකියාවට ආපසු ›</Text>
+        </Pressable>
+      )}
 
       <Modal visible={postJob !== null} animationType="slide" statusBarTranslucent onRequestClose={() => setPostJob(null)}>
         {postJob && (
@@ -407,6 +448,10 @@ const styles = themedStyles(() => StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.bgBody },
   // The tab's screen overlaps the header band with rounded top corners.
   sheet: { flex: 1, backgroundColor: getThemeMode() === 'dark' ? Colors.bgBody : '#ffffff' },
+  sosLayer: { zIndex: 50, backgroundColor: Colors.bgBody },
+  sosLayerHidden: { display: 'none' },
+  sosReturn: { position: 'absolute', zIndex: 60, left: 16, right: 16, bottom: 96, alignItems: 'center', justifyContent: 'center', height: 46, borderRadius: 23, backgroundColor: '#dc2626', shadowColor: '#dc2626', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.4, shadowRadius: 12, elevation: 10 },
+  sosReturnText: { fontSize: 14, fontFamily: FONTS.titleBold, color: '#ffffff' },
   sheetOverlap: { marginTop: -18, borderTopLeftRadius: 24, borderTopRightRadius: 24, overflow: 'hidden' },
   // Home: the list sits in its own rounded, shadowed sheet that slides up over the padding under the banners.
   // Bids: the sheet rises right up to the top bar, so no rounded corner shows the band behind it.
@@ -414,7 +459,7 @@ const styles = themedStyles(() => StyleSheet.create({
   sheetHome: { marginTop: -16, zIndex: 2, borderTopWidth: 1, borderTopColor: Colors.borderColor, shadowColor: '#000', shadowOffset: { width: 0, height: -6 }, shadowOpacity: 0.14, shadowRadius: 14, elevation: 12 },
   bottomNavContainer: { position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 20 },
   // Sticky banners on Home (outside the sheet so they don't move when sheet expands)
-  stickyBannersContainer: { marginTop: -18, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 16, paddingTop: 16, paddingBottom: 26, zIndex: 1, backgroundColor: getThemeMode() === 'dark' ? Colors.bgBody : '#ffffff' },
+  stickyBannersContainer: { marginTop: -18, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 6, paddingTop: 16, paddingBottom: 26, zIndex: 1, backgroundColor: getThemeMode() === 'dark' ? Colors.bgBody : '#ffffff' },
   pressed: { opacity: 0.9, transform: [{ scale: 0.99 }] },
   sosBanner: { borderRadius: 22, overflow: 'hidden', backgroundColor: '#c81e2b', borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.2)', shadowColor: '#c81e2b', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.35, shadowRadius: 20, elevation: 7 },
   // A soft light disc in the corner: depth without clutter.

@@ -375,7 +375,7 @@ const styles = themedStyles(() =>
     kindBid: { backgroundColor: 'rgba(56, 189, 248, 0.12)', borderColor: 'rgba(56, 189, 248, 0.45)' },
     kindDirect: { backgroundColor: 'rgba(16, 185, 129, 0.12)', borderColor: 'rgba(16, 185, 129, 0.45)' },
     kindText: { fontSize: 10.5, fontFamily: FONTS.bodySemiBold },
-    body: { padding: 16, gap: 12, paddingBottom: 28 },
+    body: { paddingHorizontal: 6, paddingTop: 16, gap: 12, paddingBottom: 28 },
     bigTitle: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textMain },
     title: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.textMain },
     sub: { fontSize: 11, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 1, lineHeight: 17 },

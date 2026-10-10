@@ -570,7 +570,7 @@ const styles = themedStyles(() => StyleSheet.create({
   closeText: { fontSize: 14, color: '#fff' },
   progressTrack: { height: 4, marginHorizontal: 16, marginTop: 10, borderRadius: 2, overflow: 'hidden', backgroundColor: Colors.subtleBorder },
   progressFill: { height: '100%', borderRadius: 2, backgroundColor: Colors.primary },
-  body: { padding: 16, gap: 12, paddingBottom: 28 },
+  body: { paddingHorizontal: 6, paddingTop: 16, gap: 12, paddingBottom: 28 },
   // Same heading style as the Home screen's sections.
   sectionLabel: { fontSize: 14.5, fontFamily: FONTS.titleBold, color: Colors.textMain, marginTop: 6 },
   required: { fontSize: 10, fontFamily: FONTS.bodySemiBold, color: Colors.warning, marginTop: 4 },

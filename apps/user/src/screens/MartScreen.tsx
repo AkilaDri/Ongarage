@@ -98,15 +98,19 @@ type MartScreenProps = {
   segment: MartSegment;
   onSegmentChange: (segment: MartSegment) => void;
   onHeaderVisibilityChange: (visible: boolean) => void;
+  /** A part to search for as soon as OnMart opens (set when an SOS job sends the owner to buy a part). */
+  searchSeed?: string;
+  /** A shop whose page should open as soon as OnMart shows (from an order record in an SOS job). */
+  openShopRequest?: { id: string; at: number } | null;
 };
 
-export const MartScreen: React.FC<MartScreenProps> = ({ activeVehicle, segment, onSegmentChange, onHeaderVisibilityChange }) => {
+export const MartScreen: React.FC<MartScreenProps> = ({ activeVehicle, segment, onSegmentChange, onHeaderVisibilityChange, searchSeed, openShopRequest }) => {
   const { coords } = useUserLocation();
   const { enquiries, offersFor, widen, postToWall, cancelEnquiry, purchaseFor } = useMart();
   const { progress: edge, scrollProps } = usePinnedEdge();
   const [sort, setSort] = useState<MartSort>('distance');
   const [ring, setRing] = useState<SearchRing>('nearby');
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState(searchSeed ?? '');
   const [wallCategory, setWallCategory] = useState('');
   const [partType, setPartType] = useState<PartType>('GarageChoice');
   const [category, setCategory] = useState<PartGroup | null>(null);
@@ -239,6 +243,17 @@ export const MartScreen: React.FC<MartScreenProps> = ({ activeVehicle, segment, 
     onHeaderVisibilityChange(true);
     if (segment === 'shops') snapSheet(false);
   }, [onHeaderVisibilityChange, segment]);
+
+  useEffect(() => {
+    if (searchSeed) setQuery(searchSeed);
+  }, [searchSeed]);
+
+  useEffect(() => {
+    if (!openShopRequest) return;
+    const target = all.find((x) => x.id === openShopRequest.id);
+    if (target) setShop(target);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openShopRequest]);
 
   const q = query.trim();
   const searching = q.length > 0;
@@ -544,26 +559,36 @@ export const MartScreen: React.FC<MartScreenProps> = ({ activeVehicle, segment, 
         {segment === 'shops' && (
           <>
             {searching && (
-              <View style={styles.search2}>
-                <Text style={styles.title}>🔍 {partName ?? q}</Text>
-                <Text style={styles.sub}>{partName ? 'සජීවී තොගය පෙන්වන වෙළඳසැල්වල තිබේදැයි පහත පෙනේ; අනෙක් වෙළඳසැල්වලින් අසන්න.' : 'මෙම නම හඳුනා ගත නොහැකි නිසා සෑම වෙළඳසැලකින්ම අසන්න.'}</Text>
+              <View style={styles.partFocus} accessibilityLabel="Selected part">
+                <View style={styles.partFocusHead}>
+                  <Text style={styles.partFocusLabel}>🔧 ඔබ සොයන කොටස</Text>
+                  <Pressable style={styles.partFocusClear} onPress={() => setQuery('')} accessibilityLabel="Clear search" hitSlop={8}>
+                    <Text style={styles.partFocusClearText}>✕</Text>
+                  </Pressable>
+                </View>
+                <Text style={styles.partFocusTitle}>{partName ?? q}</Text>
                 <View style={styles.chips}>
                   {TYPES.map((t) => (
-                    <Pressable key={t.id} style={[styles.chip, partType === t.id && styles.chipOn]} onPress={() => setPartType(t.id)}>
-                      <Text style={[styles.chipText, partType === t.id && styles.chipTextOn]}>{t.label}</Text>
+                    <Pressable key={t.id} style={[styles.focusChip, partType === t.id && styles.focusChipOn]} onPress={() => setPartType(t.id)}>
+                      <Text style={[styles.focusChipText, partType === t.id && styles.focusChipTextOn]}>{t.label}</Text>
                     </Pressable>
                   ))}
                 </View>
-                <ActionButton label="සියලු වෙළඳසැල්වලින් අසන්න" icon="📨" variant="primary" compact onPress={() => askAbout('shops')} />
-                <ActionButton label="විවෘත දුර්ලභ කොටස් පෝස්ට් එකට දමන්න" icon="📣" variant="success" compact onPress={() => askAbout('wall')} />
+                <Pressable style={styles.focusAsk} onPress={() => askAbout('shops')} accessibilityLabel="Ask all shops">
+                  <Text style={styles.focusAskText}>📨 සියලු වෙළඳසැල්වලින් අසන්න</Text>
+                </Pressable>
+                <Pressable style={styles.partFocusLink} onPress={() => askAbout('wall')} accessibilityLabel="Post on the wall">
+                  <Text style={styles.partFocusLinkText}>📣 දුර්ලභ කොටසක්ද? වෝල් එකට දමන්න ›</Text>
+                </Pressable>
                 {partName && !anyHave && widerRing && (
                   <Pressable style={styles.suggest} onPress={() => setRing(widerRing)} accessibilityLabel="Widen range">
-                    <Text style={styles.suggestText}>ළඟ සජීවී තොගයක් නැත — {SEARCH_RINGS.find((r) => r.ring === widerRing)!.label} බලන්න ›</Text>
+                    <Text style={styles.focusSuggestText}>ළඟ සජීවී තොගයක් නැත — {SEARCH_RINGS.find((r) => r.ring === widerRing)!.label} බලන්න ›</Text>
                   </Pressable>
                 )}
               </View>
             )}
 
+            {searching && <Text style={styles.resultsHeading}>තොගය තිබෙන වෙළඳසැල්</Text>}
             <Text style={styles.count}>
               {shops.length} වෙළඳසැල් · {SEARCH_RINGS.find((r) => r.ring === ring)!.label}
             </Text>
@@ -694,7 +719,7 @@ const styles = themedStyles(() =>
     sheetSubtitle: { fontSize: 10, fontFamily: FONTS.bodyMedium, color: Colors.textMuted },
     stockButton: { paddingHorizontal: 12, paddingVertical: 9, borderRadius: 18, backgroundColor: softFill() },
     stockButtonText: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
-    sheetBody: { paddingHorizontal: 16, paddingTop: 6, gap: 12, paddingBottom: 110 },
+    sheetBody: { paddingHorizontal: 6, paddingTop: 6, gap: 12, paddingBottom: 110 },
     actions: { flexDirection: 'row', gap: 10, overflow: 'hidden' },
     actionCard: { flex: 1, height: ACTION_H, borderRadius: 18, overflow: 'hidden', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12 },
     actionText: { flex: 1, gap: 1 },
@@ -703,7 +728,7 @@ const styles = themedStyles(() =>
     actionEmoji: { fontSize: 26 },
     clear: { position: 'absolute', right: 86, width: 26, height: 26, borderRadius: 13, backgroundColor: softFill(), alignItems: 'center', justifyContent: 'center' },
     clearText: { fontSize: 11, color: Colors.textMuted },
-    body: { padding: 16, paddingTop: 8, gap: 12, paddingBottom: 110 },
+    body: { paddingHorizontal: 6, paddingTop: 8, gap: 12, paddingBottom: 110 },
     chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
     chip: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 16, backgroundColor: softFill(), borderWidth: 1, borderColor: softEdge() },
     chipOn: { backgroundColor: Colors.primary, borderColor: Colors.primary },
@@ -713,6 +738,23 @@ const styles = themedStyles(() =>
     count: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
     title: { fontSize: 14, fontFamily: FONTS.titleBold, color: Colors.textMain },
     sub: { fontSize: 11, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 17 },
+    // The picked part: a tinted card, so it reads as "what you chose", not as one more shop card.
+    partFocus: { gap: 12, padding: 16, borderRadius: 22, backgroundColor: '#5a85ee', shadowColor: '#2457e6', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.18, shadowRadius: 10, elevation: 3 },
+    partFocusHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    partFocusLabel: { fontSize: 11.5, fontFamily: FONTS.bodyBold, color: 'rgba(255,255,255,0.85)', letterSpacing: 0.4 },
+    partFocusClear: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.22)' },
+    partFocusClearText: { fontSize: 12, fontFamily: FONTS.bodyBold, color: '#ffffff' },
+    partFocusTitle: { fontSize: 22, fontFamily: FONTS.titleBold, color: '#ffffff' },
+    focusChip: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.18)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.35)' },
+    focusChipOn: { backgroundColor: '#ffffff', borderColor: '#ffffff' },
+    focusChipText: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: '#ffffff' },
+    focusChipTextOn: { color: '#3a68e0' },
+    focusAsk: { height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center', backgroundColor: '#ffffff' },
+    focusAskText: { fontSize: 14, fontFamily: FONTS.titleBold, color: '#3a68e0' },
+    focusSuggestText: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: '#ffffff', textDecorationLine: 'underline' },
+    partFocusLink: { alignSelf: 'center', paddingVertical: 2 },
+    partFocusLinkText: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: 'rgba(255,255,255,0.92)' },
+    resultsHeading: { fontSize: 13, fontFamily: FONTS.bodyBold, color: Colors.textMuted, marginTop: 4 },
     search2: { gap: 10, padding: 14, borderRadius: 20, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), ...softShadow() },
     suggest: { alignSelf: 'center', paddingHorizontal: 14, paddingVertical: 9, borderRadius: 16, backgroundColor: 'rgba(2, 132, 199, 0.12)' },
     suggestText: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
