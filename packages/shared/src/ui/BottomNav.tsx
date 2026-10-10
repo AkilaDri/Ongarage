@@ -11,6 +11,7 @@ import { FONTS } from '../theme/fonts';
 export type NavItem<T extends string> = {
   id: T;
   label: string;
+  accessibilityLabel?: string;
   path?: string;
   icon?: React.ComponentType<{ active: boolean; size?: number }>;
   badge?: number;
@@ -35,7 +36,7 @@ export function BottomNav<T extends string>({ items, activeTab, onTabChange }: B
     {items.map((item) => {
       const color = activeTab === item.id ? (getThemeMode() === 'dark' ? Colors.primary : '#162b63') : Colors.textMuted;
       return (
-        <Pressable key={item.id} style={styles.navItem} onPress={() => onTabChange(item.id)}>
+        <Pressable key={item.id} style={styles.navItem} onPress={() => onTabChange(item.id)} accessibilityRole="tab" accessibilityLabel={item.accessibilityLabel ?? item.label}>
           <View>
             {item.icon ? (
               <item.icon active={activeTab === item.id} size={26} />

@@ -3,7 +3,8 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { FONTS, getThemeMode, themedStyles, vehicleIcon } from '@ongarage/shared';
 import { useUserLocation } from '../../context/LocationContext';
 import { useVehicles } from '../../context/VehiclesContext';
-import { VehiclePicker } from '../Header';
+import { HEADER_BAND_H, VehiclePicker } from '../Header';
+import WeatherAnimation, { periodOf, skyInk, useHour } from '../WeatherAnimation';
 
 /**
  * OnMart's top band, in the owner Home's style: a round shop badge, the marketplace name with where the owner is,
@@ -15,18 +16,22 @@ export const MartHeader: React.FC<{ activeVehicle: string; onVehicleChange: (veh
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<View>(null);
 
+  const hour = useHour();
+  const ink = skyInk(periodOf(hour));
+
   return (
     <View style={styles.header}>
+      <WeatherAnimation hour={hour} />
       <View style={styles.left}>
         <View style={styles.badge}>
           <Text style={styles.badgeEmoji}>🛍️</Text>
         </View>
         <View style={styles.texts}>
-          <Text style={styles.title} numberOfLines={1}>
+          <Text style={[styles.title, { color: ink.main }]} numberOfLines={1}>
             OnMart
           </Text>
-          <Text style={styles.sub} numberOfLines={1}>
-            📍 {locality} · වාහන කොටස් වෙළඳපොළ
+          <Text style={[styles.sub, { color: ink.sub }]} numberOfLines={1}>
+            📍 {locality}
           </Text>
         </View>
       </View>
@@ -50,8 +55,8 @@ const dark = () => getThemeMode() === 'dark';
 
 const styles = themedStyles(() =>
   StyleSheet.create({
-    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12, paddingHorizontal: 18, paddingTop: 12, paddingBottom: 34, backgroundColor: dark() ? '#0e2a3f' : '#bfe4fa' },
-    left: { flexDirection: 'row', alignItems: 'center', gap: 12, flexShrink: 1 },
+    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12, paddingHorizontal: 18, paddingTop: 12, paddingBottom: 34, minHeight: HEADER_BAND_H, overflow: 'hidden', backgroundColor: dark() ? '#0e2a3f' : '#bfe4fa' },
+    left: { flexDirection: 'row', alignItems: 'center', gap: 10, flexShrink: 1 },
     badge: { width: 44, height: 44, borderRadius: 22, backgroundColor: dark() ? '#16415f' : '#ffffff', alignItems: 'center', justifyContent: 'center' },
     badgeEmoji: { fontSize: 22 },
     texts: { flexShrink: 1, gap: 1 },

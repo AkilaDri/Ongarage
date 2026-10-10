@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Animated, View, StyleSheet, Modal, Text, Pressable } from 'react-native';
+import { Animated, Easing, View, StyleSheet, Modal, Text, Pressable } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
@@ -10,17 +10,19 @@ import {
   NotoSansSinhala_600SemiBold,
   NotoSansSinhala_700Bold,
 } from '@expo-google-fonts/noto-sans-sinhala';
-import { Colors, FONTS, getThemeMode, Gradient, Pulse, themedStyles } from '@ongarage/shared';
+import { ActionButton, Colors, FONTS, getThemeMode, Gradient, ModalCard, Pulse, themedStyles } from '@ongarage/shared';
 import { ThemeProvider, useTheme } from '@ongarage/shared';
 import { VehiclesProvider } from './context/VehiclesContext';
 import { LocationProvider } from './context/LocationContext';
 import { MartProvider } from './context/MartContext';
+import { WallProvider } from './context/WallContext';
 import { BidsProvider } from './context/BidsContext';
 import { NoticeProvider } from './context/NoticeContext';
 import { BookingsProvider } from './context/BookingsContext';
+import { SOSRecordsProvider } from './context/SOSRecordsContext';
 import { WorkshopProvider } from './context/WorkshopContext';
 import { ProfileProvider } from './context/ProfileContext';
-import { Header, TitleBand } from './components/Header';
+import { Header, HEADER_BAND_H, TitleBand } from './components/Header';
 import { MartHeader } from './components/mart/MartHeader';
 import { Toast } from './components/Toast';
 import { DirectBookingSheet } from './components/DirectBookingSheet';
@@ -34,28 +36,28 @@ import { ActivityScreen } from './screens/ActivityScreen';
 import { ProfileScreen } from './screens/ProfileScreen';
 import { MartScreen } from './screens/MartScreen';
 import { BottomNav } from '@ongarage/shared';
-import { USER_TABS, type TabId } from './constants/tabs';
+import { MART_TABS, USER_TABS, type MartSegment, type TabId } from './constants/tabs';
 import { categoryInfo, type Garage, type JobDraft, type PickedLocation, type ServiceCategory } from '@ongarage/shared';
 
 // The title band other tabs show instead of the greeting header (Home has the header; Account has nothing and uses the full screen).
-const TAB_TITLES: Partial<Record<TabId, string>> = { bids: 'ඔබගේ ලංසු වල තත්ත්වය', activity: 'ඔබේ ක්‍රියාකාරකම්' };
+const TAB_TITLES: Partial<Record<TabId, string>> = { bids: 'ඔබගේ ලංසු වල තත්ත්වය', activity: 'ඔබේ ක්‍රියාකාරකම්', profile: 'ඔබගේ ගිණුම' };
 
 // Banner sizes: stacked cards at the top of Home, one compact row once the page is scrolled.
 const SOS_H = 94;
-const JOB_H = 82;
+const JOB_H = 94;
 const BANNER_GAP = 8;
 const COMPACT_H = 56;
 
 // Soft diagonal washes over the banners' base colours (lighter at the top left, deeper at the bottom right).
 const SOS_GRADIENT = [
-  { offset: '0', color: '#f05252' },
-  { offset: '0.55', color: '#dc2626' },
-  { offset: '1', color: '#b91c1c' },
+  { offset: '0', color: '#f43f45' },
+  { offset: '0.5', color: '#c81e2b' },
+  { offset: '1', color: '#7f1220' },
 ];
 const JOB_GRADIENT = [
-  { offset: '0', color: '#2a4690' },
-  { offset: '0.55', color: '#162b63' },
-  { offset: '1', color: '#0f2050' },
+  { offset: '0', color: '#2f5bd6' },
+  { offset: '0.5', color: '#1b3a96' },
+  { offset: '1', color: '#0b1c52' },
 ];
 
 type SOSStage = 'closed' | 'map' | 'flow';
@@ -70,7 +72,9 @@ export default function App() {
           <ProfileProvider>
           <VehiclesProvider>
             <BookingsProvider>
-              <AppShell />
+              <SOSRecordsProvider>
+                <AppShell />
+              </SOSRecordsProvider>
             </BookingsProvider>
           </VehiclesProvider>
           </ProfileProvider>
@@ -116,7 +120,19 @@ function AppShell() {
   });
 
   const [activeTab, setActiveTab] = useState<TabId>('home');
+  const [martSegment, setMartSegment] = useState<MartSegment>('shops');
+  const martHeaderCollapse = useRef(new Animated.Value(0)).current;
+  // Natural height of the title band (the inner view keeps it even while the wrapper folds), so the band can fold to nothing.
+  const [titleH, setTitleH] = useState(0);
+  // OnMart asks the owner for permission the first time its tab is tapped (remembered for the session).
+  const [martAllowed, setMartAllowed] = useState(false);
+  const [askMart, setAskMart] = useState(false);
+  const foldableBar = activeTab === 'activity' || activeTab === 'bids' || activeTab === 'profile';
   const [sosStage, setSOSStage] = useState<SOSStage>('closed');
+  // The owner can leave a running SOS job for OnMart (to buy a part the technician needs) and come back to it.
+  const [sosHidden, setSosHidden] = useState(false);
+  const [martSeed, setMartSeed] = useState('');
+  const [martShopReq, setMartShopReq] = useState<{ id: string; at: number } | null>(null);
   const [sosLocation, setSOSLocation] = useState<PickedLocation | null>(null);
   const [selectedVehicle, setSelectedVehicle] = useState('premio');
   const [selectedService, setSelectedService] = useState<ServiceCategory | null>(null);
@@ -125,7 +141,15 @@ function AppShell() {
   // Booking a garage directly (from Home, a service list, or "book again").
   const [booking, setBooking] = useState<{ garage: Garage; categoryId?: string } | null>(null);
 
-  const closeSOS = useCallback(() => setSOSStage('closed'), []);
+  const closeSOS = useCallback(() => {
+    setSOSStage('closed');
+    setSosHidden(false);
+    setMartSeed('');
+    setMartShopReq(null);
+  }, []);
+  const setMartHeaderVisible = useCallback((visible: boolean) => {
+    Animated.timing(martHeaderCollapse, { toValue: visible ? 0 : 1, duration: 280, easing: Easing.out(Easing.cubic), useNativeDriver: false }).start();
+  }, [martHeaderCollapse]);
 
   const handleHomeScroll = useCallback((y: number) => {
     scrollY.current = y;
@@ -140,6 +164,10 @@ function AppShell() {
     }
   }, [fontsLoaded]);
 
+  React.useEffect(() => {
+    if (activeTab === 'mart' || activeTab === 'activity' || activeTab === 'bids' || activeTab === 'profile') setMartHeaderVisible(true);
+  }, [activeTab, setMartHeaderVisible]);
+
   if (!fontsLoaded) {
     return null;
   }
@@ -147,6 +175,7 @@ function AppShell() {
   return (
     <LocationProvider>
     <MartProvider>
+    <WallProvider>
     <BidsProvider>
     <SafeAreaProvider>
       <StatusBar style={isDark ? "light" : "dark"} />
@@ -157,9 +186,22 @@ function AppShell() {
             <Header activeVehicle={selectedVehicle} onVehicleChange={setSelectedVehicle} />
           </View>
         ) : activeTab === 'mart' ? (
-          <MartHeader activeVehicle={selectedVehicle} onVehicleChange={setSelectedVehicle} />
+          <Animated.View style={{ height: martHeaderCollapse.interpolate({ inputRange: [0, 1], outputRange: [HEADER_BAND_H, 0] }), overflow: 'hidden' }}>
+            <MartHeader activeVehicle={selectedVehicle} onVehicleChange={setSelectedVehicle} />
+          </Animated.View>
         ) : TAB_TITLES[activeTab] ? (
-          <TitleBand title={TAB_TITLES[activeTab]!} />
+          // Activity and Bids: the top bar folds away completely while the page scrolls (the same fold as OnMart's header).
+          // Its natural height is measured once per tab so it can fold to nothing.
+          <Animated.View
+            style={foldableBar && titleH > 0 ? { height: martHeaderCollapse.interpolate({ inputRange: [0, 1], outputRange: [titleH, 0] }), overflow: 'hidden' } : undefined}
+          >
+            <View onLayout={(e) => foldableBar && setTitleH(Math.round(e.nativeEvent.layout.height))}>
+              <TitleBand
+                title={TAB_TITLES[activeTab]!}
+                action={activeTab === 'bids' ? { label: '＋ නව ලංසුවක්', onPress: () => setPostJob({ draft: null }) } : undefined}
+              />
+            </View>
+          </Animated.View>
         ) : null}
 
         {/* Sticky banners on Home with animated rounded bottom corners */}
@@ -170,6 +212,7 @@ function AppShell() {
                 {/* SOS: full card at the top of the page, the left half of a single row once scrolled */}
                 <Animated.View style={[styles.sosBanner, styles.bannerAbs, { width: lerp(bannerW, half), height: lerp(SOS_H, COMPACT_H), top: 0, left: 0 }]}>
                   <Gradient stops={SOS_GRADIENT} />
+                  <View style={styles.sheen} pointerEvents="none" />
                   <Pressable style={({ pressed }) => [StyleSheet.absoluteFill, pressed && styles.pressed]} onPress={() => setSOSStage('map')} accessibilityLabel="Open SOS">
                     <Animated.View style={[styles.sosBannerContent, styles.bannerFull, { width: bannerW, opacity: fadeOut }]}>
                       <View style={styles.sosLeft}>
@@ -197,9 +240,13 @@ function AppShell() {
                 {/* Post a job: full card below the SOS card, the right half of the row once scrolled */}
                 <Animated.View style={[styles.jobBanner, styles.bannerAbs, { width: lerp(bannerW, half), height: lerp(JOB_H, COMPACT_H), top: lerp(SOS_H + BANNER_GAP, 0), left: lerp(0, half + BANNER_GAP) }]}>
                   <Gradient stops={JOB_GRADIENT} />
+                  <View style={styles.sheen} pointerEvents="none" />
                   <Pressable style={({ pressed }) => [StyleSheet.absoluteFill, pressed && styles.pressed]} onPress={() => setPostJob({ draft: null })} accessibilityLabel="Post a repair job">
                     <Animated.View style={[styles.jobBannerContent, styles.bannerFull, { width: bannerW, opacity: fadeOut }]}>
                       <View style={styles.jobLeft}>
+                        <View style={styles.jobBadge}>
+                          <Text style={styles.badgeText}>නොමිලේ Quotes</Text>
+                        </View>
                         <Text style={styles.jobBannerTitle}>වාහනයේ Repair එකක්ද?</Text>
                         <Text style={styles.jobBannerSub}>OnGarage වලින් Quotes ගන්න</Text>
                       </View>
@@ -224,7 +271,7 @@ function AppShell() {
         <Animated.View
           style={[
             styles.sheet,
-            activeTab !== 'profile' && styles.sheetOverlap,
+            styles.sheetOverlap,
             activeTab === 'home' && styles.sheetHome,
           ]}
         >
@@ -242,23 +289,71 @@ function AppShell() {
               onTabChange={setBidsTab}
               onRepublish={(draft) => setPostJob({ draft })}
               onViewActivity={() => setActiveTab('activity')}
+              onHeaderVisibilityChange={setMartHeaderVisible}
             />
           ) : activeTab === 'activity' ? (
-            <ActivityScreen onOpenMart={() => setActiveTab('mart')} onOpenBids={() => setActiveTab('bids')} onBookAgain={(b) => setSelectedService(categoryInfo(b.categoryId))} />
+            <ActivityScreen onHeaderProgress={(p) => martHeaderCollapse.setValue(p)} onOpenMart={() => setActiveTab('mart')} onOpenBids={() => setActiveTab('bids')} onBookAgain={(b) => setSelectedService(categoryInfo(b.categoryId))} />
           ) : activeTab === 'mart' ? (
-            <MartScreen activeVehicle={selectedVehicle} />
+            <MartScreen
+              activeVehicle={selectedVehicle}
+              segment={martSegment}
+              onSegmentChange={setMartSegment}
+              searchSeed={martSeed}
+              openShopRequest={martShopReq}
+              onHeaderVisibilityChange={setMartHeaderVisible}
+            />
           ) : (
-            <ProfileScreen activeVehicle={selectedVehicle} onVehicleChange={setSelectedVehicle} />
+            <ProfileScreen activeVehicle={selectedVehicle} onVehicleChange={setSelectedVehicle} onHeaderProgress={(p) => martHeaderCollapse.setValue(p)} />
           )}
         </Animated.View>
 
         <View style={styles.bottomNavContainer}>
-          <BottomNav items={USER_TABS} activeTab={activeTab} onTabChange={setActiveTab} />
+          {activeTab === 'mart' ? (
+            <BottomNav
+              items={MART_TABS}
+              activeTab={martSegment}
+              onTabChange={(next) => {
+                // The garage in the middle takes the owner back to the OnGarage app.
+                if (next === 'ongarage') {
+                  setActiveTab('home');
+                  return;
+                }
+                setMartSegment(next);
+                setMartHeaderVisible(true);
+              }}
+            />
+          ) : (
+            <BottomNav
+              items={USER_TABS}
+              activeTab={activeTab}
+              onTabChange={(next) => (next === 'mart' && !martAllowed ? setAskMart(true) : setActiveTab(next))}
+            />
+          )}
         </View>
         <Toast />
+        {askMart && (
+          <ModalCard
+            icon="🛍️"
+            tone="primary"
+            title="OnMart විවෘත කරන්නද?"
+            body="වාහන කොටස් වෙළඳසැල් සොයා ගැනීමට OnMart හට ඔබගේ ස්ථානය සහ තෝරාගත් වාහනයේ තොරතුරු (මාදිලිය, අංක තහඩුව) භාවිතා කිරීමට ඔබගේ අවසරය අවශ්‍යයි. ඔබගේ දුරකථන අංකය වෙළඳසැල්වලට පෙන්වන්නේ නැත."
+          >
+            <ActionButton label="අවලංගු" variant="ghost" compact onPress={() => setAskMart(false)} />
+            <ActionButton
+              label="අවසර දෙන්න"
+              variant="success"
+              compact
+              onPress={() => {
+                setAskMart(false);
+                setMartAllowed(true);
+                setActiveTab('mart');
+              }}
+            />
+          </ModalCard>
+        )}
       </SafeAreaView>
 
-      <Modal visible={sosStage !== 'closed'} animationType="fade" statusBarTranslucent onRequestClose={closeSOS}>
+      <Modal visible={sosStage === 'map'} animationType="fade" statusBarTranslucent onRequestClose={closeSOS}>
         {sosStage === 'map' && (
           <SOSMapPickerScreen
             initialLocation={sosLocation}
@@ -269,17 +364,39 @@ function AppShell() {
             onClose={closeSOS}
           />
         )}
-        {sosStage === 'flow' && sosLocation && (
+        <Toast topOffset={84} />
+      </Modal>
+
+      {/* The running SOS job is a full-screen layer (not a modal) so it can step aside for OnMart without losing its place. */}
+      {sosStage === 'flow' && sosLocation && (
+        <View style={[StyleSheet.absoluteFill, styles.sosLayer, sosHidden && styles.sosLayerHidden]} pointerEvents={sosHidden ? 'none' : 'auto'}>
           <SOSFlowScreen
             location={sosLocation}
             vehicleId={selectedVehicle}
             onVehicleChange={setSelectedVehicle}
             onChangeLocation={() => setSOSStage('map')}
             onClose={closeSOS}
+            onOpenShop={(shopId) => {
+              setMartShopReq({ id: shopId, at: Date.now() });
+              setMartSegment('shops');
+              setSosHidden(true);
+              setActiveTab('mart');
+            }}
+            onOpenMart={(part) => {
+              setMartSeed(part);
+              setMartSegment('shops');
+              setSosHidden(true);
+              setActiveTab('mart');
+            }}
           />
-        )}
-        <Toast topOffset={84} />
-      </Modal>
+          <Toast topOffset={84} />
+        </View>
+      )}
+      {sosStage === 'flow' && sosHidden && (
+        <Pressable style={styles.sosReturn} onPress={() => setSosHidden(false)} accessibilityLabel="Back to the SOS job">
+          <Text style={styles.sosReturnText}>🚨 SOS රැකියාවට ආපසු ›</Text>
+        </Pressable>
+      )}
 
       <Modal visible={postJob !== null} animationType="slide" statusBarTranslucent onRequestClose={() => setPostJob(null)}>
         {postJob && (
@@ -320,6 +437,7 @@ function AppShell() {
       <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: fadeColor, opacity: fade }]} />
     </SafeAreaProvider>
     </BidsProvider>
+    </WallProvider>
     </MartProvider>
     </LocationProvider>
   );
@@ -329,29 +447,36 @@ const styles = themedStyles(() => StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.bgBody },
   // The tab's screen overlaps the header band with rounded top corners.
   sheet: { flex: 1, backgroundColor: getThemeMode() === 'dark' ? Colors.bgBody : '#ffffff' },
+  sosLayer: { zIndex: 50, backgroundColor: Colors.bgBody },
+  sosLayerHidden: { display: 'none' },
+  sosReturn: { position: 'absolute', zIndex: 60, left: 16, right: 16, bottom: 96, alignItems: 'center', justifyContent: 'center', height: 46, borderRadius: 23, backgroundColor: '#dc2626', shadowColor: '#dc2626', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.4, shadowRadius: 12, elevation: 10 },
+  sosReturnText: { fontSize: 14, fontFamily: FONTS.titleBold, color: '#ffffff' },
   sheetOverlap: { marginTop: -18, borderTopLeftRadius: 24, borderTopRightRadius: 24, overflow: 'hidden' },
   // Home: the list sits in its own rounded, shadowed sheet that slides up over the padding under the banners.
   sheetHome: { marginTop: -16, zIndex: 2, borderTopWidth: 1, borderTopColor: Colors.borderColor, shadowColor: '#000', shadowOffset: { width: 0, height: -6 }, shadowOpacity: 0.14, shadowRadius: 14, elevation: 12 },
   bottomNavContainer: { position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 20 },
   // Sticky banners on Home (outside the sheet so they don't move when sheet expands)
-  stickyBannersContainer: { marginTop: -18, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 16, paddingTop: 16, paddingBottom: 26, zIndex: 1, backgroundColor: getThemeMode() === 'dark' ? Colors.bgBody : '#ffffff' },
+  stickyBannersContainer: { marginTop: -18, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 6, paddingTop: 16, paddingBottom: 26, zIndex: 1, backgroundColor: getThemeMode() === 'dark' ? Colors.bgBody : '#ffffff' },
   pressed: { opacity: 0.9, transform: [{ scale: 0.99 }] },
-  sosBanner: { borderRadius: 18, overflow: 'hidden', backgroundColor: '#dc2626', shadowColor: '#dc2626', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 18, elevation: 6 },
+  sosBanner: { borderRadius: 22, overflow: 'hidden', backgroundColor: '#c81e2b', borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.2)', shadowColor: '#c81e2b', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.35, shadowRadius: 20, elevation: 7 },
+  // A soft light disc in the corner: depth without clutter.
+  sheen: { position: 'absolute', top: -70, right: -40, width: 190, height: 190, borderRadius: 95, backgroundColor: 'rgba(255, 255, 255, 0.07)' },
   sosBannerContent: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, gap: 12 },
   sosLeft: { flex: 1, gap: 3 },
-  sosBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, backgroundColor: 'rgba(255, 255, 255, 0.18)', marginBottom: 2 },
+  sosBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'flex-start', paddingHorizontal: 9, paddingVertical: 3, borderRadius: 11, backgroundColor: 'rgba(255, 255, 255, 0.16)', marginBottom: 3 },
+  jobBadge: { alignSelf: 'flex-start', paddingHorizontal: 9, paddingVertical: 3, borderRadius: 11, backgroundColor: 'rgba(255, 255, 255, 0.16)', marginBottom: 3 },
   pulseDot: { width: 6, height: 6, backgroundColor: '#fff', borderRadius: 3 },
   badgeText: { fontSize: 10, fontWeight: '800', color: '#fff', letterSpacing: 0.4 },
-  heroTitle: { fontSize: 18, fontFamily: FONTS.titleBold, color: '#fff' },
-  heroSub: { fontSize: 11.5, fontFamily: FONTS.bodyMedium, color: '#e2e8f0' },
-  sosButton: { width: 64, height: 64, borderRadius: 32, backgroundColor: 'rgba(255, 255, 255, 0.15)', borderWidth: 3, borderColor: 'rgba(255, 255, 255, 0.85)', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  sosButtonText: { fontSize: 15, fontWeight: '900', color: '#fff', letterSpacing: 1 },
-  jobBanner: { borderRadius: 18, overflow: 'hidden', backgroundColor: '#162b63', shadowColor: '#162b63', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.25, shadowRadius: 18, elevation: 5 },
+  heroTitle: { fontSize: 18, fontFamily: FONTS.titleBold, color: '#fff', letterSpacing: 0.2 },
+  heroSub: { fontSize: 11.5, fontFamily: FONTS.bodyMedium, color: 'rgba(255, 255, 255, 0.82)' },
+  sosButton: { width: 62, height: 62, borderRadius: 31, backgroundColor: '#ffffff', borderWidth: 5, borderColor: 'rgba(255, 255, 255, 0.35)', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  sosButtonText: { fontSize: 15, fontWeight: '900', color: '#c81e2b', letterSpacing: 1 },
+  jobBanner: { borderRadius: 22, overflow: 'hidden', backgroundColor: '#1b3a96', borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.2)', shadowColor: '#1b3a96', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.3, shadowRadius: 20, elevation: 6 },
   jobBannerContent: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, gap: 12 },
   jobLeft: { flex: 1, gap: 2 },
-  jobBannerTitle: { fontSize: 17, fontFamily: FONTS.titleBold, color: '#fff' },
-  jobBannerSub: { fontSize: 11, fontFamily: FONTS.bodyMedium, color: 'rgba(255, 255, 255, 0.9)' },
-  jobCta: { width: 52, height: 52, borderRadius: 26, backgroundColor: 'rgba(255, 255, 255, 0.2)', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'rgba(255, 255, 255, 0.85)', flexShrink: 0 },
+  jobBannerTitle: { fontSize: 18, fontFamily: FONTS.titleBold, color: '#fff', letterSpacing: 0.2 },
+  jobBannerSub: { fontSize: 11.5, fontFamily: FONTS.bodyMedium, color: 'rgba(255, 255, 255, 0.82)' },
+  jobCta: { width: 52, height: 52, borderRadius: 26, backgroundColor: '#ffffff', borderWidth: 4, borderColor: 'rgba(255, 255, 255, 0.35)', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   bannerAbs: { position: 'absolute' },
   bannerFull: { position: 'absolute', left: 0, top: 0, bottom: 0 },
   compactRow: { ...StyleSheet.absoluteFill, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
@@ -364,5 +489,5 @@ const styles = themedStyles(() => StyleSheet.create({
   plusBarV: { position: 'absolute', width: 2.5, height: 12, borderRadius: 2, backgroundColor: '#fff' },
   compactPlusText: { fontSize: 15, fontWeight: '700', color: '#fff', marginTop: -2 },
   compactJob: { fontSize: 14, fontFamily: FONTS.titleBold, color: '#fff' },
-  jobCtaText: { fontSize: 22, fontWeight: '700', color: '#fff' },
+  jobCtaText: { fontSize: 22, fontWeight: '700', color: '#1b3a96', marginTop: -2 },
 }));

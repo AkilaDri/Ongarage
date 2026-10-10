@@ -191,6 +191,7 @@ export const MartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const { coords } = useUserLocation();
   const { markPartBought } = useWorkshops();
   const [enquiries, setEnquiries] = useState<MartEnquiry[]>([]);
+  const enquirySeq = useRef(0);
   const [offers, setOffers] = useState<ShopOffer[]>([]);
   const [purchases, setPurchases] = useState<MartPurchase[]>([]);
   const [threads, setThreads] = useState<PartsThread[]>([]);
@@ -271,11 +272,13 @@ export const MartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const createEnquiry = useCallback(
     (input: NewEnquiry) => {
       const now = Date.now();
-      const id = `pe-${now}`;
+      // Two requests can be created in the same millisecond (a double tap), so the clock alone is not a unique id.
+      const seq = ++enquirySeq.current;
+      const id = `pe-${now}-${seq}`;
       const enquiry: PartEnquiry = {
         id,
         buyer: { name: fullName, phone: profile.phone },
-        briefs: [{ ...input.brief, id: `pb-${now}` }],
+        briefs: [{ ...input.brief, id: `pb-${now}-${seq}` }],
         audience: input.audience,
         ring: input.ring,
         jobRef: input.jobRef,

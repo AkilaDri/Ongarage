@@ -10,6 +10,7 @@ import { ActionButton, EmptyState, GlassIcon, ModalCard, SwipeCard } from '@onga
 import { OwnerDetailView } from '../components/OwnerDetailView';
 import { GarageReviewsSheet, garageForBid } from '../components/GarageReviewsSheet';
 import { ThreeStateSheet } from '../components/ThreeStateSheet';
+import { TxnTag } from '../components/TxnTag';
 import { GARAGE_COVERS } from '../constants/home';
 import { CategoryPhoto } from '../components/home/CategoryPhoto';
 import { money } from '../utils/format';
@@ -19,6 +20,11 @@ import { directionsUrl } from '@ongarage/shared';
 import type { Bid, JobDraft, RepairJob } from '@ongarage/shared';
 
 export type BidsTab = 'received' | 'pending' | 'expired';
+
+// The tab bar's look: white buttons with a light outline and blue text, and the chosen one a solid blue button with a glow.
+const TAB_BLUE = () => (getThemeMode() === 'dark' ? '#8db1ff' : '#2457e6');
+// The count badge is green on "received" (good news) and red on the others (things waiting on you).
+const badgeColor = (id: BidsTab) => (id === 'received' ? '#16a34a' : '#ef4444');
 
 const pad = (n: number) => String(n).padStart(2, '0');
 
@@ -42,6 +48,8 @@ interface BidsScreenProps {
   onTabChange: (tab: BidsTab) => void;
   onRepublish: (draft: JobDraft) => void;
   onViewActivity: () => void;
+  /** The top bar folds away while the sheet is fully open (and returns when it comes back down). */
+  onHeaderVisibilityChange?: (visible: boolean) => void;
 }
 
 /** Minimised sheet: a handle and one row of round photos. */
@@ -51,7 +59,7 @@ const NAV_HEIGHT = 72;
 /** 3,700 → "3.7k": a price short enough for a small badge. */
 const shortMoney = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(n % 1000 === 0 ? 0 : 1)}k` : String(n));
 
-export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, onRepublish, onViewActivity }) => {
+export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, onRepublish, onViewActivity, onHeaderVisibilityChange }) => {
   const { jobs, acceptBid } = useBids();
   const { findVehicle } = useVehicles();
   const user = useUserLocation();
@@ -62,6 +70,8 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, onRepu
   const [area, setArea] = useState(0);
   const [bidView, setBidView] = useState<{ job: RepairJob; bid: Bid } | null>(null);
   const [booked, setBooked] = useState<{ job: RepairJob; bid: Bid } | null>(null);
+  // The bid whose pin on the map was touched: shown as a small record card over the map.
+  const [pinBid, setPinBid] = useState<{ job: RepairJob; bid: Bid } | null>(null);
   // Swipe (or tap the header of) a job card for everything about it.
   const [detailId, setDetailId] = useState<string | null>(null);
   const pressStart = useRef({ x: 0, y: 0 });
@@ -75,7 +85,7 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, onRepu
   const received = jobs.filter((j) => j.bids.length > 0);
   const pending = jobs.filter((j) => j.bids.length === 0 && !isExpired(j, now));
   const expired = jobs.filter((j) => isExpired(j, now));
-  const mapBids = received.filter((j) => !j.acceptedBidId).flatMap((j) => j.bids.map((b) => ({ bid: b, lowest: b.id === lowestBidId(j.bids) })));
+  const mapBids = received.filter((j) => !j.acceptedBidId).flatMap((j) => j.bids.map((b) => ({ job: j, bid: b, lowest: b.id === lowestBidId(j.bids) })));
 
   const tabs: { id: BidsTab; label: string; icon: IconName; count: number }[] = [
     { id: 'received', label: 'ලැබුණු', icon: 'check-circle', count: received.length },
@@ -107,6 +117,7 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, onRepu
             {vehicle ? `${vehicle.name} · ${vehicle.plate}` : ''}
             {media ? `  ·  ${media}` : ''}
           </Text>
+          <TxnTag kind="JOB" source={job.id} />
           <Text style={styles.detailsLink}>විස්තර ›</Text>
         </View>
         {badge}
@@ -254,13 +265,18 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, onRepu
         zoom={mapZoom}
         renderOverlay={(project) => (
           <>
-            {mapBids.map(({ bid, lowest }) => {
+            {mapBids.map(({ job, bid, lowest }) => {
               const p = project(bid.coords);
               return p ? (
-                <View key={bid.id} style={[styles.pinAnchor, { left: p.x, top: p.y }]} pointerEvents="none">
-                  <View style={[styles.pricePin, lowest && styles.pricePinLowest]}>
+                <View key={bid.id} style={[styles.pinAnchor, { left: p.x, top: p.y }]} pointerEvents="box-none">
+                  <Pressable
+                    style={[styles.pricePin, lowest && styles.pricePinLowest, pinBid?.bid.id === bid.id && styles.pricePinOn]}
+                    onPress={() => setPinBid({ job, bid })}
+                    accessibilityLabel={`Bid pin ${bid.garageName}`}
+                    hitSlop={8}
+                  >
                     <Text style={styles.pricePinText}>{money(bid.price)}</Text>
-                  </View>
+                  </Pressable>
                 </View>
               ) : null;
             })}
@@ -272,8 +288,48 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, onRepu
         )}
       />
 
+      {pinBid && (
+        <View style={styles.pinCard} accessibilityLabel="Bid record">
+          <View style={styles.pinCardHead}>
+            <View style={styles.flex1}>
+              <Text style={styles.pinCardTitle} numberOfLines={1}>
+                {pinBid.bid.level ? `${LEVELS.find((l) => l.id === pinBid.bid.level)?.icon} ` : ''}
+                {pinBid.bid.garageName}
+              </Text>
+              <Text style={styles.pinCardSub} numberOfLines={1}>
+                {SERVICE_CATEGORIES.find((c) => c.id === pinBid.job.categoryId)?.name ?? 'Service'} · {ago(now - pinBid.bid.submittedAt)}
+              </Text>
+            </View>
+            <Pressable style={styles.pinCardClose} onPress={() => setPinBid(null)} accessibilityLabel="Close bid record" hitSlop={8}>
+              <Text style={styles.pinCardCloseText}>✕</Text>
+            </Pressable>
+          </View>
+          <View style={styles.pinCardRow}>
+            <Text style={styles.pinCardPrice}>{money(pinBid.bid.price)}</Text>
+            <Text style={styles.pinCardMeta}>
+              ★ {pinBid.bid.rating.toFixed(1)} ({pinBid.bid.reviews}) · කි.මී. {pinBid.bid.distanceKm}
+            </Text>
+          </View>
+          <Text style={styles.pinCardMeta}>
+            🛡️ මාස {pinBid.bid.warrantyMonths} වගකීම · ⏱️ පැය {pinBid.bid.estHours}
+          </Text>
+          <Pressable
+            style={styles.pinCardBtn}
+            onPress={() => {
+              const v = pinBid;
+              setPinBid(null);
+              setBidView(v);
+            }}
+            accessibilityLabel="Open bid details"
+          >
+            <Text style={styles.pinCardBtnText}>සම්පූර්ණ විස්තර බලන්න ›</Text>
+          </Pressable>
+        </View>
+      )}
+
       {area > 0 && (
         <ThreeStateSheet
+          onStateChange={(s) => onHeaderVisibilityChange?.(s !== 'expanded')}
           areaHeight={area}
           peekHeight={PEEK_HEIGHT}
           bottomInset={NAV_HEIGHT}
@@ -299,18 +355,31 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, onRepu
         >
           {(api) => (
             <>
+      {/* Opened to the top the grip is gone, so a button in its place brings the sheet back down - like the service sheet's minimise button. */}
+      {api.state === 'expanded' && (
+        <View style={styles.sheetHead}>
+          <Text style={styles.sheetHeadTitle}>{allBids.length ? `ලැබුණු ලංසු ${allBids.length}` : 'ලංසු'}</Text>
+          <Pressable style={styles.minBtn} onPress={api.collapse} hitSlop={8} accessibilityLabel="Minimize">
+            <Icon name="chevron-down" size={16} strokeWidth={2.5} color={Colors.primary} />
+          </Pressable>
+        </View>
+      )}
       <View style={styles.tabBar}>
         {tabs.map((t) => {
           const active = tab === t.id;
           return (
-            <Pressable key={t.id} style={[styles.tab, active && styles.tabActive]} onPress={() => onTabChange(t.id)}>
-              <Icon name={t.icon} size={15} color={active ? '#ffffff' : Colors.textMuted} />
+            <Pressable
+              key={t.id}
+              style={[styles.tab, active && styles.tabActive]}
+              onPress={() => onTabChange(t.id)}
+            >
+              <Icon name={t.icon} size={15} color={active ? '#ffffff' : TAB_BLUE()} />
               <Text style={[styles.tabText, active && styles.tabTextActive]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
                 {t.label}
               </Text>
               {t.count > 0 && (
-                <View style={[styles.tabCount, active && styles.tabCountActive]}>
-                  <Text style={[styles.tabCountText, active && styles.tabCountTextActive]}>{t.count}</Text>
+                <View style={[styles.tabCount, { backgroundColor: badgeColor(t.id) }]}>
+                  <Text style={styles.tabCountText}>{t.count}</Text>
                 </View>
               )}
             </Pressable>
@@ -416,42 +485,47 @@ const styles = themedStyles(() => StyleSheet.create({
   // Same "add" button as the garage app's Parts tab.
   swipeHint: { fontSize: 10.5, fontFamily: FONTS.bodyMedium, color: Colors.textMuted },
   detailsLink: { fontSize: 10.5, fontFamily: FONTS.bodySemiBold, color: Colors.primary, marginTop: 4 },
-  tabBar: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 6 },
+  sheetHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, paddingTop: 12 },
+  sheetHeadTitle: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textMain },
+  minBtn: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(56, 189, 248, 0.12)', borderWidth: 1, borderColor: 'rgba(56, 189, 248, 0.45)' },
+  tabBar: { flexDirection: 'row', gap: 8, paddingHorizontal: 6, paddingTop: 12, paddingBottom: 6 },
   tab: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    paddingVertical: 10,
+    height: 42,
     paddingHorizontal: 8,
-    borderRadius: 22,
-    backgroundColor: Colors.subtleFill,
+    borderRadius: 13,
+    borderWidth: 1,
+    borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#dbe4f3',
+    backgroundColor: getThemeMode() === 'dark' ? Colors.bgCard : '#ffffff',
   },
-  tabActive: { backgroundColor: '#162b63', shadowColor: '#162b63', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.28, shadowRadius: 8, elevation: 4 },
-  tabText: { flexShrink: 1, fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
+  tabActive: { backgroundColor: '#2457e6', borderColor: '#2457e6', shadowColor: '#2457e6', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.35, shadowRadius: 12, elevation: 6 },
+  tabText: { flexShrink: 1, fontSize: 11.5, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#2457e6' },
   tabTextActive: { color: '#ffffff' },
-  // Corner badge keeps the label row from wrapping on narrow tabs.
+  // The count is a soft blue pill (like a small info chip) on the corner, so the label row never wraps on narrow tabs.
   tabCount: {
     position: 'absolute',
     top: -7,
-    right: -4,
-    minWidth: 19,
-    height: 19,
-    paddingHorizontal: 5,
+    right: -3,
+    minWidth: 20,
+    height: 20,
+    paddingHorizontal: 6,
     borderRadius: 10,
     borderWidth: 2,
     borderColor: Colors.bgBody,
-    backgroundColor: Colors.bgCardHover,
+    backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.22)' : '#e8effd',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  tabCountActive: { backgroundColor: '#4ca1d1' },
-  tabCountText: { fontSize: 9.5, fontWeight: '800', color: Colors.textMuted },
-  tabCountTextActive: { color: '#fff' },
-  body: { padding: 16, paddingTop: 4, gap: 12, paddingBottom: 24 },
+  tabCountActive: { backgroundColor: '#ffffff' },
+  tabCountText: { fontSize: 10, fontFamily: FONTS.bodyBold, color: '#ffffff' },
+  tabCountTextActive: { color: '#2457e6' },
+  body: { paddingHorizontal: 6, paddingTop: 4, gap: 12, paddingBottom: 24 },
   fullMap: { ...StyleSheet.absoluteFill },
-  peek: { paddingHorizontal: 16, gap: 10 },
+  peek: { paddingHorizontal: 6, gap: 10 },
   peekTitle: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
   peekRow: { gap: 14, paddingRight: 8, paddingTop: 2 },
   peekItem: { width: 62, height: 62 },
@@ -463,7 +537,7 @@ const styles = themedStyles(() => StyleSheet.create({
   hint: { fontSize: 11, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
   link: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
   // Soft shadow instead of an outline (an outline only on dark, where a shadow would not show), like the Home garage tiles.
-  card: { backgroundColor: Colors.bgCard, borderWidth: getThemeMode() === 'dark' ? 1 : 0, borderColor: Colors.borderColor, borderRadius: 20, padding: 14, gap: 10, shadowColor: '#0f172a', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.1, shadowRadius: 16, elevation: 3 },
+  card: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#cfd6e0', borderRadius: 20, padding: 8, gap: 10, shadowColor: '#0f172a', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.1, shadowRadius: 16, elevation: 3 },
   cardExpired: { borderColor: 'rgba(239, 68, 68, 0.4)' },
   cardTitle: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.textMain },
   cardSub: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 1 },
@@ -491,6 +565,18 @@ const styles = themedStyles(() => StyleSheet.create({
   waitDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: Colors.warning },
   pinAnchor: { position: 'absolute', transform: [{ translateX: '-50%' }, { translateY: '-50%' }] },
   pricePin: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10, backgroundColor: '#1e40af', borderWidth: 1.5, borderColor: '#fff' },
+  pricePinOn: { backgroundColor: '#f59e0b', transform: [{ scale: 1.12 }] },
+  pinCard: { position: 'absolute', zIndex: 20, top: 12, left: 12, right: 12, gap: 6, padding: 12, borderRadius: 18, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#d3d9e2', shadowColor: '#0f172a', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.18, shadowRadius: 18, elevation: 8 },
+  pinCardHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  pinCardTitle: { fontSize: 14, fontFamily: FONTS.titleBold, color: Colors.textMain },
+  pinCardSub: { fontSize: 11, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 1 },
+  pinCardClose: { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.subtleFill },
+  pinCardCloseText: { fontSize: 12, color: Colors.textMuted, fontFamily: FONTS.bodyBold },
+  pinCardRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  pinCardPrice: { fontSize: 20, fontFamily: FONTS.titleBold, color: Colors.success },
+  pinCardMeta: { fontSize: 11.5, fontFamily: FONTS.bodyMedium, color: Colors.textMuted },
+  pinCardBtn: { alignSelf: 'flex-start', paddingHorizontal: 12, height: 32, borderRadius: 16, justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.18)' : '#e3ecfd' },
+  pinCardBtnText: { fontSize: 11.5, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#2457e6' },
   pricePinLowest: { backgroundColor: Colors.success },
   pricePinText: { fontSize: 10, fontWeight: '800', color: '#fff' },
   meDot: {

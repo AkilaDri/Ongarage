@@ -12,8 +12,10 @@ export const Sheet: React.FC<{
   footer?: React.ReactNode;
   /** Rendered above the sheet inside its modal, e.g. the app's toast. */
   overlay?: React.ReactNode;
+  /** A header that takes the place of the handle and the title row (a cover photo and its close button, say). */
+  hero?: React.ReactNode;
   children: React.ReactNode;
-}> = ({ visible, title, subtitle, onClose, footer, overlay, children }) => {
+}> = ({ visible, title, subtitle, onClose, footer, overlay, hero, children }) => {
   const [mounted, setMounted] = useState(visible);
   const slide = useRef(new Animated.Value(0)).current;
 
@@ -35,19 +37,22 @@ export const Sheet: React.FC<{
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
       </Animated.View>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.anchor} pointerEvents="box-none">
-        <Animated.View style={[styles.sheet, { transform: [{ translateY: slide.interpolate({ inputRange: [0, 1], outputRange: [700, 0] }) }] }]}>
-          <View style={styles.handle} />
-          <View style={styles.headerRow}>
-            <View style={styles.flex1}>
-              <Text style={styles.title}>{title}</Text>
-              {!!subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
+        <Animated.View style={[styles.sheet, hero ? styles.sheetHero : null, { transform: [{ translateY: slide.interpolate({ inputRange: [0, 1], outputRange: [700, 0] }) }] }]}>
+          {hero ? null : <View style={styles.handle} />}
+          {hero ? null : (
+            <View style={styles.headerRow}>
+              <View style={styles.flex1}>
+                <Text style={styles.title}>{title}</Text>
+                {!!subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
+              </View>
+              <Pressable style={styles.closeBtn} onPress={onClose} hitSlop={8} accessibilityLabel="Close sheet">
+                <Text style={styles.closeText}>✕</Text>
+              </Pressable>
             </View>
-            <Pressable style={styles.closeBtn} onPress={onClose} hitSlop={8} accessibilityLabel="Close sheet">
-              <Text style={styles.closeText}>✕</Text>
-            </Pressable>
-          </View>
-          <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
-            {children}
+          )}
+          <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={hero ? styles.bodyHero : styles.body} showsVerticalScrollIndicator={false} stickyHeaderIndices={undefined}>
+            {hero}
+            {hero ? <View style={styles.heroBody}>{children}</View> : children}
           </ScrollView>
           {!!footer && <View style={styles.footer}>{footer}</View>}
         </Animated.View>
@@ -73,6 +78,8 @@ const styles = themedStyles(() =>
       paddingTop: 10,
       overflow: 'hidden',
     },
+    // With a hero the cover starts at the very top edge, so there is no strip of sheet above it as the body scrolls.
+    sheetHero: { paddingTop: 0 },
     handle: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: Colors.subtleBorder },
     headerRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 18, paddingTop: 12 },
     title: { fontSize: 17, fontFamily: FONTS.titleBold, color: Colors.textMain },
@@ -80,6 +87,9 @@ const styles = themedStyles(() =>
     closeBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: getThemeMode() === 'dark' ? Colors.subtleFill : '#eef2f7', justifyContent: 'center', alignItems: 'center' },
     closeText: { fontSize: 13, fontWeight: '700', color: Colors.textMain },
     body: { padding: 18, gap: 10 },
+    // With a hero the cover runs edge to edge at the top; the content below keeps the usual inset.
+    bodyHero: { paddingBottom: 18 },
+    heroBody: { paddingHorizontal: 6, paddingTop: 12, gap: 10 },
     footer: {
       padding: 16,
       paddingTop: 12,

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, Pressable, StyleSheet, ScrollView, TextInput, Animated, Linking, PanResponder } from 'react-native';
+import { View, Text, Pressable, StyleSheet, ScrollView, TextInput, Animated, Easing, Linking, PanResponder } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, getThemeMode, themedStyles } from '@ongarage/shared';
 import { MOCK_GARAGES } from '../constants/mockData';
@@ -35,6 +35,11 @@ export const ServiceBrowseScreen: React.FC<ServiceBrowseScreenProps> = ({ servic
   const [peekHeight, setPeekHeight] = useState(DEFAULT_PEEK_HEIGHT);
   const sheetRef = useRef<SheetState>(sheet);
   sheetRef.current = sheet;
+  // The search bar folds away while the sheet is fully open: 0 = shown, 1 = hidden.
+  const [headerH, setHeaderH] = useState(0);
+  const headerFold = useRef(new Animated.Value(0)).current;
+  // The list scrolling itself back to the top after a snap must not re-open the sheet.
+  const lastSnap = useRef(0);
   const listRef = useRef<ScrollView>(null);
   const listY = useRef(0);
   const sheetHeight = useRef(new Animated.Value(COLLAPSED_HEIGHT)).current;
@@ -54,6 +59,8 @@ export const ServiceBrowseScreen: React.FC<ServiceBrowseScreenProps> = ({ servic
   const animateTo = (target: SheetState, velocity = 0) => {
     setSheet(target);
     sheetRef.current = target;
+    lastSnap.current = Date.now();
+    Animated.timing(headerFold, { toValue: target === 'expanded' ? 1 : 0, duration: 280, easing: Easing.out(Easing.cubic), useNativeDriver: false }).start();
     if (target !== 'expanded') {
       listRef.current?.scrollTo({ y: 0, animated: true });
       listY.current = 0;
@@ -155,7 +162,14 @@ export const ServiceBrowseScreen: React.FC<ServiceBrowseScreenProps> = ({ servic
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      <View style={styles.header}>
+      <Animated.View
+        style={
+          headerH > 0
+            ? { height: headerFold.interpolate({ inputRange: [0, 1], outputRange: [headerH, 0] }), opacity: headerFold.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }), overflow: 'hidden' }
+            : undefined
+        }
+      >
+      <View style={styles.header} onLayout={(e) => headerH === 0 && setHeaderH(Math.round(e.nativeEvent.layout.height))}>
         <View style={styles.searchBox}>
           <Text style={styles.searchIcon}>🔍</Text>
           <TextInput
@@ -175,6 +189,7 @@ export const ServiceBrowseScreen: React.FC<ServiceBrowseScreenProps> = ({ servic
           <Icon name="x" size={16} strokeWidth={2.5} color={Colors.textMain} />
         </Pressable>
       </View>
+      </Animated.View>
 
       <View style={styles.mapArea} onLayout={(e) => setMapHeight(e.nativeEvent.layout.height)}>
         <GoogleMap
@@ -259,7 +274,7 @@ export const ServiceBrowseScreen: React.FC<ServiceBrowseScreenProps> = ({ servic
             onScroll={(e) => {
               listY.current = e.nativeEvent.contentOffset.y;
               // Mouse wheel / trackpad on web never reaches the pan responder.
-              if (listY.current > 2 && sheetRef.current !== 'expanded') animateTo('expanded');
+              if (listY.current > 2 && sheetRef.current !== 'expanded' && Date.now() - lastSnap.current > 700) animateTo('expanded');
             }}
           >
             {garages.map((g) => (
@@ -365,7 +380,7 @@ const styles = themedStyles(() => StyleSheet.create({
     borderTopRightRadius: 24,
     overflow: 'hidden',
     paddingTop: 10,
-    paddingHorizontal: 14,
+    paddingHorizontal: 6,
     paddingBottom: 20,
     gap: 10,
     shadowColor: '#000',

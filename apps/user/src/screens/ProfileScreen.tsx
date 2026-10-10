@@ -25,12 +25,14 @@ const HELP_LINE = '0112345678';
 interface ProfileScreenProps {
   activeVehicle: string;
   onVehicleChange: (vehicleId: string) => void;
+  /** 0 at the top, 1 once scrolled: how far the sheet has risen over the top band (as on Home). */
+  onHeaderProgress?: (progress: number) => void;
 }
 
 type SheetId = 'settings' | 'help' | 'about' | null;
 
 /** The account page: who you are (tap to edit), how complete the profile is, your vehicles, then a list of rows. */
-export const ProfileScreen: React.FC<ProfileScreenProps> = ({ activeVehicle, onVehicleChange }) => {
+export const ProfileScreen: React.FC<ProfileScreenProps> = ({ activeVehicle, onVehicleChange, onHeaderProgress }) => {
   const { isDark, toggle } = useTheme();
   const { profile, fullName, initials } = useProfile();
   const { vehicles, findVehicle } = useVehicles();
@@ -49,7 +51,13 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ activeVehicle, onV
 
   return (
     <View style={styles.container}>
-      <ScrollView style={styles.flex1} contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.flex1}
+        contentContainerStyle={styles.body}
+        showsVerticalScrollIndicator={false}
+        scrollEventThrottle={16}
+        onScroll={(e) => onHeaderProgress?.(Math.min(1, Math.max(0, e.nativeEvent.contentOffset.y / 60)))}
+      >
         {/* Who you are: tap to edit */}
         <Pressable style={styles.top} onPress={() => setEditing(true)} accessibilityLabel="Edit profile">
           {profile.photo ? (
@@ -154,7 +162,7 @@ const styles = themedStyles(() =>
   StyleSheet.create({
     flex1: { flex: 1 },
     container: { flex: 1, backgroundColor: Colors.bgBody },
-    body: { padding: 16, gap: 14, paddingBottom: 100 },
+    body: { paddingHorizontal: 6, paddingTop: 16, gap: 14, paddingBottom: 100 },
     top: { alignItems: 'center', gap: 8, paddingTop: 4 },
     avatar: { width: 84, height: 84, borderRadius: 42 },
     avatarEmpty: { backgroundColor: Colors.subtleFill, alignItems: 'center', justifyContent: 'center' },

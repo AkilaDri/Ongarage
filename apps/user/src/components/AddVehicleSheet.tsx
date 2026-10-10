@@ -240,7 +240,7 @@ const styles = themedStyles(() =>
       alignItems: 'center',
     },
     closeText: { fontSize: 12, color: Colors.textMain },
-    body: { padding: 18, gap: 10 },
+    body: { paddingHorizontal: 6, paddingVertical: 18, gap: 10 },
     preview: {
       flexDirection: 'row',
       alignItems: 'center',

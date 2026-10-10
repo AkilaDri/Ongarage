@@ -28,6 +28,7 @@ import { WorkshopTracker } from './workshop/WorkshopTracker';
 import { useUserLocation } from '../context/LocationContext';
 import { sparePartLabel } from '../constants/labels';
 import { Toast } from './Toast';
+import { TxnTag } from './TxnTag';
 import { ago, countdown, formatDate, formatTime, money } from '../utils/format';
 import type { DirectBooking } from '../types';
 
@@ -301,6 +302,7 @@ export const OwnerDetailView: React.FC<{
                 <Text style={styles.sub}>
                   {vehicleIcon(vehicle.type)} {vehicle.name} · {vehicle.plate} · {ago(now - (job?.submittedAt ?? booking!.requestedAt))}
                 </Text>
+                <TxnTag kind={job ? 'JOB' : 'BKG'} source={job ? job.id : booking!.id} />
               </View>
             </View>
 
@@ -375,7 +377,7 @@ const styles = themedStyles(() =>
     kindBid: { backgroundColor: 'rgba(56, 189, 248, 0.12)', borderColor: 'rgba(56, 189, 248, 0.45)' },
     kindDirect: { backgroundColor: 'rgba(16, 185, 129, 0.12)', borderColor: 'rgba(16, 185, 129, 0.45)' },
     kindText: { fontSize: 10.5, fontFamily: FONTS.bodySemiBold },
-    body: { padding: 16, gap: 12, paddingBottom: 28 },
+    body: { paddingHorizontal: 6, paddingTop: 16, gap: 12, paddingBottom: 28 },
     bigTitle: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textMain },
     title: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.textMain },
     sub: { fontSize: 11, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 1, lineHeight: 17 },
