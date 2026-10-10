@@ -9,6 +9,8 @@ import { Gradient, GRADIENTS } from '@ongarage/shared';
 import WeatherAnimation, { periodOf, skyInk, useHour } from './WeatherAnimation';
 import { MOCK_USER } from '../constants/mockData';
 
+/** Every page's top band is this tall - the height of Home's greeting band. */
+export const HEADER_BAND_H = 100;
 const POPOVER_WIDTH = 264;
 const EDGE_GAP = 12;
 
@@ -228,6 +230,7 @@ const styles = themedStyles(() => StyleSheet.create({
     paddingHorizontal: 18,
     paddingTop: 12,
     paddingBottom: 34,
+    minHeight: HEADER_BAND_H,
     overflow: 'hidden',
     backgroundColor: getThemeMode() === 'dark' ? '#0e2a3f' : '#bfe4fa',
   },
@@ -242,7 +245,7 @@ const styles = themedStyles(() => StyleSheet.create({
   titleBandActionText: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: '#ffffff' },
   // Leaves room for the sun / moon between the title and the action button.
   titleWithAction: { flexShrink: 1, maxWidth: '44%' },
-  titleBand: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, paddingHorizontal: 18, paddingTop: 14, paddingBottom: 34, overflow: 'hidden', backgroundColor: getThemeMode() === 'dark' ? '#0e2a3f' : '#bfe4fa' },
+  titleBand: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, paddingHorizontal: 18, paddingTop: 14, paddingBottom: 34, minHeight: HEADER_BAND_H, overflow: 'hidden', backgroundColor: getThemeMode() === 'dark' ? '#0e2a3f' : '#bfe4fa' },
   titleBandText: { fontSize: 20, fontFamily: FONTS.titleBold, color: getThemeMode() === 'dark' ? '#d6eefc' : '#0f2a3d' },
   city: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: getThemeMode() === 'dark' ? '#8fc3e3' : '#2b4a63', marginBottom: 2 },
   greetingRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 6 },

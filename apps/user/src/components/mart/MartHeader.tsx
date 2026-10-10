@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { FONTS, getThemeMode, themedStyles, vehicleIcon } from '@ongarage/shared';
 import { useUserLocation } from '../../context/LocationContext';
 import { useVehicles } from '../../context/VehiclesContext';
-import { VehiclePicker } from '../Header';
+import { HEADER_BAND_H, VehiclePicker } from '../Header';
 import WeatherAnimation, { periodOf, skyInk, useHour } from '../WeatherAnimation';
 
 /**
@@ -55,7 +55,7 @@ const dark = () => getThemeMode() === 'dark';
 
 const styles = themedStyles(() =>
   StyleSheet.create({
-    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12, paddingHorizontal: 18, paddingTop: 12, paddingBottom: 34, overflow: 'hidden', backgroundColor: dark() ? '#0e2a3f' : '#bfe4fa' },
+    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12, paddingHorizontal: 18, paddingTop: 12, paddingBottom: 34, minHeight: HEADER_BAND_H, overflow: 'hidden', backgroundColor: dark() ? '#0e2a3f' : '#bfe4fa' },
     left: { flexDirection: 'row', alignItems: 'center', gap: 10, flexShrink: 1 },
     badge: { width: 44, height: 44, borderRadius: 22, backgroundColor: dark() ? '#16415f' : '#ffffff', alignItems: 'center', justifyContent: 'center' },
     badgeEmoji: { fontSize: 22 },

@@ -22,7 +22,7 @@ import { BookingsProvider } from './context/BookingsContext';
 import { SOSRecordsProvider } from './context/SOSRecordsContext';
 import { WorkshopProvider } from './context/WorkshopContext';
 import { ProfileProvider } from './context/ProfileContext';
-import { Header, TitleBand } from './components/Header';
+import { Header, HEADER_BAND_H, TitleBand } from './components/Header';
 import { MartHeader } from './components/mart/MartHeader';
 import { Toast } from './components/Toast';
 import { DirectBookingSheet } from './components/DirectBookingSheet';
@@ -40,7 +40,7 @@ import { MART_TABS, USER_TABS, type MartSegment, type TabId } from './constants/
 import { categoryInfo, type Garage, type JobDraft, type PickedLocation, type ServiceCategory } from '@ongarage/shared';
 
 // The title band other tabs show instead of the greeting header (Home has the header; Account has nothing and uses the full screen).
-const TAB_TITLES: Partial<Record<TabId, string>> = { bids: 'ඔබගේ ලංසු වල තත්ත්වය', activity: 'ඔබේ ක්‍රියාකාරකම්' };
+const TAB_TITLES: Partial<Record<TabId, string>> = { bids: 'ඔබගේ ලංසු වල තත්ත්වය', activity: 'ඔබේ ක්‍රියාකාරකම්', profile: 'ඔබගේ ගිණුම' };
 
 // Banner sizes: stacked cards at the top of Home, one compact row once the page is scrolled.
 const SOS_H = 94;
@@ -127,7 +127,7 @@ function AppShell() {
   // OnMart asks the owner for permission the first time its tab is tapped (remembered for the session).
   const [martAllowed, setMartAllowed] = useState(false);
   const [askMart, setAskMart] = useState(false);
-  const foldableBar = activeTab === 'activity' || activeTab === 'bids';
+  const foldableBar = activeTab === 'activity' || activeTab === 'bids' || activeTab === 'profile';
   const [sosStage, setSOSStage] = useState<SOSStage>('closed');
   // The owner can leave a running SOS job for OnMart (to buy a part the technician needs) and come back to it.
   const [sosHidden, setSosHidden] = useState(false);
@@ -165,7 +165,7 @@ function AppShell() {
   }, [fontsLoaded]);
 
   React.useEffect(() => {
-    if (activeTab === 'mart' || activeTab === 'activity' || activeTab === 'bids') setMartHeaderVisible(true);
+    if (activeTab === 'mart' || activeTab === 'activity' || activeTab === 'bids' || activeTab === 'profile') setMartHeaderVisible(true);
   }, [activeTab, setMartHeaderVisible]);
 
   if (!fontsLoaded) {
@@ -186,7 +186,7 @@ function AppShell() {
             <Header activeVehicle={selectedVehicle} onVehicleChange={setSelectedVehicle} />
           </View>
         ) : activeTab === 'mart' ? (
-          <Animated.View style={{ height: martHeaderCollapse.interpolate({ inputRange: [0, 1], outputRange: [90, 0] }), overflow: 'hidden' }}>
+          <Animated.View style={{ height: martHeaderCollapse.interpolate({ inputRange: [0, 1], outputRange: [HEADER_BAND_H, 0] }), overflow: 'hidden' }}>
             <MartHeader activeVehicle={selectedVehicle} onVehicleChange={setSelectedVehicle} />
           </Animated.View>
         ) : TAB_TITLES[activeTab] ? (
@@ -271,9 +271,8 @@ function AppShell() {
         <Animated.View
           style={[
             styles.sheet,
-            activeTab !== 'profile' && styles.sheetOverlap,
+            styles.sheetOverlap,
             activeTab === 'home' && styles.sheetHome,
-            activeTab === 'bids' && styles.sheetFlush,
           ]}
         >
           {activeTab === 'home' ? (
@@ -293,7 +292,7 @@ function AppShell() {
               onHeaderVisibilityChange={setMartHeaderVisible}
             />
           ) : activeTab === 'activity' ? (
-            <ActivityScreen onHeaderVisibilityChange={setMartHeaderVisible} onOpenMart={() => setActiveTab('mart')} onOpenBids={() => setActiveTab('bids')} onBookAgain={(b) => setSelectedService(categoryInfo(b.categoryId))} />
+            <ActivityScreen onHeaderProgress={(p) => martHeaderCollapse.setValue(p)} onOpenMart={() => setActiveTab('mart')} onOpenBids={() => setActiveTab('bids')} onBookAgain={(b) => setSelectedService(categoryInfo(b.categoryId))} />
           ) : activeTab === 'mart' ? (
             <MartScreen
               activeVehicle={selectedVehicle}
@@ -304,7 +303,7 @@ function AppShell() {
               onHeaderVisibilityChange={setMartHeaderVisible}
             />
           ) : (
-            <ProfileScreen activeVehicle={selectedVehicle} onVehicleChange={setSelectedVehicle} />
+            <ProfileScreen activeVehicle={selectedVehicle} onVehicleChange={setSelectedVehicle} onHeaderProgress={(p) => martHeaderCollapse.setValue(p)} />
           )}
         </Animated.View>
 
@@ -454,8 +453,6 @@ const styles = themedStyles(() => StyleSheet.create({
   sosReturnText: { fontSize: 14, fontFamily: FONTS.titleBold, color: '#ffffff' },
   sheetOverlap: { marginTop: -18, borderTopLeftRadius: 24, borderTopRightRadius: 24, overflow: 'hidden' },
   // Home: the list sits in its own rounded, shadowed sheet that slides up over the padding under the banners.
-  // Bids: the sheet rises right up to the top bar, so no rounded corner shows the band behind it.
-  sheetFlush: { borderTopLeftRadius: 0, borderTopRightRadius: 0 },
   sheetHome: { marginTop: -16, zIndex: 2, borderTopWidth: 1, borderTopColor: Colors.borderColor, shadowColor: '#000', shadowOffset: { width: 0, height: -6 }, shadowOpacity: 0.14, shadowRadius: 14, elevation: 12 },
   bottomNavContainer: { position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 20 },
   // Sticky banners on Home (outside the sheet so they don't move when sheet expands)

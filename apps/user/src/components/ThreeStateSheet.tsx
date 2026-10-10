@@ -11,6 +11,8 @@ export type SheetApi = {
   scrollRef: React.RefObject<ScrollView | null>;
   /** Pass to the ScrollView inside, so the sheet knows when the list is at the top. */
   onScroll: (y: number) => void;
+  /** Brings the sheet back down to its middle height (the list goes back to its top). */
+  collapse: () => void;
 };
 
 /**
@@ -152,6 +154,7 @@ export const ThreeStateSheet: React.FC<{
             state,
             reveal,
             scrollRef,
+            collapse: () => animateTo('collapsed'),
             onScroll: (y) => {
               listY.current = y;
               // Scrolling the list with a wheel / trackpad opens the sheet fully (web).

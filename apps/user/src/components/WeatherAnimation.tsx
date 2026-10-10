@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
-import Svg, { Circle, Defs, Ellipse, Line, Path, RadialGradient, Rect, Stop } from 'react-native-svg';
+import Svg, { Circle, Defs, Ellipse, Line, LinearGradient, Path, RadialGradient, Rect, Stop } from 'react-native-svg';
 import { themedStyles } from '@ongarage/shared';
 
 /** The four parts of the day, each with its own sky, light and skyline: morning (ude), daytime (dahawala), evening (hendewa), night (rathriya). */
@@ -8,8 +8,30 @@ export type Period = 'morning' | 'day' | 'evening' | 'night';
 export const periodOf = (hour: number): Period => (hour >= 5 && hour < 11 ? 'morning' : hour >= 11 && hour < 16 ? 'day' : hour >= 16 && hour < 19 ? 'evening' : 'night');
 export const SKY: Record<Period, string> = { morning: '#ffd8b4', day: '#a9dcf7', evening: '#f8b878', night: '#10213f' };
 
-/**
- * The sun as a 3D symbol: a glossy sphere (light from the top left: a bright highlight, a deep rim and a soft shadow on the
+/** Top-to-bottom colours of the sky in each part of the day: a pink-gold dawn, a bright blue noon, a fiery dusk and a deep starry night. */
+const SKY_STOPS: Record<Period, [string, string, string]> = {
+  morning: ['#8fb8e8', '#ffd2c0', '#ffe9b8'],
+  day: ['#4fa8ec', '#a9dcf7', '#e4f5ff'],
+  evening: ['#5a4a9a', '#f08a6a', '#ffc878'],
+  night: ['#050b1f', '#10213f', '#25386a'],
+};
+const SkyGradient: React.FC<{ period: Period }> = ({ period }) => {
+  const [a, b, c] = SKY_STOPS[period];
+  return (
+    <Svg style={StyleSheet.absoluteFill} width="100%" height="100%" preserveAspectRatio="none">
+      <Defs>
+        <LinearGradient id={`skyGrad${period}`} x1="0" y1="0" x2="0" y2="1">
+          <Stop offset="0" stopColor={a} />
+          <Stop offset="0.55" stopColor={b} />
+          <Stop offset="1" stopColor={c} />
+        </LinearGradient>
+      </Defs>
+      <Rect x="0" y="0" width="100%" height="100%" fill={`url(#skyGrad${period})`} />
+    </Svg>
+  );
+};
+
+/** The sun as a 3D symbol: a glossy sphere (light from the top left: a bright highlight, a deep rim and a soft shadow on the
  * far side) with round-ended rays that each cast a small shadow, and a faint halo. `evening` tints it orange-red as it sets.
  */
 const Sun: React.FC<{ size: number; evening?: boolean }> = ({ size, evening }) => {
@@ -185,9 +207,23 @@ const LUMINARY: Record<Period, { emoji: string; bottom: number; stops: [string, 
   evening: { emoji: '☀️', bottom: 44, stops: ['#fffbe0', '#ffe9a0', '#ffc46b'], fade: '#ff9a52', strength: 1 },
   night: { emoji: '🌙', bottom: 46, stops: ['#f6f8ff', '#c4d4ff', '#7d97e0'], fade: '#4a62b0', strength: 0.75 },
 };
+/** Night stars, spread evenly in two staggered rows (big and small alternating) and kept clear of the moon (middle-right) and the skyline. */
+const STARS: { x: number; y: number; size: number; lo: number; hi: number }[] = [
+  { x: 6, y: 10, size: 9, lo: 0.3, hi: 1 },
+  { x: 20, y: 28, size: 6, lo: 0.2, hi: 0.8 },
+  { x: 33, y: 8, size: 8, lo: 0.4, hi: 1 },
+  { x: 46, y: 30, size: 6, lo: 0.2, hi: 0.9 },
+  { x: 14, y: 50, size: 6, lo: 0.2, hi: 0.8 },
+  { x: 40, y: 54, size: 7, lo: 0.3, hi: 1 },
+  { x: 73, y: 8, size: 8, lo: 0.3, hi: 1 },
+  { x: 85, y: 30, size: 6, lo: 0.2, hi: 0.9 },
+  { x: 95, y: 12, size: 7, lo: 0.4, hi: 1 },
+  { x: 78, y: 50, size: 6, lo: 0.2, hi: 0.8 },
+  { x: 92, y: 52, size: 8, lo: 0.3, hi: 1 },
+];
 const Luminary: React.FC<{ period: Period; width: number }> = ({ period, width }) => {
   const l = LUMINARY[period];
-  const cx = width * 0.56 + 40;
+  const cx = width * 0.56 + 40 - (period === 'night' ? 10 : 0);
   const id = `light-${period}`;
   return (
     <>
@@ -239,11 +275,12 @@ const CartoonSun: React.FC<{ size: number }> = ({ size }) => {
 };
 
 /** A bird in flight: two curved wings in a soft "v". */
-const Bird: React.FC<{ size: number }> = ({ size }) => (
+const Bird: React.FC<{ size: number; color: string }> = ({ size, color }) => (
   <Svg width={size} height={size * 0.5} viewBox="0 0 28 14">
-    <Path d="M1.5 4.5Q7 0.5 14 8Q21 0.5 26.5 4.5" stroke="#1f3a5c" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+    <Path d="M1.5 4.5Q7 0.5 14 8Q21 0.5 26.5 4.5" stroke={color} strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" fill="none" />
   </Svg>
 );
+const BIRD_COLOR: Record<Period, string> = { morning: '#6b3f35', day: '#1f3a5c', evening: '#4a1f2a', night: '#cfdcff' };
 
 /**
  * The sky's animation values live here, not in each band: the loops start the first time a sky is shown and keep running
@@ -328,7 +365,7 @@ const WeatherAnimation: React.FC<{ hour: number }> = ({ hour }) => {
   const { cloudA, cloudB, cloudC, sun, birdA, birdB, flap, twinkleA, twinkleB, bob } = sky;
 
   const drift = (v: Animated.Value) => ({ transform: [{ translateX: v.interpolate({ inputRange: [0, 1], outputRange: [-48, width + 8] }) }] });
-  const cloudOpacity = period === 'night' ? 0.3 : 0.6;
+  const cloudOpacity = period === 'night' ? 0.22 : period === 'evening' ? 0.75 : period === 'morning' ? 0.7 : 0.6;
   const twinkle = (v: Animated.Value, from: number, to: number) => v.interpolate({ inputRange: [0, 1], outputRange: [from, to] });
 
   return (
@@ -338,27 +375,30 @@ const WeatherAnimation: React.FC<{ hour: number }> = ({ hour }) => {
       accessibilityLabel={`Sky: ${period}`}
       onLayout={(e) => setWidth(Math.round(e.nativeEvent.layout.width))}
     >
-      {(period === 'morning' || period === 'day') && (
-        <>
-          {/* birds gliding across in the daylight, wings beating */}
-          <Animated.View style={[styles.bird, { top: 16, transform: [{ translateX: birdA.interpolate({ inputRange: [0, 1], outputRange: [-30, width + 10] }) }, { translateY: flap.interpolate({ inputRange: [0, 1], outputRange: [0, -3] }) }] }]}>
-            <Animated.View style={{ transform: [{ scaleY: flap.interpolate({ inputRange: [0, 1], outputRange: [1, 0.45] }) }] }}>
-              <Bird size={26} />
-            </Animated.View>
-          </Animated.View>
-          <Animated.View style={[styles.bird, { top: 44, opacity: 0.8, transform: [{ translateX: birdB.interpolate({ inputRange: [0, 1], outputRange: [-30, width + 10] }) }, { translateY: flap.interpolate({ inputRange: [0, 1], outputRange: [-2, 1] }) }] }]}>
-            <Animated.View style={{ transform: [{ scaleY: flap.interpolate({ inputRange: [0, 1], outputRange: [0.5, 1] }) }] }}>
-              <Bird size={18} />
-            </Animated.View>
-          </Animated.View>
-        </>
-      )}
+      <SkyGradient period={period} />
+      {/* a flock of birds flying sideways across the sky, wings beating, in every part of the day */}
+      <Animated.View style={[styles.bird, { top: 16, transform: [{ translateX: birdA.interpolate({ inputRange: [0, 1], outputRange: [-30, width + 10] }) }, { translateY: flap.interpolate({ inputRange: [0, 1], outputRange: [0, -3] }) }] }]}>
+        <Animated.View style={{ transform: [{ scaleY: flap.interpolate({ inputRange: [0, 1], outputRange: [1, 0.45] }) }] }}>
+          <Bird size={26} color={BIRD_COLOR[period]} />
+        </Animated.View>
+      </Animated.View>
+      <Animated.View style={[styles.bird, { top: 28, opacity: 0.85, transform: [{ translateX: birdA.interpolate({ inputRange: [0, 1], outputRange: [-62, width - 22] }) }, { translateY: flap.interpolate({ inputRange: [0, 1], outputRange: [-2, 2] }) }] }]}>
+        <Animated.View style={{ transform: [{ scaleY: flap.interpolate({ inputRange: [0, 1], outputRange: [0.55, 1] }) }] }}>
+          <Bird size={20} color={BIRD_COLOR[period]} />
+        </Animated.View>
+      </Animated.View>
+      <Animated.View style={[styles.bird, { top: 44, opacity: 0.8, transform: [{ translateX: birdB.interpolate({ inputRange: [0, 1], outputRange: [-30, width + 10] }) }, { translateY: flap.interpolate({ inputRange: [0, 1], outputRange: [-2, 1] }) }] }]}>
+        <Animated.View style={{ transform: [{ scaleY: flap.interpolate({ inputRange: [0, 1], outputRange: [0.5, 1] }) }] }}>
+          <Bird size={18} color={BIRD_COLOR[period]} />
+        </Animated.View>
+      </Animated.View>
       {period === 'night' && (
         <>
-          <Animated.Text style={[styles.star, { left: '12%', top: 14, opacity: twinkle(twinkleA, 0.25, 1) }]}>✦</Animated.Text>
-          <Animated.Text style={[styles.star, { left: '38%', top: 58, fontSize: 9, opacity: twinkle(twinkleB, 1, 0.2) }]}>✦</Animated.Text>
-          <Animated.Text style={[styles.star, { left: '56%', top: 22, fontSize: 8, opacity: twinkle(twinkleA, 1, 0.3) }]}>✦</Animated.Text>
-          <Animated.Text style={[styles.star, { left: '80%', top: 70, fontSize: 9, opacity: twinkle(twinkleB, 0.3, 1) }]}>✦</Animated.Text>
+          {STARS.map((st, i) => (
+            <Animated.Text key={i} style={[styles.star, { left: `${st.x}%`, top: st.y, fontSize: st.size, opacity: i % 2 ? twinkle(twinkleA, st.lo, st.hi) : twinkle(twinkleB, st.hi, st.lo) }]}>
+              ✦
+            </Animated.Text>
+          ))}
         </>
       )}
       <Luminary period={period} width={width} />

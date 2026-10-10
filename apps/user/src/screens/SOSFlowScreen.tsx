@@ -9,6 +9,8 @@ import { useVehicles } from '../context/VehiclesContext';
 import { useNotice } from '../context/NoticeContext';
 import { MartIcon } from '../components/MartBagIcon';
 import { useSOSRecords } from '../context/SOSRecordsContext';
+import { TxnTag } from '../components/TxnTag';
+import { txnId } from '../utils/txn';
 import { BREAKDOWN_TYPES, breakdownInfo, getThemeMode } from '@ongarage/shared';
 import { VehiclePicker } from '../components/Header';
 import { GoogleMap, type Project } from '@ongarage/shared';
@@ -555,7 +557,7 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
   const partName = (breakdown && PART_FOR_BREAKDOWN[breakdown]) || DEFAULT_PART;
   const partPrice = partMarketPrice(partName, 'OEM');
   const orderShop = martShop('ps1');
-  const partBill = { invoice: `INV-${closeCode.slice(0, 4)}`, shop: orderShop?.name ?? 'Galle Auto Parts', qty: 1, unit: partPrice, total: partPrice };
+  const partBill = { invoice: txnId('ORD', `part-${closeCode}`), shop: orderShop?.name ?? 'Galle Auto Parts', qty: 1, unit: partPrice, total: partPrice };
   const partCharge = partState === 'ordered' ? partBill.total : 0;
 
   const spin = spinAnim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
@@ -922,6 +924,7 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
         <View style={styles.flex1}>
           <Text style={styles.cardTitle}>ඉල්ලීම පිළිගත්තා!</Text>
           <Text style={styles.cardSub}>{job.name} ඔබගේ SOS ඉල්ලීම පිළිගෙන ඔබ වෙත පැමිණෙමින් සිටී.</Text>
+          <TxnTag kind="SOS" source={`sos-${closeCode}`} />
         </View>
       </View>
       <View style={styles.card}>
@@ -1204,6 +1207,7 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
       <CloseCode code={closeCode} size={190} caption="ස්කෑන් කළ නොහැකි නම් මෙම ඉලක්කම් 6 කාර්මිකයාට කියන්න." />
       <View style={styles.card}>
         <Text style={styles.label}>බිල්පත් සාරාංශය</Text>
+        <TxnTag kind="SOS" source={`sos-${closeCode}`} />
         <View style={styles.rowBetween}>
           <Text style={styles.detailText}>අලුත්වැඩියා ගාස්තුව</Text>
           <Text style={styles.detailText}>{money(job.bid)}</Text>

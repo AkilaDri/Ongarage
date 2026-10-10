@@ -6,6 +6,7 @@ import { useVehicles } from '../context/VehiclesContext';
 import { useWorkshops } from '../context/WorkshopContext';
 import { WorkshopTracker } from './workshop/WorkshopTracker';
 import { CategoryPhoto } from './home/CategoryPhoto';
+import { TxnTag } from './TxnTag';
 import { useUserLocation } from '../context/LocationContext';
 import { countdown, formatDate, formatTime, money } from '../utils/format';
 import type { DirectBooking } from '../types';
@@ -44,6 +45,7 @@ export const DirectBookingCard: React.FC<{ booking: DirectBooking; onBookAgain: 
           <Text style={styles.sub} numberOfLines={1}>
             {b.garage.name} · {vehicleIcon(v.type)} {v.name}
           </Text>
+          <TxnTag kind="BKG" source={b.id} />
         </View>
         <View style={styles.tagCol}>
           <View style={styles.tag}>

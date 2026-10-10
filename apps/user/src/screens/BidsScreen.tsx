@@ -10,6 +10,7 @@ import { ActionButton, EmptyState, GlassIcon, ModalCard, SwipeCard } from '@onga
 import { OwnerDetailView } from '../components/OwnerDetailView';
 import { GarageReviewsSheet, garageForBid } from '../components/GarageReviewsSheet';
 import { ThreeStateSheet } from '../components/ThreeStateSheet';
+import { TxnTag } from '../components/TxnTag';
 import { GARAGE_COVERS } from '../constants/home';
 import { CategoryPhoto } from '../components/home/CategoryPhoto';
 import { money } from '../utils/format';
@@ -116,6 +117,7 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, onRepu
             {vehicle ? `${vehicle.name} · ${vehicle.plate}` : ''}
             {media ? `  ·  ${media}` : ''}
           </Text>
+          <TxnTag kind="JOB" source={job.id} />
           <Text style={styles.detailsLink}>විස්තර ›</Text>
         </View>
         {badge}
@@ -353,6 +355,15 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, onRepu
         >
           {(api) => (
             <>
+      {/* Opened to the top the grip is gone, so a button in its place brings the sheet back down - like the service sheet's minimise button. */}
+      {api.state === 'expanded' && (
+        <View style={styles.sheetHead}>
+          <Text style={styles.sheetHeadTitle}>{allBids.length ? `ලැබුණු ලංසු ${allBids.length}` : 'ලංසු'}</Text>
+          <Pressable style={styles.minBtn} onPress={api.collapse} hitSlop={8} accessibilityLabel="Minimize">
+            <Icon name="chevron-down" size={16} strokeWidth={2.5} color={Colors.primary} />
+          </Pressable>
+        </View>
+      )}
       <View style={styles.tabBar}>
         {tabs.map((t) => {
           const active = tab === t.id;
@@ -474,6 +485,9 @@ const styles = themedStyles(() => StyleSheet.create({
   // Same "add" button as the garage app's Parts tab.
   swipeHint: { fontSize: 10.5, fontFamily: FONTS.bodyMedium, color: Colors.textMuted },
   detailsLink: { fontSize: 10.5, fontFamily: FONTS.bodySemiBold, color: Colors.primary, marginTop: 4 },
+  sheetHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, paddingTop: 12 },
+  sheetHeadTitle: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textMain },
+  minBtn: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(56, 189, 248, 0.12)', borderWidth: 1, borderColor: 'rgba(56, 189, 248, 0.45)' },
   tabBar: { flexDirection: 'row', gap: 8, paddingHorizontal: 6, paddingTop: 12, paddingBottom: 6 },
   tab: {
     flex: 1,

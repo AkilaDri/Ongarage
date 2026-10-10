@@ -13,6 +13,7 @@ import { useUserLocation } from '../context/LocationContext';
 import { directionsUrl } from '@ongarage/shared';
 import { useBookings } from '../context/BookingsContext';
 import { useSOSRecords } from '../context/SOSRecordsContext';
+import { TxnTag } from '../components/TxnTag';
 import { useMart } from '../context/MartContext';
 import { DirectBookingCard } from '../components/DirectBookingCard';
 import { OrdersList } from '../components/mart/OrdersList';
@@ -26,7 +27,7 @@ const MONTHS = ['ජන.', 'පෙබ.', 'මාර්තු', 'අප්‍ර�
 
 const formatDate = (d: Date) => `${d.getFullYear()} ${MONTHS[d.getMonth()]} ${d.getDate()}`;
 
-export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b: DirectBooking) => void; onOpenMart?: () => void; onHeaderVisibilityChange?: (visible: boolean) => void }> = ({ onOpenBids, onBookAgain, onOpenMart, onHeaderVisibilityChange }) => {
+export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b: DirectBooking) => void; onOpenMart?: () => void; onHeaderProgress?: (progress: number) => void }> = ({ onOpenBids, onBookAgain, onOpenMart, onHeaderProgress }) => {
   const { jobs } = useBids();
   const { bookings } = useBookings();
   const { workshops } = useWorkshops();
@@ -65,9 +66,6 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
   // Inside "completed": which kind of finished work to look at.
   const [doneKind, setDoneKind] = useState<'all' | 'bids' | 'direct' | 'sos' | 'past'>('all');
   const showDone = (k: typeof doneKind) => kind === 'all' || (kind === 'done' && (doneKind === 'all' || doneKind === k));
-  const lastY = useRef(0);
-  const barHidden = useRef(false);
-  const lastToggle = useRef(0);
   const vehicleName = (id: string) => findVehicle(id).name;
   const user = useUserLocation();
 
@@ -90,6 +88,7 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
               {bid.garageName} · {vehicleName(job.vehicleId)}
             </Text>
             <Text style={styles.sub}>වෙන් කළේ {formatDate(new Date(bid.submittedAt))}</Text>
+            <TxnTag kind="JOB" source={job.id} />
           </View>
           <View style={styles.right}>
             <Text style={styles.price}>{money(bid.price)}</Text>
@@ -140,20 +139,8 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
         onScroll={(e) => {
           const y = e.nativeEvent.contentOffset.y;
           edge.setValue(Math.min(1, Math.max(0, (y - 8) / 30)));
-          // Scrolling down folds the top bar away completely so the page rises to the top; scrolling back up brings it back.
-          // Folding the bar makes the viewport taller, which nudges the offset back by itself; ignore that for a moment
-          // so it does not read as the owner scrolling up.
-          const settling = Date.now() - lastToggle.current < 600;
-          if (y > lastY.current + 8 && y > 12 && !barHidden.current) {
-            barHidden.current = true;
-            lastToggle.current = Date.now();
-            onHeaderVisibilityChange?.(false);
-          } else if (barHidden.current && !settling && (y < lastY.current - 8 || y <= 0)) {
-            barHidden.current = false;
-            lastToggle.current = Date.now();
-            onHeaderVisibilityChange?.(true);
-          }
-          lastY.current = y;
+          // The sheet rises over the top band within the first 60px of scrolling, as on Home, and settles back at the top.
+          onHeaderProgress?.(Math.min(1, Math.max(0, y / 60)));
         }}
       >
         {/* Pinned: the three summary tiles stay at the top while the lists scroll beneath */}
@@ -292,6 +279,7 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
                     <Text style={styles.sub}>
                       {r.vehicleName} · {r.vehiclePlate} · {formatDate(new Date(r.completedAt))}
                     </Text>
+                    <TxnTag kind="SOS" source={r.id} />
                   </View>
                   <View style={styles.right}>
                     <Text style={styles.price}>{money(r.total)}</Text>
@@ -341,6 +329,7 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
                   {w.garageName} · {formatDate(new Date(w.progress.closedAt ?? 0))}
                 </Text>
                 {!!w.vehicleId && <Text style={styles.sub}>{vehicleName(w.vehicleId)}</Text>}
+                <TxnTag kind="JOB" source={w.id} />
               </View>
               <View style={styles.right}>
                 <Text style={styles.price}>{money(w.progress.handover?.bill.total ?? 0)}</Text>

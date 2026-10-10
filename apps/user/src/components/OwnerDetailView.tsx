@@ -28,6 +28,7 @@ import { WorkshopTracker } from './workshop/WorkshopTracker';
 import { useUserLocation } from '../context/LocationContext';
 import { sparePartLabel } from '../constants/labels';
 import { Toast } from './Toast';
+import { TxnTag } from './TxnTag';
 import { ago, countdown, formatDate, formatTime, money } from '../utils/format';
 import type { DirectBooking } from '../types';
 
@@ -301,6 +302,7 @@ export const OwnerDetailView: React.FC<{
                 <Text style={styles.sub}>
                   {vehicleIcon(vehicle.type)} {vehicle.name} · {vehicle.plate} · {ago(now - (job?.submittedAt ?? booking!.requestedAt))}
                 </Text>
+                <TxnTag kind={job ? 'JOB' : 'BKG'} source={job ? job.id : booking!.id} />
               </View>
             </View>
 

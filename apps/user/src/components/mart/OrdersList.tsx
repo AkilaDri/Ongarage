@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { TxnTag } from '../TxnTag';
 import { ActionButton, ago, Colors, countdown, directionsUrl, EmptyState, FONTS, formatDate, martShop, money, PurchaseCode, themedStyles, softEdge, softFill, softShadow } from '@ongarage/shared';
 import { ACTIVE_STAGES, useMart, type MartPurchase, type PurchaseStage } from '../../context/MartContext';
 import { useUserLocation } from '../../context/LocationContext';
@@ -59,6 +60,7 @@ export const OrdersList: React.FC<{ compact?: boolean }> = ({ compact }) => {
             <Text style={styles.sub} numberOfLines={1}>
               {o.shop.name} · {o.partType} · {ago(now - p.createdAt)}
             </Text>
+            <TxnTag kind="ORD" source={p.purchase.id} />
           </View>
           <Text style={styles.price}>{money(o.total)}</Text>
         </View>

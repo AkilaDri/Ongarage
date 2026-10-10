@@ -2,6 +2,7 @@ import React from 'react';
 import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { ActionButton, ago, Colors, countdown, dealLabel, DEFAULT_COMMISSION_PERCENT, FitmentBadge, fitmentLevel, FONTS, martShop, money, nextRing, onWall as audienceOnWall, PriceTagChip, priceTag, reachesShops, ReferralBadge, referralDisclosure, SEARCH_RINGS, themedStyles, softEdge, softFill, softShadow, type ShopOffer } from '@ongarage/shared';
 import type { MartEnquiry, MartPurchase } from '../../context/MartContext';
+import { TxnTag } from '../TxnTag';
 
 const STATUS: Record<string, string> = { open: 'ක්‍රියාත්මකයි', reserved: 'වෙන් කළා', bought: 'මිලදී ගත්තා', cancelled: 'අවලංගු කළා', expired: 'කල් ඉකුත් විය' };
 
@@ -44,6 +45,7 @@ export const EnquiryCard: React.FC<{
           <Text style={styles.sub} numberOfLines={1}>
             {brief.partType === 'GarageChoice' ? 'ඕනෑම වර්ගයක්' : brief.partType} · {brief.vehicle.name} · {brief.vehicle.plate} · {ago(now - e.createdAt)}
           </Text>
+          <TxnTag kind="REQ" source={e.id} />
         </View>
         <View style={[styles.status, open && styles.statusOpen]}>
           <Text style={[styles.statusText, open && { color: Colors.primary }]}>{expired ? STATUS.expired : STATUS[e.status]}</Text>
