@@ -18,10 +18,13 @@ export const Sheet: React.FC<{
 }> = ({ visible, title, subtitle, onClose, footer, overlay, hero, children }) => {
   const [mounted, setMounted] = useState(visible);
   const slide = useRef(new Animated.Value(0)).current;
+  // A hero sheet grows to the full screen once the body scrolls up, so the cover and header scroll away and the content fills the top.
+  const [full, setFull] = useState(false);
 
   useEffect(() => {
     if (visible) {
       setMounted(true);
+      setFull(false);
       Animated.spring(slide, { toValue: 1, stiffness: 200, damping: 24, useNativeDriver: true }).start();
     } else if (mounted) {
       Animated.timing(slide, { toValue: 0, duration: 220, easing: Easing.in(Easing.cubic), useNativeDriver: true }).start(() => setMounted(false));
@@ -37,7 +40,7 @@ export const Sheet: React.FC<{
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
       </Animated.View>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.anchor} pointerEvents="box-none">
-        <Animated.View style={[styles.sheet, hero ? styles.sheetHero : null, { transform: [{ translateY: slide.interpolate({ inputRange: [0, 1], outputRange: [700, 0] }) }] }]}>
+        <Animated.View style={[styles.sheet, hero ? styles.sheetHero : null, hero && full ? styles.sheetFull : null, { transform: [{ translateY: slide.interpolate({ inputRange: [0, 1], outputRange: [700, 0] }) }] }]}>
           {hero ? null : <View style={styles.handle} />}
           {hero ? null : (
             <View style={styles.headerRow}>
@@ -50,7 +53,7 @@ export const Sheet: React.FC<{
               </Pressable>
             </View>
           )}
-          <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={hero ? styles.bodyHero : styles.body} showsVerticalScrollIndicator={false} stickyHeaderIndices={undefined}>
+          <ScrollView scrollEventThrottle={16} onScroll={hero ? (e) => setFull(e.nativeEvent.contentOffset.y > 24) : undefined} keyboardShouldPersistTaps="handled" contentContainerStyle={hero ? styles.bodyHero : styles.body} showsVerticalScrollIndicator={false} stickyHeaderIndices={undefined}>
             {hero}
             {hero ? <View style={styles.heroBody}>{children}</View> : children}
           </ScrollView>
@@ -80,6 +83,7 @@ const styles = themedStyles(() =>
     },
     // With a hero the cover starts at the very top edge, so there is no strip of sheet above it as the body scrolls.
     sheetHero: { paddingTop: 0 },
+    sheetFull: { maxHeight: '100%', height: '100%', borderTopLeftRadius: 0, borderTopRightRadius: 0 },
     handle: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: Colors.subtleBorder },
     headerRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 18, paddingTop: 12 },
     title: { fontSize: 17, fontFamily: FONTS.titleBold, color: Colors.textMain },

@@ -173,6 +173,8 @@ export const MartScreen: React.FC<MartScreenProps> = ({ activeVehicle, segment, 
   const snapSheet = (expanded: boolean) => {
     sheetExpanded.current = expanded;
     setSheetUp(expanded);
+    // The top header bar folds away whenever the shop sheet is up, however it got there (drag, flick, search, category).
+    onHeaderVisibilityChange(!expanded);
     // A short ease-out glide (no bounce) so the sheet settles smoothly.
     Animated.timing(sheetHeight, {
       toValue: expanded ? sheetLimits.current.expanded : sheetLimits.current.collapsed,
