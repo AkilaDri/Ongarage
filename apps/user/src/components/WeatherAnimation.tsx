@@ -202,10 +202,10 @@ const TreeLine: React.FC<{ width: number; period: Period }> = ({ width, period }
 
 /** The sun / moon for each period: where it hangs (a fraction of the band's height from the bottom) and the colours its light fades through. */
 const LUMINARY: Record<Period, { emoji: string; bottom: number; stops: [string, string, string]; fade: string; strength: number }> = {
-  morning: { emoji: '☀️', bottom: 30, stops: ['#fff6da', '#ffe0a8', '#ffc08a'], fade: '#ffa96b', strength: 1 },
+  morning: { emoji: '☀️', bottom: 42, stops: ['#fff6da', '#ffe0a8', '#ffc08a'], fade: '#ffa96b', strength: 1 },
   day: { emoji: '☀️', bottom: 42, stops: ['#ffffff', '#fff7cc', '#cfeaff'], fade: '#a9dcf7', strength: 1 },
-  evening: { emoji: '☀️', bottom: 44, stops: ['#fffbe0', '#ffe9a0', '#ffc46b'], fade: '#ff9a52', strength: 1 },
-  night: { emoji: '🌙', bottom: 46, stops: ['#f6f8ff', '#c4d4ff', '#7d97e0'], fade: '#4a62b0', strength: 0.75 },
+  evening: { emoji: '☀️', bottom: 42, stops: ['#fffbe0', '#ffe9a0', '#ffc46b'], fade: '#ff9a52', strength: 1 },
+  night: { emoji: '🌙', bottom: 42, stops: ['#f6f8ff', '#c4d4ff', '#7d97e0'], fade: '#4a62b0', strength: 0.75 },
 };
 /** Night stars, spread evenly in two staggered rows (big and small alternating) and kept clear of the moon (middle-right) and the skyline. */
 const STARS: { x: number; y: number; size: number; lo: number; hi: number }[] = [
@@ -221,14 +221,17 @@ const STARS: { x: number; y: number; size: number; lo: number; hi: number }[] = 
   { x: 78, y: 50, size: 6, lo: 0.2, hi: 0.8 },
   { x: 92, y: 52, size: 8, lo: 0.3, hi: 1 },
 ];
+/** Side of the square the sun / moon glyph is centred in (its centre is the point everything else is measured from). */
+const SUN_BOX = 40;
 const Luminary: React.FC<{ period: Period; width: number }> = ({ period, width }) => {
   const l = LUMINARY[period];
-  const cx = width * 0.56 + 40 - (period === 'night' ? 10 : 0);
+  // The sun / moon sits a little right of the middle of the band, in every period.
+  const cx = width / 2 + 50;
   const id = `light-${period}`;
   return (
     <>
       {/* the light spreads out from it into the sky and fades into the sky's own colour */}
-      <Svg width={230} height={150} style={{ position: 'absolute', left: cx - 115, bottom: l.bottom - 75 + 16 }} pointerEvents="none">
+      <Svg width={230} height={150} style={{ position: 'absolute', left: cx - 115, bottom: l.bottom - 75 + SUN_BOX / 2 }} pointerEvents="none">
         <Defs>
           <RadialGradient id={id} cx="50%" cy="50%" rx="50%" ry="50%" fx="50%" fy="50%">
             <Stop offset="0" stopColor={l.stops[0]} stopOpacity={0.95 * l.strength} />
@@ -239,7 +242,8 @@ const Luminary: React.FC<{ period: Period; width: number }> = ({ period, width }
         </Defs>
         <Rect x={0} y={0} width={230} height={150} fill={`url(#${id})`} />
       </Svg>
-      <Text style={{ position: 'absolute', left: cx - 17, bottom: l.bottom, fontSize: 32 }}>{l.emoji}</Text>
+      {/* a fixed square box with the glyph centred in it, so the sun and the moon (whose glyphs differ in width) sit on exactly the same spot */}
+      <Text style={{ position: 'absolute', left: cx - SUN_BOX / 2, bottom: l.bottom, width: SUN_BOX, height: SUN_BOX, lineHeight: SUN_BOX, textAlign: 'center', fontSize: 32 }}>{l.emoji}</Text>
     </>
   );
 };

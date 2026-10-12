@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Animated, Easing, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Animated, Easing, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, getThemeMode, themedStyles } from '@ongarage/shared';
 import { FONTS } from '@ongarage/shared';
@@ -136,7 +136,24 @@ function diagnose(input: string): { profile: Profile; confidence: number } {
   return { profile: best, confidence: bestHits ? Math.min(0.95, 0.45 + bestHits * 0.2) : 0.3 };
 }
 
-type BuddyMode = 'idle' | 'input' | 'analyzing' | 'questions' | 'result';
+/** One numbered step of the form: a rounded card with a step badge that turns into a tick once the step is filled in. */
+const StepCard: React.FC<{ step: number; title: string; done: boolean; hint?: string; optional?: boolean; children: React.ReactNode }> = ({ step, title, done, hint, optional, children }) => (
+  <View style={styles.stepCard}>
+    <View style={styles.stepHead}>
+      <View style={[styles.stepBadge, done && styles.stepBadgeDone]}>
+        <Text style={[styles.stepBadgeText, done && styles.stepBadgeTextDone]}>{done ? '✓' : step}</Text>
+      </View>
+      <View style={styles.flex1}>
+        <Text style={styles.stepTitle}>{title}</Text>
+        {!!hint && <Text style={styles.cardSub}>{hint}</Text>}
+      </View>
+      {!done && !optional && <Text style={styles.required}>අවශ්‍යයි</Text>}
+    </View>
+    {children}
+  </View>
+);
+
+type BuddyMode ='idle' | 'input' | 'analyzing' | 'questions' | 'result';
 
 interface PostJobScreenProps {
   draft: JobDraft | null;
@@ -158,6 +175,7 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, defaultVehi
   const [biddingHours, setBiddingHours] = useState<number | null>(null);
   const [doorstep, setDoorstep] = useState(false);
   const [showVehiclePicker, setShowVehiclePicker] = useState(false);
+  const [showMap, setShowMap] = useState(false);
   const [photos, setPhotos] = useState<string[]>([]);
   const [voiceNotes, setVoiceNotes] = useState<VoiceNote[]>([]);
   const vehicleRef = useRef<View>(null);
@@ -381,6 +399,32 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, defaultVehi
     );
   };
 
+  const renderMap = (style: React.ComponentProps<typeof GoogleMap>['style'], zoom: number) => (
+    <GoogleMap
+      style={style}
+      center={user.coords}
+      zoom={zoom}
+      renderOverlay={(project) => (
+        <>
+          {MOCK_GARAGES.map((g) => {
+            const p = project(g.coords);
+            return p ? (
+              <View key={g.id} style={[styles.pinAnchor, { left: p.x, top: p.y }]} pointerEvents="none">
+                <View style={styles.garagePin}>
+                  <Text style={styles.garagePinText}>🛠️</Text>
+                </View>
+              </View>
+            ) : null;
+          })}
+          {(() => {
+            const me = project(user.coords);
+            return me ? <View style={[styles.meDot, { left: me.x, top: me.y }]} pointerEvents="none" /> : null;
+          })()}
+        </>
+      )}
+    />
+  );
+
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <View style={styles.header}>
@@ -399,113 +443,92 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, defaultVehi
       </View>
 
       <ScrollView style={styles.flex1} contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-        <Text style={styles.sectionLabel}>තෝරාගත් වාහනය</Text>
         <Pressable ref={vehicleRef} style={[styles.card, styles.rowCenter]} onPress={() => setShowVehiclePicker(true)}>
           <GlassIcon emoji="🚗" />
           <View style={styles.flex1}>
+            <Text style={styles.eyebrow}>තෝරාගත් වාහනය</Text>
             <Text style={styles.cardTitle}>{vehicle.name}</Text>
             <Text style={styles.cardSub}>
               {vehicle.plate} · {vehicle.type}
             </Text>
           </View>
-          <Text style={styles.link}>වෙනස් කරන්න</Text>
+          <View style={styles.changePill}>
+            <Text style={styles.changePillText}>වෙනස් කරන්න</Text>
+          </View>
         </Pressable>
 
         {renderBuddy()}
 
-        <View style={styles.rowBetween}>
-          <Text style={styles.sectionLabel}>සේවා අංශය ({SERVICE_CATEGORIES.length})</Text>
-          {!categoryId && <Text style={styles.required}>අවශ්‍යයි</Text>}
-        </View>
-        <View style={styles.grid}>
-          {SERVICE_CATEGORIES.map((c) => {
-            const active = categoryId === c.id;
-            return (
-              <Pressable key={c.id} style={({ pressed }) => [styles.gridItem, pressed && { transform: [{ scale: 1.06 }] }]} onPress={() => setCategoryId(c.id)}>
-                <View style={[styles.tile, active && styles.tileActive]}>
-                  <CategoryPhoto categoryId={c.id} size={58} />
-                </View>
-                <Text style={[styles.tileLabel, active && styles.tileLabelActive]} numberOfLines={2}>
-                  {c.name}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
-
-        <View style={styles.rowBetween}>
-          <Text style={styles.sectionLabel}>ගැටලුව / සේවාව විස්තර කරන්න</Text>
-          {!description.trim() && <Text style={styles.required}>අවශ්‍යයි</Text>}
-        </View>
-        <TextInput
-          style={styles.textArea}
-          multiline
-          placeholder="ඔබට අවශ්‍ය සේවාව හෝ ගැටලුව විස්තර කරන්න..."
-          placeholderTextColor={Colors.textMuted}
-          value={description}
-          onChangeText={setDescription}
-        />
-
-        <Text style={styles.sectionLabel}>ඡායාරූප සහ හඬ සටහන් (විකල්ප)</Text>
-        <MediaAttachments photos={photos} voiceNotes={voiceNotes} onPhotos={setPhotos} onVoiceNotes={setVoiceNotes} />
-
-        <View style={styles.rowBetween}>
-          <Text style={styles.sectionLabel}>කැමති අමතර කොටස් වර්ගය</Text>
-          {!sparePart && <Text style={styles.required}>අවශ්‍යයි</Text>}
-        </View>
-        <View style={styles.choiceGrid}>
-          {SPARE_PARTS.map((p) => {
-            const active = sparePart === p.id;
-            return (
-              <Pressable key={p.id} style={[styles.choice, active && styles.choiceActive]} onPress={() => setSparePart(p.id)}>
-                <Text style={[styles.choiceText, active && styles.choiceTextActive]}>{p.label}</Text>
-              </Pressable>
-            );
-          })}
-        </View>
-
-        <Text style={styles.sectionLabel}>සේවා ස්ථානය</Text>
-        <GoogleMap
-          style={styles.map}
-          center={user.coords}
-          zoom={14}
-          renderOverlay={(project) => (
-            <>
-              {MOCK_GARAGES.map((g) => {
-                const p = project(g.coords);
-                return p ? (
-                  <View key={g.id} style={[styles.pinAnchor, { left: p.x, top: p.y }]} pointerEvents="none">
-                    <View style={styles.garagePin}>
-                      <Text style={styles.garagePinText}>🛠️</Text>
-                    </View>
+        <StepCard step={1} title={`සේවා අංශය`} done={categoryId !== null} hint={`${SERVICE_CATEGORIES.length} අංශ`}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.grid}>
+            {Array.from({ length: Math.ceil(SERVICE_CATEGORIES.length / 2) }, (_, i) => SERVICE_CATEGORIES.slice(i * 2, i * 2 + 2)).map((col) => (
+              <View key={col[0].id} style={styles.gridCol}>
+                {col.map((c) => {
+              const active = categoryId === c.id;
+              return (
+                <Pressable key={c.id} style={({ pressed }) => [styles.gridItem, pressed && { transform: [{ scale: 1.06 }] }]} onPress={() => setCategoryId(c.id)}>
+                  <View style={[styles.tile, active && styles.tileActive]}>
+                    <CategoryPhoto categoryId={c.id} size={46} />
                   </View>
-                ) : null;
-              })}
-              {(() => {
-                const me = project(user.coords);
-                return me ? <View style={[styles.meDot, { left: me.x, top: me.y }]} pointerEvents="none" /> : null;
-              })()}
-            </>
-          )}
-        />
-        <Text style={styles.hint} numberOfLines={2}>
-          📍 {user.address} · ආසන්නයේ ගරාජ {MOCK_GARAGES.length}ක්
-        </Text>
+                  <Text style={[styles.tileLabel, active && styles.tileLabelActive]} numberOfLines={2}>
+                    {c.name}
+                  </Text>
+                </Pressable>
+              );
+                })}
+              </View>
+            ))}
+          </ScrollView>
+        </StepCard>
 
-        <Pressable style={[styles.card, styles.rowCenter, doorstep && styles.cardActive]} onPress={() => setDoorstep((d) => !d)}>
-          <GlassIcon emoji="🚛" />
-          <View style={styles.flex1}>
-            <Text style={styles.cardTitle}>නිවසටම පැමිණ රැගෙන යාම</Text>
-            <Text style={styles.cardSub}>අපි ඔබගේ වාහනය රැගෙන ගොස් අලුත්වැඩියා කර නැවත ඔබ වෙත ගෙනැවිත් දෙන්නෙමු.</Text>
-          </View>
-          <View style={[styles.check, doorstep && styles.checkOn]}>{doorstep && <Text style={styles.checkMark}>✓</Text>}</View>
-        </Pressable>
+        <StepCard step={2} title="ගැටලුව / සේවාව විස්තර කරන්න" done={description.trim().length > 0}>
+          <TextInput
+            style={styles.textArea}
+            multiline
+            placeholder="ඔබට අවශ්‍ය සේවාව හෝ ගැටලුව විස්තර කරන්න..."
+            placeholderTextColor={Colors.textMuted}
+            value={description}
+            onChangeText={setDescription}
+          />
+          <Text style={styles.eyebrow}>ඡායාරූප සහ හඬ සටහන් (විකල්ප)</Text>
+          <MediaAttachments photos={photos} voiceNotes={voiceNotes} onPhotos={setPhotos} onVoiceNotes={setVoiceNotes} />
+        </StepCard>
 
-        <View style={[styles.card, styles.timerCard]}>
-          <View style={styles.rowBetween}>
-            <Text style={styles.sectionLabel}>⏱️ ලංසු කාලය (උපරිම පැය 24)</Text>
-            {biddingHours === null && <Text style={styles.required}>අවශ්‍යයි</Text>}
+        <StepCard step={3} title="කැමති අමතර කොටස් වර්ගය" done={sparePart !== null}>
+          <View style={styles.choiceGrid}>
+            {SPARE_PARTS.map((p) => {
+              const active = sparePart === p.id;
+              return (
+                <Pressable key={p.id} style={[styles.choice, active && styles.choiceActive]} onPress={() => setSparePart(p.id)}>
+                  <Text style={[styles.choiceText, active && styles.choiceTextActive]}>{p.label}</Text>
+                </Pressable>
+              );
+            })}
           </View>
+        </StepCard>
+
+        <StepCard step={4} title="සේවා ස්ථානය" done optional>
+          <View>
+            {renderMap(styles.map, 14)}
+            <Pressable style={StyleSheet.absoluteFill} onPress={() => setShowMap(true)} accessibilityLabel="Open map" />
+            <View style={styles.mapHint} pointerEvents="none">
+              <Text style={styles.mapHintText}>⤢ විශාල කරන්න</Text>
+            </View>
+          </View>
+          <Text style={styles.hint} numberOfLines={2}>
+            📍 {user.address} · ආසන්නයේ ගරාජ {MOCK_GARAGES.length}ක්
+          </Text>
+          <Pressable style={[styles.toggleRow, doorstep && styles.toggleRowOn]} onPress={() => setDoorstep((d) => !d)}>
+            <GlassIcon emoji="🚛" small />
+            <View style={styles.flex1}>
+              <Text style={styles.cardTitle}>නිවසටම පැමිණ රැගෙන යාම</Text>
+              <Text style={styles.cardSub}>අපි ඔබගේ වාහනය රැගෙන ගොස් අලුත්වැඩියා කර නැවත ඔබ වෙත ගෙනැවිත් දෙන්නෙමු.</Text>
+            </View>
+            <View style={[styles.check, doorstep && styles.checkOn]}>{doorstep && <Text style={styles.checkMark}>✓</Text>}</View>
+          </Pressable>
+        </StepCard>
+
+        <StepCard step={5} title="⏱️ ලංසු කාලය" done={biddingHours !== null} hint="උපරිම පැය 24">
           <Slider min={1} max={24} value={biddingHours} onChange={setBiddingHours} />
           <View style={styles.rowBetween}>
             <Text style={styles.cardSub}>පැය 1</Text>
@@ -514,7 +537,7 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, defaultVehi
             </View>
             <Text style={styles.cardSub}>පැය 24</Text>
           </View>
-        </View>
+        </StepCard>
       </ScrollView>
 
       <View style={styles.footer}>
@@ -526,6 +549,23 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, defaultVehi
         />
       </View>
 
+      <Modal visible={showMap} transparent animationType="fade" onRequestClose={() => setShowMap(false)}>
+        <View style={styles.mapBackdrop}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={() => setShowMap(false)} />
+          <View style={styles.mapWindow}>
+            <View style={styles.mapWindowHead}>
+              <Text style={styles.mapWindowTitle}>📍 සේවා ස්ථානය</Text>
+              <Pressable style={styles.closeBtnDark} onPress={() => setShowMap(false)} accessibilityLabel="Close map">
+                <Text style={styles.closeTextDark}>✕</Text>
+              </Pressable>
+            </View>
+            {renderMap(styles.mapBig, 15)}
+            <Text style={styles.hint} numberOfLines={2}>
+              {user.address} · ආසන්නයේ ගරාජ {MOCK_GARAGES.length}ක්
+            </Text>
+          </View>
+        </View>
+      </Modal>
       <VehiclePicker
         visible={showVehiclePicker}
         activeVehicle={vehicleId}
@@ -538,6 +578,11 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, defaultVehi
 };
 
 // Soft shadow in place of an outline, like Home and the other tabs.
+// Day theme: cards and fields get a visible edge so they stand out clearly on the light page.
+const isDay = () => getThemeMode() !== 'dark';
+const cardEdge = () => (isDay() ? '#cfd8e3' : Colors.borderColor);
+const fieldFill = () => (isDay() ? '#f4f7fb' : Colors.subtleFill);
+const fieldEdge = () => (isDay() ? '#b9c6d6' : 'transparent');
 const SOFT_SHADOW = { shadowColor: '#0f172a', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.1, shadowRadius: 16, elevation: 3 } as const;
 
 const styles = themedStyles(() => StyleSheet.create({
@@ -550,7 +595,7 @@ const styles = themedStyles(() => StyleSheet.create({
     alignItems: 'center',
     gap: 10,
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 9,
     overflow: 'hidden',
     paddingTop: 14,
     paddingBottom: 18,
@@ -568,14 +613,26 @@ const styles = themedStyles(() => StyleSheet.create({
     alignItems: 'center',
   },
   closeText: { fontSize: 14, color: '#fff' },
-  progressTrack: { height: 4, marginHorizontal: 16, marginTop: 10, borderRadius: 2, overflow: 'hidden', backgroundColor: Colors.subtleBorder },
-  progressFill: { height: '100%', borderRadius: 2, backgroundColor: Colors.primary },
-  body: { paddingHorizontal: 6, paddingTop: 16, gap: 12, paddingBottom: 28 },
+  progressTrack: { height: 6, marginHorizontal: 6, marginTop: 12, borderRadius: 3, overflow: 'hidden', backgroundColor: isDay() ? '#d5dde8' : Colors.subtleBorder },
+  progressFill: { height: '100%', borderRadius: 3, backgroundColor: Colors.primary },
+  body: { paddingHorizontal: 6, paddingTop: 10, gap: 10, paddingBottom: 20 },
+  eyebrow: { fontSize: 10.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, letterSpacing: 0.3 },
+  changePill: { paddingHorizontal: 12, height: 30, borderRadius: 15, justifyContent: 'center', backgroundColor: 'rgba(56, 189, 248, 0.15)' },
+  changePillText: { fontSize: 11, fontFamily: FONTS.bodyBold, color: Colors.primary },
+  stepCard: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: cardEdge(), borderRadius: 22, padding: 12, gap: 10, ...SOFT_SHADOW },
+  stepHead: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  stepBadge: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.primary },
+  stepBadgeDone: { backgroundColor: Colors.success },
+  stepBadgeText: { fontSize: 17, fontFamily: FONTS.titleBold, color: '#ffffff' },
+  stepBadgeTextDone: { color: '#ffffff', fontSize: 18 },
+  stepTitle: { fontSize: 15, fontFamily: FONTS.titleBold, color: Colors.textMain },
+  toggleRow: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: 18, backgroundColor: fieldFill(), borderWidth: 1, borderColor: fieldEdge() },
+  toggleRowOn: { borderColor: Colors.primary, backgroundColor: 'rgba(56, 189, 248, 0.1)' },
   // Same heading style as the Home screen's sections.
   sectionLabel: { fontSize: 14.5, fontFamily: FONTS.titleBold, color: Colors.textMain, marginTop: 6 },
   required: { fontSize: 10, fontFamily: FONTS.bodySemiBold, color: Colors.warning, marginTop: 4 },
   hint: { fontSize: 11, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
-  card: { backgroundColor: Colors.bgCard, borderWidth: getThemeMode() === 'dark' ? 1 : 0, borderColor: Colors.borderColor, borderRadius: 20, padding: 14, gap: 10, ...SOFT_SHADOW },
+  card: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: cardEdge(), borderRadius: 20, padding: 14, gap: 10, ...SOFT_SHADOW },
   cardActive: { borderWidth: 1, borderColor: Colors.primary, backgroundColor: 'rgba(56, 189, 248, 0.08)' },
   cardTitle: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.textMain },
   cardSub: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 1 },
@@ -616,22 +673,22 @@ const styles = themedStyles(() => StyleSheet.create({
   resultBtn: { marginTop: 4, paddingVertical: 11, borderRadius: 12, alignItems: 'center', backgroundColor: 'rgba(255, 255, 255, 0.22)' },
   resultBtnText: { fontSize: 12.5, fontFamily: FONTS.bodyBold, color: '#fff' },
 
-  grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 6 },
-  gridItem: { width: '23%', alignItems: 'center', gap: 2 },
+  grid: { gap: 10, paddingRight: 6 },
+  gridCol: { gap: 6 },
+  gridItem: { width: 64, alignItems: 'center', gap: 2 },
   // No box: the artwork stands on the page; the chosen category sits on a soft sky-blue disc.
-  tile: { width: 72, height: 72, borderRadius: 36, justifyContent: 'center', alignItems: 'center' },
-  tileActive: { backgroundColor: 'rgba(76, 161, 209, 0.22)' },
+  tile: { width: 58, height: 58, borderRadius: 29, justifyContent: 'center', alignItems: 'center' },
+  tileActive: { backgroundColor: 'rgba(76, 161, 209, 0.22)', borderWidth: 2, borderColor: Colors.primary },
   tileLabel: { fontSize: 10.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain, textAlign: 'center', lineHeight: 13, minHeight: 26 },
   tileLabelActive: { color: Colors.primary, fontFamily: FONTS.bodyBold },
 
   textArea: {
-    minHeight: 90,
-    backgroundColor: Colors.bgCard,
-    borderWidth: getThemeMode() === 'dark' ? 1 : 0,
-    borderColor: Colors.borderColor,
-    borderRadius: 20,
+    minHeight: 72,
+    backgroundColor: fieldFill(),
+    borderWidth: 1,
+    borderColor: fieldEdge(),
+    borderRadius: 18,
     padding: 14,
-    ...SOFT_SHADOW,
     color: Colors.textMain,
     fontSize: 13,
     fontFamily: FONTS.bodyRegular,
@@ -641,18 +698,26 @@ const styles = themedStyles(() => StyleSheet.create({
   choice: {
     width: '48.5%',
     flexGrow: 1,
-    paddingVertical: 12,
-    borderRadius: 16,
-    borderWidth: getThemeMode() === 'dark' ? 1 : 0,
-    borderColor: Colors.borderColor,
-    backgroundColor: Colors.bgCard,
+    paddingVertical: 9,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: fieldEdge(),
+    backgroundColor: fieldFill(),
     alignItems: 'center',
-    ...SOFT_SHADOW,
   },
-  choiceActive: { borderWidth: 1, borderColor: Colors.success, backgroundColor: 'rgba(16, 185, 129, 0.15)' },
-  choiceText: { fontSize: 11.5, fontFamily: FONTS.bodyMedium, color: Colors.textMuted },
+  choiceActive: { borderWidth: 2, borderColor: Colors.success, backgroundColor: 'rgba(16, 185, 129, 0.15)' },
+  choiceText: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: isDay() ? '#334155' : Colors.textMuted },
   choiceTextActive: { color: Colors.successText, fontFamily: FONTS.bodyBold },
-  map: { height: 170, borderRadius: 20, overflow: 'hidden' },
+  map: { height: 80, borderRadius: 20, overflow: 'hidden' },
+  mapBig: { height: 360, borderRadius: 18, overflow: 'hidden' },
+  mapHint: { position: 'absolute', right: 8, bottom: 8, paddingHorizontal: 10, height: 24, borderRadius: 12, justifyContent: 'center', backgroundColor: 'rgba(15, 23, 42, 0.7)' },
+  mapHintText: { fontSize: 10.5, fontFamily: FONTS.bodyBold, color: '#fff' },
+  mapBackdrop: { flex: 1, justifyContent: 'center', paddingHorizontal: 16, backgroundColor: 'rgba(6, 12, 30, 0.55)' },
+  mapWindow: { gap: 10, padding: 12, borderRadius: 24, backgroundColor: Colors.bgCard },
+  mapWindowHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  mapWindowTitle: { fontSize: 15, fontFamily: FONTS.titleBold, color: Colors.textMain },
+  closeBtnDark: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.subtleFill },
+  closeTextDark: { fontSize: 14, color: Colors.textMain },
   pinAnchor: { position: 'absolute', transform: [{ translateX: '-50%' }, { translateY: '-50%' }] },
   garagePin: {
     width: 26,
@@ -679,7 +744,6 @@ const styles = themedStyles(() => StyleSheet.create({
   check: { width: 22, height: 22, borderRadius: 11, borderWidth: 1.5, borderColor: Colors.subtleBorder, justifyContent: 'center', alignItems: 'center' },
   checkOn: { backgroundColor: Colors.primary, borderColor: Colors.primary },
   checkMark: { fontSize: 12, fontWeight: '900', color: Colors.bgDark },
-  timerCard: { borderStyle: 'dashed', borderColor: 'rgba(56, 189, 248, 0.35)' },
   timerValue: { paddingHorizontal: 12, paddingVertical: 3, borderRadius: 10, backgroundColor: 'rgba(56, 189, 248, 0.15)' },
   timerValueText: { fontSize: 12.5, fontFamily: FONTS.bodyBold, color: Colors.primary },
   footer: { padding: 16, paddingTop: 12, backgroundColor: Colors.barBg, borderTopLeftRadius: 24, borderTopRightRadius: 24, shadowColor: '#0f172a', shadowOffset: { width: 0, height: -6 }, shadowOpacity: 0.1, shadowRadius: 14, elevation: 10 },

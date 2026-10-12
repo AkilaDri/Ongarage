@@ -1,6 +1,6 @@
 import React from 'react';
 import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
-import { ActionButton, ago, Colors, countdown, dealLabel, DEFAULT_COMMISSION_PERCENT, FitmentBadge, fitmentLevel, FONTS, martShop, money, nextRing, onWall as audienceOnWall, PriceTagChip, priceTag, reachesShops, ReferralBadge, referralDisclosure, SEARCH_RINGS, themedStyles, softEdge, softFill, softShadow, type ShopOffer } from '@ongarage/shared';
+import { ActionButton, ago, Colors, countdown, dealLabel, DEFAULT_COMMISSION_PERCENT, FitmentBadge, fitmentLevel, FONTS, getThemeMode, martShop, money, nextRing, onWall as audienceOnWall, PriceTagChip, priceTag, reachesShops, ReferralBadge, referralDisclosure, SEARCH_RINGS, themedStyles, softEdge, softFill, softShadow, type ShopOffer } from '@ongarage/shared';
 import type { MartEnquiry, MartPurchase } from '../../context/MartContext';
 import { TxnTag } from '../TxnTag';
 
@@ -166,7 +166,8 @@ const styles = themedStyles(() =>
     bannerText: { flex: 1, fontSize: 12, fontFamily: FONTS.bodyBold, color: Colors.successText },
     bannerLink: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
     rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
-    card: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), borderRadius: 20, padding: 14, gap: 10, ...softShadow() },
+    // Day theme: a visible edge, so the white card stands out on the grey page.
+    card: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: getThemeMode() === 'dark' ? softEdge() : '#c9d3e0', borderRadius: 20, padding: 14, gap: 10, ...softShadow() },
     title: { fontSize: 14, fontFamily: FONTS.titleBold, color: Colors.textMain },
     sub: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 16 },
     status: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: 10, backgroundColor: softFill() },
@@ -177,7 +178,7 @@ const styles = themedStyles(() =>
     chipAccent: { backgroundColor: 'rgba(2, 132, 199, 0.12)' },
     chipText: { fontSize: 10.5, fontFamily: FONTS.bodyMedium, color: Colors.textMuted },
     searching: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
-    offer: { padding: 12, borderRadius: 16, backgroundColor: softFill(), gap: 8 },
+    offer: { padding: 12, borderRadius: 16, backgroundColor: getThemeMode() === 'dark' ? softFill() : '#f1f5f9', borderWidth: 1, borderColor: getThemeMode() === 'dark' ? 'transparent' : '#dbe3ee', gap: 8 },
     offerBest: { borderWidth: 1, borderColor: 'rgba(16, 185, 129, 0.45)' },
     shop: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.textMain },
     priceBox: { alignItems: 'flex-end' },

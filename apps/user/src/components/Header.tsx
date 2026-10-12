@@ -248,7 +248,8 @@ const styles = themedStyles(() => StyleSheet.create({
   titleBand: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, paddingHorizontal: 18, paddingTop: 14, paddingBottom: 34, minHeight: HEADER_BAND_H, overflow: 'hidden', backgroundColor: getThemeMode() === 'dark' ? '#0e2a3f' : '#bfe4fa' },
   titleBandText: { fontSize: 20, fontFamily: FONTS.titleBold, color: getThemeMode() === 'dark' ? '#d6eefc' : '#0f2a3d' },
   city: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: getThemeMode() === 'dark' ? '#8fc3e3' : '#2b4a63', marginBottom: 2 },
-  greetingRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 6 },
+  // Above the sky: the sun, clouds and birds drift behind the greeting, never over it.
+  greetingRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 6, zIndex: 2, elevation: 2 },
   greetingText: { gap: 1, flex: 1 },
   hi: { fontSize: 15, fontFamily: FONTS.titleBold, color: getThemeMode() === 'dark' ? '#d6eefc' : '#0f2a3d' },
   greeting: { fontSize: 12.5, fontFamily: FONTS.bodyMedium, color: getThemeMode() === 'dark' ? '#8fc3e3' : '#2b4a63' },
@@ -260,6 +261,9 @@ const styles = themedStyles(() => StyleSheet.create({
     paddingLeft: 5,
     paddingRight: 12,
     borderRadius: 22,
+    // In front of the sky, so the sun / moon never covers the vehicle button.
+    zIndex: 3,
+    elevation: 3,
     backgroundColor: getThemeMode() === 'dark' ? '#16415f' : '#0f2f4a',
   },
   vehiclePillOpen: { opacity: 0.85 },

@@ -107,6 +107,8 @@ type BidsState = {
   jobs: RepairJob[];
   postJob: (job: NewJob) => RepairJob;
   acceptBid: (jobId: string, bidId: string) => void;
+  /** Dismiss a received bid that has not been accepted. */
+  removeBid: (jobId: string, bidId: string) => void;
 };
 
 const BidsContext = createContext<BidsState | null>(null);
@@ -151,8 +153,12 @@ export const BidsProvider: React.FC<{ children: React.ReactNode }> = ({ children
     },
     [startWorkshop]
   );
+  const removeBid = useCallback((jobId: string, bidId: string) => {
+    setJobs((prev) => prev.map((j) => (j.id === jobId && !j.acceptedBidId ? { ...j, bids: j.bids.filter((b) => b.id !== bidId) } : j)));
+  }, []);
 
-  return <BidsContext.Provider value={{ jobs, postJob, acceptBid }}>{children}</BidsContext.Provider>;
+
+  return <BidsContext.Provider value={{ jobs, postJob, acceptBid, removeBid }}>{children}</BidsContext.Provider>;
 };
 
 export const useBids = () => {

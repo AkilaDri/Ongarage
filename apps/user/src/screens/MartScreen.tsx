@@ -497,7 +497,7 @@ export const MartScreen: React.FC<MartScreenProps> = ({ activeVehicle, segment, 
             </View>}
           </>
         )}
-      <ScrollView ref={scrollRef} style={[styles.flex1, segment === 'wall' && styles.wallBackdrop]} {...scrollProps} scrollEnabled={segment !== 'shops' || sheetUp} onScroll={onScroll} contentContainerStyle={segment === 'shops' ? styles.sheetBody : styles.body} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+      <ScrollView ref={scrollRef} style={[styles.flex1, (segment === 'wall' || segment === 'mine') && styles.wallBackdrop]} {...scrollProps} scrollEnabled={segment !== 'shops' || sheetUp} onScroll={onScroll} contentContainerStyle={segment === 'shops' ? styles.sheetBody : styles.body} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         {(segment === 'shops' || segment === 'orders') && <JobPartsToBuy onBuy={buyForJob} />}
 
         {segment === 'shops' && !searching && (
@@ -630,9 +630,9 @@ export const MartScreen: React.FC<MartScreenProps> = ({ activeVehicle, segment, 
       <ShopSheet
         shop={shop}
         onClose={() => setShop(null)}
-        onAsk={(s) => {
+        onAsk={(s, askName) => {
           setShop(null);
-          open({ onlyShopIds: [s.id], shopName: s.name, partType, name: partName ?? q, audience: 'shops' });
+          open({ onlyShopIds: [s.id], shopName: s.name, partType, name: askName || (partName ?? q), audience: 'shops' });
         }}
       />
       <Modal visible={stockWindowOpen} animationType="slide" onRequestClose={() => setStockWindowOpen(false)}>

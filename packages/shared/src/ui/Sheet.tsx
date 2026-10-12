@@ -14,8 +14,10 @@ export const Sheet: React.FC<{
   overlay?: React.ReactNode;
   /** A header that takes the place of the handle and the title row (a cover photo and its close button, say). */
   hero?: React.ReactNode;
+  /** Tighter spacing between the blocks under the hero. */
+  compact?: boolean;
   children: React.ReactNode;
-}> = ({ visible, title, subtitle, onClose, footer, overlay, hero, children }) => {
+}> = ({ visible, title, subtitle, onClose, footer, overlay, hero, compact, children }) => {
   const [mounted, setMounted] = useState(visible);
   const slide = useRef(new Animated.Value(0)).current;
   // A hero sheet grows to the full screen once the body scrolls up, so the cover and header scroll away and the content fills the top.
@@ -55,7 +57,7 @@ export const Sheet: React.FC<{
           )}
           <ScrollView scrollEventThrottle={16} onScroll={hero ? (e) => setFull(e.nativeEvent.contentOffset.y > 24) : undefined} keyboardShouldPersistTaps="handled" contentContainerStyle={hero ? styles.bodyHero : styles.body} showsVerticalScrollIndicator={false} stickyHeaderIndices={undefined}>
             {hero}
-            {hero ? <View style={styles.heroBody}>{children}</View> : children}
+            {hero ? <View style={[styles.heroBody, compact && styles.heroBodyCompact]}>{children}</View> : children}
           </ScrollView>
           {!!footer && <View style={styles.footer}>{footer}</View>}
         </Animated.View>
@@ -94,6 +96,7 @@ const styles = themedStyles(() =>
     // With a hero the cover runs edge to edge at the top; the content below keeps the usual inset.
     bodyHero: { paddingBottom: 18 },
     heroBody: { paddingHorizontal: 6, paddingTop: 12, gap: 10 },
+    heroBodyCompact: { paddingTop: 4, gap: 4 },
     footer: {
       padding: 16,
       paddingTop: 12,

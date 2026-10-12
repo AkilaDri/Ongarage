@@ -1,9 +1,11 @@
 import React from 'react';
-import { Image, Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Image, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { ActionButton, Colors, FONTS, categoryInfo, directionsUrl, getThemeMode, GoogleMap, martDeals, MART_STOCK, money, shopServiceScore, themedStyles, type ShopListing } from '@ongarage/shared';
 import { GARAGE_COVERS } from '../../constants/home';
 import { useUserLocation } from '../../context/LocationContext';
 import { Sheet } from '../Sheet';
+import { CATEGORIES, OTHER, categoryOf } from './stockCategories';
+import { StockSearchSheet } from './StockSearchSheet';
 
 const AVATAR_COLORS = ['#2457e6', '#0e9f6e', '#e5483d', '#8b5cf6', '#f59e0b', '#0891b2', '#db2777'];
 const hash = (id: string) => [...id].reduce((n, ch) => n + ch.charCodeAt(0), 0);
@@ -11,33 +13,20 @@ const initialsOf = (name: string) => (name.match(/[A-Za-z0-9]+/g) ?? [name]).sli
 
 type Tab = 'menu' | 'info';
 
-/** The part categories of OnMart's filter bar, with the words that put a stock line in each (and the look of its tile). */
-const CATEGORIES: { id: string; emoji: string; name: string; tint: string; match: RegExp }[] = [
-  { id: 'brakes', emoji: '🛑', name: 'බ්‍රේක්', tint: '#fde2e0', match: /brake|pad|disc|rotor|caliper/i },
-  { id: 'battery', emoji: '🔋', name: 'බැටරි', tint: '#dff5e6', match: /batter/i },
-  { id: 'oil', emoji: '🛢️', name: 'ඔයිල් / ෆිල්ටර්', tint: '#fdf0d2', match: /oil|filter|lubric|coolant|fluid/i },
-  { id: 'electrical', emoji: '⚡', name: 'විදුලි', tint: '#fff2c6', match: /alternator|starter|plug|sensor|ignition|coil|wiring|fuse|relay/i },
-  { id: 'ac', emoji: '❄️', name: 'A/C', tint: '#dff0fb', match: /\bac\b|a\/c|compressor|condenser|refrigerant|cabin|blower/i },
-  { id: 'engine', emoji: '🔧', name: 'එන්ජින්', tint: '#e8e4f7', match: /timing|belt|piston|gasket|engine|clutch|gear|cam|turbo|radiator|hose|pump|chain/i },
-  { id: 'suspension', emoji: '🚙', name: 'සස්පෙන්ෂන්', tint: '#e6ecf3', match: /shock|spring|suspension|arm|bush|strut|link|ball joint/i },
-  { id: 'lights', emoji: '💡', name: 'ලයිට්', tint: '#fff7d6', match: /light|lamp|bulb|headlight|tail/i },
-  { id: 'hybrid', emoji: '🔋', name: 'හයිබ්‍රිඩ්', tint: '#d9f3ea', match: /hybrid|inverter|ima\b/i },
-];
-const OTHER = { id: 'other', emoji: '🔩', name: 'වෙනත්', tint: '#e8eef6' };
-const categoryOf = (name: string) => CATEGORIES.find((c) => c.match.test(name)) ?? OTHER;
 
 /**
  * One parts shop, laid out like a food-delivery restaurant page: a cover photo with close / save buttons, a shop card on top of
  * it (logo, name, rating, how it delivers), then a "menu" of parts - category chips and a list of items with a photo tile and
  * a + button - and a bar at the bottom that collects what you picked into one request to the shop.
  */
-export const ShopSheet: React.FC<{ shop: ShopListing | null; onClose: () => void; onAsk: (shop: ShopListing) => void }> = ({ shop, onClose, onAsk }) => {
+export const ShopSheet: React.FC<{ shop: ShopListing | null; onClose: () => void; onAsk: (shop: ShopListing, partName?: string) => void }> = ({ shop, onClose, onAsk }) => {
   const [shown, setShown] = React.useState<ShopListing | null>(shop);
   const tab: Tab = 'menu';
   const [partQuery, setPartQuery] = React.useState('');
   const [category, setCategory] = React.useState('');
   const [saved, setSaved] = React.useState(false);
   const [showInfo, setShowInfo] = React.useState(false);
+  const [showStock, setShowStock] = React.useState(false);
   // What the owner has picked from this shop, to ask about in one request: stock line -> how many.
   const [picked, setPicked] = React.useState<Record<string, number>>({});
   const user = useUserLocation();
@@ -50,6 +39,7 @@ export const ShopSheet: React.FC<{ shop: ShopListing | null; onClose: () => void
     setCategory('');
     setSaved(false);
     setShowInfo(false);
+    setShowStock(false);
     setPicked({});
   }, [shopId]);
   if (!shown) return null;
@@ -88,44 +78,74 @@ export const ShopSheet: React.FC<{ shop: ShopListing | null; onClose: () => void
     s.stats.ordersDone >= 50 && `🛍️ ඇණවුම් ${s.stats.ordersDone}+`,
   ].filter(Boolean) as string[];
 
-  const hero = (
+  // The shop's profile page: cover, logo and name, key numbers, and the quick actions.
+  const statTiles = [
+    { id: 'rating', value: `★ ${s.rating.toFixed(1)}`, label: `${s.ratingCount} සමාලෝචන` },
+    { id: 'orders', value: `${s.stats.ordersDone}`, label: 'ඇණවුම්' },
+    { id: 'reply', value: `මිනි. ${s.stats.avgResponseMin}`, label: 'පිළිතුර' },
+    { id: 'dist', value: `${s.distanceKm < 10 ? s.distanceKm.toFixed(1) : Math.round(s.distanceKm)} km`, label: 'දුර' },
+  ];
+  const makeHero = (main: boolean) => (
     <View>
       <View style={styles.coverWrap}>
         <Image source={cover} style={styles.cover} resizeMode="cover" />
         <View style={styles.coverShade} />
-        <Pressable style={[styles.roundBtn, { left: 14 }]} onPress={onClose} hitSlop={8} accessibilityLabel="Close sheet">
+        <Pressable style={[styles.roundBtn, { left: 14 }]} onPress={main ? onClose : () => setShowInfo(false)} hitSlop={8} accessibilityLabel="Close sheet">
           <Text style={styles.roundBtnText}>✕</Text>
         </Pressable>
-        <Pressable style={[styles.roundBtn, { right: 14 }]} onPress={() => setSaved((v) => !v)} hitSlop={8} accessibilityLabel="Save shop">
-          <Text style={[styles.roundBtnText, saved && { color: '#ff5a6e' }]}>{saved ? '♥' : '♡'}</Text>
-        </Pressable>
+        {main && (
+          <Pressable style={[styles.roundBtn, { right: 14 }]} onPress={() => setSaved((v) => !v)} hitSlop={8} accessibilityLabel="Save shop">
+            <Text style={[styles.roundBtnText, saved && { color: '#ff5a6e' }]}>{saved ? '♥' : '♡'}</Text>
+          </Pressable>
+        )}
       </View>
-      <Pressable style={styles.shopCard} onPress={() => setShowInfo(true)} accessibilityLabel="Open shop profile">
-        <View style={styles.shopTop}>
-          <View style={[styles.logo, { backgroundColor: color }]}>
-            <Text style={styles.logoText}>{initialsOf(s.name)}</Text>
-          </View>
-          <View style={styles.flex1}>
-            <Text style={styles.name} numberOfLines={2}>
-              {s.name}
-            </Text>
-            <Text style={styles.cuisine} numberOfLines={1}>
-              {s.categories.slice(0, 3).map((c) => categoryInfo(c).name).join(' · ')}
-            </Text>
-          </View>
+      <View style={styles.pfCard}>
+        <View style={[styles.pfLogo, { backgroundColor: color }]}>
+          <Text style={styles.pfLogoText}>{initialsOf(s.name)}</Text>
         </View>
-        <View style={styles.metaRow}>
-          <Text style={styles.metaStrong}>★ {s.rating.toFixed(1)}</Text>
-          <Text style={styles.meta}>({s.ratingCount})</Text>
-          <Text style={styles.metaDot}>•</Text>
-          <Text style={styles.meta}>📍 {s.distanceKm < 10 ? s.distanceKm.toFixed(1) : Math.round(s.distanceKm)} km</Text>
-          <Text style={styles.metaDot}>•</Text>
-          <Text style={[styles.meta, { color: s.isOpen ? Colors.success : Colors.textMuted, fontFamily: FONTS.bodyBold }]}>{s.isOpen ? 'දැන් විවෘතයි' : 'වසා ඇත'}</Text>
-          <Text style={styles.moreLink}>වෙළඳසැල විස්තර ›</Text>
+        <Text style={styles.pfName}>{s.name}</Text>
+        <Text style={styles.pfSub} numberOfLines={2}>
+          {s.district} · {s.address}
+        </Text>
+        <View style={styles.pfPills}>
+          <View style={[styles.pfPill, { backgroundColor: s.isOpen ? 'rgba(16, 185, 129, 0.16)' : Colors.subtleFill }]}>
+            <Text style={[styles.pfPillText, { color: s.isOpen ? Colors.successText : Colors.textMuted }]}>{s.isOpen ? '● දැන් විවෘතයි' : '● වසා ඇත'}</Text>
+          </View>
+          {s.rating >= 4.5 && (
+            <View style={[styles.pfPill, { backgroundColor: 'rgba(36, 87, 230, 0.12)' }]}>
+              <Text style={[styles.pfPillText, { color: blue() }]}>✓ තහවුරු කළ වෙළඳසැල</Text>
+            </View>
+          )}
         </View>
-      </Pressable>
+        <View style={styles.statRow}>
+          {statTiles.map((t, i) => (
+            <View key={t.id} style={[styles.statTile, i > 0 && styles.statTileDivider]}>
+              <Text style={styles.statValue}>{t.value}</Text>
+              <Text style={styles.statLabel}>{t.label}</Text>
+            </View>
+          ))}
+        </View>
+        <View style={styles.pfActions}>
+          <Pressable style={[styles.pfAction, { backgroundColor: '#0e9f6e' }]} onPress={() => Linking.openURL(`tel:${s.phone.replace(/\s/g, '')}`)} accessibilityLabel="Call shop">
+            <Text style={styles.pfActionText}>📞 අමතන්න</Text>
+          </Pressable>
+          <Pressable style={[styles.pfAction, { backgroundColor: '#2457e6' }]} onPress={() => Linking.openURL(directionsUrl(s.coords, user.coords))} accessibilityLabel="Shop directions">
+            <Text style={styles.pfActionText}>🧭 මාර්ගය</Text>
+          </Pressable>
+          <Pressable style={[styles.pfAction, { backgroundColor: '#8b5cf6' }]} onPress={() => { if (!main) setShowInfo(false); onAsk(s); }} accessibilityLabel="Ask shop">
+            <Text style={styles.pfActionText}>💬 අසන්න</Text>
+          </Pressable>
+        </View>
+        {main && (
+          <Pressable style={styles.pfMore} onPress={() => setShowInfo(true)} accessibilityLabel="Open shop profile">
+            <Text style={styles.pfMoreText}>වෙළඳසැල පිළිබඳ සම්පූර්ණ විස්තර ›</Text>
+          </Pressable>
+        )}
+      </View>
     </View>
   );
+  const hero = makeHero(true);
+  const profileHero = makeHero(false);
 
   return (
     <>
@@ -149,24 +169,6 @@ export const ShopSheet: React.FC<{ shop: ShopListing | null; onClose: () => void
         )
       }
     >
-      <View style={styles.quickWrap}>
-        <View style={styles.quickRow}>
-          {[
-            { id: 'call', icon: '📞', label: 'අමතන්න', tone: '#0e9f6e', onPress: () => Linking.openURL(`tel:${s.phone.replace(/\s/g, '')}`) },
-            { id: 'route', icon: '🧭', label: 'මාර්ගය', tone: '#2457e6', onPress: () => Linking.openURL(directionsUrl(s.coords, user.coords)) },
-            { id: 'ask', icon: '💬', label: 'අසන්න', tone: '#8b5cf6', onPress: () => onAsk(s) },
-          ].map((q) => (
-            <Pressable key={q.id} style={[styles.quick, { backgroundColor: q.tone + '1f', borderColor: q.tone + '40' }]} onPress={q.onPress} accessibilityLabel={`Shop ${q.id}`}>
-              <View style={[styles.quickIcon, { backgroundColor: q.tone }]}>
-                <Text style={styles.quickEmoji}>{q.icon}</Text>
-              </View>
-              <Text style={[styles.quickLabel, { color: q.tone }]}>{q.label}</Text>
-            </Pressable>
-          ))}
-        </View>
-
-      </View>
-
       <View style={styles.stockHead}>
         <Text style={styles.stockTitle}>🔩 තොගය</Text>
         <Text style={styles.stockCount}>{stock.length} කොටස්</Text>
@@ -191,14 +193,9 @@ export const ShopSheet: React.FC<{ shop: ShopListing | null; onClose: () => void
 
           {s.liveStock ? (
             <>
-              <TextInput
-                style={styles.search}
-                value={partQuery}
-                onChangeText={setPartQuery}
-                placeholder="🔍 මෙම වෙළඳසැලේ කොටසක් සොයන්න…"
-                placeholderTextColor={Colors.textMuted}
-                accessibilityLabel="Search this shop's parts"
-              />
+              <Pressable style={styles.searchField} onPress={() => setShowStock(true)} accessibilityLabel="Open stock search">
+                <Text style={styles.searchFieldText}>🔍 ඔබට අවශ්‍ය කොටස මෙහි සොයන්න…</Text>
+              </Pressable>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
                 <Pressable style={[styles.chip, !category && styles.chipOn]} onPress={() => setCategory('')} accessibilityLabel="Stock category all">
                   <Text style={[styles.chipText, !category && styles.chipTextOn]}>සියල්ල</Text>
@@ -281,19 +278,62 @@ export const ShopSheet: React.FC<{ shop: ShopListing | null; onClose: () => void
         </>
       )}
     </Sheet>
-    <Sheet visible={showInfo && !!shop} title={s.name} subtitle="වෙළඳසැල විස්තර" onClose={() => setShowInfo(false)}>
-      {badges.length > 0 && (
-        <View style={styles.badgeWrap}>
-          {badges.map((b) => (
-            <View key={b} style={styles.trustBadge}>
-              <Text style={styles.trustBadgeText}>{b}</Text>
+    <StockSearchSheet visible={showStock && !!shop} shop={s} stock={MART_STOCK[s.id] ?? []} picked={picked} onChange={change} onClose={() => setShowStock(false)} onAsk={(name) => { setShowStock(false); onAsk(s, name); }} />
+    <Sheet visible={showInfo && !!shop} title={s.name} subtitle="වෙළඳසැල විස්තර" onClose={() => setShowInfo(false)} hero={profileHero}>
+      <View style={styles.pfSection}>
+        <Text style={styles.pfTitle}>වෙළඳසැල පිළිබඳ</Text>
+        <Info icon="🕗" label="විවෘත වේලාවන්" value={s.openHours} />
+        <Info icon="🧰" label="අලෙවි කරන වර්ග" value={s.types.join(' · ')} />
+        <Info icon="🔧" label="කොටස් ඇති සේවා වර්ග" value={s.categories.map((c) => categoryInfo(c).name).join(' · ')} />
+        <Info icon="📞" label="දුරකථන" value={s.phone} />
+      </View>
+
+      <View style={styles.pfSection}>
+        <Text style={styles.pfTitle}>ක්‍රියාකාරීත්වය</Text>
+        {[
+          { label: 'ඇණවුම් සම්පූර්ණ කිරීම', value: s.stats.fulfilmentRate },
+          { label: 'තොග නිරවද්‍යතාව', value: s.stats.stockAccuracy },
+          { label: 'නිවැරදි කොටස් ලබා දීම', value: 1 - s.stats.wrongPartRate },
+        ].map((m) => (
+          <View key={m.label} style={styles.metric}>
+            <View style={styles.metricTop}>
+              <Text style={styles.metricLabel}>{m.label}</Text>
+              <Text style={styles.metricValue}>{Math.round(m.value * 100)}%</Text>
             </View>
-          ))}
+            <View style={styles.metricTrack}>
+              <View style={[styles.metricFill, { width: `${Math.round(m.value * 100)}%` }]} />
+            </View>
+          </View>
+        ))}
+        <Text style={styles.sub}>සේවා ලකුණු {shopServiceScore(s.stats).toFixed(1)} / 5 · සම්පූර්ණ කළ ඇණවුම් {s.stats.ordersDone}</Text>
+      </View>
+
+      {badges.length > 0 && (
+        <View style={styles.pfSection}>
+          <Text style={styles.pfTitle}>විශ්වාසනීයත්වය</Text>
+          <View style={styles.badgeWrap}>
+            {badges.map((b) => (
+              <View key={b} style={styles.trustBadge}>
+                <Text style={styles.trustBadgeText}>{b}</Text>
+              </View>
+            ))}
+          </View>
         </View>
       )}
 
-      <View style={styles.quickWrap}>
-        <Text style={styles.sectionTitle}>📍 වෙළඳසැල ඇති ස්ථානය</Text>
+      <View style={styles.pfSection}>
+        <Text style={styles.pfTitle}>ලබා ගැනීමේ ක්‍රම</Text>
+        <View style={styles.badgeWrap}>
+          {(delivery.length ? delivery : ['🏪 කවුන්ටරයෙන් එකතු කිරීම']).map((d) => (
+            <View key={d} style={styles.deliveryChip}>
+              <Text style={styles.deliveryChipText}>{d}</Text>
+            </View>
+          ))}
+        </View>
+      </View>
+
+      <View style={styles.pfSection}>
+        <Text style={styles.pfTitle}>ස්ථානය</Text>
         <View style={styles.mapCard}>
           <View style={styles.mapBox}>
             <GoogleMap
@@ -322,23 +362,6 @@ export const ShopSheet: React.FC<{ shop: ShopListing | null; onClose: () => void
           </View>
         </View>
       </View>
-
-      <View style={styles.infoList}>
-        <Info icon="🕗" label="විවෘත වේලාවන්" value={s.openHours} />
-        <Info icon="🧰" label="අලෙවි කරන වර්ග" value={s.types.join(' · ')} />
-        <Info icon="🔧" label="කොටස් ඇති සේවා වර්ග" value={s.categories.map((c) => categoryInfo(c).name).join(' · ')} />
-        <Info icon="✅" label="සේවා ලකුණු" value={`${shopServiceScore(s.stats).toFixed(1)} / 5 · ඇණවුම් ${s.stats.ordersDone}`} />
-        <View style={styles.infoDivider} />
-        <Text style={styles.sub}>🚚 ලබා ගැනීමේ ක්‍රම</Text>
-        <View style={styles.badgeWrap}>
-          {(delivery.length ? delivery : ['🏪 කවුන්ටරයෙන් එකතු කිරීම']).map((d) => (
-            <View key={d} style={styles.deliveryChip}>
-              <Text style={styles.deliveryChipText}>{d}</Text>
-            </View>
-          ))}
-        </View>
-      </View>
-
     </Sheet>
     </>
   );
@@ -362,7 +385,33 @@ const blue = () => (getThemeMode() === 'dark' ? '#8db1ff' : '#2457e6');
 const styles = themedStyles(() =>
   StyleSheet.create({
     flex1: { flex: 1 },
-    coverWrap: { height: 190, overflow: 'hidden', borderTopLeftRadius: 28, borderTopRightRadius: 28 },
+    pfCard: { marginHorizontal: 6, marginTop: -34, padding: 12, paddingTop: 0, alignItems: 'center', gap: 4, borderRadius: 28, backgroundColor: Colors.bgCard, shadowColor: '#0f172a', shadowOffset: { width: 0, height: 12 }, shadowOpacity: 0.16, shadowRadius: 24, elevation: 10 },
+    pfLogo: { width: 64, height: 64, borderRadius: 22, marginTop: -32, alignItems: 'center', justifyContent: 'center', borderWidth: 4, borderColor: Colors.bgCard, shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.2, shadowRadius: 10, elevation: 6 },
+    pfLogoText: { fontSize: 20, fontFamily: FONTS.titleBold, color: '#ffffff', letterSpacing: 0.5 },
+    pfName: { fontSize: 19, fontFamily: FONTS.titleBold, color: Colors.textMain, textAlign: 'center', letterSpacing: -0.2, marginTop: 2 },
+    pfSub: { fontSize: 12, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, textAlign: 'center' },
+    pfPills: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 6, marginTop: 2 },
+    pfPill: { paddingHorizontal: 12, height: 26, borderRadius: 13, justifyContent: 'center' },
+    pfPillText: { fontSize: 11, fontFamily: FONTS.bodyBold },
+    statRow: { flexDirection: 'row', alignSelf: 'stretch', marginTop: 6, paddingVertical: 8, borderRadius: 16, backgroundColor: Colors.subtleFill },
+    statTile: { flex: 1, alignItems: 'center', gap: 2 },
+    statTileDivider: { borderLeftWidth: 1, borderLeftColor: edge() },
+    statValue: { fontSize: 14.5, fontFamily: FONTS.titleBold, color: Colors.textMain },
+    statLabel: { fontSize: 10, fontFamily: FONTS.bodyMedium, color: Colors.textMuted },
+    pfActions: { flexDirection: 'row', alignSelf: 'stretch', gap: 6, marginTop: 6 },
+    pfAction: { flex: 1, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
+    pfActionText: { fontSize: 12.5, fontFamily: FONTS.bodyBold, color: '#ffffff' },
+    pfMore: { alignSelf: 'stretch', alignItems: 'center', paddingVertical: 4 },
+    pfMoreText: { fontSize: 12, fontFamily: FONTS.bodyBold, color: blue() },
+    pfSection: { gap: 8, padding: 12, borderRadius: 20, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: edge() },
+    pfTitle: { fontSize: 15, fontFamily: FONTS.titleBold, color: Colors.textMain },
+    metric: { gap: 4 },
+    metricTop: { flexDirection: 'row', justifyContent: 'space-between' },
+    metricLabel: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
+    metricValue: { fontSize: 12, fontFamily: FONTS.bodyBold, color: Colors.successText },
+    metricTrack: { height: 8, borderRadius: 4, overflow: 'hidden', backgroundColor: Colors.subtleFill },
+    metricFill: { height: '100%', borderRadius: 4, backgroundColor: Colors.success },
+    coverWrap: { height: 150, overflow: 'hidden', borderTopLeftRadius: 28, borderTopRightRadius: 28 },
     cover: { width: '100%', height: '100%' },
     coverShade: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(6, 12, 30, 0.36)' },
     roundBtn: { position: 'absolute', top: 14, width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.94)', shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 4 },
@@ -388,7 +437,8 @@ const styles = themedStyles(() =>
     dealPct: { fontSize: 20, fontFamily: FONTS.titleBold, color: '#ffffff' },
     dealName: { fontSize: 12.5, fontFamily: FONTS.bodyBold, color: '#ffffff' },
     dealEnds: { fontSize: 10.5, fontFamily: FONTS.bodyMedium, color: 'rgba(255,255,255,0.9)' },
-    search: { height: 46, paddingHorizontal: 16, borderRadius: 23, backgroundColor: Colors.subtleFill, color: Colors.textMain, fontSize: 13, fontFamily: FONTS.bodyRegular },
+    searchField: { height: 46, paddingHorizontal: 16, borderRadius: 23, justifyContent: 'center', backgroundColor: Colors.subtleFill, borderWidth: 1, borderColor: edge() },
+    searchFieldText: { fontSize: 13, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
     chipRow: { gap: 8, paddingRight: 6 },
     chip: { paddingHorizontal: 15, height: 36, borderRadius: 18, justifyContent: 'center', backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: edge() },
     chipOn: { backgroundColor: '#2457e6', borderColor: '#2457e6', shadowColor: '#2457e6', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4 },
@@ -437,8 +487,8 @@ const styles = themedStyles(() =>
     stockHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginTop: 4 },
     stockTitle: { fontSize: 22, fontFamily: FONTS.titleBold, color: Colors.textMain, letterSpacing: -0.3 },
     stockCount: { fontSize: 12, fontFamily: FONTS.bodyBold, color: Colors.textMuted },
-    infoRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-    infoIconBox: { width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e3ecfd' },
+    infoRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    infoIconBox: { width: 30, height: 30, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e3ecfd' },
     infoIcon: { fontSize: 16, textAlign: 'center' },
     infoValue: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
     mapCard: { borderRadius: 24, overflow: 'hidden', backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: edge() },

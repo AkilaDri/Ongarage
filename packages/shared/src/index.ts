@@ -12,6 +12,7 @@ export * from './constants/categories';
 export * from './constants/breakdowns';
 export * from './constants/vehicles';
 export * from './constants/martShops';
+export * from './constants/martFitment';
 export * from './constants/serviceKits';
 export * from './constants/martPromos';
 
