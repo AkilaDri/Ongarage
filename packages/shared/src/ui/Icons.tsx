@@ -2,7 +2,7 @@ import React from 'react';
 import Svg, { Circle, Line, Path, Polyline } from 'react-native-svg';
 
 // Minimal stroke icons (Feather geometry) so status icons share one weight and tint.
-export type IconName = 'check-circle' | 'clock' | 'alert-triangle' | 'chevron-down' | 'x' | 'inbox' | 'tag' | 'calendar';
+export type IconName = 'check-circle' | 'clock' | 'alert-triangle' | 'chevron-down' | 'x' | 'inbox' | 'tag' | 'calendar' | 'trash';
 
 export const Icon: React.FC<{ name: IconName; size?: number; color: string; strokeWidth?: number }> = ({
   name,
@@ -42,6 +42,14 @@ export const Icon: React.FC<{ name: IconName; size?: number; color: string; stro
         <Line x1="16" y1="2" x2="16" y2="6" />
         <Line x1="8" y1="2" x2="8" y2="6" />
         <Line x1="3" y1="10" x2="21" y2="10" />
+      </>
+    )}
+    {name === 'trash' && (
+      <>
+        <Polyline points="3 6 5 6 21 6" />
+        <Path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+        <Line x1="10" y1="11" x2="10" y2="17" />
+        <Line x1="14" y1="11" x2="14" y2="17" />
       </>
     )}
     {name === 'x' && (

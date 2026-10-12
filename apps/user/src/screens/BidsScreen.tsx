@@ -60,7 +60,7 @@ const NAV_HEIGHT = 72;
 const shortMoney = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(n % 1000 === 0 ? 0 : 1)}k` : String(n));
 
 export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, onRepublish, onViewActivity, onHeaderVisibilityChange }) => {
-  const { jobs, acceptBid } = useBids();
+  const { jobs, acceptBid, removeBid } = useBids();
   const { findVehicle } = useVehicles();
   const user = useUserLocation();
   const [now, setNow] = useState(Date.now());
@@ -132,6 +132,11 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, onRepu
     replacesJobId: job.id,
   });
 
+  const removeBidAndPin = (jobId: string, bidId: string) => {
+    if (pinBid?.bid.id === bidId) setPinBid(null);
+    removeBid(jobId, bidId);
+  };
+
   const renderBidCard = (job: RepairJob, bid: Bid) => {
     const isLowest = bid.id === lowestBidId(job.bids);
     const isAccepted = job.acceptedBidId === bid.id;
@@ -140,6 +145,9 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, onRepu
       <SwipeCard key={bid.id} style={[styles.bidCard, isLowest && !job.acceptedBidId && styles.bidCardLowest, isAccepted && styles.bidCardAccepted]} onOpen={() => setBidView({ job, bid })}>
         <Pressable onPress={() => setBidView({ job, bid })} accessibilityLabel={`${bid.garageName} bid details`}>
           <Image source={GARAGE_COVERS[garage.id]} style={styles.bidCover} resizeMode="cover" />
+          {!isAccepted && (
+            <Pressable style={styles.deleteBtn} onPress={() => removeBidAndPin(job.id, bid.id)} hitSlop={8} accessibilityLabel={`Delete bid from ${bid.garageName}`}><Icon name="trash" size={15} color="#ffffff" /></Pressable>
+          )}
           <View style={styles.pricePill}>
             <Text style={styles.priceText}>{money(bid.price)}</Text>
           </View>
@@ -556,6 +564,7 @@ const styles = themedStyles(() => StyleSheet.create({
   bidCover: { width: '100%', height: 120 },
   bidBody: { paddingHorizontal: 12, paddingTop: 10, gap: 3 },
   bidAction: { padding: 12, paddingTop: 8 },
+  deleteBtn: { position: 'absolute', top: 84, right: 10, width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(239, 68, 68, 0.92)' },
   pricePill: { position: 'absolute', top: 10, right: 10, backgroundColor: 'rgba(15, 23, 42, 0.8)', borderRadius: 12, paddingHorizontal: 11, paddingVertical: 5 },
   priceText: { fontSize: 14, fontFamily: FONTS.titleBold, color: '#fff' },
   lowestTag: { position: 'absolute', top: 10, left: 10, backgroundColor: 'rgba(255, 255, 255, 0.92)', borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3 },
