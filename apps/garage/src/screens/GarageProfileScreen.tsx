@@ -1,5 +1,8 @@
+import { outline } from '../utils/material';
+import { pageBg } from '../utils/pageBg';
 import React, { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Animated, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { HEADER_SCROLL } from '../utils/collapsingHeader';
 import { Colors, dayStart, FONTS, GlassIcon, glassStyle, LevelBadge, levelProgress, nextLevel, SERVICE_CATEGORIES, ThemeToggle, themedStyles, useTheme, softEdge, softShadow, softFill, PinnedEdge, usePinnedEdge, getThemeMode } from '@ongarage/shared';
 import { useGarage } from '../context/GarageContext';
 import { VANS } from '../constants/mockData';
@@ -12,6 +15,7 @@ import { PublicProfileSheet } from '../components/PublicProfileSheet';
 import { LevelSheet } from '../components/LevelSheet';
 import { FairShareSheet } from '../components/FairShareSheet';
 import { EarningsStats } from '../components/EarningsStats';
+import { ReceivablesCard } from '../components/ReceivablesCard';
 import { ProfileHero } from '../components/ProfileHero';
 import { DashboardTiles } from '../components/DashboardTiles';
 
@@ -30,7 +34,7 @@ const RADIUS_MAX = 15;
 
 type SheetId = 'attendance' | 'services' | 'reviews' | 'team' | 'profile' | 'level' | 'fair' | null;
 
-export const GarageProfileScreen: React.FC = () => {
+export const GarageProfileScreen: React.FC<{ shift: Animated.Value; onScrollY: (y: number) => void }> = ({ shift, onScrollY }) => {
   const { profile, rating, reviews, team, crew, setCoverage, setOnBreak, trust, level, levelStats, graceDaysLeft, limitFrom, intakeOn, subscription, recommendedPlan } = useGarage();
   const limited = limitFrom !== undefined && Date.now() >= limitFrom;
   const tomorrow = intakeOn(dayStart(Date.now()) + 24 * 60 * 60 * 1000);
@@ -39,6 +43,9 @@ export const GarageProfileScreen: React.FC = () => {
   const nextMet = nextItems.filter((x) => x.met).length;
   const { isDark, toggle } = useTheme();
   const { progress: edge, scrollProps } = usePinnedEdge();
+  // The garage's header (name, level, status) and the list move up together as the list scrolls.
+  const [heroH, setHeroH] = useState(96);
+  const lift = shift.interpolate({ inputRange: [0, HEADER_SCROLL], outputRange: [0, -heroH], extrapolate: 'clamp' });
   const [sheet, setSheet] = useState<SheetId>(null);
   const close = () => setSheet(null);
 
@@ -50,14 +57,25 @@ export const GarageProfileScreen: React.FC = () => {
 
   return (
     <View style={styles.flex1}>
-    <View style={styles.pinned}>
+    <Animated.View style={[styles.pinned, { transform: [{ translateY: lift }] }]} onLayout={(e) => e.nativeEvent.layout.height > 0 && setHeroH(e.nativeEvent.layout.height)}>
       <PinnedEdge progress={edge} />
       <ProfileHero onOpenCard={() => setSheet('profile')} />
-    </View>
-    <ScrollView style={styles.flex1} {...scrollProps} contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
+    </Animated.View>
+    <Animated.View style={[styles.listLayer, { top: heroH, bottom: -heroH, transform: [{ translateY: lift }] }]}>
+    <ScrollView
+      style={styles.flex1}
+      {...scrollProps}
+      onScroll={(e) => {
+        scrollProps.onScroll(e);
+        onScrollY(e.nativeEvent.contentOffset.y);
+      }}
+      contentContainerStyle={styles.body}
+      showsVerticalScrollIndicator={false}
+    >
 
       <Text style={styles.sectionLabel}>උපකරණ පුවරුව</Text>
       <EarningsStats />
+      <ReceivablesCard />
       <DashboardTiles onReviews={() => setSheet('reviews')} onLevel={() => setSheet('level')} />
 
       {/* ---------- Today ---------- */}
@@ -267,6 +285,7 @@ export const GarageProfileScreen: React.FC = () => {
       <LevelSheet visible={sheet === 'level'} onClose={close} />
       <FairShareSheet visible={sheet === 'fair'} onClose={close} />
     </ScrollView>
+    </Animated.View>
     </View>
   );
 };
@@ -298,13 +317,14 @@ const styles = themedStyles(() =>
     levelBar: { height: 6, borderRadius: 3, backgroundColor: Colors.subtleFill, overflow: 'hidden' },
     levelBarFill: { height: 6, borderRadius: 3, backgroundColor: Colors.primary },
     flex1: { flex: 1 },
-    pinned: { zIndex: 5, paddingHorizontal: 16, paddingBottom: 10, backgroundColor: getThemeMode() === 'dark' ? Colors.bgBody : '#ffffff' },
+    listLayer: { position: 'absolute', left: 0, right: 0 },
+    pinned: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 5, paddingHorizontal: 16, paddingBottom: 10, backgroundColor: pageBg() },
     row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
     rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
-    body: { padding: 16, gap: 12, paddingBottom: 100 },
+    body: { paddingVertical: 16, paddingHorizontal: 6, gap: 12, paddingBottom: 220 },
     sectionLabel: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textMain, marginTop: 4 },
     hint: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 16 },
-    card: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), borderRadius: 20, padding: 14, gap: 10, ...softShadow() },
+    card: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), borderRadius: 20, padding: 14, gap: 10, ...softShadow() },
     cardTitle: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.textMain },
     sub: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 1 },
     link: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
@@ -345,7 +365,7 @@ const styles = themedStyles(() =>
     badgeText: { fontSize: 11, fontWeight: '800', color: '#fff' },
     chevron: { fontSize: 20, color: Colors.textMuted },
     latest: { fontSize: 11.5, fontFamily: FONTS.bodyRegular, color: Colors.textSoft, lineHeight: 18 },
-    list: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), borderRadius: 20, overflow: 'hidden', ...softShadow() },
+    list: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), borderRadius: 20, overflow: 'hidden', ...softShadow() },
     settingRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 12 },
     divider: { borderTopWidth: 1, borderTopColor: Colors.borderColor },
     version: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, textAlign: 'center', opacity: 0.6, marginTop: 4 },

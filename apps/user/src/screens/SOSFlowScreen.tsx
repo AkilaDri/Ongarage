@@ -1,3 +1,5 @@
+import { VehicleLine } from '@ongarage/shared';
+import { elevation1, outline, pageBg } from '../utils/material';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Easing, Linking, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -9,6 +11,8 @@ import { useVehicles } from '../context/VehiclesContext';
 import { useNotice } from '../context/NoticeContext';
 import { MartIcon } from '../components/MartBagIcon';
 import { useSOSRecords } from '../context/SOSRecordsContext';
+import { useChat } from '../context/ChatContext';
+import { jobRecordText } from '@ongarage/shared';
 import { TxnTag } from '../components/TxnTag';
 import { txnId } from '../utils/txn';
 import { BREAKDOWN_TYPES, breakdownInfo, getThemeMode } from '@ongarage/shared';
@@ -287,6 +291,7 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
   partBlocked.current = partState === 'requested' || partState === 'ownerBuying' || partState === 'techOrdering';
   const { notify } = useNotice();
   const { addRecord } = useSOSRecords();
+  const chat = useChat();
   const [showConfetti, setShowConfetti] = useState(false);
   const vehicleRef = useRef<View>(null);
 
@@ -562,6 +567,13 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
 
   const spin = spinAnim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
   const job = selected ?? workshops[0];
+  // Once a garage or technician has taken the SOS, a chat with them is in OnChat (the same thread the finished record keeps).
+  const takenBy = selected?.name;
+  useEffect(() => {
+    if (!selected) return;
+    chat.start({ id: `sos-${closeCode}`, title: selected.name, subtitle: `SOS · ${breakdownInfo(breakdown ?? '').label}`, phone: selected.phone, vehicle, profile: 'sos', record: jobRecordText({ title: `SOS · ${breakdownInfo(breakdown ?? '').label}`, who: { label: 'සහායකයා', name: selected.name, phone: selected.phone }, vehicle, place: location.address, price: surcharge, priceLabel: 'ඇමතුම් ගාස්තුව' }) });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [takenBy]);
   const mechanicCoords: LatLng = {
     latitude: job.coords.latitude + (location.coords.latitude - job.coords.latitude) * trackP,
     longitude: job.coords.longitude + (location.coords.longitude - job.coords.longitude) * trackP,
@@ -731,9 +743,7 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
           <GlassIcon emoji="🚗" />
           <View style={styles.flex1}>
             <Text style={styles.label}>වාහනය</Text>
-            <Text style={styles.cardTitle}>
-              {vehicle.name} · {vehicle.plate}
-            </Text>
+            <VehicleLine vehicle={vehicle} textStyle={styles.cardTitle} />
           </View>
           <Text style={styles.linkText}>වෙනස් කරන්න</Text>
         </Pressable>
@@ -1556,7 +1566,7 @@ const FLOAT_SHADOW = { shadowColor: '#0f172a', shadowOffset: { width: 0, height:
 const SOFT_SHADOW = { shadowColor: '#0f172a', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.1, shadowRadius: 16, elevation: 3 } as const;
 
 const styles = themedStyles(() => StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.bgBody },
+  container: { flex: 1, backgroundColor: pageBg() },
   flex1: { flex: 1 },
   selfCenter: { alignSelf: 'center' },
   header: {
@@ -1601,44 +1611,24 @@ const styles = themedStyles(() => StyleSheet.create({
   roundBtnText: { fontSize: 16, fontWeight: '700', color: Colors.textMain },
   stepPill: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, height: 52, paddingLeft: 6, paddingRight: 16, borderRadius: 26, backgroundColor: Colors.bgCard, ...FLOAT_SHADOW },
   stepPillIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: getThemeMode() === 'dark' ? 'rgba(239, 68, 68, 0.18)' : '#fee2e2', justifyContent: 'center', alignItems: 'center' },
-  stepPillTitle: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.textMain },
-  stepPillSub: { fontSize: 10.5, fontFamily: FONTS.bodySemiBold, color: '#dc2626' },
+  stepPillTitle: { fontSize: 14, fontFamily: FONTS.titleBold, color: Colors.textMain },
+  stepPillSub: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: '#dc2626' },
   // The step lives in a rounded sheet that overlaps the map, like the location picker's card.
-  sheet: {
-    flex: 1,
-    marginTop: -24,
-    backgroundColor: Colors.bgBody,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    overflow: 'hidden',
-    shadowColor: '#0f172a',
-    shadowOffset: { width: 0, height: -6 },
-    shadowOpacity: 0.12,
-    shadowRadius: 16,
-    elevation: 12,
-  },
+  sheet: { flex: 1, marginTop: -24, backgroundColor: pageBg(), borderTopLeftRadius: 28, borderTopRightRadius: 28, overflow: 'hidden', shadowColor: '#3c4043', shadowOffset: { width: 0, height: -2 }, shadowOpacity: 0.14, shadowRadius: 8, elevation: 8 },
   handle: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: Colors.subtleBorder, marginTop: 10 },
-  card: {
-    backgroundColor: Colors.bgCard,
-    borderWidth: getThemeMode() === 'dark' ? 1 : 0,
-    borderColor: Colors.borderColor,
-    borderRadius: 20,
-    padding: 14,
-    gap: 10,
-    ...SOFT_SHADOW,
-  },
+  card: { backgroundColor: Colors.bgCard, borderRadius: 12, borderWidth: 1, borderColor: outline(), ...elevation1(), padding: 16, gap: 12 },
   centerCard: { alignItems: 'center' },
   rowCenter: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   selectRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   divider: { height: 1, backgroundColor: Colors.borderColor },
-  label: { fontSize: 10, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, letterSpacing: 0.4 },
-  linkText: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
-  cardTitle: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.textMain },
-  cardSub: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 1 },
+  label: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, letterSpacing: 0.4 },
+  linkText: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
+  cardTitle: { fontSize: 15, fontFamily: FONTS.titleBold, color: Colors.textMain },
+  cardSub: { fontSize: 12.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 2 },
   // Same heading style as the Home screen's sections.
-  sectionLabel: { fontSize: 14.5, fontFamily: FONTS.titleBold, color: Colors.textMain, marginTop: 6 },
-  hint: { fontSize: 11, fontFamily: FONTS.bodyMedium, color: Colors.textMuted, textAlign: 'center' },
+  sectionLabel: { fontSize: 14, fontFamily: FONTS.bodyBold, color: Colors.primary, letterSpacing: 0.2, marginTop: 6 },
+  hint: { fontSize: 12, fontFamily: FONTS.bodyMedium, color: Colors.textMuted, textAlign: 'center' },
 
 
   grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 14 },
@@ -1646,7 +1636,7 @@ const styles = themedStyles(() => StyleSheet.create({
   glassTile: { width: 76, height: 76, borderRadius: 38, backgroundColor: Colors.bgCard, borderWidth: getThemeMode() === 'dark' ? 1 : 0, borderColor: Colors.borderColor, justifyContent: 'center', alignItems: 'center', ...SOFT_SHADOW },
   glassTileActive: { backgroundColor: 'rgba(239, 68, 68, 0.14)', borderWidth: 2, borderColor: '#ef4444' },
   gridEmoji: { fontSize: 30 },
-  gridLabel: { fontSize: 10.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain, textAlign: 'center' },
+  gridLabel: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textMain, textAlign: 'center' },
 
   pinAnchor: { position: 'absolute', transform: [{ translateX: '-50%' }, { translateY: '-50%' }] },
   userPin: {
@@ -1694,30 +1684,21 @@ const styles = themedStyles(() => StyleSheet.create({
   radarCore: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#ef4444', justifyContent: 'center', alignItems: 'center' },
   radarEmoji: { fontSize: 18 },
   statsRow: { flexDirection: 'row', gap: 8 },
-  statBox: {
-    flex: 1,
-    backgroundColor: Colors.bgCard,
-    borderWidth: getThemeMode() === 'dark' ? 1 : 0,
-    borderColor: Colors.borderColor,
-    borderRadius: 18,
-    paddingVertical: 12,
-    alignItems: 'center',
-    ...SOFT_SHADOW,
-  },
-  statValue: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.textMain },
-  statLabel: { fontSize: 9.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 2 },
+  statBox: { flex: 1, backgroundColor: Colors.bgCard, borderRadius: 12, borderWidth: 1, borderColor: outline(), ...elevation1(), paddingVertical: 14, alignItems: 'center' },
+  statValue: { fontSize: 15, fontFamily: FONTS.titleBold, color: Colors.textMain },
+  statLabel: { fontSize: 11, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 2 },
   progressTrack: { height: 6, borderRadius: 3, backgroundColor: Colors.subtleBorder, overflow: 'hidden' },
   progressFill: { height: '100%', borderRadius: 3, backgroundColor: '#ef4444' },
   progressFillSuccess: { backgroundColor: Colors.success },
-  statusPill: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: 10, borderWidth: 1 },
+  statusPill: { paddingHorizontal: 10, height: 24, justifyContent: 'center', borderRadius: 6, borderWidth: 1 },
   statusPillOn: { backgroundColor: 'rgba(16, 185, 129, 0.12)', borderColor: 'rgba(16, 185, 129, 0.4)' },
   statusPillOff: { backgroundColor: Colors.subtleFill, borderColor: Colors.borderColor },
-  statusPillText: { fontSize: 9.5, fontFamily: FONTS.bodySemiBold },
+  statusPillText: { fontSize: 11, fontFamily: FONTS.bodySemiBold },
 
-  ratingPill: { backgroundColor: 'rgba(245, 158, 11, 0.14)', borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3 },
-  connectedBar: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 10, borderRadius: 16, borderWidth: 1, borderColor: Colors.borderColor, backgroundColor: Colors.bgCard },
+  ratingPill: { backgroundColor: 'rgba(245, 158, 11, 0.14)', borderRadius: 6, paddingHorizontal: 8, height: 22, justifyContent: 'center' },
+  connectedBar: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: 12, borderWidth: 1, borderColor: outline(), backgroundColor: Colors.bgCard },
   profileBackdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: Colors.overlay },
-  profileSheet: { gap: 10, padding: 16, paddingBottom: 24, borderTopLeftRadius: 24, borderTopRightRadius: 24, backgroundColor: Colors.bgCard },
+  profileSheet: { gap: 12, padding: 24, paddingBottom: 28, borderTopLeftRadius: 28, borderTopRightRadius: 28, backgroundColor: Colors.bgCard },
   heroCircleSmall: { width: 44, height: 44, borderRadius: 22, marginBottom: 0 },
   heroCircleIconSmall: { fontSize: 22, color: '#fff', fontWeight: '800' },
   chevron: { fontSize: 24, color: Colors.textMuted },
@@ -1730,7 +1711,7 @@ const styles = themedStyles(() => StyleSheet.create({
   repairCore: { width: 92, height: 92, borderRadius: 46, alignItems: 'center', justifyContent: 'center', backgroundColor: '#10b981', shadowColor: '#10b981', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.45, shadowRadius: 18, elevation: 8 },
   repairCoreIcon: { fontSize: 42 },
   martIconWrap: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center' },
-  martGo: { paddingHorizontal: 14, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.primary },
+  martGo: { paddingHorizontal: 16, height: 36, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.primary },
   martGoText: { fontSize: 12.5, fontFamily: FONTS.bodyBold, color: '#ffffff' },
   partCard: { gap: 10, borderColor: Colors.primary, borderWidth: 1 },
   waitText: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain, textAlign: 'center', marginBottom: 10 },
@@ -1738,7 +1719,7 @@ const styles = themedStyles(() => StyleSheet.create({
   waitFill: { position: 'absolute', left: 0, top: 0, height: 8, borderRadius: 4, backgroundColor: '#10b981' },
   waitFillB: { backgroundColor: '#38bdf8' },
   emergencyIcon: { fontSize: 22, marginRight: 10 },
-  emergencyNumber: { paddingHorizontal: 12, paddingVertical: 5, borderRadius: 12, backgroundColor: '#dc2626' },
+  emergencyNumber: { paddingHorizontal: 12, paddingVertical: 5, borderRadius: 8, backgroundColor: '#dc2626' },
   emergencyNumberText: { fontSize: 14, fontFamily: FONTS.titleBold, color: '#ffffff', letterSpacing: 0.5 },
   termsSheet: { maxHeight: '80%' },
   termsScroll: { flexGrow: 0 },
@@ -1755,18 +1736,18 @@ const styles = themedStyles(() => StyleSheet.create({
   avatarEmojiLarge: { fontSize: 36 },
   detailRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   detailIcon: { fontSize: 14, width: 20, textAlign: 'center' },
-  detailText: { fontSize: 12, fontFamily: FONTS.bodyRegular, color: Colors.textMain },
-  detailStrong: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
+  detailText: { fontSize: 13.5, fontFamily: FONTS.bodyRegular, color: Colors.textMain },
+  detailStrong: { fontSize: 14, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
 
   hero: { alignItems: 'center', gap: 6, paddingVertical: 10 },
   heroCircle: { width: 84, height: 84, borderRadius: 42, justifyContent: 'center', alignItems: 'center', marginBottom: 6 },
   heroCircleSuccess: { backgroundColor: Colors.success, shadowColor: Colors.success, shadowOpacity: 0.6, shadowRadius: 24, elevation: 8 },
   heroCircleGlass: { backgroundColor: Colors.bgCard, ...SOFT_SHADOW },
   heroCircleIcon: { fontSize: 36, color: '#fff', fontWeight: '900' },
-  heroTitle: { fontSize: 17, fontFamily: FONTS.titleBold, color: Colors.textMain, textAlign: 'center' },
-  heroText: { fontSize: 12, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, textAlign: 'center', lineHeight: 18 },
+  heroTitle: { fontSize: 20, lineHeight: 28, fontFamily: FONTS.titleBold, color: Colors.textMain, textAlign: 'center' },
+  heroText: { fontSize: 14, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, textAlign: 'center', lineHeight: 21 },
 
-  etaBar: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 16, marginTop: 6, marginBottom: 4, paddingVertical: 10, borderRadius: 16, borderWidth: 1, borderColor: Colors.borderColor, backgroundColor: Colors.bgCard },
+  etaBar: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 6, marginTop: 6, marginBottom: 4, paddingVertical: 12, borderRadius: 12, borderWidth: 1, borderColor: outline(), backgroundColor: Colors.bgCard, ...elevation1() },
   etaRow: { flexDirection: 'row', alignItems: 'center' },
   etaItem: { flex: 1, alignItems: 'center' },
   etaValue: { fontSize: 18, fontFamily: FONTS.titleBold, color: Colors.textMain },
@@ -1778,20 +1759,20 @@ const styles = themedStyles(() => StyleSheet.create({
   starsRow: { flexDirection: 'row', gap: 8 },
   star: { fontSize: 40, color: Colors.subtleBorder },
   rateCard: { gap: 6, paddingVertical: 20 },
-  rateQuestion: { marginTop: 10, fontSize: 15, fontFamily: FONTS.titleBold, color: Colors.textMain },
+  rateQuestion: { marginTop: 10, fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textMain },
   starBig: { fontSize: 46, color: Colors.subtleBorder },
   tagWrap: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8, marginTop: 10 },
-  tag: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 16, borderWidth: 1, borderColor: Colors.borderColor, backgroundColor: Colors.bgCard },
-  tagOn: { borderColor: Colors.primary, backgroundColor: 'rgba(56, 189, 248, 0.14)' },
-  tagText: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
-  tagTextOn: { color: Colors.primary },
+  tag: { paddingHorizontal: 14, height: 32, justifyContent: 'center', borderRadius: 8, borderWidth: 1, borderColor: outline(), backgroundColor: Colors.bgCard },
+  tagOn: { borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#d2e3fc', backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe' },
+  tagText: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textSoft },
+  tagTextOn: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
   starOn: { color: Colors.warning },
-  rewardCard: { borderRadius: 20, padding: 18, alignItems: 'center', gap: 6, overflow: 'hidden', backgroundColor: '#059669' },
+  rewardCard: { borderRadius: 12, padding: 18, alignItems: 'center', gap: 6, overflow: 'hidden', backgroundColor: '#059669' },
   rewardIcon: { fontSize: 34 },
   rewardText: { fontSize: 12, fontFamily: FONTS.bodyMedium, color: '#ecfdf5', textAlign: 'center' },
   pointsPill: { backgroundColor: 'rgba(0, 0, 0, 0.25)', borderRadius: 14, paddingHorizontal: 12, paddingVertical: 5 },
   pointsText: { fontSize: 12, fontWeight: '800', color: '#fff' },
   confettiLayer: { ...StyleSheet.absoluteFill, justifyContent: 'center', alignItems: 'center', zIndex: 50 },
 
-  bottomBar: { padding: 16, paddingTop: 10, gap: 8, backgroundColor: Colors.bgBody },
+  bottomBar: { padding: 16, paddingTop: 12, gap: 8, backgroundColor: Colors.bgCard, borderTopWidth: 1, borderTopColor: outline() },
 }));

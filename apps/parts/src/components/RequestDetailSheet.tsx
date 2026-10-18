@@ -1,3 +1,4 @@
+import { VehicleLine } from '@ongarage/shared';
 import React from 'react';
 import { Image, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { ActionButton, categoryInfo, Colors, FONTS, GoogleMap, themedStyles, vehicleIcon, zoomToFit, softEdge, softShadow } from '@ongarage/shared';
@@ -71,9 +72,7 @@ export const RequestDetailSheet: React.FC<{ request: IncomingRequest | null; onC
 
       <Text style={styles.label}>වාහනය</Text>
       <View style={styles.card}>
-        <Text style={styles.value}>
-          {vehicleIcon(r.vehicle.type)} {r.vehicle.name} · {r.vehicle.type} · {r.vehicle.plate}
-        </Text>
+        <VehicleLine vehicle={r.vehicle} textStyle={styles.value} />
         <Text style={styles.sub}>{r.vehicle.chassis ? `චැසි / මාදිලි අංකය: ${r.vehicle.chassis}` : 'චැසි අංකය දී නැත — සැකයක් ඇත්නම් ගරාජය අමතන්න.'}</Text>
       </View>
 

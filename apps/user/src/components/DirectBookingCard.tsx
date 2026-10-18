@@ -1,3 +1,4 @@
+import { elevation1, outline } from '../utils/material';
 import React, { useEffect, useState } from 'react';
 import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { ActionButton, categoryInfo, Colors, directionsUrl, FONTS, getThemeMode, themedStyles, vehicleIcon } from '@ongarage/shared';
@@ -6,7 +7,8 @@ import { useVehicles } from '../context/VehiclesContext';
 import { useWorkshops } from '../context/WorkshopContext';
 import { WorkshopTracker } from './workshop/WorkshopTracker';
 import { CategoryPhoto } from './home/CategoryPhoto';
-import { TxnTag } from './TxnTag';
+import { ChatButton } from './ChatButton';
+import { VehicleBlock } from './VehicleBlock';
 import { useUserLocation } from '../context/LocationContext';
 import { countdown, formatDate, formatTime, money } from '../utils/format';
 import type { DirectBooking } from '../types';
@@ -29,12 +31,20 @@ export const DirectBookingCard: React.FC<{ booking: DirectBooking; onBookAgain: 
   const cat = categoryInfo(b.categoryId);
   const v = findVehicle(b.vehicleId);
   const ended = b.status === 'declined' || b.status === 'expired' || b.status === 'cancelled';
+  // A confirmed job the owner cancelled with the garage reads as ended too.
+  const cancelledJob = !!workshops[b.id]?.progress.cancelled;
   // Once the garage has the vehicle, the workshop steps replace the "how to get there" details.
   const started = (workshops[b.id]?.progress.stage ?? 'booked') !== 'booked';
   const media = [b.photos.length && `📷 ${b.photos.length}`, b.voiceNotes.length && `🎙️ ${b.voiceNotes.length}`].filter(Boolean).join('  ');
 
   return (
-    <View style={[styles.card, b.status === 'confirmed' && styles.confirmed, b.status === 'proposed' && styles.proposed, ended && styles.ended]}>
+    <View style={[styles.card, b.status === 'confirmed' && styles.confirmed, b.status === 'proposed' && styles.proposed, (ended || cancelledJob) && styles.ended]}>
+      {/* The chat button sits in the very top right corner of the card. */}
+      {(
+        <View style={styles.iconRow}>
+          <ChatButton size={44} target={{ id: b.id, title: b.garage.name, subtitle: cat.name, phone: b.garage.phone, vehicle: v }} />
+        </View>
+      )}
       <Pressable style={styles.row} onPress={onOpen} disabled={!onOpen} accessibilityLabel={`${cat.name} booking details`}>
         <CategoryPhoto categoryId={b.categoryId} />
         <View style={styles.flex1}>
@@ -42,18 +52,20 @@ export const DirectBookingCard: React.FC<{ booking: DirectBooking; onBookAgain: 
             {cat.name}
             {b.service ? ` · ${b.service}` : ''}
           </Text>
-          <Text style={styles.sub} numberOfLines={1}>
-            {b.garage.name} · {vehicleIcon(v.type)} {v.name}
-          </Text>
-          <TxnTag kind="BKG" source={b.id} />
-        </View>
-        <View style={styles.tagCol}>
-          <View style={styles.tag}>
-            <Text style={styles.tagText}>📅 ඍජු</Text>
+          <View style={styles.garageLine}>
+            <Text style={[styles.sub, styles.flex1]} numberOfLines={1}>
+              {b.garage.name}
+            </Text>
           </View>
-          {!!onOpen && <Text style={styles.link}>විස්තර ›</Text>}
+          <VehicleBlock vehicle={v} />
+        </View>
+        <View style={[styles.tagCol, styles.tagColIcons]}>
+          <View style={styles.tag}>
+            <Text style={styles.tagText}>📅 ඍජු සේවා</Text>
+          </View>
         </View>
       </Pressable>
+      <View style={styles.divider} />
 
       {b.status === 'requested' && (
         <View style={styles.rowBetween}>
@@ -91,12 +103,14 @@ export const DirectBookingCard: React.FC<{ booking: DirectBooking; onBookAgain: 
       {b.status === 'confirmed' && b.scheduledAt && !started && (
         <>
           <WorkshopTracker id={b.id} />
+          <View style={styles.divider} />
           <View style={styles.rowBetween}>
             <Text style={[styles.state, { color: Colors.successText }]}>
               ✓ තහවුරුයි · {formatDate(b.scheduledAt)} · {formatTime(b.scheduledAt)}
             </Text>
             {!!b.estimate && <Text style={styles.price}>~{money(b.estimate)}</Text>}
           </View>
+          <View style={styles.divider} />
           <View style={styles.box}>
             <Text style={styles.boxTitle}>{b.doorstep ? '🚛 නියමිත වේලාවට ගරාජය ඔබ වෙත පැමිණේ' : `🏠 වාහනය ගෙන යන්න: ${b.garage.address}`}</Text>
             <Text style={styles.sub}>
@@ -104,16 +118,7 @@ export const DirectBookingCard: React.FC<{ booking: DirectBooking; onBookAgain: 
               {b.garageNote ? ` · “${b.garageNote}”` : ''}
             </Text>
           </View>
-          <View style={styles.actions}>
-            <View style={styles.flex1}>
-              <ActionButton label="අමතන්න" icon="📞" variant="ghost" compact onPress={() => Linking.openURL(`tel:${b.garage.phone.replace(/\s/g, '')}`)} />
-            </View>
-            {!b.doorstep && (
-              <View style={styles.flex1}>
-                <ActionButton label="දිශාවන්" icon="🗺️" variant="primary" compact onPress={() => Linking.openURL(directionsUrl(b.garage.coords, user.coords))} />
-              </View>
-            )}
-          </View>
+          {!b.doorstep && <ActionButton label="දිශාවන්" icon="🗺️" variant="primary" compact onPress={() => Linking.openURL(directionsUrl(b.garage.coords, user.coords))} />}
           <Text style={styles.hint}>අවසන් මිල ගරාජය වාහනය පරීක්ෂා කළ පසු, ඔබගේ අනුමැතියෙන් පමණක් තීරණය වේ.</Text>
         </>
       )}
@@ -132,7 +137,14 @@ export const DirectBookingCard: React.FC<{ booking: DirectBooking; onBookAgain: 
         </View>
       )}
 
+      {!!media && !ended && <View style={styles.divider} />}
       {!!media && !ended && <Text style={styles.sub}>ඔබ එවූ: {media}</Text>}
+      {/* The details link sits in the card's bottom right corner. */}
+      {!!onOpen && (
+        <Pressable onPress={onOpen} hitSlop={8} style={styles.detailsCorner} accessibilityLabel="Booking details">
+          <Text style={styles.link}>විස්තර ›</Text>
+        </Pressable>
+      )}
     </View>
   );
 };
@@ -141,24 +153,30 @@ const styles = themedStyles(() =>
   StyleSheet.create({
     flex1: { flex: 1 },
     row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    garageLine: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    iconRow: { position: 'absolute', top: 6, right: 8, zIndex: 2, flexDirection: 'row', alignItems: 'center', gap: 8 },
+    // Room under the icons that sit in the card's corner.
+    tagColIcons: { paddingTop: 44 },
     rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+    detailsCorner: { alignSelf: 'flex-end' },
+    divider: { height: 1, backgroundColor: getThemeMode() === 'dark' ? Colors.borderColor : '#dadce0' },
     actions: { flexDirection: 'row', gap: 8 },
-    card: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#cfd6e0', borderRadius: 20, padding: 7, gap: 10, shadowColor: '#0f172a', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.1, shadowRadius: 16, elevation: 3 },
+    card: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), borderRadius: 12, padding: 12, gap: 12, ...elevation1() },
     // A state that needs the owner's eye keeps a coloured outline in either theme.
     confirmed: { borderWidth: 1, borderColor: 'rgba(16, 185, 129, 0.5)' },
     proposed: { borderWidth: 1, borderColor: 'rgba(245, 158, 11, 0.55)' },
     ended: { opacity: 0.7 },
-    title: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.textMain },
-    sub: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 1, lineHeight: 16 },
-    hint: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
+    title: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textMain },
+    sub: { fontSize: 12.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 2, lineHeight: 18 },
+    hint: { fontSize: 12, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
     tagCol: { alignItems: 'flex-end', gap: 4 },
-    tag: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, backgroundColor: 'rgba(16, 185, 129, 0.12)' },
-    tagText: { fontSize: 10, fontWeight: '800', color: Colors.successText },
-    state: { flex: 1, fontSize: 11.5, fontFamily: FONTS.bodySemiBold },
-    price: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.primary },
-    box: { padding: 10, borderRadius: 12, backgroundColor: Colors.subtleFill, gap: 2 },
-    boxTitle: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
-    cancel: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: Colors.errorText },
-    link: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
+    tag: { paddingHorizontal: 6, height: 18, justifyContent: 'center', borderRadius: 6, backgroundColor: 'rgba(16, 185, 129, 0.12)' },
+    tagText: { fontSize: 11.5, fontWeight: '700', color: Colors.successText },
+    state: { flex: 1, fontSize: 12.5, fontFamily: FONTS.bodySemiBold },
+    price: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textMain },
+    box: { padding: 12, borderRadius: 8, backgroundColor: Colors.subtleFill, gap: 2 },
+    boxTitle: { fontSize: 13.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
+    cancel: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.errorText },
+    link: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
   })
 );

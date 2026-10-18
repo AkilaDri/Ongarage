@@ -1,6 +1,7 @@
+import { TIER_LABEL, type CoverageTier } from '../marketplace/partsCatalogue';
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Colors, themedStyles } from '../theme/colors';
+import { Colors, getThemeMode, themedStyles } from '../theme/colors';
 import { FONTS } from '../theme/fonts';
 import type { PartType, ShopListing } from '../types';
 import { shopBadges, shopServiceScore } from '../marketplace/partsMart';
@@ -8,7 +9,7 @@ import { money } from '../utils/format';
 import { softEdge, softFill, softShadow } from './Glass';
 
 /** What a shop shows for the part being searched. 'ask' = it doesn't publish live stock, so the buyer asks. */
-export type ShopAvailability = { state: 'inStock' | 'low' | 'out' | 'ask'; price?: number; qty?: number; partType?: PartType; brand?: string };
+export type ShopAvailability = { state: 'inStock' | 'low' | 'out' | 'ask' | 'sells'; price?: number; qty?: number; partType?: PartType; brand?: string; /** 'sells': how closely the shop's catalogue fits the vehicle. */ tier?: CoverageTier };
 
 /** A parts shop in OnMart lists: who it is, how it performs, and (when searching) whether it has the part. */
 export const ShopCard: React.FC<{
@@ -19,17 +20,19 @@ export const ShopCard: React.FC<{
   /** Extra line under the card (e.g. a "recommended by" badge). */
   footer?: React.ReactNode;
   selected?: boolean;
-}> = ({ shop, availability, onPress, onCall, footer, selected }) => {
+  /** The Google Material look: 12px corners, a thin outline, light elevation (opt-in, the other apps keep the soft card). */
+  material?: boolean;
+}> = ({ shop, availability, onPress, onCall, footer, selected, material }) => {
   const badges = shopBadges(shop);
   const a = availability;
   return (
-    <Pressable style={({ pressed }) => [styles.card, selected && styles.cardSelected, pressed && !!onPress && styles.pressed]} onPress={onPress} disabled={!onPress} accessibilityLabel={`Shop ${shop.name}`}>
+    <Pressable style={({ pressed }) => [styles.card, material && styles.cardMaterial, selected && styles.cardSelected, pressed && !!onPress && styles.pressed]} onPress={onPress} disabled={!onPress} accessibilityLabel={`Shop ${shop.name}`}>
       <View style={styles.top}>
-        <View style={styles.thumb}>
+        <View style={[styles.thumb, material && styles.thumbMaterial]}>
           <Text style={styles.thumbText}>{shop.name.replace(/[^A-Za-z]/g, '').slice(0, 3).toUpperCase()}</Text>
         </View>
         <View style={styles.flex1}>
-          <Text style={styles.name} numberOfLines={1}>
+          <Text style={[styles.name, material && styles.nameMaterial]} numberOfLines={1}>
             {shop.name}
           </Text>
           <View style={styles.meta}>
@@ -61,12 +64,13 @@ export const ShopCard: React.FC<{
       )}
 
       {!!a && (
-        <View style={[styles.avail, a.state === 'inStock' && styles.availOk, a.state === 'low' && styles.availLow]}>
-          <Text style={[styles.availText, a.state === 'inStock' && { color: Colors.successText }, a.state === 'low' && { color: Colors.warning }]}>
+        <View style={[styles.avail, (a.state === 'inStock' || a.state === 'sells') && styles.availOk, a.state === 'low' && styles.availLow]}>
+          <Text style={[styles.availText, (a.state === 'inStock' || a.state === 'sells') && { color: Colors.successText }, a.state === 'low' && { color: Colors.warning }]}>
             {a.state === 'inStock' && `✓ තොගයේ ඇත${a.price ? ` · ${money(a.price)}` : ''}${a.partType && a.partType !== 'GarageChoice' ? ` · ${a.partType}` : ''}`}
             {a.state === 'low' && `⚠ අවසන් ඒකක ${a.qty ?? ''} ක් පමණි${a.price ? ` · ${money(a.price)}` : ''}`}
             {a.state === 'out' && 'තොගයේ නැත'}
             {a.state === 'ask' && 'සජීවී තොගයක් නැත — තහවුරු කිරීමට වෙළඳසැලෙන් අසන්න'}
+            {a.state === 'sells' && `✓ මෙම කොටස අලෙවි කරයි${a.tier ? ` · ${TIER_LABEL[a.tier]}` : ''} — ඉල්ලීමක් යවන්න`}
           </Text>
         </View>
       )}
@@ -79,6 +83,9 @@ const styles = themedStyles(() =>
   StyleSheet.create({
     flex1: { flex: 1 },
     card: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), borderRadius: 20, padding: 14, gap: 10, ...softShadow() },
+    cardMaterial: { borderRadius: 12, padding: 16, borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#dadce0', shadowColor: '#3c4043', shadowOffset: { width: 0, height: 1 }, shadowOpacity: getThemeMode() === 'dark' ? 0.4 : 0.15, shadowRadius: 3, elevation: 1 },
+    thumbMaterial: { borderRadius: 23, backgroundColor: getThemeMode() === 'dark' ? Colors.subtleFill : '#e8f0fe' },
+    nameMaterial: { fontSize: 16 },
     cardSelected: { borderColor: Colors.primary },
     pressed: { opacity: 0.85 },
     top: { flexDirection: 'row', alignItems: 'center', gap: 12 },

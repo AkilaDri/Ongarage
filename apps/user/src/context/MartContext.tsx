@@ -1,11 +1,25 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import {
   availabilityAt,
+  BROADCAST_LIMIT,
+  broadcastTargets,
+  martShop,
+  MART_SHOPS,
+  matchingShops,
+  planReply,
+  replyMessage,
+  offerReply,
+  queryFromBrief,
+  suggestNeighbours,
+  type ReplyPlan,
   dealFor,
   dealPrice,
   getAi,
   makeCloseCode,
   nextRing,
+  demoCoverage,
+  cartExpired,
+  groupCartByShop,
   partMarketPrice,
   onWall,
   reachesShops,
@@ -20,6 +34,8 @@ import {
   type PartEnquiry,
   type PartPurchase,
   type PartsMessage,
+  MAX_BASKET_PARTS,
+  type VoiceNote,
   type PartsQuickAsk,
   type PartsThread,
   type SearchRing,
@@ -47,8 +63,14 @@ const READY_MS = 7 * SEC;
 const DISPATCH_MS = 5 * SEC;
 const ARRIVE_MS = 12 * SEC;
 const REPLY_MS = 2500;
+/** A shop that says it will check answers this long after. */
+const CHECK_MS = 9000;
 /** A bought part can be brought back this long (the shop checks the fit and condition). */
 const RETURN_DAYS = 7;
+
+/** A part picked for the cart: the shop's answer chosen for it. It has to be confirmed within the hour (CART_HOLD_MIN). */
+/** `cheapest`: it came from the "cheapest for every part" quotation (the cart shows those apart, in light green). */
+export type CartLine = { enquiryId: string; offerId: string; shopId: string; addedAt: number; cheapest?: boolean };
 
 export type MartEnquiry = {
   enquiry: PartEnquiry;
@@ -58,6 +80,8 @@ export type MartEnquiry = {
   askedShopIds: string[];
   /** Shops are still answering the current round. */
   searching: boolean;
+  /** When each shop opened the request (shop id → time): the second tick, like a message read. Before that it is only sent. */
+  seenBy?: Record<string, number>;
 };
 
 export type NewEnquiry = {
@@ -68,6 +92,13 @@ export type NewEnquiry = {
   validDays: number;
   /** The job a garage told the owner to buy this part for, and the shops it recommended. */
   jobRef?: JobPartsRef;
+  /** Asked together with other parts (see createBatch): they share a batch and read as one group. */
+  batchId?: string;
+  batchTitle?: string;
+  batchIndex?: number;
+  batchSize?: number;
+  /** No toast for this request (a batch tells once). */
+  silent?: boolean;
 };
 
 /**
@@ -90,6 +121,9 @@ export type MartPurchase = {
   returnReason?: string;
 };
 
+/** Parts reserved together at one shop: they share one purchase code. */
+export type ReserveGroup = { id: string; code: string; seq: number };
+
 export const ACTIVE_STAGES: PurchaseStage[] = ['reserved', 'ready', 'dispatched', 'arrived'];
 
 type MartState = {
@@ -102,13 +136,31 @@ type MartState = {
   purchaseFor: (enquiryId: string) => MartPurchase | undefined;
   threadFor: (enquiryId: string, shopId: string) => PartsThread | undefined;
   createEnquiry: (input: NewEnquiry) => string;
+  /** Several parts asked together (a job's parts, a service kit): one request per part, grouped by a batch; the buyer is told once. */
+  createBatch: (inputs: NewEnquiry[], title?: string) => string;
   /** Nothing found: ask the next, wider ring of shops. */
   widen: (enquiryId: string) => void;
+  /** Search these parts again within a radius the owner chose on the map (km), or the whole country: only the shops not asked yet are asked (past 200 km, every shop in Sri Lanka). */
+  searchWithin: (enquiryIds: string[], km: number | 'all') => void;
+  /** Ask the next few shops whose catalogue covers it in the same ring (the first round asks the closest fits only). */
+  askMore: (enquiryId: string) => void;
+  /** Ask these shops directly (the ones a shop that has none pointed to). */
+  askShops: (enquiryId: string, shopIds: string[]) => void;
   /** Nothing found: also post it on the open wall that every shop in the country sees. */
-  postToWall: (enquiryId: string) => void;
+  postToWall: (enquiryId: string, description?: string) => void;
   cancelEnquiry: (enquiryId: string) => void;
+  /** Add to or change the description, photos and voice notes of one's own request while it is open (the shops see the change). */
+  editEnquiry: (enquiryId: string, change: { note?: string; photos?: string[]; voiceNotes?: VoiceNote[] }) => void;
   /** Reserve an offer: the shop holds the part for the owner, who gets a purchase code. */
-  reserve: (offerId: string, fulfilment: 'pickup' | 'delivery') => void;
+  reserve: (offerId: string, fulfilment: 'pickup' | 'delivery', group?: ReserveGroup) => void;
+  /** Reserve several parts of a basket at one shop in one go: one purchase code for all of them, each part still inspected and paid on its own. */
+  reserveMany: (offerIds: string[], fulfilment: 'pickup' | 'delivery') => void;
+  /** The cart: the shop picked for each part (one shop per part), to be confirmed within the hour. */
+  cart: CartLine[];
+  addToCart: (offerIds: string[], opts?: { cheapest?: boolean }) => void;
+  removeFromCart: (enquiryId: string) => void;
+  /** Confirm the parts in the cart for one shop: they are reserved there and the buyer's order goes into the shop's chat (where the part details and availability are checked). Returns the request whose chat holds it. */
+  confirmCart: (shopId: string, cheapest?: boolean) => string | undefined;
   /** The part checked at the counter (or the door) and paid for. */
   buy: (purchaseId: string) => void;
   /** The part is not as agreed: the reservation ends and the enquiry reopens. */
@@ -118,15 +170,25 @@ type MartState = {
   /** Only a bought part (a purchase the shop verified) can be rated. */
   rate: (purchaseId: string, stars: number, text?: string) => void;
   /** Ask a shop something; false when the message was held back (it moved the deal off the app). */
-  sendMessage: (enquiryId: string, shopId: string, msg: { quick?: PartsQuickAsk; text?: string; photos?: string[] }) => Promise<boolean>;
+  sendMessage: (enquiryId: string, shopId: string, msg: { quick?: PartsQuickAsk; text?: string; photos?: string[]; voiceNotes?: VoiceNote[] }) => Promise<boolean>;
+  /** Change the text of a message the buyer sent / take it back (the same as in OnChat). */
+  editMessage: (enquiryId: string, shopId: string, messageId: string, text: string) => void;
+  removeMessage: (enquiryId: string, shopId: string, messageId: string) => void;
 };
 
 const MartContext = createContext<MartState | null>(null);
 
-const makeOffer = (e: PartEnquiry, brief: PartBrief, shop: ShopListing, listed?: ShopStockLine): ShopOffer => {
-  const line = listed ?? availabilityAt(shop.id, brief.name, brief.partType);
+const round50 = (n: number) => Math.round(n / 50) * 50;
+
+const makeOffer = (e: PartEnquiry, brief: PartBrief, shop: ShopListing, listed?: ShopStockLine, plan: ReplyPlan = { kind: 'have', priced: true }, suggestedShopIds?: string[]): ShopOffer => {
+  const stocked = listed ?? availabilityAt(shop.id, brief.name, brief.partType);
+  const type = brief.partType === 'GarageChoice' ? shop.types[0] ?? 'OEM' : brief.partType;
+  // A catalogue shop keeps no stock list: a "have it" is priced from the market at its price level, or left for the counter.
+  const line = plan.kind !== 'have' ? undefined : stocked ?? { name: brief.name, partType: type, price: plan.priced ? round50(partMarketPrice(brief.name, type) * shop.stats.priceLevel) : 0, qty: brief.qty };
   const v = brief.vehicle;
   const base = {
+    reply: plan.kind,
+    suggestedShopIds: suggestedShopIds?.length ? suggestedShopIds : undefined,
     id: `of-${e.id}-${shop.id}`,
     enquiryId: e.id,
     briefId: brief.id,
@@ -137,7 +199,7 @@ const makeOffer = (e: PartEnquiry, brief: PartBrief, shop: ShopListing, listed?:
     return { ...base, available: false, partType: brief.partType === 'GarageChoice' ? 'OEM' : brief.partType, unitPrice: 0, qty: 0, total: 0, fitmentConfirmed: false, warrantyMonths: 0, readyInMin: 0, holdHours: 0 };
   }
   // A running deal at this shop takes its percentage off the unit price.
-  const deal = dealFor(shop.id, brief.name, line.partType);
+  const deal = line.price ? dealFor(shop.id, brief.name, line.partType) : undefined;
   const unitPrice = deal ? dealPrice(line.price, deal.discountPercent) : line.price;
   const qty = Math.min(brief.qty, line.qty);
   const km = shop.distanceKm;
@@ -169,9 +231,9 @@ const shopReply = (offer: ShopOffer | undefined, quick?: PartsQuickAsk): string 
   if (!offer) return 'ස්තූතියි — කවුන්ටරයට පැමිණි විට හමුවෙමු. කතා කරමු, නමුත් ගෙවීම් මෙම යෙදුමෙන් පිටත කරන්න එපා.';
   switch (quick) {
     case 'available':
-      return offer.available ? `ඔව්, තොගයේ ඇත — ${offer.qty} ක්.` : 'සමාවෙන්න, දැනට තොගයේ නැත.';
+      return offerReply(offer) === 'check' ? 'තවම පරීක්ෂා කරමින් — ටිකකින් දන්වමි.' : offer.available ? `ඔව්, ඇත — ${offer.qty} ක්.` : 'සමාවෙන්න, දැනට නැහැ.';
     case 'price':
-      return offer.available ? `ඒකකයක් රු. ${offer.unitPrice.toLocaleString()} (මුළු රු. ${offer.total.toLocaleString()}).` : 'තොගයේ නැත.';
+      return !offer.available ? 'කොටස නැති නිසා මිලක් නැහැ.' : offer.unitPrice > 0 ? `ඒකකයක් රු. ${offer.unitPrice.toLocaleString()} (මුළු රු. ${offer.total.toLocaleString()}).` : 'මිල කවුන්ටරයේදී කියමි — කොටස දැක ගෙන තීරණය කරන්න.';
     case 'fits':
       return offer.fitmentConfirmed ? 'ඔබගේ චැසි අංකයට ගැළපෙන බව මම තහවුරු කළා.' : 'චැසි / එන්ජින් අංකය එවන්න — ගැළපෙන්නේදැයි තහවුරු කර කියමි.';
     case 'holdIt':
@@ -195,14 +257,22 @@ export const MartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [offers, setOffers] = useState<ShopOffer[]>([]);
   const [purchases, setPurchases] = useState<MartPurchase[]>([]);
   const [threads, setThreads] = useState<PartsThread[]>([]);
+  const [cart, setCart] = useState<CartLine[]>([]);
 
-  const live = useRef({ enquiries, offers, purchases, threads });
-  live.current = { enquiries, offers, purchases, threads };
+  const live = useRef({ enquiries, offers, purchases, threads, cart });
+  live.current = { enquiries, offers, purchases, threads, cart };
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const later = useCallback((fn: () => void, ms: number) => {
     timers.current.push(setTimeout(fn, ms));
   }, []);
   useEffect(() => () => timers.current.forEach(clearTimeout), []);
+
+  /** A line from the shop in its conversation with the buyer. */
+  const shopSays = useCallback((enquiryId: string, shopId: string, text: string) => {
+    const key = `${enquiryId}:${shopId}`;
+    const line: PartsMessage = { id: `m-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, from: 'shop', text, at: Date.now() };
+    setThreads((prev) => (prev.some((t) => t.id === key) ? prev.map((t) => (t.id === key ? { ...t, messages: [...t.messages, line] } : t)) : [...prev, { id: key, enquiryId, shopId, messages: [line] }]));
+  }, []);
 
   const patch = useCallback((id: string, change: (m: MartEnquiry) => MartEnquiry) => setEnquiries((prev) => prev.map((m) => (m.enquiry.id === id ? change(m) : m))), []);
   const patchPurchase = useCallback((id: string, change: (p: MartPurchase) => MartPurchase) => setPurchases((prev) => prev.map((p) => (p.purchase.id === id ? change(p) : p))), []);
@@ -215,28 +285,64 @@ export const MartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const brief = e.briefs[0];
       const all = shopsNear(e.coords);
       const asked = new Set(already);
+      const q = queryFromBrief(brief);
+      // A request goes to the closest few shops whose catalogue covers it (and to shops without a catalogue that sell this kind of part);
+      // a part the catalogues do not know is asked of every shop in the ring, as before.
+      // The owner can set the exact radius on the map; otherwise the ring (10 km, 50 km, the whole country) decides.
+      const inRing = (e.radiusKm ? all.filter((s) => s.distanceKm <= e.radiusKm!) : shopsInRing(all, e.ring)).filter((s) => !asked.has(s.id));
+      const reach = () => {
+        if (!q.partId) return inRing;
+        const covered = broadcastTargets(matchingShops(inRing, q)).map((m) => m.shop);
+        const older = inRing.filter((s) => !s.catalogue?.length && wallVisibleTo(s, brief)).slice(0, Math.max(0, BROADCAST_LIMIT - covered.length));
+        return [...covered, ...older];
+      };
       const targets =
         mode === 'shops'
-          ? (me.onlyShopIds ? all.filter((s) => me.onlyShopIds!.includes(s.id)) : shopsInRing(all, e.ring)).filter((s) => !asked.has(s.id))
+          ? me.onlyShopIds
+            ? all.filter((s) => me.onlyShopIds!.includes(s.id) && !asked.has(s.id))
+            : reach()
           : all.filter((s) => !asked.has(s.id) && wallVisibleTo(s, brief));
       const ids = targets.map((s) => s.id);
       patch(e.id, (m) => ({ ...m, askedShopIds: [...new Set([...m.askedShopIds, ...ids])], searching: true }));
 
       let last = 0;
-      targets.forEach((shop) => {
+      targets.forEach((shop, rank) => {
         const has = !!availabilityAt(shop.id, brief.name, brief.partType);
-        // On the wall only shops that have the part answer; a shop asked directly also says "no" when it publishes its stock.
-        if (!has && (mode === 'wall' || !shop.liveStock)) return;
-        const delay = Math.max(2500, Math.min(22000, shop.stats.avgResponseMin * 350 + (mode === 'wall' ? shop.distanceKm * 25 : 0)));
-        last = Math.max(last, delay);
-        later(() => {
+        const catalogue = !!shop.catalogue?.length && !!q.partId;
+        // A catalogue shop answers have / don't have / will check; an older shop answers only when it has the part or publishes its stock.
+        const basePlan: ReplyPlan | null = catalogue ? planReply(shop.id, brief.name, has) : has ? { kind: 'have', priced: true } : mode === 'wall' || !shop.liveStock ? null : { kind: 'none', priced: false };
+        // The simulation: of the shops asked (nearest first) several have the parts, some all of a basket, some only a few, so the comparison has something to compare.
+        const demo = mode === 'shops' && !me.onlyShopIds ? demoCoverage(rank, e.batchIndex ?? 0, e.batchSize ?? 1) : undefined;
+        const plan: ReplyPlan | null = demo === undefined ? basePlan : demo ? { kind: 'have', priced: true } : { kind: 'none', priced: false };
+        // The shop sees the request (the second tick) before it answers; a shop that would stay silent sees it only when it is online (it publishes live stock).
+        const seenAfter = plan ? Math.max(1500, Math.min(6000, shop.stats.avgResponseMin * 350 * 0.45)) : shop.liveStock ? 6000 : null;
+        if (seenAfter != null) later(() => patch(e.id, (m) => ({ ...m, seenBy: { ...m.seenBy, [shop.id]: Date.now() } })), seenAfter);
+        // On the wall only shops that have the part answer.
+        if (!plan || (mode === 'wall' && plan.kind === 'none')) return;
+        const neighbours = () => suggestNeighbours(MART_SHOPS, q, [shop.id, ...live.current.enquiries.flatMap((m) => (m.enquiry.id === e.id ? m.askedShopIds : []))], 3).map((s) => s.id);
+        // A shop opens the request within a few seconds and then looks for the part: for now the simulated search takes about 40 seconds (32-40 s by how fast the shop usually is).
+        const delay = 32000 + Math.min(8000, shop.stats.avgResponseMin * 350 + (mode === 'wall' ? shop.distanceKm * 25 : 0));
+        last = Math.max(last, plan.kind === 'check' ? delay + CHECK_MS : delay);
+        const put = (p: ReplyPlan, announce: boolean) => {
           const cur = live.current.enquiries.find((x) => x.enquiry.id === e.id);
           if (!cur || cur.enquiry.status !== 'open') return;
-          const offer = makeOffer(cur.enquiry, brief, shop);
+          const base = makeOffer(cur.enquiry, brief, shop, undefined, p, p.kind === 'none' ? neighbours() : undefined);
+          const offer = p.kind === 'check' ? { ...base, checkUntil: Date.now() + 60 * 60000 } : base;
           setOffers((prev) => [...prev.filter((o) => o.id !== offer.id), offer]);
-          if (offer.available) {
-            notify({ icon: '📨', title: `${shop.name} සතුව ${brief.name} ඇත`, body: `රු. ${offer.unitPrice.toLocaleString()} · ${shop.distanceKm < 10 ? shop.distanceKm.toFixed(1) : Math.round(shop.distanceKm)} කි.මී.`, tone: 'success' });
-          }
+          // The answer is also the shop's first line in the chat with the buyer.
+          const names = (offer.suggestedShopIds ?? []).map((id) => martShop(id)?.name).filter((n): n is string => !!n);
+          const key = `${e.id}:${shop.id}`;
+          const line: PartsMessage = { id: `m-${Date.now()}-${shop.id}`, from: 'shop', text: replyMessage(offer, names), at: Date.now() };
+          setThreads((prev) => (prev.some((t) => t.id === key) ? prev.map((t) => (t.id === key ? { ...t, messages: [...t.messages, line] } : t)) : [...prev, { id: key, enquiryId: e.id, shopId: shop.id, messages: [line] }]));
+          if (!announce) return;
+          const where = `${shop.distanceKm < 10 ? shop.distanceKm.toFixed(1) : Math.round(shop.distanceKm)} කි.මී.`;
+          if (p.kind === 'have') notify({ icon: '📨', title: `${shop.name} සතුව ${brief.name} ඇත`, body: `${offer.unitPrice ? `රු. ${offer.unitPrice.toLocaleString()}` : 'මිල කවුන්ටරයේදී'} · ${where}`, tone: 'success' });
+          else if (p.kind === 'check') notify({ icon: '⏳', title: `${shop.name} පරීක්ෂා කර දන්වයි`, body: `${brief.name} · ${where}`, tone: 'primary' });
+        };
+        later(() => {
+          put(plan, true);
+          // "Will check" settles a little later into a yes or a no.
+          if (plan.kind === 'check' && plan.settles) later(() => put({ kind: plan.settles!, priced: plan.priced }, true), CHECK_MS);
         }, delay);
       });
 
@@ -244,7 +350,7 @@ export const MartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const cur = live.current.enquiries.find((x) => x.enquiry.id === e.id);
         if (!cur) return;
         patch(e.id, (m) => ({ ...m, searching: false }));
-        const got = live.current.offers.some((o) => o.enquiryId === e.id && o.available);
+        const got = live.current.offers.some((o) => o.enquiryId === e.id && (o.available || o.reply === 'check'));
         if (!got && cur.enquiry.status === 'open') {
           notify({ icon: '🔎', title: `${brief.name} තවම හමු වී නැත`, body: nextRing(cur.enquiry.ring) ? 'සෙවුම් පරාසය විශාල කරන්න, නැත්නම් විවෘත පෝස්ට් එකට දමන්න.' : 'විවෘත පෝස්ට් එකට දමා සිටින්න — වෙළඳසැලක් සතුව ඇත්නම් දැනුම් දෙයි.', tone: 'danger' });
         }
@@ -282,6 +388,10 @@ export const MartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         audience: input.audience,
         ring: input.ring,
         jobRef: input.jobRef,
+        batchId: input.batchId,
+        batchTitle: input.batchTitle,
+        batchIndex: input.batchIndex,
+        batchSize: input.batchSize,
         coords,
         createdAt: now,
         quoteUntil: now + input.validDays * DAY,
@@ -291,10 +401,21 @@ export const MartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setEnquiries((prev) => [me, ...prev]);
       const asked = reachesShops(input.audience) ? runRound(me, 'shops', []) : [];
       if (onWall(input.audience)) runRound(me, 'wall', asked);
-      notify({ icon: '📨', title: 'ඉල්ලීම යැව්වා', body: onWall(input.audience) ? 'වෙළඳසැල් සහ විවෘත පෝස්ට් එක වෙත.' : 'ළඟ වෙළඳසැල් වෙත — පිළිතුරු ලැබෙන විට දැනුම් දෙමු.', tone: 'primary' });
+      if (!input.silent) notify({ icon: '📨', title: 'ඉල්ලීම යැව්වා', body: onWall(input.audience) ? 'වෙළඳසැල් සහ විවෘත පෝස්ට් එක වෙත.' : 'ළඟ වෙළඳසැල් වෙත — පිළිතුරු ලැබෙන විට දැනුම් දෙමු.', tone: 'primary' });
       return id;
     },
     [coords, fullName, notify, profile.phone, runRound]
+  );
+
+  const createBatch = useCallback(
+    (inputs: NewEnquiry[], title?: string) => {
+      const batchId = `pbatch-${Date.now()}-${++enquirySeq.current}`;
+      const list = inputs.slice(0, MAX_BASKET_PARTS);
+      list.forEach((i, n) => createEnquiry({ ...i, batchId, batchTitle: title, batchIndex: n, batchSize: list.length, silent: true }));
+      notify({ icon: '📨', title: `කොටස් ${list.length} ක ඉල්ලීම යැව්වා`, body: 'ළඟ වෙළඳසැල් වෙත — හැම කොටසකටම වෙන වෙනම පිළිතුරු එයි.', tone: 'primary' });
+      return batchId;
+    },
+    [createEnquiry, notify]
   );
 
   const widen = useCallback(
@@ -309,11 +430,55 @@ export const MartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     [patch, runRound]
   );
 
-  const postToWall = useCallback(
+  const searchWithin = useCallback(
+    (enquiryIds: string[], km: number | 'all') => {
+      const nation = km === 'all' || km > 200;
+      const ring: PartEnquiry['ring'] = nation ? 'nationwide' : km > 10 ? 'wider' : 'nearby';
+      enquiryIds.forEach((id) => {
+        const me = live.current.enquiries.find((m) => m.enquiry.id === id);
+        if (!me) return;
+        const updated: MartEnquiry = { ...me, enquiry: { ...me.enquiry, ring, radiusKm: nation ? undefined : (km as number) } };
+        patch(id, () => updated);
+        runRound(updated, 'shops', me.askedShopIds);
+      });
+      notify({
+        icon: '🔭',
+        title: nation ? 'මුළු ලංකාවේම වෙළඳසැල් වලට පණිවිඩය යැව්වා' : `කි.මී. ${km} ඇතුළත වෙළඳසැල් වලට පණිවිඩය යැව්වා`,
+        body: `කොටස් ${enquiryIds.length} ක් සඳහා — අලුතින් ලැබෙන වෙළඳසැල් වල පිළිතුරු මෙහි පෙනේ.`,
+        tone: 'primary',
+      });
+    },
+    [notify, patch, runRound]
+  );
+
+  const askMore = useCallback(
     (enquiryId: string) => {
       const me = live.current.enquiries.find((m) => m.enquiry.id === enquiryId);
+      if (!me) return;
+      const ids = runRound({ ...me, onlyShopIds: undefined }, 'shops', me.askedShopIds);
+      if (!ids.length) notify({ icon: '🔎', title: 'මෙම පරාසයේ තවත් වෙළඳසැල් නැත', body: 'පරාසය විශාල කරන්න, නැත්නම් විවෘත පෝස්ට් එකට දමන්න.', tone: 'danger' });
+    },
+    [notify, runRound]
+  );
+
+  const askShops = useCallback(
+    (enquiryId: string, shopIds: string[]) => {
+      const me = live.current.enquiries.find((m) => m.enquiry.id === enquiryId);
+      if (!me) return;
+      const ids = runRound({ ...me, onlyShopIds: shopIds }, 'shops', me.askedShopIds);
+      if (ids.length) notify({ icon: '📨', title: `වෙළඳසැල් ${ids.length} කට ඉල්ලීම යැව්වා`, body: ids.map((id) => martShop(id)?.name).filter(Boolean).join(', '), tone: 'primary' });
+    },
+    [notify, runRound]
+  );
+
+  const postToWall = useCallback(
+    (enquiryId: string, description?: string) => {
+      const me = live.current.enquiries.find((m) => m.enquiry.id === enquiryId);
       if (!me || onWall(me.enquiry.audience)) return;
-      const updated: MartEnquiry = { ...me, enquiry: { ...me.enquiry, audience: 'both' } };
+      // A part of a basket posted on the wall on its own carries a description of its own.
+      const extra = description?.trim();
+      const briefs = extra ? me.enquiry.briefs.map((b, i) => (i === 0 ? { ...b, note: [b.note, extra].filter(Boolean).join(' · ') } : b)) : me.enquiry.briefs;
+      const updated: MartEnquiry = { ...me, enquiry: { ...me.enquiry, briefs, audience: 'both' } };
       patch(enquiryId, () => updated);
       runRound(updated, 'wall', me.askedShopIds);
       notify({ icon: '📣', title: 'විවෘත පෝස්ට් එකට දැම්මා', body: 'කොටස අලෙවි කරන ලංකාවේ සියලු වෙළඳසැල්වලට පෙනේ.', tone: 'primary' });
@@ -322,6 +487,14 @@ export const MartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   );
 
   const cancelEnquiry = useCallback((enquiryId: string) => setStatus(enquiryId, 'cancelled'), [setStatus]);
+
+  const editEnquiry = useCallback(
+    (enquiryId: string, change: { note?: string; photos?: string[]; voiceNotes?: VoiceNote[] }) => {
+      patch(enquiryId, (m) => (m.enquiry.status === 'open' ? { ...m, enquiry: { ...m.enquiry, briefs: m.enquiry.briefs.map((b, i) => (i === 0 ? { ...b, ...change } : b)) } } : m));
+      notify({ icon: '✎', title: 'පෝස්ට් එක යාවත්කාලීන කළා', body: 'අමතර විස්තර සහ ඡායාරූප වෙළඳසැල්වලට පෙනේ.', tone: 'success' });
+    },
+    [notify, patch]
+  );
 
   // ---------- Reserve, collect or receive, inspect and pay ----------
   const moveStage = useCallback(
@@ -335,7 +508,7 @@ export const MartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   );
 
   const reserve = useCallback(
-    (offerId: string, fulfilment: 'pickup' | 'delivery') => {
+    (offerId: string, fulfilment: 'pickup' | 'delivery', group?: ReserveGroup) => {
       const { offers: os, enquiries: es, purchases: ps } = live.current;
       const offer = os.find((o) => o.id === offerId);
       const me = offer && es.find((m) => m.enquiry.id === offer.enquiryId);
@@ -346,12 +519,13 @@ export const MartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const del = fulfilment === 'delivery' ? offer.delivery : undefined;
       const mp: MartPurchase = {
         purchase: {
-          id: `pp-${now}`,
+          id: group ? `pp-${now}-${group.seq}` : `pp-${now}`,
           enquiryId: offer.enquiryId,
           offerId,
           briefId: offer.briefId,
           shop: offer.shop,
-          code: makeCloseCode(),
+          code: group?.code ?? makeCloseCode(),
+          groupId: group?.id,
           status: 'reserved',
           fulfilment: del ? 'delivery' : 'pickup',
           reservedUntil: now + offer.holdHours * HOUR,
@@ -368,11 +542,13 @@ export const MartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const id = mp.purchase.id;
       setPurchases((prev) => [mp, ...prev]);
       setStatus(offer.enquiryId, 'reserved');
-      notify({ icon: '🔒', title: `${offer.shop.name} ඔබට කොටස වෙන් කළා`, body: del ? 'කොටස ගෙදරටම එවයි.' : `පැය ${offer.holdHours} ක් කවුන්ටරයේ තබා ගනී — කේතය පෙන්වන්න.`, tone: 'success' });
+      shopSays(offer.enquiryId, offer.shop.id, del ? '🔒 කොටස වෙන් කළා — ගෙදරටම එවමි.' : `🔒 කොටස වෙන් කළා — පැය ${offer.holdHours} ක් කවුන්ටරයේ තබා ගන්නමි. සූදානම් වූ විට දන්වමි; ඔබගේ කේතය පෙන්වන්න.`);
+      if (!group) notify({ icon: '🔒', title: `${offer.shop.name} ඔබට කොටස වෙන් කළා`, body: del ? 'කොටස ගෙදරටම එවයි.' : `පැය ${offer.holdHours} ක් කවුන්ටරයේ තබා ගනී — කේතය පෙන්වන්න.`, tone: 'success' });
 
       if (del) {
         later(() => {
           if (!moveStage(id, ['reserved'], 'dispatched', (p) => ({ delivery: p.delivery && { ...p.delivery, etaAt: Date.now() + del.etaMin * MIN } }))) return;
+          shopSays(offer.enquiryId, offer.shop.id, '🛵 කොටස පිටත් කළා.');
           notify({ icon: '🛵', title: 'කොටස පිටත් කළා', body: `${del.courier ?? 'වෙළඳසැලේ රියදුරා'} · මිනිත්තු ${del.etaMin}කින්`, tone: 'primary' });
         }, DISPATCH_MS);
         later(() => {
@@ -382,12 +558,97 @@ export const MartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } else {
         later(() => {
           if (!moveStage(id, ['reserved'], 'ready')) return;
+          shopSays(offer.enquiryId, offer.shop.id, '🏪 කොටස කවුන්ටරයේ සූදානම් — පැමිණ ඔබගේ කේතය පෙන්වන්න. කොටස පරීක්ෂා කර ගෙවන්න.');
           notify({ icon: '🏪', title: `${offer.shop.name}: කොටස සූදානම්`, body: 'කවුන්ටරයට ගොස් ඔබගේ කේතය පෙන්වන්න.', tone: 'success' });
         }, READY_MS);
       }
     },
-    [later, moveStage, notify, setStatus]
+    [later, moveStage, notify, setStatus, shopSays]
   );
+
+  const reserveMany = useCallback(
+    (offerIds: string[], fulfilment: 'pickup' | 'delivery') => {
+      const { offers: os, enquiries: es, purchases: ps } = live.current;
+      // Only parts still open and not already reserved, and all from one shop.
+      const ok = offerIds
+        .map((id) => os.find((o) => o.id === id))
+        .filter((o): o is (typeof os)[number] => !!o && o.available && es.some((m) => m.enquiry.id === o.enquiryId && m.enquiry.status === 'open') && !ps.some((p) => p.purchase.enquiryId === o.enquiryId && ACTIVE_STAGES.includes(p.stage)));
+      if (!ok.length || new Set(ok.map((o) => o.shop.id)).size > 1) return;
+      if (ok.length === 1) {
+        reserve(ok[0].id, fulfilment);
+        return;
+      }
+      const now = Date.now();
+      const group = { id: `pg-${now}`, code: makeCloseCode() };
+      ok.forEach((o, i) => reserve(o.id, fulfilment, { ...group, seq: i }));
+      notify({ icon: '🔒', title: `${ok[0].shop.name} කොටස් ${ok.length} ක් වෙන් කළා`, body: 'කොටස් ඔක්කොටම එකම කේතයක් — කවුන්ටරයේදී එකින් එක පරීක්ෂා කර ගෙවන්න.', tone: 'success' });
+    },
+    [notify, reserve]
+  );
+
+  // ---------- The cart ----------
+  const addToCart = useCallback(
+    (offerIds: string[], opts?: { cheapest?: boolean }) => {
+      const { offers: os, enquiries: es } = live.current;
+      const fresh: CartLine[] = [];
+      offerIds.forEach((id) => {
+        const o = os.find((x) => x.id === id);
+        const me = o && es.find((m) => m.enquiry.id === o.enquiryId);
+        if (o && o.available && me && me.enquiry.status === 'open') fresh.push({ enquiryId: o.enquiryId, offerId: o.id, shopId: o.shop.id, addedAt: Date.now(), cheapest: opts?.cheapest });
+      });
+      if (!fresh.length) return;
+      // One shop per part: picking another shop for a part replaces the earlier pick.
+      setCart((prev) => [...prev.filter((l) => !fresh.some((f) => f.enquiryId === l.enquiryId)), ...fresh]);
+      notify({ icon: '🛒', title: `Cart එකට කොටස් ${fresh.length} ක් එක් කළා`, body: 'පැයක් ඇතුළත shop එකෙන් තහවුරු කරන්න.', tone: 'primary' });
+    },
+    [notify]
+  );
+
+  const removeFromCart = useCallback((enquiryId: string) => setCart((prev) => prev.filter((l) => l.enquiryId !== enquiryId)), []);
+
+  const confirmCart = useCallback(
+    (shopId: string, cheapest?: boolean): string | undefined => {
+      const { cart: lines, offers: os, enquiries: es } = live.current;
+      const mine = lines.filter((l) => l.shopId === shopId && (cheapest === undefined || !!l.cheapest === cheapest) && !cartExpired(l.addedAt, Date.now()) && es.find((m) => m.enquiry.id === l.enquiryId)?.enquiry.status === 'open');
+      if (!mine.length) return undefined;
+      const offersOf = mine.map((l) => os.find((o) => o.id === l.offerId)).filter((o): o is (typeof os)[number] => !!o);
+      if (!offersOf.length) return undefined;
+      reserveMany(offersOf.map((o) => o.id), 'pickup');
+      setCart((prev) => prev.filter((l) => !mine.some((m) => m.enquiryId === l.enquiryId)));
+      // The order goes into the shop's chat, where the shop and the buyer check the part details and that it is there.
+      const first = offersOf[0];
+      const rows = offersOf.map((o) => {
+        const b = es.find((m) => m.enquiry.id === o.enquiryId)?.enquiry.briefs.find((x) => x.id === o.briefId);
+        return `• ${b?.name ?? 'කොටස'}${o.qty > 1 ? ` ×${o.qty}` : ''} — ${o.total ? `රු. ${o.total.toLocaleString()}` : 'මිල කවුන්ටරයේදී'}`;
+      });
+      const sum = offersOf.reduce((t, o) => t + o.total, 0);
+      const line: PartsMessage = {
+        id: `m-${Date.now()}-cart`,
+        from: 'buyer',
+        text: `🛒 ඇණවුම තහවුරු කළා:\n${rows.join('\n')}${sum ? `\nඑකතුව රු. ${sum.toLocaleString()}` : ''}\nකරුණාකර කොටස් වල විස්තර (වර්ගය, අංකය) සහ තොගය තහවුරු කරන්න.`,
+        at: Date.now(),
+      };
+      const key = `${first.enquiryId}:${shopId}`;
+      setThreads((prev) => (prev.some((t) => t.id === key) ? prev.map((t) => (t.id === key ? { ...t, messages: [...t.messages, line] } : t)) : [...prev, { id: key, enquiryId: first.enquiryId, shopId, messages: [line] }]));
+      later(() => shopSays(first.enquiryId, shopId, `✓ ඇණවුම ලැබුණා — කොටස් ${offersOf.length} ම තොගයේ ඇති බව තහවුරු කරමි. ඕන විස්තරයක් මෙහි අසන්න.`), 2500);
+      return first.enquiryId;
+    },
+    [later, reserveMany, shopSays]
+  );
+
+  // A part left in the cart past the hour (or whose request is no longer open) drops out.
+  useEffect(() => {
+    const t = setInterval(() => {
+      const now = Date.now();
+      const cur = live.current.cart;
+      const keep = cur.filter((l) => !cartExpired(l.addedAt, now) && live.current.enquiries.find((m) => m.enquiry.id === l.enquiryId)?.enquiry.status === 'open');
+      if (keep.length !== cur.length) {
+        setCart(keep);
+        notify({ icon: '⌛', title: 'Cart එකේ කොටසක් කල් ඉකුත් විය', body: 'පැයක් ඇතුළත තහවුරු නොකළ නිසා ඉවත් විය — නැවත තෝරන්න.', tone: 'danger' });
+      }
+    }, 20000);
+    return () => clearInterval(t);
+  }, [notify]);
 
   const buy = useCallback(
     (purchaseId: string) => {
@@ -448,7 +709,7 @@ export const MartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // ---------- Talking to a shop ----------
   const sendMessage = useCallback(
-    async (enquiryId: string, shopId: string, msg: { quick?: PartsQuickAsk; text?: string; photos?: string[] }) => {
+    async (enquiryId: string, shopId: string, msg: { quick?: PartsQuickAsk; text?: string; photos?: string[]; voiceNotes?: VoiceNote[] }) => {
       const text = msg.text?.trim();
       if (text) {
         const check = await getAi().checkOffPlatform(text);
@@ -456,7 +717,7 @@ export const MartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       const key = `${enquiryId}:${shopId}`;
       const stamp = Date.now();
-      const mine: PartsMessage = { id: `m-${stamp}`, from: 'buyer', quick: msg.quick, text, photos: msg.photos, at: stamp };
+      const mine: PartsMessage = { id: `m-${stamp}`, from: 'buyer', quick: msg.quick, text, photos: msg.photos, voiceNotes: msg.voiceNotes, at: stamp };
       const add = (m: PartsMessage) =>
         setThreads((prev) => (prev.some((t) => t.id === key) ? prev.map((t) => (t.id === key ? { ...t, messages: [...t.messages, m] } : t)) : [...prev, { id: key, enquiryId, shopId, messages: [m] }]));
       add(mine);
@@ -469,13 +730,25 @@ export const MartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     [later]
   );
 
+  const editMessage = useCallback((enquiryId: string, shopId: string, messageId: string, text: string) => {
+    const next = text.trim();
+    if (!next) return;
+    const key = `${enquiryId}:${shopId}`;
+    setThreads((prev) => prev.map((t) => (t.id === key ? { ...t, messages: t.messages.map((m) => (m.id === messageId && m.from === 'buyer' && !m.deleted ? { ...m, text: next, edited: true } : m)) } : t)));
+  }, []);
+
+  const removeMessage = useCallback((enquiryId: string, shopId: string, messageId: string) => {
+    const key = `${enquiryId}:${shopId}`;
+    setThreads((prev) => prev.map((t) => (t.id === key ? { ...t, messages: t.messages.map((m) => (m.id === messageId && m.from === 'buyer' ? { ...m, text: undefined, quick: undefined, photos: undefined, voiceNotes: undefined, deleted: true } : m)) } : t)));
+  }, []);
+
   const offersFor = useCallback((enquiryId: string) => offers.filter((o) => o.enquiryId === enquiryId), [offers]);
   const purchaseFor = useCallback((enquiryId: string) => purchases.find((p) => p.purchase.enquiryId === enquiryId), [purchases]);
   const threadFor = useCallback((enquiryId: string, shopId: string) => threads.find((t) => t.id === `${enquiryId}:${shopId}`), [threads]);
 
   return (
     <MartContext.Provider
-      value={{ enquiries, offers, purchases, threads, offersFor, purchaseFor, threadFor, createEnquiry, widen, postToWall, cancelEnquiry, reserve, buy, reject, cancelReservation, returnPart, rate, sendMessage }}
+      value={{ enquiries, offers, purchases, threads, offersFor, purchaseFor, threadFor, createEnquiry, createBatch, widen, askMore, askShops, postToWall, searchWithin, cancelEnquiry, editEnquiry, reserve, reserveMany, cart, addToCart, removeFromCart, confirmCart, buy, reject, cancelReservation, returnPart, rate, sendMessage, editMessage, removeMessage }}
     >
       {children}
     </MartContext.Provider>

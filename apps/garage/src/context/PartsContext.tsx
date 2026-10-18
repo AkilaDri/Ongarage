@@ -93,7 +93,7 @@ const makeQuote = (r: PartsRequest, shop: ShopSeed, type: QuoteType, rating: { r
   };
 };
 
-export type NewPartsRequest = Pick<PartsRequest, 'bookingId' | 'categoryId' | 'vehicle' | 'partType' | 'lines' | 'note' | 'oldPartPhoto' | 'needBy' | 'radiusKm' | 'forLineIds'> & {
+export type NewPartsRequest = Pick<PartsRequest, 'bookingId' | 'categoryId' | 'vehicle' | 'partType' | 'lines' | 'note' | 'oldPartPhoto' | 'photos' | 'needBy' | 'radiusKm' | 'forLineIds'> & {
   windowMin: number;
 };
 
@@ -345,7 +345,8 @@ export const PartsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const toOrderFor = useCallback(
     (b: Booking): DiagnosisLine[] => {
-      if (!b.progress || b.status === 'completed') return [];
+      // Nothing to order for a finished or cancelled job, or while a cancellation request holds the work.
+      if (!b.progress || b.status === 'completed' || b.status === 'cancelled' || b.progress.cancelRequest) return [];
       const reqs = requests.filter((r) => r.bookingId === b.id && r.status !== 'cancelled');
       const approved = partsStillToOrder(b.progress, reqs.flatMap((r) => r.forLineIds ?? []));
       if (approved.length || b.progress.decision || reqs.length) return approved;

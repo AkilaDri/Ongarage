@@ -17,12 +17,20 @@ import {
   newReferral,
   partCategory,
   recordOutcome,
+  recordAnswerFeedback,
   referralPriceOk,
   reachesShops,
   ringKm,
   shopServiceScore,
   tradeDiscount,
   wallVisibleTo,
+  catalogueCategories,
+  catalogueTypes,
+  queryFromBrief,
+  suggestNeighbours,
+  type ShopCatalogue,
+  type ShopReplyKind,
+  type PartBrief,
   type PartEnquiry,
   type PartLine,
   type PartPurchase,
@@ -120,7 +128,13 @@ const makeRequest = (seed: RequestSeed, i: number, shop: ShopProfile, stock: Sto
 export const buyerLabel = (r: CustomerRequest) => (r.via === 'wall' ? 'විවෘත දුර්ලභ කොටස් පෝස්ට් එක' : r.enquiry.buyer.name);
 
 /** Whether a customer enquiry is shown to this shop: direct ones always, wall posts only for parts it sells. */
-export const visibleToShop = (r: CustomerRequest, p: Pick<ShopProfile, 'types' | 'categories'>) => r.via === 'shop' || r.enquiry.briefs.some((b) => wallVisibleTo(p, b));
+/** An outcome of a sale the shop answered "have it" to: the usual outcome, and the answer accuracy starts being tracked. */
+const answerOutcome = (st: ShopStats, outcome: 'fulfilled' | 'noStock') => {
+  const next = recordOutcome(st, outcome);
+  return st.answerAccuracy === undefined ? recordAnswerFeedback(next, outcome === 'fulfilled') : next;
+};
+
+export const visibleToShop = (r: CustomerRequest, p: Pick<ShopProfile, 'types' | 'categories' | 'catalogue'>) => r.via === 'shop' || r.enquiry.briefs.some((b) => wallVisibleTo(p, b));
 
 const makeCustomerRequest = (seed: CustomerSeed, shop: ShopProfile, now: number): CustomerRequest => {
   const createdAt = now - seed.ageMin * MIN;
@@ -164,6 +178,10 @@ const referralFor = (r: CustomerRequest, shop: Pick<ShopProfile, 'id' | 'name' |
 export type OfferInput = {
   briefId: string;
   available: boolean;
+  /** Have it / don't / will check (the price is optional on a "have it"). */
+  reply?: ShopReplyKind;
+  /** Neighbour shops (OnMart directory ids) it points the buyer to when it does not have the part. */
+  suggestedShopIds?: string[];
   partType: QuoteType;
   brand?: string;
   unitPrice: number;
@@ -174,6 +192,8 @@ export type OfferInput = {
   holdHours: number;
   delivery?: { fee: number; etaMin: number; courier?: string };
   note?: string;
+  /** "Will check": minutes the shop needs to find the part; the buyer waits for its answer meanwhile. */
+  checkMin?: number;
 };
 
 export type VerifyResult = { ok: true; saleId: string } | { ok: false; error: 'code' | 'price'; listed?: number };
@@ -211,6 +231,13 @@ type ShopState = {
   setRadius: (km: number) => void;
   setDelivery: (change: Partial<Pick<ShopProfile, 'courierEnabled' | 'ownDelivery'>>) => void;
   saveCatalogue: (types: QuoteType[], categories: string[]) => void;
+  /** The shop's catalogue (what it sells, for which vehicles); types and categories follow from it. */
+  saveShopCatalogue: (catalogue: ShopCatalogue) => void;
+  /** How easy the set-up was, in the shop owner's words (for tuning the wizard). */
+  setupFeedback: { stars: number; text?: string; at: number } | null;
+  sendSetupFeedback: (stars: number, text?: string) => void;
+  /** Neighbour shops that sell this part (for a reply of "don't have it"). */
+  neighboursFor: (brief: PartBrief) => ShopListing[];
 
   passRequest: (id: string) => void;
   sendQuote: (input: QuoteInput) => void;
@@ -231,6 +258,8 @@ type ShopState = {
 
   replyReview: (id: string, text: string) => void;
   dismissNotice: () => void;
+  /** Shows a notice (the chat uses it for messages that arrive). */
+  notify: (n: Omit<Notice, 'id'>) => void;
 
   // OnMart: customers
   customerRequests: CustomerRequest[];
@@ -365,6 +394,16 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const setOpen = useCallback((open: boolean) => setIsOpen(open), []);
   const setRadius = useCallback((km: number) => setProfile((p) => ({ ...p, deliveryRadiusKm: Math.max(1, Math.min(25, km)) })), []);
   const setDelivery = useCallback((change: Partial<Pick<ShopProfile, 'courierEnabled' | 'ownDelivery'>>) => setProfile((p) => ({ ...p, ...change })), []);
+  const [setupFeedback, setSetupFeedback] = useState<{ stars: number; text?: string; at: number } | null>(null);
+  const sendSetupFeedback = useCallback((stars: number, text?: string) => {
+    setSetupFeedback({ stars: Math.max(1, Math.min(5, Math.round(stars))), text: text?.trim() || undefined, at: Date.now() });
+    notify({ icon: '🙏', title: 'ස්තූතියි!', body: 'ඔබේ අදහස සැකසීම වඩා පහසු කිරීමට උපකාරී වේ.', tone: 'success' });
+  }, [notify]);
+  const saveShopCatalogue = useCallback(
+    (catalogue: ShopCatalogue) => setProfile((p) => ({ ...p, catalogue, types: catalogueTypes(catalogue) as QuoteType[], categories: catalogueCategories(catalogue) })),
+    []
+  );
+  const neighboursFor = useCallback((brief: PartBrief) => suggestNeighbours(MART_SHOPS, queryFromBrief(brief), [live.current.profile.id], 6), []);
   const saveCatalogue = useCallback((types: QuoteType[], categories: string[]) => setProfile((p) => ({ ...p, types, categories })), []);
 
   // ---------- Requests & quotes ----------
@@ -611,6 +650,8 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
           briefId: inp.briefId,
           shop: { id: pr.id, name: pr.name, rating: pr.rating, ratingCount: pr.ratingCount, distanceKm: r.distanceKm, phone: pr.phone, address: pr.address },
           available: inp.available,
+          reply: inp.reply ?? (inp.available ? 'have' : 'none'),
+          suggestedShopIds: inp.suggestedShopIds?.length ? inp.suggestedShopIds : undefined,
           partType: inp.partType,
           brand: inp.brand,
           unitPrice: inp.unitPrice,
@@ -622,6 +663,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
           holdHours: inp.holdHours,
           delivery: inp.delivery,
           note: inp.note,
+          checkUntil: inp.reply === 'check' && inp.checkMin ? at + inp.checkMin * MIN : undefined,
           at,
           status: 'pending',
           request: r,
@@ -641,7 +683,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (!mine.length) return;
         let taken = 0;
         mine.forEach((o) => {
-          const fair = o.available && (!!o.request.enquiry.jobRef || o.unitPrice <= listPrice(o.brief.name, o.partType) * 1.12);
+          const fair = o.available && (!!o.request.enquiry.jobRef || !o.unitPrice || o.unitPrice <= listPrice(o.brief.name, o.partType) * 1.12);
           if (fair) {
             taken++;
             reserve(o);
@@ -661,7 +703,8 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const t = Date.now();
       const fee = sale.delivery?.method === 'shop' ? sale.offer.delivery?.fee ?? 0 : 0;
       patchSale(sale.id, { stage: 'bought', payout: amount + fee, purchase: { ...sale.purchase, status: 'bought', amount, invoiceNo, boughtAt: t, returnBy: t + 7 * DAY } });
-      setStats((st) => recordOutcome(st, 'fulfilled'));
+      // The buyer found the part as the shop said: its answer accuracy goes up.
+      setStats((st) => answerOutcome(st, 'fulfilled'));
       markOffer(sale.offer.id, 'bought');
       const label = buyerLabel(sale.offer.request);
       notify({ icon: '💰', title: 'විකුණුම තහවුරුයි', body: `${label} · රු. ${(amount + fee).toLocaleString()} ලැබුණා`, tone: 'success' });
@@ -722,7 +765,8 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!x || (x.stage !== 'reserved' && x.stage !== 'ready')) return;
       patchSale(saleId, { stage: 'released', purchase: { ...x.purchase, status: 'released' } });
       markOffer(x.offer.id, 'withdrawn');
-      setStats((st) => recordOutcome(st, 'noStock'));
+      // "Have it" was not true: the answer accuracy goes down.
+      setStats((st) => answerOutcome(st, 'noStock'));
       moveReferral(x.purchase.jobRef, 'lapsed');
       notify({ icon: '⛔', title: 'වෙන් කිරීම අහෝසි විය', body: 'කොටස නොතිබුණු බැවින් ඔබගේ තොග නිරවද්‍යතාව පහත වැටේ — තොගය නිවැරදිව තබා ගන්න.', tone: 'danger' });
     },
@@ -732,8 +776,14 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const verifyPurchase = useCallback(
     (code: string, amount: number, invoiceNo?: string): VerifyResult => {
       const digits = code.replace(/\D/g, '');
-      const x = live.current.sales.find((y) => y.purchase.code === digits && y.purchase.fulfilment === 'pickup' && (y.stage === 'reserved' || y.stage === 'ready'));
+      const xs = live.current.sales.filter((y) => y.purchase.code === digits && y.purchase.fulfilment === 'pickup' && (y.stage === 'reserved' || y.stage === 'ready'));
+      const x = xs[0];
       if (!x) return { ok: false, error: 'code' };
+      // A basket reserved together shares one code: every part is settled at its own listed price.
+      if (xs.length > 1) {
+        xs.forEach((y) => completeSale(y, y.offer.total, invoiceNo));
+        return { ok: true, saleId: x.id };
+      }
       // A customer a garage sent here never pays more than the shop's listed price.
       const listed = x.offer.total;
       if (x.purchase.jobRef && !referralPriceOk(amount, listed)) return { ok: false, error: 'price', listed };
@@ -871,6 +921,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isOpen,
       types: profile.types,
       categories: profile.categories,
+      catalogue: profile.catalogue,
       liveStock: profile.liveStock,
       courier: profile.courierEnabled,
       ownDelivery: profile.ownDelivery,
@@ -927,6 +978,10 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setRadius,
     setDelivery,
     saveCatalogue,
+    saveShopCatalogue,
+    setupFeedback,
+    sendSetupFeedback,
+    neighboursFor,
     passRequest,
     sendQuote,
     withdrawQuote,
@@ -941,6 +996,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     addItem,
     replyReview,
     dismissNotice,
+    notify,
   };
   return <ShopContext.Provider value={value}>{children}</ShopContext.Provider>;
 };

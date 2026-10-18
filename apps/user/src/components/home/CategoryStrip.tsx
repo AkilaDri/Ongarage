@@ -34,6 +34,6 @@ const styles = themedStyles(() =>
     item: { width: 74, alignItems: 'center', gap: 4 },
     pressed: { opacity: 0.7, transform: [{ scale: 0.96 }] },
     // A fixed two-line height keeps every item the same size, so the rows line up whether a name wraps or not.
-    label: { fontSize: 10.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain, textAlign: 'center', lineHeight: 13, height: 26 },
+    label: { fontSize: 11, fontFamily: FONTS.bodyRegular, color: Colors.textMain, textAlign: 'center', lineHeight: 14, height: 28 },
   })
 );

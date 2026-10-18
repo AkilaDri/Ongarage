@@ -1,3 +1,4 @@
+import { VehicleLine } from '@ongarage/shared';
 import React, { useEffect, useState } from 'react';
 import { Image, Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import {
@@ -8,6 +9,7 @@ import {
   Colors,
   DiagnosisSheet,
   directionsUrl,
+  ExtraByPhoneSheet,
   FONTS,
   HandoverSheet,
   partMarketPrice,
@@ -27,13 +29,12 @@ import {
   softFill,
 } from '@ongarage/shared';
 import { useTech } from '../context/TechContext';
-import { SAMPLE_PHOTOS } from '../constants/mockData';
 import { formatDate, formatTime, money } from '../utils/format';
 import { Sheet } from './Sheet';
 import { Toast } from './Toast';
 import type { TechJob } from '../types';
 
-type StepSheet = 'checkIn' | 'diagnosis' | 'extra' | 'handover' | 'close' | null;
+type StepSheet = 'checkIn' | 'diagnosis' | 'extra' | 'extraPhone' | 'handover' | 'close' | null;
 
 const DECLINE_REASONS = ['එම වේලාවේ නොහැක', 'මගේ විශේෂඥතාව නොවේ', 'දුර වැඩියි'];
 
@@ -50,7 +51,7 @@ export const PARTS_LABEL: Record<TechPartsStatus, { text: string; color: () => s
  * with the owner's QR / code.
  */
 export const WorkshopJobSheet: React.FC<{ job: TechJob | null; onClose: () => void }> = ({ job, onClose }) => {
-  const { duty, acceptJob, declineJob, receiveVehicle, sendDiagnosis, requestExtraWork, markReadyForHandover, closeWorkshopJob, setNotes } = useTech();
+  const { duty, acceptJob, declineJob, receiveVehicle, sendDiagnosis, requestExtraWork, approveExtraByPhone, holdExtraForOwner, deferExtraWork, markReadyForHandover, closeWorkshopJob, setNotes } = useTech();
   const [step, setStep] = useState<StepSheet>(null);
   const [shown, setShown] = useState<TechJob | null>(job);
   const [declining, setDeclining] = useState(false);
@@ -115,6 +116,8 @@ export const WorkshopJobSheet: React.FC<{ job: TechJob | null; onClose: () => vo
         />
       );
     if (j.stage !== 'working' || !p) return undefined;
+    // The owner asked to cancel: the work is on hold until the request is settled.
+    if (p.cancelRequest) return <Text style={[styles.sub, { color: Colors.warning }]}>⏸ අයිතිකරු රැකියාව අවලංගු කිරීමට ඉල්ලා ඇත — එය සමථයකට පත් වන තුරු වැඩ නවතා ඇත. ඉල්ලීම ඉවත් කළහොත් වැඩ නැවත ආරම්භ වේ.</Text>;
     switch (p.stage) {
       case 'received':
       case 'diagnosing':
@@ -123,7 +126,11 @@ export const WorkshopJobSheet: React.FC<{ job: TechJob | null; onClose: () => vo
         return (
           <View style={styles.actions}>
             <View style={styles.flex1}>
-              <ActionButton label="අමතර වැඩක්" icon="➕" variant="ghost" disabled={!!extraWaiting} onPress={() => setStep('extra')} />
+              {extraWaiting ? (
+                <ActionButton label="දුරකථනයෙන්" icon="📞" variant="ghost" onPress={() => setStep('extraPhone')} />
+              ) : (
+                <ActionButton label="අමතර වැඩක්" icon="➕" variant="ghost" onPress={() => setStep('extra')} />
+              )}
             </View>
             <View style={styles.flex2}>
               <ActionButton
@@ -156,9 +163,7 @@ export const WorkshopJobSheet: React.FC<{ job: TechJob | null; onClose: () => vo
       )}
 
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>
-          {vehicleIcon(j.vehicle.type)} {j.vehicle.name} · {j.vehicle.plate}
-        </Text>
+        <VehicleLine vehicle={j.vehicle} textStyle={styles.cardTitle} />
         <Text style={styles.desc}>{w.description}</Text>
         {w.voiceNotes?.map((n, i) => (
           <VoiceNotePlayer key={n.id} note={n} index={i} />
@@ -206,7 +211,16 @@ export const WorkshopJobSheet: React.FC<{ job: TechJob | null; onClose: () => vo
           )}
           {(p.extras ?? []).map((x) => (
             <Text key={x.id} style={styles.sub}>
-              ➕ {x.reason} · {x.decision ? '✓ අයිතිකරු අනුමත කළා' : '⏳ අයිතිකරුගේ අනුමැතියට'}
+              ➕ {x.reason} ·{' '}
+              {x.decision
+                ? x.decision.via === 'deferred'
+                  ? '➡️ පසුවට තැබුවා'
+                  : x.decision.via === 'phone'
+                    ? '✓ දුරකථනයෙන් අනුමත කළා'
+                    : '✓ අයිතිකරු අනුමත කළා'
+                : x.waitingSince
+                  ? '⏳ අයිතිකරු සම්බන්ධ නොවීය — රැඳී සිටී (නොමිලේ)'
+                  : '⏳ අයිතිකරුගේ අනුමැතියට'}
             </Text>
           ))}
           {p.stage === 'repairing' && partsPending && <Text style={[styles.sub, { color: Colors.warning }]}>⏳ ඇණවුම් කළ කොටස් ලැබෙන තුරු භාරදිය නොහැක.</Text>}
@@ -228,7 +242,7 @@ export const WorkshopJobSheet: React.FC<{ job: TechJob | null; onClose: () => vo
       </Text>
       {p && (
         <>
-          <CheckInSheet visible={step === 'checkIn'} onClose={closeStep} overlay={<Toast topOffset={40} />} subject={subject} doorstep={w.doorstep} samplePhotos={SAMPLE_PHOTOS} onConfirm={(photos) => receiveVehicle(j.id, photos)} />
+          <CheckInSheet visible={step === 'checkIn'} onClose={closeStep} overlay={<Toast topOffset={40} />} subject={subject} doorstep={w.doorstep} onConfirm={(photos) => receiveVehicle(j.id, photos)} />
           <DiagnosisSheet
             visible={step === 'diagnosis'}
             onClose={closeStep}
@@ -237,7 +251,6 @@ export const WorkshopJobSheet: React.FC<{ job: TechJob | null; onClose: () => vo
             agreedPrice={w.agreedPrice}
             ownerPartType={w.ownerPartType}
             priceFor={partMarketPrice}
-            samplePhotos={SAMPLE_PHOTOS}
             onSend={(r) => sendDiagnosis(j.id, r)}
           />
           <DiagnosisSheet
@@ -249,8 +262,18 @@ export const WorkshopJobSheet: React.FC<{ job: TechJob | null; onClose: () => vo
             agreedPrice={bill.total}
             ownerPartType={w.ownerPartType}
             priceFor={partMarketPrice}
-            samplePhotos={SAMPLE_PHOTOS}
-            onSend={(r) => requestExtraWork(j.id, { id: `x-${Date.now()}`, reason: r.findings, photos: r.photos, lines: r.lines, sentAt: Date.now() })}
+            onSend={(r) => requestExtraWork(j.id, { id: `x-${Date.now()}`, reason: r.findings, photos: r.photos, voiceNotes: r.voiceNotes, lines: r.lines, sentAt: Date.now() })}
+          />
+          <ExtraByPhoneSheet
+            visible={step === 'extraPhone'}
+            onClose={closeStep}
+            overlay={<Toast topOffset={40} />}
+            extra={extraWaiting}
+            customerName={j.customer.name}
+            onCall={() => Linking.openURL(`tel:${j.customer.phone}`)}
+            onApproveByPhone={(ids) => extraWaiting && approveExtraByPhone(j.id, extraWaiting.id, ids)}
+            onWait={() => extraWaiting && holdExtraForOwner(j.id, extraWaiting.id)}
+            onDefer={() => extraWaiting && deferExtraWork(j.id, extraWaiting.id)}
           />
           <HandoverSheet
             visible={step === 'handover'}
@@ -259,7 +282,6 @@ export const WorkshopJobSheet: React.FC<{ job: TechJob | null; onClose: () => vo
             lines={approvedLines(p)}
             bill={bill}
             beforePhotos={p.checkInPhotos}
-            samplePhotos={SAMPLE_PHOTOS}
             partsPending={partsPending}
             blockedReason={extraWaiting ? 'අයිතිකරු අමතර වැඩ ගැන තීරණය කරන තුරු භාර දිය නොහැක.' : undefined}
             onSubmit={(r) => markReadyForHandover(j.id, r)}

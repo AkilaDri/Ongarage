@@ -9,8 +9,8 @@ import { Sheet } from '../Sheet';
  * The owner asked for Genuine and none is available: allow Recon (cheaper, shorter
  * warranty) or wait for Genuine. The garage can't fit Recon without this.
  */
-export const ReconSheet: React.FC<{ workshop: OwnerWorkshop | null; reconId?: string; onClose: () => void }> = ({ workshop, reconId, onClose }) => {
-  const { decideRecon } = useWorkshops();
+export const ReconSheet: React.FC<{ workshop: OwnerWorkshop | null; reconId?: string; onClose: () => void; /** The answer was already given: change it (the chat's edit chip). */ change?: boolean }> = ({ workshop, reconId, onClose, change }) => {
+  const { decideRecon, changeReconDecision } = useWorkshops();
   const [shown, setShown] = useState(workshop);
   useEffect(() => {
     if (workshop) setShown(workshop);
@@ -20,14 +20,15 @@ export const ReconSheet: React.FC<{ workshop: OwnerWorkshop | null; reconId?: st
   const r = w?.progress.recon?.find((x) => x.id === reconId) ?? w?.progress.recon?.[0];
   if (!w || !r) return null;
   const decide = (approve: boolean) => {
-    decideRecon(w.id, r.id, approve);
+    if (change) changeReconDecision(w.id, r.id, approve);
+    else decideRecon(w.id, r.id, approve);
     onClose();
   };
 
   return (
     <Sheet
       visible={!!workshop}
-      title="Genuine කොටස් නොමැත"
+      title={change ? 'Genuine කොටස් නොමැත · වෙනස් කිරීම' : 'Genuine කොටස් නොමැත'}
       subtitle={`${w.garageName} · Recon යෙදීමට ඔබගේ අවසරය`}
       onClose={onClose}
       footer={

@@ -11,7 +11,7 @@ const greetingFor = (hour: number) => {
 };
 
 // Same layout as the owner app's header; the garage badge pulses while the
-// garage is online and the right-hand pill switches availability.
+// garage is online, and tapping it switches availability.
 export const GarageHeader: React.FC = () => {
   const { profile, isOpen, setOpen, level } = useGarage();
   const initials = profile.name.replace(/[^A-Za-z]/g, '').slice(0, 3).toUpperCase();
@@ -19,19 +19,26 @@ export const GarageHeader: React.FC = () => {
   return (
     <View style={styles.header}>
       <View style={styles.brandBox}>
-        <View style={styles.badgeWrap}>
+        <Pressable
+          style={({ pressed }) => [styles.badgeWrap, pressed && { transform: [{ scale: 0.96 }] }]}
+          onPress={() => setOpen(!isOpen)}
+          accessibilityRole="switch"
+          accessibilityLabel={isOpen ? 'Online — tap to go offline' : 'Offline — tap to go online'}
+          accessibilityState={{ checked: isOpen }}
+        >
           {isOpen && <Pulse style={styles.pulseRing} maxScale={1.25} />}
           <View style={styles.badge}>
             <Text style={styles.badgeText}>{initials}</Text>
           </View>
           <View style={[styles.statusDot, { backgroundColor: isOpen ? '#22c55e' : Colors.textMuted }]} />
-        </View>
+        </Pressable>
         <View style={styles.flexShrink}>
           <Text style={styles.name} numberOfLines={1}>
             Hi {profile.name},
           </Text>
           <Text style={styles.greeting} numberOfLines={1}>
             {greetingFor(new Date().getHours())}
+            <Text style={{ color: isOpen ? Colors.success : Colors.textMuted }}>{isOpen ? '  ·  ● සබැඳියි' : '  ·  ○ නොබැඳියි'}</Text>
           </Text>
           <View style={styles.nameRow}>
             <LevelBadge level={level.id} compact />
@@ -42,21 +49,16 @@ export const GarageHeader: React.FC = () => {
         </View>
       </View>
 
-      <Pressable
-        style={({ pressed }) => [styles.statusPill, isOpen ? styles.statusPillOn : styles.statusPillOff, pressed && { transform: [{ scale: 0.96 }] }]}
-        onPress={() => setOpen(!isOpen)}
-        accessibilityRole="switch"
-        accessibilityState={{ checked: isOpen }}
-      >
-        <View style={[styles.pillDot, { backgroundColor: isOpen ? '#22c55e' : Colors.textMuted }]} />
-        <Text style={[styles.pillText, { color: isOpen ? Colors.success : Colors.textMuted }]}>{isOpen ? 'සබැඳියි' : 'නොබැඳියි'}</Text>
-      </Pressable>
+      <View style={styles.actions}>
+      <View style={{ width: 52 }} />
+      </View>
     </View>
   );
 };
 
 const styles = themedStyles(() =>
   StyleSheet.create({
+    actions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 7 },
     header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 18, paddingTop: 18, paddingBottom: 38, backgroundColor: headerBand().bg },
     brandBox: { flexDirection: 'row', alignItems: 'center', gap: 14, flexShrink: 1, marginRight: 8 },
@@ -69,10 +71,5 @@ const styles = themedStyles(() =>
     greeting: { fontSize: 11.5, color: headerBand().sub, fontFamily: FONTS.bodyMedium , marginTop: 3 },
     name: { fontSize: 16, fontFamily: FONTS.titleBold, color: headerBand().title, marginTop: 1 },
     location: { fontSize: 10, color: headerBand().sub, fontFamily: FONTS.bodyRegular, marginTop: 6 },
-    statusPill: { flexDirection: 'row', alignItems: 'center', gap: 6, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 7, backgroundColor: getThemeMode() === 'dark' ? headerBand().pill : '#ffffff', ...softShadow() },
-    statusPillOn: {},
-    statusPillOff: {},
-    pillDot: { width: 8, height: 8, borderRadius: 4 },
-    pillText: { fontSize: 11, fontFamily: FONTS.bodySemiBold },
   })
 );

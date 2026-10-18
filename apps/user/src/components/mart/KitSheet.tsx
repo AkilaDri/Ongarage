@@ -1,3 +1,5 @@
+import { getThemeMode } from '@ongarage/shared';
+import { elevation1, outline } from '../../utils/material';
 import React, { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { ActionButton, Colors, FONTS, kitOffers, money, partCategory, shopsInRing, shopsNear, themedStyles, softEdge, softFill, type ServiceKit } from '@ongarage/shared';
@@ -9,7 +11,7 @@ import { Sheet } from '../Sheet';
 /** A service kit: which nearby shops have every part and what the kit costs there; then ask for each part in one go. */
 export const KitSheet: React.FC<{ kit: ServiceKit | null; vehicleId: string; onClose: () => void; onSent: () => void }> = ({ kit, vehicleId, onClose, onSent }) => {
   const { coords } = useUserLocation();
-  const { createEnquiry } = useMart();
+  const { createBatch } = useMart();
   const { findVehicle } = useVehicles();
   const [shown, setShown] = React.useState<ServiceKit | null>(kit);
   React.useEffect(() => {
@@ -22,13 +24,14 @@ export const KitSheet: React.FC<{ kit: ServiceKit | null; vehicleId: string; onC
   const v = findVehicle(vehicleId);
 
   const ask = () => {
-    k.lines.forEach((l) =>
-      createEnquiry({
+    createBatch(
+      k.lines.map((l) => ({
         brief: { name: l.name, qty: l.qty, partType: 'GarageChoice', categoryId: partCategory(l.name), vehicle: { name: v.name, plate: v.plate, type: v.type, make: v.make, model: v.model, chassisNo: v.chassisNo, engineNo: v.engineNo } },
         audience: 'shops',
         ring: 'nearby',
         validDays: 3,
-      })
+      })),
+      k.name
     );
     onSent();
     onClose();
@@ -74,13 +77,13 @@ export const KitSheet: React.FC<{ kit: ServiceKit | null; vehicleId: string; onC
 const styles = themedStyles(() =>
   StyleSheet.create({
     flex1: { flex: 1 },
-    card: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), borderRadius: 18, padding: 14, gap: 6 },
-    line: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
-    label: { fontSize: 12.5, fontFamily: FONTS.titleBold, color: Colors.textMain, marginTop: 4 },
-    sub: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 16 },
-    row: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: 16, backgroundColor: softFill(), borderWidth: 1, borderColor: 'transparent' },
+    card: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), borderRadius: 12, padding: 16, gap: 6, ...elevation1() },
+    line: { fontSize: 14, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
+    label: { fontSize: 14, fontFamily: FONTS.bodyBold, color: Colors.primary, letterSpacing: 0.2, marginTop: 4 },
+    sub: { fontSize: 12, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 18 },
+    row: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: 8, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline() },
     rowOk: { borderColor: 'rgba(16, 185, 129, 0.45)' },
-    name: { fontSize: 12.5, fontFamily: FONTS.bodyBold, color: Colors.textMain },
-    total: { fontSize: 13.5, fontFamily: FONTS.titleBold, color: Colors.successText },
+    name: { fontSize: 14, fontFamily: FONTS.bodyBold, color: Colors.textMain },
+    total: { fontSize: 15, fontFamily: FONTS.titleBold, color: Colors.successText },
   })
 );

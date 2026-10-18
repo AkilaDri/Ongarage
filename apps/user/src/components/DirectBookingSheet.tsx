@@ -12,7 +12,10 @@ import {
   SUGGEST_MIN_CONFIDENCE,
   themedStyles,
   vehicleIcon,
+  FITTING_SUPPLY,
+  PARTS_FITTING_CATEGORY_ID,
   type Garage,
+  type PartsFitting,
   type VoiceNote,
 } from '@ongarage/shared';
 import { Sheet } from './Sheet';
@@ -36,9 +39,10 @@ const dayLabel = (offset: number, t: number) => (offset === 0 ? 'අද' : offse
  * Book a garage directly (no bidding): what's wrong, when, and whether the garage comes
  * to you. The garage gets it as a direct request and must answer within 2 hours.
  */
-export const DirectBookingSheet: React.FC<{ garage: Garage | null; categoryId?: string; defaultVehicleId: string; onClose: () => void; onBooked?: () => void }> = ({
+export const DirectBookingSheet: React.FC<{ garage: Garage | null; categoryId?: string; defaultVehicleId: string; /** What the owner already told this garage (an inquiry), to start the form from. */ initial?: { description?: string; vehicleId?: string; service?: string }; onClose: () => void; onBooked?: () => void }> = ({
   garage,
   categoryId: initialCategory,
+  initial,
   defaultVehicleId,
   onClose,
   onBooked,
@@ -53,6 +57,9 @@ export const DirectBookingSheet: React.FC<{ garage: Garage | null; categoryId?: 
   const [hour, setHour] = useState(10);
   const [doorstep, setDoorstep] = useState(false);
   const [description, setDescription] = useState('');
+  // Parts Fitting: the part to fit and who supplies it.
+  const [fitPart, setFitPart] = useState('');
+  const [fitSupply, setFitSupply] = useState<PartsFitting['supply']>('owner');
   const [photos, setPhotos] = useState<string[]>([]);
   const [voiceNotes, setVoiceNotes] = useState<VoiceNote[]>([]);
   const [suggestion, setSuggestion] = useState<string | null>(null);
@@ -62,12 +69,12 @@ export const DirectBookingSheet: React.FC<{ garage: Garage | null; categoryId?: 
     if (!garage) return;
     setShown(garage);
     setCategoryId(initialCategory ?? '1');
-    setService(undefined);
-    setVehicleId(defaultVehicleId);
+    setService(initial?.service);
+    setVehicleId(initial?.vehicleId ?? defaultVehicleId);
     setDay(1);
     setHour(10);
     setDoorstep(false);
-    setDescription('');
+    setDescription(initial?.description ?? '');
     setPhotos([]);
     setVoiceNotes([]);
     setSuggestion(null);
@@ -94,10 +101,12 @@ export const DirectBookingSheet: React.FC<{ garage: Garage | null; categoryId?: 
   const cat = categoryInfo(categoryId);
   const preferredAt = dayStart(day) + hour * HOUR;
   const slotPast = preferredAt <= Date.now() + HOUR;
-  const valid = description.trim().length >= 5 && !slotPast;
+  const fitting = categoryId === PARTS_FITTING_CATEGORY_ID;
+  const valid = description.trim().length >= 5 && !slotPast && (!fitting || fitPart.trim().length > 0);
 
   const submit = () => {
-    requestBooking({ garage: shown, categoryId, service, vehicleId, preferredAt, description: description.trim(), doorstep, photos, voiceNotes });
+    const fittingInfo: PartsFitting | undefined = fitting ? { partName: fitPart.trim(), supply: fitSupply } : undefined;
+    requestBooking({ garage: shown, categoryId, service, vehicleId, preferredAt, description: fittingInfo ? `${description.trim()}\n🔩 සවි කළ යුතු කොටස: ${fittingInfo.partName} (${FITTING_SUPPLY.find((x) => x.id === fittingInfo.supply)?.short})` : description.trim(), doorstep, photos, voiceNotes, fitting: fittingInfo });
     onClose();
     onBooked?.();
   };
@@ -167,6 +176,19 @@ export const DirectBookingSheet: React.FC<{ garage: Garage | null; categoryId?: 
         <Chip label="🏠 මම වාහනය ගරාජයට ගෙනෙන්නම්" on={!doorstep} onPress={() => setDoorstep(false)} />
         <Chip label="🚛 ගරාජය මා වෙත පැමිණිය යුතුයි" on={doorstep} onPress={() => setDoorstep(true)} />
       </View>
+
+      {fitting && (
+        <>
+          <Text style={styles.label}>සවි කළ යුතු කොටස</Text>
+          <TextInput style={styles.input} value={fitPart} onChangeText={setFitPart} placeholder="උදා: ඉදිරිපස බ්‍රේක් පෑඩ් සෙට් එක" placeholderTextColor={Colors.textMuted} accessibilityLabel="Part to fit" />
+          <Text style={styles.label}>කොටස සපයන්නේ කවුද?</Text>
+          <View style={styles.chips}>
+            {FITTING_SUPPLY.map((s) => (
+              <Chip key={s.id} label={s.label} on={fitSupply === s.id} onPress={() => setFitSupply(s.id)} />
+            ))}
+          </View>
+        </>
+      )}
 
       <Text style={styles.label}>ගැටලුව විස්තර කරන්න</Text>
       <TextInput

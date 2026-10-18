@@ -1,3 +1,6 @@
+import { getThemeMode } from '@ongarage/shared';
+import { VehicleLine } from '@ongarage/shared';
+import { elevation1, outline } from '../../utils/material';
 import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { ActionButton, Colors, FONTS, money, themedStyles, softEdge, softFill } from '@ongarage/shared';
@@ -54,7 +57,7 @@ export const CounterSheet: React.FC<{ item: MartPurchase | null; onClose: () => 
               <ActionButton label="ප්‍රතික්ෂේප කරන්න" icon="✕" variant="ghost" compact onPress={() => setRejecting(true)} />
             </View>
             <View style={styles.flex2}>
-              <ActionButton label={`මිලදී ගන්න · ${money(p.offer.total)}`} icon="✓" variant="success" compact disabled={!all} onPress={accept} />
+              <ActionButton label={p.offer.total ? `මිලදී ගන්න · ${money(p.offer.total)}` : 'මිලදී ගන්න'} icon="✓" variant="success" compact disabled={!all} onPress={accept} />
             </View>
           </View>
         )
@@ -66,8 +69,8 @@ export const CounterSheet: React.FC<{ item: MartPurchase | null; onClose: () => 
           {p.offer.brand ? ` · ${p.offer.brand}` : ''}
         </Text>
         {!!p.brief.partNo && <Text style={styles.sub}>ඔබ ඉල්ලූ කොටස් අංකය: {p.brief.partNo}</Text>}
+        <VehicleLine vehicle={v} textStyle={styles.sub} />
         <Text style={styles.sub}>
-          {v.name} · {v.plate}
           {v.chassisNo ? ` · Chassis ${v.chassisNo}` : ''}
           {v.engineNo ? ` · Engine ${v.engineNo}` : ''}
         </Text>
@@ -104,15 +107,15 @@ const styles = themedStyles(() =>
     flex1: { flex: 1 },
     flex2: { flex: 2 },
     footer: { flexDirection: 'row', gap: 8 },
-    card: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), borderRadius: 18, padding: 14, gap: 4 },
-    title: { fontSize: 13.5, fontFamily: FONTS.titleBold, color: Colors.textMain },
-    sub: { fontSize: 11, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 17 },
-    label: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, marginTop: 4 },
+    card: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), borderRadius: 12, padding: 16, gap: 4, ...elevation1() },
+    title: { fontSize: 15, fontFamily: FONTS.titleBold, color: Colors.textMain },
+    sub: { fontSize: 12.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 19 },
+    label: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, marginTop: 4 },
     checkRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 6 },
-    check: { width: 24, height: 24, borderRadius: 8, borderWidth: 2, borderColor: Colors.subtleBorder, alignItems: 'center', justifyContent: 'center' },
+    check: { width: 24, height: 24, borderRadius: 6, borderWidth: 2, borderColor: Colors.subtleBorder, alignItems: 'center', justifyContent: 'center' },
     checkOn: { backgroundColor: Colors.success, borderColor: Colors.success },
     checkMark: { fontSize: 14, fontWeight: '900', color: '#ffffff' },
-    reason: { paddingVertical: 13, paddingHorizontal: 16, borderRadius: 16, backgroundColor: softFill() },
-    reasonText: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
+    reason: { paddingVertical: 13, paddingHorizontal: 16, borderRadius: 8, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline() },
+    reasonText: { fontSize: 14, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
   })
 );

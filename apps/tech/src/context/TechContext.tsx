@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { checkCloseCode, type DiagnosisReport, type ExtraWorkRequest, type HandoverReport, type PartsCollectTask, type WorkshopProgress } from '@ongarage/shared';
+import { checkCloseCode, decideExtraByPhone, deferExtra, makePayment, workshopBill, type DiagnosisLine, type DiagnosisReport, type ExtraWorkRequest, type HandoverReport, type PartsCollectTask, type WorkshopProgress } from '@ongarage/shared';
 import {
   ACCEPT_WINDOW_MS,
   APPROVAL_MS,
@@ -76,9 +76,22 @@ type TechState = {
   sendDiagnosis: (id: string, report: DiagnosisReport) => void;
   /** Work found mid-repair goes to the owner the same way; handover waits for the answer. */
   requestExtraWork: (id: string, extra: ExtraWorkRequest) => void;
-  markReadyForHandover: (id: string, report: HandoverReport) => void;
+  /** Change a report already sent (true when it could be changed: the owner has not answered it yet). */
+  editDiagnosis: (id: string, report: DiagnosisReport) => boolean;
+  editExtraWork: (id: string, extra: ExtraWorkRequest) => boolean;
+  /** The owner told the technician by phone which extra lines to do (no code; recorded as "by phone"). */
+  approveExtraByPhone: (id: string, extraId: string, approvedLineIds: string[]) => void;
+  /** The owner can't be reached: the job waits for them, free for the garage. */
+  holdExtraForOwner: (id: string, extraId: string) => void;
+  /** The owner can't be reached: put the extra work aside and finish the agreed work. */
+  deferExtraWork: (id: string, extraId: string) => void;  markReadyForHandover: (id: string, report: HandoverReport) => void;
   /** Close with the owner's QR / 6-digit code: the job is done and paid to the technician. */
   closeWorkshopJob: (id: string, code: string) => boolean;
+  /** The job just closed with the owner's code and its payment has not been recorded: the prompt for it is open. */
+  payPromptId: string | null;
+  /** What the customer actually paid for a closed job (full, or a balance with a promised date). */
+  recordPayment: (id: string, input: { received: number; promisedAt?: number; note?: string }) => boolean;
+  dismissPayPrompt: () => void;
   setNotes: (id: string, notes: string) => void;
 
   /** Parts pickups garages sent this technician on. */
@@ -90,6 +103,8 @@ type TechState = {
 
   settleGarage: (garageId: string) => void;
   dismissNotice: () => void;
+  /** Shows a notice (the chat uses it for messages that arrive). */
+  notify: (n: Omit<Notice, 'id'>) => void;
 };
 
 const TechContext = createContext<TechState | null>(null);
@@ -104,6 +119,7 @@ export const TechProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [earnings, setEarnings] = useState<EarningEntry[]>(EARNINGS);
   const [reviews, setReviews] = useState<OwnerReview[]>(REVIEWS);
   const [openId, setOpenId] = useState<string | null>(null);
+  const [payPromptId, setPayPromptId] = useState<string | null>(null);
   const [notice, setNotice] = useState<Notice | null>(null);
   const [now, setNow] = useState(Date.now());
   // Which garages already sent this session's SOS (one each, so the demo stays readable).
@@ -379,8 +395,9 @@ export const TechProvider: React.FC<{ children: React.ReactNode }> = ({ children
       later(() => {
         const j = find(id);
         if (j?.workshop?.progress?.stage !== 'awaitingApproval') return;
-        const toOrder = report.lines.filter((l) => l.kind === 'part' && l.source === 'order');
-        patchProgress(id, { stage: 'repairing', decision: { approvedLineIds: report.lines.map((l) => l.id), declinedLineIds: [], decidedAt: Date.now() } });
+        const current = j.workshop.progress.diagnosis ?? report;
+        const toOrder = current.lines.filter((l) => l.kind === 'part' && l.source === 'order');
+        patchProgress(id, { stage: 'repairing', decision: { approvedLineIds: current.lines.map((l) => l.id), declinedLineIds: [], decidedAt: Date.now() } });
         if (toOrder.length)
           patch(id, (cur) => (cur.workshop ? { workshop: { ...cur.workshop, parts: 'ordered', partsSummary: toOrder.map((l) => `${l.name} (${l.partType})`).join(' · ') } } : {}));
         notify({ icon: '✅', title: `${j.customer.name} අනුමත කළා`, body: toOrder.length ? 'ගරාජය කොටස් ඇණවුම් කරයි — අලුත්වැඩියාව අරඹන්න.' : 'අලුත්වැඩියාව අරඹන්න.', tone: 'success' });
@@ -396,6 +413,30 @@ export const TechProvider: React.FC<{ children: React.ReactNode }> = ({ children
     [later, notify, patch, patchProgress]
   );
 
+  const editDiagnosis = useCallback(
+    (id: string, report: DiagnosisReport) => {
+      if (find(id)?.workshop?.progress?.stage !== 'awaitingApproval') return false;
+      patchProgress(id, { diagnosis: report });
+      notify({ icon: '✏️', title: 'පරීක්ෂා වාර්තාව වෙනස් කළා', body: 'අයිතිකරුට යාවත්කාලීන කළ වාර්තාව පෙනේ.', tone: 'primary' });
+      return true;
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [notify, patchProgress]
+  );
+
+  const editExtraWork = useCallback(
+    (id: string, extra: ExtraWorkRequest) => {
+      const p = find(id)?.workshop?.progress;
+      const old = p?.extras?.find((e) => e.id === extra.id);
+      if (!p || !old || old.decision) return false;
+      patchProgress(id, { extras: p.extras!.map((e) => (e.id === extra.id ? { ...e, ...extra, sentAt: e.sentAt, waitingSince: e.waitingSince } : e)) });
+      notify({ icon: '✏️', title: 'අමතර වැඩ ඉල්ලීම වෙනස් කළා', body: 'අයිතිකරුට යාවත්කාලීන කළ ඉල්ලීම පෙනේ.', tone: 'primary' });
+      return true;
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [notify, patchProgress]
+  );
+
   const requestExtraWork = useCallback(
     (id: string, extra: ExtraWorkRequest) => {
       const j = find(id);
@@ -408,22 +449,81 @@ export const TechProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const cur = find(id);
         const cp = cur?.workshop?.progress;
         const x = cp?.extras?.find((e) => e.id === extra.id);
-        if (!cur || !cp || !x || x.decision) return;
+        // An owner the technician couldn't reach answers later (see holdExtraForOwner).
+        if (!cur || !cp || !x || x.decision || x.waitingSince) return;
         const decision = { approvedLineIds: x.lines.map((l) => l.id), declinedLineIds: [], decidedAt: Date.now() };
         patchProgress(id, { extras: cp.extras!.map((e) => (e.id === extra.id ? { ...e, decision } : e)) });
         const toOrder = x.lines.filter((l) => l.kind === 'part' && l.source === 'order');
         notify({ icon: '✅', title: `${cur.customer.name} අමතර වැඩ අනුමත කළා`, body: toOrder.length ? 'ගරාජය කොටස් ඇණවුම් කරයි.' : 'වැඩ කරගෙන යන්න.', tone: 'success' });
-        if (toOrder.length) {
-          patch(id, (c) => (c.workshop ? { workshop: { ...c.workshop, parts: 'ordered', partsSummary: toOrder.map((l) => `${l.name} (${l.partType})`).join(' · ') } } : {}));
-          later(() => {
-            patch(id, (c) => (c.workshop ? { workshop: { ...c.workshop, parts: 'arrived' } } : {}));
-            notify({ icon: '📦', title: 'කොටස් ගරාජයට ලැබුණා', body: `${cur.title} · අමතර කොටස් ${toOrder.length} ක්`, tone: 'success' });
-          }, PARTS_ARRIVE_MS);
-        }
+        orderExtraParts(id, toOrder);
       }, OWNER_APPROVE_MS);
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [later, notify, patch, patchProgress]
+  );
+
+  /** Approved extra parts the garage orders: they arrive after a while (shared by every way the owner can approve). */
+  const orderExtraParts = useCallback(
+    (id: string, toOrder: DiagnosisLine[]) => {
+      const title = find(id)?.title ?? '';
+      if (!toOrder.length) return;
+      patch(id, (c) => (c.workshop ? { workshop: { ...c.workshop, parts: 'ordered', partsSummary: toOrder.map((l) => `${l.name} (${l.partType})`).join(' · ') } } : {}));
+      later(() => {
+        patch(id, (c) => (c.workshop ? { workshop: { ...c.workshop, parts: 'arrived' } } : {}));
+        notify({ icon: '📦', title: 'කොටස් ගරාජයට ලැබුණා', body: `${title} · අමතර කොටස් ${toOrder.length} ක්`, tone: 'success' });
+      }, PARTS_ARRIVE_MS);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [later, notify, patch]
+  );
+
+  const patchExtra = useCallback(
+    (id: string, extraId: string, change: (x: ExtraWorkRequest) => ExtraWorkRequest) => {
+      const p = find(id)?.workshop?.progress;
+      if (!p?.extras?.some((e) => e.id === extraId && !e.decision)) return false;
+      patchProgress(id, { extras: p.extras.map((e) => (e.id === extraId ? change(e) : e)) });
+      return true;
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [patchProgress]
+  );
+
+  const approveExtraByPhone = useCallback(
+    (id: string, extraId: string, approvedLineIds: string[]) => {
+      const x = find(id)?.workshop?.progress?.extras?.find((e) => e.id === extraId);
+      if (!x || !patchExtra(id, extraId, (e) => decideExtraByPhone(e, approvedLineIds, Date.now()))) return;
+      notify({ icon: '📞', title: 'දුරකථනයෙන් අනුමත කළ බව සටහන් කළා', body: 'අයිතිකරුටද මෙය යෙදුමේ පෙනේ. අනුමත පේළි පමණක් අය කෙරේ.', tone: 'success' });
+      orderExtraParts(id, x.lines.filter((l) => approvedLineIds.includes(l.id) && l.kind === 'part' && l.source === 'order'));
+    },
+    [notify, orderExtraParts, patchExtra]
+  );
+
+  const holdExtraForOwner = useCallback(
+    (id: string, extraId: string) => {
+      if (!patchExtra(id, extraId, (x) => ({ ...x, waitingSince: x.waitingSince ?? Date.now() }))) return;
+      notify({ icon: '⏳', title: 'අයිතිකරු එනතුරු රැඳී සිටී', body: 'රැඳී සිටීම නොමිලේයි — ගාස්තුවක් හෝ ප්‍රමාද දඩයක් නැත.', tone: 'primary' });
+      // Simulated owner: calls back later and approves.
+      later(() => {
+        const cur = find(id);
+        const cp = cur?.workshop?.progress;
+        const x = cp?.extras?.find((e) => e.id === extraId);
+        if (!cur || !cp || !x || x.decision) return;
+        const decision = { approvedLineIds: x.lines.map((l) => l.id), declinedLineIds: [], decidedAt: Date.now() };
+        patchProgress(id, { extras: cp.extras!.map((e) => (e.id === extraId ? { ...e, decision } : e)) });
+        notify({ icon: '✅', title: `${cur.customer.name} අමතර වැඩ අනුමත කළා`, body: 'වැඩ කරගෙන යන්න.', tone: 'success' });
+        orderExtraParts(id, x.lines.filter((l) => l.kind === 'part' && l.source === 'order'));
+      }, OWNER_APPROVE_MS * 4);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [later, notify, orderExtraParts, patchExtra, patchProgress]
+  );
+
+  const deferExtraWork = useCallback(
+    (id: string, extraId: string) => {
+      if (!patchExtra(id, extraId, (x) => deferExtra(x, Date.now()))) return;
+      notify({ icon: '➡️', title: 'අමතර වැඩ පසුවට තැබුවා', body: 'එකඟ වූ වැඩ අවසන් කරන්න. අයිතිකරුට “පසුව කළ යුතු” ලෙස පෙනේ.', tone: 'primary' });
+    },
+    [notify, patchExtra]
   );
 
   const markReadyForHandover = useCallback(
@@ -442,12 +542,34 @@ export const TechProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const now = Date.now();
       patchProgress(id, { stage: 'closed', closedAt: now }, { stage: 'done', completedAt: now });
       addEarning(j, 0);
+      // Handed over is not the same as paid: ask what the customer actually paid.
+      setPayPromptId(id);
       notify({ icon: '✅', title: 'රැකියාව අවසන්', body: `${j.customer.name} කේතයෙන් තහවුරු කළා · ඔබට රු. ${j.pay.toLocaleString()}`, tone: 'success' });
       return true;
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [notify, patchProgress]
   );
+  const recordPayment = useCallback(
+    (id: string, input: { received: number; promisedAt?: number; note?: string }) => {
+      const j = find(id);
+      const p = j?.workshop?.progress;
+      if (!j?.workshop || !p || p.stage !== 'closed' || p.payment) return false;
+      const total = p.handover?.bill.total ?? workshopBill(j.workshop.agreedPrice, p).total;
+      const payment = makePayment(total, input.received, input);
+      patchProgress(id, { payment });
+      setPayPromptId(null);
+      notify(
+        payment.status === 'paid'
+          ? { icon: '💰', title: 'ගෙවීම සටහන් කළා', body: `රු. ${total.toLocaleString('en-US')} සම්පූර්ණයි.`, tone: 'success' }
+          : { icon: '📝', title: 'ඉතිරි මුදල සටහන් කළා', body: `${j.customer.name} ඉතිරි රු. ${payment.balance.toLocaleString('en-US')} ක් පොරොන්දු දිනයට ගෙවිය යුතුයි.`, tone: 'primary' }
+      );
+      return true;
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [notify, patchProgress]
+  );
+  const dismissPayPrompt = useCallback(() => setPayPromptId(null), []);
   const setNotes = useCallback((id: string, notes: string) => patch(id, { notes }), [patch]);
 
   // ---------- Parts pickups ----------
@@ -515,15 +637,24 @@ export const TechProvider: React.FC<{ children: React.ReactNode }> = ({ children
     collectPayment,
     receiveVehicle,
     sendDiagnosis,
+    editDiagnosis,
+    editExtraWork,
     requestExtraWork,
+    approveExtraByPhone,
+    holdExtraForOwner,
+    deferExtraWork,
     markReadyForHandover,
     closeWorkshopJob,
+    payPromptId,
+    recordPayment,
+    dismissPayPrompt,
     setNotes,
     collects,
     collectedAtCounter,
     deliverParts,
     settleGarage,
     dismissNotice,
+    notify,
   };
   return <TechContext.Provider value={value}>{children}</TechContext.Provider>;
 };

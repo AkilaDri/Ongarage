@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
+import { pickPhotos } from '@ongarage/shared';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 import { ActionButton, claimBlockers, claimSplit, Colors, eligibilityOf, FONTS, GUARANTEE, PhotoStrip, themedStyles } from '@ongarage/shared';
 import { useWorkshops, type OwnerWorkshop } from '../../context/WorkshopContext';
-import { SAMPLE_UPLOAD_PHOTOS } from '../../constants/mockData';
 import { money } from '../../utils/format';
 import { Sheet } from '../Sheet';
 
@@ -88,7 +88,7 @@ export const GuaranteeSheet: React.FC<{ workshop: OwnerWorkshop | null; onClose:
             keyboardType="number-pad"
             accessibilityLabel="Guarantee amount"
           />
-          <PhotoStrip photos={photos} height={70} onAdd={photos.length < 4 ? () => setPhotos((p) => [...p, SAMPLE_UPLOAD_PHOTOS[p.length % SAMPLE_UPLOAD_PHOTOS.length]]) : undefined} />
+          <PhotoStrip photos={photos} height={70} onAdd={photos.length < 4 ? () => void pickPhotos(4 - photos.length).then((ph) => ph.length && setPhotos((p) => [...p, ...ph])) : undefined} />
           {value > 0 && (
             <View style={styles.box}>
               <Row label="ගරාජය ගෙවයි (පළමු කොටස)" value={money(split.garagePays)} />

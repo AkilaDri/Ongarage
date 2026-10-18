@@ -22,7 +22,7 @@ const waveform = (id: string) => {
  * Plays an owner's voice note. Until recording exists in the owner app (no uri),
  * playback is simulated over the note's real duration.
  */
-export const VoiceNotePlayer: React.FC<{ note: VoiceNote; index: number }> = ({ note, index }) => {
+export const VoiceNotePlayer: React.FC<{ note: VoiceNote; index: number; /** A slimmer strip: smaller button, shorter waveform, tighter padding. */ compact?: boolean }> = ({ note, index, compact }) => {
   const progress = useRef(new Animated.Value(0)).current;
   const at = useRef(0);
   const [playing, setPlaying] = useState(false);
@@ -55,28 +55,28 @@ export const VoiceNotePlayer: React.FC<{ note: VoiceNote; index: number }> = ({ 
   };
 
   return (
-    <View style={styles.wrap}>
-      <Pressable style={({ pressed }) => [styles.play, pressed && { opacity: 0.8 }]} onPress={toggle} accessibilityLabel={playing ? 'Pause voice note' : 'Play voice note'}>
+    <View style={[styles.wrap, compact && styles.wrapCompact]}>
+      <Pressable style={({ pressed }) => [styles.play, compact && styles.playCompact, pressed && { opacity: 0.8 }]} onPress={toggle} accessibilityLabel={playing ? 'Pause voice note' : 'Play voice note'}>
         <Text style={styles.playIcon}>{playing ? '❚❚' : '▶'}</Text>
       </Pressable>
       <View style={styles.flex1}>
-        <View style={styles.wave} onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
+        <View style={[styles.wave, compact && styles.waveCompact]} onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
           {bars.map((h, i) => (
-            <View key={i} style={[styles.bar, { height: 26 * h }]} />
+            <View key={i} style={[styles.bar, { height: (compact ? 16 : 26) * h }]} />
           ))}
           {/* The played part, revealed left to right over the same bars. */}
           <Animated.View
             style={[styles.playedClip, { width: progress.interpolate({ inputRange: [0, 1], outputRange: [0, width] }) }]}
             pointerEvents="none"
           >
-            <View style={[styles.waveInner, { width }]}>
+            <View style={[styles.waveInner, compact && styles.waveCompact, { width }]}>
               {bars.map((h, i) => (
-                <View key={i} style={[styles.bar, styles.barPlayed, { height: 26 * h }]} />
+                <View key={i} style={[styles.bar, styles.barPlayed, { height: (compact ? 16 : 26) * h }]} />
               ))}
             </View>
           </Animated.View>
         </View>
-        <View style={styles.meta}>
+        <View style={[styles.meta, compact && styles.metaCompact]}>
           <Text style={styles.metaText}>හඬ සටහන {index + 1}</Text>
           <Text style={styles.metaText}>{playing || elapsed > 0 ? `${clock(elapsed)} / ${clock(note.durationSec)}` : clock(note.durationSec)}</Text>
         </View>
@@ -90,6 +90,10 @@ const styles = themedStyles(() =>
     flex1: { flex: 1 },
     wrap: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 20, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), ...softShadow() },
     play: { width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.primary, justifyContent: 'center', alignItems: 'center' },
+    wrapCompact: { gap: 10, paddingVertical: 6, paddingHorizontal: 10, borderRadius: 14 },
+    playCompact: { width: 30, height: 30, borderRadius: 15 },
+    waveCompact: { height: 18 },
+    metaCompact: { marginTop: 1 },
     playIcon: { fontSize: 13, fontWeight: '900', color: '#fff' },
     wave: { height: 28, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     waveInner: { height: 28, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },

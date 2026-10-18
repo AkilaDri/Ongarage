@@ -1,3 +1,4 @@
+import { VehicleLine } from '@ongarage/shared';
 import React, { useEffect, useState } from 'react';
 import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { ActionButton, categoryInfo, CloseJobSheet, Colors, ReferralBadge, EmptyState, FONTS, GlassIcon, Icon, themedStyles, type IconName, softEdge, softShadow, NAVY, softFill, getThemeMode } from '@ongarage/shared';
@@ -70,9 +71,7 @@ export const OrdersScreen: React.FC = () => {
             <Text style={styles.title} numberOfLines={1}>
               {r.garage.name}
             </Text>
-            <Text style={styles.sub} numberOfLines={1}>
-              {r.vehicle.name} · {r.vehicle.plate} · ඇණවුම {formatTime(o.placedAt)}
-            </Text>
+            <VehicleLine vehicle={r.vehicle} textStyle={styles.sub} extra={'ඇණවුම ' + formatTime(o.placedAt)} />
           </View>
           <Text style={styles.price}>{money(o.pickup ? q.partsTotal : q.total)}</Text>
         </View>
@@ -179,9 +178,7 @@ export const OrdersScreen: React.FC = () => {
             <Text style={styles.title} numberOfLines={1}>
               {buyerLabel(r)}
             </Text>
-            <Text style={styles.sub} numberOfLines={1}>
-              {v.name} · {v.plate} · {delivery ? '🛵 බෙදාහැරීම' : '🏪 කවුන්ටරයෙන් එකතු කරයි'}
-            </Text>
+            <VehicleLine vehicle={v} textStyle={styles.sub} extra={delivery ? '🛵 බෙදාහැරීම' : '🏪 කවුන්ටරයෙන් එකතු කරයි'} />
           </View>
           <Text style={styles.price}>{money(o.total)}</Text>
         </View>

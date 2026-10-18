@@ -1,4 +1,7 @@
+import { LkPlate, bidWork } from '@ongarage/shared';
+import { elevation1, outline } from '../utils/material';
 import React, { useEffect, useRef, useState } from 'react';
+import { chatDockOffset } from '../utils/chatDock';
 import { Linking, Pressable, ScrollView, StyleSheet, Text, View, Image } from 'react-native';
 import { Colors, LevelBadge, getThemeMode, themedStyles, LEVELS } from '@ongarage/shared';
 import { FONTS } from '@ongarage/shared';
@@ -10,19 +13,20 @@ import { ActionButton, EmptyState, GlassIcon, ModalCard, SwipeCard } from '@onga
 import { OwnerDetailView } from '../components/OwnerDetailView';
 import { GarageReviewsSheet, garageForBid } from '../components/GarageReviewsSheet';
 import { ThreeStateSheet } from '../components/ThreeStateSheet';
-import { TxnTag } from '../components/TxnTag';
 import { GARAGE_COVERS } from '../constants/home';
 import { CategoryPhoto } from '../components/home/CategoryPhoto';
 import { money } from '../utils/format';
 import { biddingEndsAt, isExpired, lowestBidId, useBids } from '../context/BidsContext';
 import { useUserLocation } from '../context/LocationContext';
+import { useWorkshops } from '../context/WorkshopContext';
+import { usePayStanding } from '../context/PayStanding';
 import { directionsUrl } from '@ongarage/shared';
 import type { Bid, JobDraft, RepairJob } from '@ongarage/shared';
 
 export type BidsTab = 'received' | 'pending' | 'expired';
 
-// The tab bar's look: white buttons with a light outline and blue text, and the chosen one a solid blue button with a glow.
-const TAB_BLUE = () => (getThemeMode() === 'dark' ? '#8db1ff' : '#2457e6');
+// The tab bar's look: Material primary tabs on one white surface; the chosen tab is Google-blue with a line under it.
+const TAB_BLUE = () => (getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8');
 // The count badge is green on "received" (good news) and red on the others (things waiting on you).
 const badgeColor = (id: BidsTab) => (id === 'received' ? '#16a34a' : '#ef4444');
 
@@ -47,6 +51,8 @@ interface BidsScreenProps {
   tab: BidsTab;
   onTabChange: (tab: BidsTab) => void;
   onRepublish: (draft: JobDraft) => void;
+  /** Accepting a bid is paused while a long-overdue balance limits new work: the app tells the owner to pay first. */
+  onPayFirst: () => void;
   onViewActivity: () => void;
   /** The top bar folds away while the sheet is fully open (and returns when it comes back down). */
   onHeaderVisibilityChange?: (visible: boolean) => void;
@@ -59,15 +65,21 @@ const NAV_HEIGHT = 72;
 /** 3,700 → "3.7k": a price short enough for a small badge. */
 const shortMoney = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(n % 1000 === 0 ? 0 : 1)}k` : String(n));
 
-export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, onRepublish, onViewActivity, onHeaderVisibilityChange }) => {
+export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, onRepublish, onPayFirst, onViewActivity, onHeaderVisibilityChange }) => {
   const { jobs, acceptBid, removeBid } = useBids();
+  const { workshops } = useWorkshops();
   const { findVehicle } = useVehicles();
   const user = useUserLocation();
   const [now, setNow] = useState(Date.now());
   const [confirming, setConfirming] = useState<{ job: RepairJob; bid: Bid } | null>(null);
+  const standing = usePayStanding();
+  const askAccept = (v: { job: RepairJob; bid: Bid }) => (standing.limited ? onPayFirst() : setConfirming(v));
   // One garage's bid, opened by tapping or swiping it inside the job card.
   // Height of the tab (the map and the sheet's expanded height).
   const [area, setArea] = useState(0);
+  // The map keeps the height the tab has with the top band showing (the smallest it ever measures) and stays anchored to the
+  // bottom: when the band folds away and the tab grows upward, the map does not move or re-centre; only the sheet rises over it.
+  const [mapArea, setMapArea] = useState(0);
   const [bidView, setBidView] = useState<{ job: RepairJob; bid: Bid } | null>(null);
   const [booked, setBooked] = useState<{ job: RepairJob; bid: Bid } | null>(null);
   // The bid whose pin on the map was touched: shown as a small record card over the map.
@@ -75,6 +87,12 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, onRepu
   // Swipe (or tap the header of) a job card for everything about it.
   const [detailId, setDetailId] = useState<string | null>(null);
   const pressStart = useRef({ x: 0, y: 0 });
+  // The chat icon sits under the pinned tab bar once the title band has folded away.
+  const tabBarH = useRef(0);
+  useEffect(() => {
+    chatDockOffset.setValue(tabBarH.current);
+    return () => chatDockOffset.setValue(0);
+  }, []);
   const detailJob = jobs.find((j) => j.id === detailId) ?? null;
 
   useEffect(() => {
@@ -93,11 +111,18 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, onRepu
     { id: 'expired', label: 'කල් ඉකුත්', icon: 'alert-triangle', count: expired.length },
   ];
 
+  /** The details link sits in the card's bottom right corner. */
+  const detailsCorner = (job: RepairJob) => (
+    <Pressable style={styles.detailsCorner} onPress={() => setDetailId(job.id)} hitSlop={8} accessibilityLabel="Job details">
+      <Text style={styles.detailsLink}>විස්තර ›</Text>
+    </Pressable>
+  );
   const jobHeader = (job: RepairJob, badge: React.ReactNode) => {
     const cat = SERVICE_CATEGORIES.find((c) => c.id === job.categoryId);
     const vehicle = findVehicle(job.vehicleId);
     const media = [job.photos?.length && `📷 ${job.photos.length}`, job.voiceNotes?.length && `🎙️ ${job.voiceNotes.length}`].filter(Boolean).join('  ');
     return (
+      <>
       <Pressable
         style={styles.jobHead}
         onPressIn={(e) => (pressStart.current = { x: e.nativeEvent.pageX, y: e.nativeEvent.pageY })}
@@ -114,14 +139,14 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, onRepu
             {cat?.name ?? 'Service'}
           </Text>
           <Text style={styles.cardSub} numberOfLines={1}>
-            {vehicle ? `${vehicle.name} · ${vehicle.plate}` : ''}
-            {media ? `  ·  ${media}` : ''}
+            {vehicle ? vehicle.name : ''}
+            {media ? `${vehicle ? '  ·  ' : ''}${media}` : ''}
           </Text>
-          <TxnTag kind="JOB" source={job.id} />
-          <Text style={styles.detailsLink}>විස්තර ›</Text>
+          {vehicle && <LkPlate plate={vehicle.registrationNo || vehicle.plate} stacked={vehicle.type === 'Motorbike'} small />}
         </View>
         {badge}
       </Pressable>
+      </>
     );
   };
 
@@ -149,7 +174,7 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, onRepu
             <Pressable style={styles.deleteBtn} onPress={() => removeBidAndPin(job.id, bid.id)} hitSlop={8} accessibilityLabel={`Delete bid from ${bid.garageName}`}><Icon name="trash" size={15} color="#ffffff" /></Pressable>
           )}
           <View style={styles.pricePill}>
-            <Text style={styles.priceText}>{money(bid.price)}</Text>
+            <Text style={styles.priceText}>{bid.travelFee ? '🚗 ' : ''}{money(bid.price)}</Text>
           </View>
           {isLowest && !job.acceptedBidId && (
             <View style={styles.lowestTag}>
@@ -164,6 +189,14 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, onRepu
             <Text style={styles.cardSub} numberOfLines={1}>
               <Text style={styles.star}>★ {bid.rating.toFixed(1)}</Text> ({bid.reviews}) • කි.මී. {bid.distanceKm} • මාස {bid.warrantyMonths} වගකීම • පැය {bid.estHours}
             </Text>
+            {!!bid.travelFee && (
+              <View style={styles.travelNote} accessibilityLabel="Bid includes travel fee">
+                <Text style={styles.travelNoteTitle}>🚗 දුර ගමන් ගාස්තුව ඇතුළු ලංසුවකි</Text>
+                <Text style={styles.travelNoteText}>
+                  ගරාජය ඔබෙන් කි.මී. {bid.distanceKm} ක් ඈතයි · රැකියාව {money(bidWork(bid))} + ගමන් වන්දිය {money(bid.travelFee)}
+                </Text>
+              </View>
+            )}
           </View>
         </Pressable>
         <View style={styles.bidAction}>
@@ -175,7 +208,7 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, onRepu
               </Pressable>
             </View>
           ) : (
-            <ActionButton label={isLowest ? 'අඩුම ලංසුව පිළිගන්න' : 'ලංසුව පිළිගන්න'} variant={isLowest ? 'success' : 'primary'} compact onPress={() => setConfirming({ job, bid })} />
+            <ActionButton label={isLowest ? 'අඩුම ලංසුව පිළිගන්න' : 'ලංසුව පිළිගන්න'} variant={isLowest ? 'success' : 'primary'} compact onPress={() => askAccept({ job, bid })} />
           )}
         </View>
       </SwipeCard>
@@ -194,8 +227,8 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, onRepu
               {jobHeader(
                 job,
                 <View style={[styles.badge, job.acceptedBidId ? styles.badgeSuccess : styles.badgePrimary]}>
-                  <Text style={[styles.badgeText, { color: job.acceptedBidId ? Colors.success : Colors.primary }]}>
-                    {job.acceptedBidId ? 'වෙන් කළා' : `ලංසු ${job.bids.length}`}
+                  <Text style={[styles.badgeText, { color: workshops[job.id]?.progress.cancelled ? Colors.errorText : job.acceptedBidId ? Colors.success : Colors.primary }]}>
+                    {job.acceptedBidId ? (workshops[job.id]?.progress.cancelled ? 'අවලංගු කළා' : 'වෙන් කළා') : `ලංසු ${job.bids.length}`}
                   </Text>
                 </View>
               )}
@@ -206,6 +239,7 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, onRepu
               {job.acceptedBidId && job.bids.length > 1 && (
                 <Text style={styles.hint}>අනෙකුත් ලංසු {job.bids.length - 1}ක් වසා දමන ලදී.</Text>
               )}
+              {detailsCorner(job)}
             </View>
           );
         })
@@ -247,6 +281,7 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, onRepu
               variant={isPending ? 'primary' : 'sos'}
               onPress={() => onRepublish(draftFor(job))}
             />
+            {detailsCorner(job)}
           </View>
         );
       })
@@ -255,20 +290,25 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, onRepu
   // Every received bid (not yet booked) as a small photo: what the minimised sheet shows.
   const allBids = received.filter((j) => !j.acceptedBidId).flatMap((j) => [...j.bids].sort((x, y) => x.price - y.price).map((bid) => ({ job: j, bid })));
   const farthest = mapBids.length ? Math.max(...mapBids.map(({ bid }) => bid.distanceKm)) : 3;
-  const mapZoom = zoomToFit(farthest * 2.6, user.coords.latitude, Math.max(120, area * 0.4));
+  const mapZoom = zoomToFit(farthest * 2.6, user.coords.latitude, Math.max(120, mapArea * 0.4));
   // Centre the map so the owner's dot sits in the part the sheet leaves free.
   const mapCenter = (() => {
-    if (!area) return user.coords;
+    if (!mapArea) return user.coords;
     const zoom = mapZoom;
     const metersPerPx = (156543.03 * Math.cos((user.coords.latitude * Math.PI) / 180)) / 2 ** zoom;
-    return { latitude: user.coords.latitude - (area * 0.22 * metersPerPx) / 111320, longitude: user.coords.longitude };
+    return { latitude: user.coords.latitude - (mapArea * 0.22 * metersPerPx) / 111320, longitude: user.coords.longitude };
   })();
 
   return (
-    <View style={styles.container} onLayout={(e) => setArea(Math.round(e.nativeEvent.layout.height))}>
+    <View style={styles.container} onLayout={(e) => {
+        const h = Math.round(e.nativeEvent.layout.height);
+        setArea(h);
+        setMapArea((m) => (m === 0 ? h : Math.min(m, h)));
+      }}
+    >
       {/* The map fills the whole tab; the sheet slides over it. */}
       <GoogleMap
-        style={styles.fullMap}
+        style={mapArea > 0 ? [styles.mapAnchored, { height: mapArea }] : styles.fullMap}
         center={mapCenter}
         zoom={mapZoom}
         renderOverlay={(project) => (
@@ -319,7 +359,7 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, onRepu
             </Text>
           </View>
           <Text style={styles.pinCardMeta}>
-            🛡️ මාස {pinBid.bid.warrantyMonths} වගකීම · ⏱️ පැය {pinBid.bid.estHours}
+            🛡️ මාස {pinBid.bid.warrantyMonths} වගකීම · ⏱️ පැය {pinBid.bid.estHours}{pinBid.bid.travelFee ? ` · 🚗 ගමන් ගාස්තුව ${money(pinBid.bid.travelFee)} ඇතුළුව` : ''}
           </Text>
           <Pressable
             style={styles.pinCardBtn}
@@ -337,7 +377,6 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, onRepu
 
       {area > 0 && (
         <ThreeStateSheet
-          onStateChange={(s) => onHeaderVisibilityChange?.(s !== 'expanded')}
           areaHeight={area}
           peekHeight={PEEK_HEIGHT}
           bottomInset={NAV_HEIGHT}
@@ -372,27 +411,37 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, onRepu
           </Pressable>
         </View>
       )}
-      <View style={styles.tabBar}>
+      <View
+        style={styles.tabBar}
+        onLayout={(e) => {
+          tabBarH.current = Math.round(e.nativeEvent.layout.height);
+          chatDockOffset.setValue(tabBarH.current);
+        }}
+      >
+        <View style={styles.segRow}>
         {tabs.map((t) => {
           const active = tab === t.id;
           return (
             <Pressable
               key={t.id}
-              style={[styles.tab, active && styles.tabActive]}
+              style={[styles.segChip, active && styles.segChipOn]}
               onPress={() => onTabChange(t.id)}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: active }}
             >
-              <Icon name={t.icon} size={15} color={active ? '#ffffff' : TAB_BLUE()} />
-              <Text style={[styles.tabText, active && styles.tabTextActive]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
+              <Icon name={t.icon} size={16} color={active ? TAB_BLUE() : Colors.textMuted} />
+              <Text style={[styles.segChipText, active && styles.segChipTextOn]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
                 {t.label}
               </Text>
               {t.count > 0 && (
-                <View style={[styles.tabCount, { backgroundColor: badgeColor(t.id) }]}>
+                <View style={[styles.tabCount, active && styles.tabCountActive]}>
                   <Text style={styles.tabCountText}>{t.count}</Text>
                 </View>
               )}
             </Pressable>
           );
         })}
+        </View>
       </View>
 
               <ScrollView
@@ -403,7 +452,6 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, onRepu
                 scrollEventThrottle={16}
                 onScroll={(e) => api.onScroll(e.nativeEvent.contentOffset.y)}
               >
-                {tab === 'received' && allBids.length > 0 && <Text style={styles.swipeHint}>ලංසුවක සම්පූර්ණ විස්තර සඳහා ගරාජ කාඩ්පතක් පැත්තට ස්වයිප් කරන්න</Text>}
                 {tab === 'received' && renderReceived()}
                 {tab === 'pending' && renderWaiting(pending, 'pending')}
                 {tab === 'expired' && renderWaiting(expired, 'expired')}
@@ -416,7 +464,7 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, onRepu
       <OwnerDetailView
         target={detailJob ? { kind: 'job', job: detailJob } : null}
         onClose={() => setDetailId(null)}
-        onAcceptBid={(job, bid) => setConfirming({ job, bid })}
+        onAcceptBid={(job, bid) => askAccept({ job, bid })}
         onRepublish={(job) => onRepublish(draftFor(job))}
       />
       <GarageReviewsSheet
@@ -428,7 +476,7 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, onRepu
             ? () => {
                 const v = bidView;
                 setBidView(null);
-                setConfirming(v);
+                askAccept(v);
               }
             : undefined
         }
@@ -491,48 +539,27 @@ const styles = themedStyles(() => StyleSheet.create({
   flex1: { flex: 1 },
   rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
   // Same "add" button as the garage app's Parts tab.
-  swipeHint: { fontSize: 10.5, fontFamily: FONTS.bodyMedium, color: Colors.textMuted },
-  detailsLink: { fontSize: 10.5, fontFamily: FONTS.bodySemiBold, color: Colors.primary, marginTop: 4 },
+  detailsLink: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
   sheetHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, paddingTop: 12 },
   sheetHeadTitle: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textMain },
   minBtn: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(56, 189, 248, 0.12)', borderWidth: 1, borderColor: 'rgba(56, 189, 248, 0.45)' },
-  tabBar: { flexDirection: 'row', gap: 8, paddingHorizontal: 6, paddingTop: 12, paddingBottom: 6 },
-  tab: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    height: 42,
-    paddingHorizontal: 8,
-    borderRadius: 13,
-    borderWidth: 1,
-    borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#dbe4f3',
-    backgroundColor: getThemeMode() === 'dark' ? Colors.bgCard : '#ffffff',
-  },
-  tabActive: { backgroundColor: '#2457e6', borderColor: '#2457e6', shadowColor: '#2457e6', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.35, shadowRadius: 12, elevation: 6 },
-  tabText: { flexShrink: 1, fontSize: 11.5, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#2457e6' },
-  tabTextActive: { color: '#ffffff' },
+  // One white surface with a thin outline and a light elevation; the selected tab has a line under it (Material primary tabs).
+  // The three views (received, waiting, expired) are three separate chips, like the garage app's: each its own outlined chip, the selected one tonal blue.
+  tabBar: { paddingHorizontal: 6, paddingTop: 12, paddingBottom: 6 },
+  segRow: { flexDirection: 'row', gap: 8 },
+  segChip: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, height: 44, paddingHorizontal: 6, borderRadius: 12, borderWidth: 1, borderColor: outline(), backgroundColor: Colors.bgCard, ...elevation1() },
+  segChipOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe', borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#d2e3fc' },
+  segChipText: { flexShrink: 1, fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
+  segChipTextOn: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
   // The count is a soft blue pill (like a small info chip) on the corner, so the label row never wraps on narrow tabs.
-  tabCount: {
-    position: 'absolute',
-    top: -7,
-    right: -3,
-    minWidth: 20,
-    height: 20,
-    paddingHorizontal: 6,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: Colors.bgBody,
-    backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.22)' : '#e8effd',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  tabCountActive: { backgroundColor: '#ffffff' },
-  tabCountText: { fontSize: 10, fontFamily: FONTS.bodyBold, color: '#ffffff' },
-  tabCountTextActive: { color: '#2457e6' },
+  tabCount: { marginLeft: 'auto', minWidth: 20, height: 20, paddingHorizontal: 6, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.24)' : '#d2e3fc' },
+  tabCountActive: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.4)' : '#aecbfa' },
+  tabCountText: { fontSize: 10.5, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
+  tabCountTextActive: {},
   body: { paddingHorizontal: 6, paddingTop: 4, gap: 12, paddingBottom: 24 },
   fullMap: { ...StyleSheet.absoluteFill },
+  // Fixed height, stuck to the bottom of the tab: it does not move when the tab grows upward as the band folds away.
+  mapAnchored: { position: 'absolute', left: 0, right: 0, bottom: 0 },
   peek: { paddingHorizontal: 6, gap: 10 },
   peekTitle: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
   peekRow: { gap: 14, paddingRight: 8, paddingTop: 2 },
@@ -545,20 +572,25 @@ const styles = themedStyles(() => StyleSheet.create({
   hint: { fontSize: 11, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
   link: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
   // Soft shadow instead of an outline (an outline only on dark, where a shadow would not show), like the Home garage tiles.
-  card: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#cfd6e0', borderRadius: 20, padding: 8, gap: 10, shadowColor: '#0f172a', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.1, shadowRadius: 16, elevation: 3 },
+  // The same look as the Activity cards: a roomy white card, big round corners, no hard outline, a soft wide shadow.
+  card: { backgroundColor: Colors.bgCard, borderWidth: getThemeMode() === 'dark' ? 1 : 0, borderColor: Colors.borderColor, borderRadius: 24, padding: 14, gap: 14, shadowColor: '#0f172a', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.08, shadowRadius: 18, elevation: 3 },
+  detailsCorner: { alignSelf: 'flex-end' },
   cardExpired: { borderColor: 'rgba(239, 68, 68, 0.4)' },
   cardTitle: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.textMain },
+  travelNote: { marginTop: 6, gap: 2, padding: 8, borderRadius: 10, backgroundColor: 'rgba(245, 158, 11, 0.14)', borderWidth: 1, borderColor: 'rgba(245, 158, 11, 0.5)' },
+  travelNoteTitle: { fontSize: 11.5, fontFamily: FONTS.bodyBold, color: Colors.warning },
+  travelNoteText: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMain, lineHeight: 15 },
   cardSub: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 1 },
   desc: { fontSize: 11.5, fontFamily: FONTS.bodyRegular, color: Colors.textSoft, marginTop: 4 },
   jobHead: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  badge: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: 10, borderWidth: 1 },
+  badge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 14, borderWidth: 1 },
   badgeRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   badgePrimary: { backgroundColor: 'rgba(56, 189, 248, 0.12)', borderColor: 'rgba(56, 189, 248, 0.45)' },
   badgeSuccess: { backgroundColor: 'rgba(16, 185, 129, 0.12)', borderColor: 'rgba(16, 185, 129, 0.45)' },
   badgeDanger: { backgroundColor: 'rgba(239, 68, 68, 0.12)', borderColor: 'rgba(239, 68, 68, 0.45)' },
   badgeText: { fontSize: 10, fontFamily: FONTS.bodySemiBold },
   // Photo tile: the garage's cover with the price on it, then name and one line of details.
-  bidCard: { borderRadius: 18, borderWidth: 1, borderColor: Colors.borderColor, backgroundColor: Colors.bgCard, overflow: 'hidden' },
+  bidCard: { borderRadius: 20, borderWidth: 1, borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#dadce0', backgroundColor: Colors.bgCard, overflow: 'hidden' },
   bidCardLowest: { borderColor: 'rgba(16, 185, 129, 0.55)' },
   bidCardAccepted: { borderColor: Colors.success },
   bidCover: { width: '100%', height: 120 },

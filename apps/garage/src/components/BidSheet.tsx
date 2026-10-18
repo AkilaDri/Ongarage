@@ -1,7 +1,9 @@
+import { outline } from '../utils/material';
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { ActionButton, categoryInfo, Colors, dayStart, FONTS, GlassIcon, marketPrice, themedStyles, vehicleIcon, softFill, softEdge, softShadow } from '@ongarage/shared';
+import { fittingLabel, ActionButton, FAR_JOB_KM, isFarJob, travelFeeFor, categoryInfo, Colors, dayStart, FONTS, GlassIcon, marketPrice, themedStyles, vehicleIcon, softFill, softEdge, softShadow } from '@ongarage/shared';
 import { useGarage } from '../context/GarageContext';
+import { CustomerBadge } from './CustomerBadge';
 import { money } from '../utils/format';
 import type { FeedJob, MyBid } from '../types';
 
@@ -20,6 +22,8 @@ export const BidSheet: React.FC<BidSheetProps> = ({ job, existing, onClose }) =>
   const [mounted, setMounted] = useState(!!job);
   const [shown, setShown] = useState<FeedJob | null>(job);
   const [price, setPrice] = useState('');
+  // A far job: the travel compensation the garage adds to its bid (the owner sees the total, marked as including travel).
+  const [travel, setTravel] = useState('');
   const [warranty, setWarranty] = useState(1);
   const [hours, setHours] = useState(2);
   const [note, setNote] = useState('');
@@ -29,7 +33,8 @@ export const BidSheet: React.FC<BidSheetProps> = ({ job, existing, onClose }) =>
     if (job) {
       setShown(job);
       setMounted(true);
-      setPrice(String(existing?.price ?? marketPrice(job.categoryId)));
+      setPrice(String(existing ? existing.price - (existing.travelFee ?? 0) : marketPrice(job.categoryId)));
+      setTravel(isFarJob(job.distanceKm) ? String(existing?.travelFee ?? travelFeeFor(job.distanceKm)) : '');
       setWarranty(existing?.warrantyMonths ?? 1);
       setHours(existing?.estHours ?? 2);
       setNote(existing?.note ?? '');
@@ -44,6 +49,10 @@ export const BidSheet: React.FC<BidSheetProps> = ({ job, existing, onClose }) =>
 
   const market = marketPrice(shown.categoryId);
   const value = Number(price) || 0;
+  const far = isFarJob(shown.distanceKm);
+  const travelValue = far ? Number(travel) || 0 : 0;
+  // What is sent: the work plus the travel fee, as one total bid.
+  const total = value + travelValue;
   // Same rule the owner side uses to pick a bid (see GarageContext.bidWins).
   const standing =
     value <= 0
@@ -57,7 +66,7 @@ export const BidSheet: React.FC<BidSheetProps> = ({ job, existing, onClose }) =>
 
   const submit = () => {
     if (value <= 0) return;
-    placeBid(shown, { price: value, warrantyMonths: warranty, estHours: hours, note: note.trim() });
+    placeBid(shown, { price: total, travelFee: travelValue || undefined, warrantyMonths: warranty, estHours: hours, note: note.trim() });
     onClose();
   };
 
@@ -84,9 +93,18 @@ export const BidSheet: React.FC<BidSheetProps> = ({ job, existing, onClose }) =>
                 <Text style={styles.sub} numberOfLines={1}>
                   {vehicleIcon(shown.vehicle.type)} {shown.vehicle.name} · {shown.customer.name}
                 </Text>
+                <CustomerBadge customer={shown.customer} />
               </View>
             </View>
 
+            {!!shown.fitting && (
+              <View style={styles.farBox} accessibilityLabel="Parts fitting job">
+                <Text style={styles.farTitle}>{fittingLabel(shown.fitting)}</Text>
+                <Text style={styles.farText}>
+                  {shown.fitting.supply === 'owner' ? 'පාරිභෝගිකයා කොටස ගෙන එයි — ලංසුවට සවි කිරීමේ වැඩ ගාස්තුව පමණක් ඇතුළත් කරන්න.' : 'ඔබ කොටස සපයා සවි කළ යුතුයි — ලංසුවට කොටසේ මිලද ඇතුළත් කරන්න.'}
+                </Text>
+              </View>
+            )}
             <Text style={styles.label}>ඔබගේ මිල</Text>
             <View style={styles.priceBox}>
               <Text style={styles.currency}>රු.</Text>
@@ -96,6 +114,23 @@ export const BidSheet: React.FC<BidSheetProps> = ({ job, existing, onClose }) =>
               {cat.name} සඳහා සාමාන්‍ය වෙළඳපොළ මිල: {money(market)}
             </Text>
             {standing && <Text style={[styles.standing, { color: standing.color }]}>● {standing.text}</Text>}
+
+            {far && (
+              <View style={styles.farBox} accessibilityLabel="Distant job warning">
+                <Text style={styles.farTitle}>🚗 මෙම රැකියාව ඈත ස්ථානයක!</Text>
+                <Text style={styles.farText}>
+                  රැකියාව ඔබගෙන් කි.මී. {shown.distanceKm} ක් ඈතයි (සාමාන්‍ය සීමාව කි.මී. {FAR_JOB_KM}). ගමන් ගාස්තුව රැකියා ගාස්තුවට එකතු කර මුළු ලංසුව ලෙස පාරිභෝගිකයාට යවයි; එය පාරිභෝගිකයාට විශේෂ ලෙස පෙන්වයි.
+                </Text>
+                <Text style={styles.farLabel}>ගමන් වන්දි ගාස්තුව</Text>
+                <View style={styles.priceBox}>
+                  <Text style={styles.currency}>රු.</Text>
+                  <TextInput style={styles.farInput} keyboardType="number-pad" value={travel} onChangeText={(t) => setTravel(t.replace(/[^0-9]/g, ''))} maxLength={6} accessibilityLabel="Travel compensation fee" />
+                </View>
+                <Text style={styles.farSum}>
+                  රැකියාව {money(value)} + ගමන {money(travelValue)} = මුළු ලංසුව {money(total)}
+                </Text>
+              </View>
+            )}
 
             <Text style={styles.label}>වගකීම</Text>
             <View style={styles.chips}>
@@ -130,8 +165,8 @@ export const BidSheet: React.FC<BidSheetProps> = ({ job, existing, onClose }) =>
           </ScrollView>
 
           <View style={styles.footer}>
-            {value > room && <Text style={styles.roomWarn}>⚖️ හෙට ඉඩ ඇත්තේ {money(room)} ක් පමණි — අඩු ලංසුවක් හෝ පසුව උත්සාහ කරන්න.</Text>}
-            <ActionButton label={existing ? 'ලංසුව යාවත්කාලීන කරන්න' : `${money(value)} ලංසුව යවන්න`} icon="📨" variant="primary" disabled={value <= 0 || value > room} onPress={submit} />
+            {total > room && <Text style={styles.roomWarn}>⚖️ හෙට ඉඩ ඇත්තේ {money(room)} ක් පමණි — අඩු ලංසුවක් හෝ පසුව උත්සාහ කරන්න.</Text>}
+            <ActionButton label={existing ? 'ලංසුව යාවත්කාලීන කරන්න' : `${money(total)} ${far ? 'මුළු ' : ''}ලංසුව යවන්න`} icon="📨" variant="primary" disabled={value <= 0 || total > room} onPress={submit} />
           </View>
         </Animated.View>
       </KeyboardAvoidingView>
@@ -157,18 +192,24 @@ const styles = themedStyles(() =>
       overflow: 'hidden',
     },
     handle: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: Colors.subtleBorder },
-    headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, paddingTop: 12 },
+    headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 6, paddingTop: 12 },
     title: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textMain },
     closeBtn: { width: 30, height: 30, borderRadius: 15, backgroundColor: softFill(), borderWidth: 1, borderColor: 'transparent', justifyContent: 'center', alignItems: 'center' },
     closeText: { fontSize: 12, color: Colors.textMain },
-    body: { padding: 18, gap: 10 },
-    jobCard: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 20, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), ...softShadow() },
+    body: { paddingVertical: 18, paddingHorizontal: 6, gap: 10 },
+    jobCard: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 20, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), ...softShadow() },
     cardTitle: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.textMain },
     sub: { fontSize: 11, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
     label: { fontSize: 13.5, fontFamily: FONTS.titleBold, color: Colors.textMain, marginTop: 6 },
-    priceBox: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, borderRadius: 18, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), ...softShadow() },
+    priceBox: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, borderRadius: 18, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), ...softShadow() },
     currency: { fontSize: 18, fontFamily: FONTS.titleBold, color: Colors.textMuted },
     priceInput: { flex: 1, fontSize: 26, fontWeight: '800', color: Colors.textMain, paddingVertical: 8 },
+    farBox: { gap: 6, padding: 12, borderRadius: 16, backgroundColor: 'rgba(245, 158, 11, 0.12)', borderWidth: 1, borderColor: 'rgba(245, 158, 11, 0.5)' },
+    farTitle: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.warning },
+    farText: { fontSize: 11.5, fontFamily: FONTS.bodyRegular, color: Colors.textMain, lineHeight: 17 },
+    farLabel: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain, marginTop: 2 },
+    farInput: { flex: 1, fontSize: 20, fontWeight: '800', color: Colors.textMain, paddingVertical: 6 },
+    farSum: { fontSize: 12, fontFamily: FONTS.bodyBold, color: Colors.textMain },
     standing: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold },
     chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
     choice: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: 'transparent', backgroundColor: softFill() },
@@ -176,7 +217,7 @@ const styles = themedStyles(() =>
     choiceText: { fontSize: 12, fontFamily: FONTS.bodyMedium, color: Colors.textMuted },
     choiceTextActive: { color: Colors.primary, fontFamily: FONTS.bodyBold },
     stepper: { flexDirection: 'row', alignItems: 'center', gap: 14, alignSelf: 'flex-start' },
-    stepBtn: { width: 40, height: 40, borderRadius: 16, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), justifyContent: 'center', alignItems: 'center', ...softShadow() },
+    stepBtn: { width: 40, height: 40, borderRadius: 16, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), justifyContent: 'center', alignItems: 'center', ...softShadow() },
     stepText: { fontSize: 18, color: Colors.textMain, fontWeight: '700' },
     stepValue: { fontSize: 15, fontFamily: FONTS.titleBold, color: Colors.textMain, minWidth: 70, textAlign: 'center' },
     noteInput: {
@@ -185,7 +226,7 @@ const styles = themedStyles(() =>
       borderRadius: 18,
       backgroundColor: Colors.bgCard,
       borderWidth: 1,
-      borderColor: softEdge(),
+      borderColor: outline(),
       color: Colors.textMain,
       fontSize: 13,
       fontFamily: FONTS.bodyRegular,

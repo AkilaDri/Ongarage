@@ -26,10 +26,12 @@ export const VerifyPurchaseSheet: React.FC<{ visible: boolean; sale?: ShopSale |
   }, [visible, sale]);
 
   // With six digits typed, show whose code it is and what the part costs.
-  const match = code.length === 6 ? sales.find((s) => s.purchase.code === code && s.purchase.fulfilment === 'pickup' && (s.stage === 'reserved' || s.stage === 'ready')) : undefined;
+  const matches = code.length === 6 ? sales.filter((s) => s.purchase.code === code && s.purchase.fulfilment === 'pickup' && (s.stage === 'reserved' || s.stage === 'ready')) : [];
+  const match = matches[0];
+  const basketTotal = matches.reduce((t, s) => t + s.offer.total, 0);
   useEffect(() => {
-    if (match && !sale) setAmount(String(match.offer.total));
-  }, [match, sale]);
+    if (match && !sale) setAmount(String(basketTotal));
+  }, [match, sale, basketTotal]);
   const target = sale ?? match;
   const referred = !!target?.purchase.jobRef;
 
@@ -65,6 +67,7 @@ export const VerifyPurchaseSheet: React.FC<{ visible: boolean; sale?: ShopSale |
         accessibilityLabel="Purchase code"
       />
       {!!sale && <Text style={styles.hint}>(අනුකරණය: නිවැරදි කේතය {sale.purchase.code})</Text>}
+      {matches.length > 1 && <Text style={styles.referral}>📦 එකම කේතයෙන් කොටස් {matches.length} ක් — ඔක්කොම එකවර තහවුරු වේ: {matches.map((s) => `${s.offer.brief.name} ×${s.offer.qty}`).join(', ')} (එකතුව {money(basketTotal)})</Text>}
       {!!target && (
         <View style={styles.box}>
           <Text style={styles.title}>

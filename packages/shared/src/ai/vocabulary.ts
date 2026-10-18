@@ -21,6 +21,7 @@ export const CATEGORY_WORDS: Record<string, string[]> = {
   '9': ['wash', 'cleaning', 'detailing', 'wax', 'polish', 'සේදීම', 'පිරිසිදු', 'වොෂ', 'wash karanna'],
   '10': ['tuning', 'tune', 'turbo', 'exhaust', 'performance', 'dyno', 'ටියුන', 'ටර්බෝ'],
   '11': ['battery', 'jump start', 'terminal', 'not starting', "won't start", 'බැටරි', 'පණගන්නේ නැ', 'පණගන්වන්න', 'battery eka', 'start wenne na'],
+  '14': ['service', 'full service', 'oil change', 'engine oil', 'gear oil', 'transmission oil', 'brake fluid', 'power steering', 'oil filter', 'සර්විස්', 'තෙල් මාරු', 'ඔයිල් චේන්ජ්', 'ඔයිල්', 'service karanna', 'oil maru'],
   '12': ['tow', 'towing', 'flatbed', 'recovery', 'ටෝ', 'ඇදගෙන', 'tow karanna'],
 };
 

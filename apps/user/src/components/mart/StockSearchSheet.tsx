@@ -1,6 +1,7 @@
 import React from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { ActionButton, Colors, FITMENT_MAKES, FONTS, fitStatus, getThemeMode, money, partNoExact, partNoMatches, themedStyles, type ShopListing, type ShopStockLine } from '@ongarage/shared';
+import { OnMartAsk } from '@ongarage/shared';
 import { Sheet } from '../Sheet';
 import { CATEGORIES, OTHER, categoryOf, subOf } from './stockCategories';
 
@@ -263,7 +264,7 @@ export const StockSearchSheet: React.FC<{
                   <Text style={styles.verdictText}>{verdict.text}</Text>
                   {verdict.tone !== 'ok' && !!onAsk && (
                     <Pressable style={styles.verdictBtn} onPress={() => onAsk(query.trim() || partNo.trim())} accessibilityLabel="Ask the shop about this part">
-                      <Text style={styles.verdictBtnText}>📨 මෙම කොටස වෙළඳසැලෙන් අසන්න</Text>
+                      <OnMartAsk label="මෙම කොටස වෙළඳසැලෙන් අසන්න" textStyle={styles.verdictBtnText} />
                     </Pressable>
                   )}
                 </View>

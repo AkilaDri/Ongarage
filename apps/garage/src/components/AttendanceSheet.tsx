@@ -1,3 +1,4 @@
+import { outline } from '../utils/material';
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { ActionButton, Colors, FONTS, glassStyle, themedStyles, softFill, softEdge, softShadow } from '@ongarage/shared';
@@ -123,15 +124,15 @@ const styles = themedStyles(() =>
       overflow: 'hidden',
     },
     handle: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: Colors.subtleBorder },
-    headerRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 18, paddingTop: 12, gap: 10 },
+    headerRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 6, paddingTop: 12, gap: 10 },
     title: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textMain },
     closeBtn: { width: 30, height: 30, borderRadius: 15, backgroundColor: softFill(), borderWidth: 1, borderColor: 'transparent', justifyContent: 'center', alignItems: 'center' },
     closeText: { fontSize: 12, color: Colors.textMain },
-    body: { padding: 18, gap: 10 },
+    body: { paddingVertical: 18, paddingHorizontal: 6, gap: 10 },
     capacity: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 14, borderRadius: 18, backgroundColor: 'rgba(16, 185, 129, 0.1)', borderWidth: 1, borderColor: 'rgba(16, 185, 129, 0.4)' },
     capacityNum: { fontSize: 32, fontWeight: '900', color: Colors.success, minWidth: 40, textAlign: 'center' },
     why: { fontSize: 11, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 17 },
-    member: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 20, borderWidth: 1, borderColor: softEdge(), backgroundColor: Colors.bgCard, ...softShadow() },
+    member: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 20, borderWidth: 1, borderColor: outline(), backgroundColor: Colors.bgCard, ...softShadow() },
     memberPresent: { borderColor: 'rgba(16, 185, 129, 0.45)' },
     avatar: { width: 40, height: 40, borderRadius: 20, ...glassStyle(), justifyContent: 'center', alignItems: 'center' },
     avatarEmoji: { fontSize: 19 },

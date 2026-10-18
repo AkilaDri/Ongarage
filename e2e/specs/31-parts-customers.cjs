@@ -17,7 +17,8 @@ module.exports = spec('Parts shop · customer enquiry, purchase code and referra
   t.check('the answer sheet explains the referral', (await t.has('ඔබව නිර්දේශ කළා')) && (await t.has('ලැයිස්තුගත මිලට වඩා වැඩි නොවිය යුතුයි')));
   await t.clickText('පිළිතුර යවන්න ·');
   await t.wait(16500);
-  t.check('the buyer reserved it', await t.has('වෙන් කළා'));
+  // The chat's own notice can replace the sale notice, so either wording counts.
+  t.check('the buyer reserved it', (await t.has('වෙන් කළා')) || (await t.has('රඳවා ගත්තා')));
 
   // Orders → Customers: pack, the buyer arrives, check the purchase code and the paid amount
   await t.clickText('Orders');

@@ -1,3 +1,4 @@
+import { elevation1, outline } from '../../utils/material';
 import React, { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Colors, countdown, dealLabel, FONTS, money, themedStyles, softEdge, softShadow, type DealView } from '@ongarage/shared';
@@ -76,7 +77,7 @@ const styles = themedStyles(() =>
     toggleText: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
     row: { gap: 10, paddingRight: 8, paddingBottom: 4 },
     grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-    card: { width: 160, borderRadius: 18, overflow: 'hidden', backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), ...softShadow() },
+    card: { width: 160, borderRadius: 12, overflow: 'hidden', backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), ...elevation1() },
     cardWide: { width: '47.5%', flexGrow: 1 },
     pressed: { opacity: 0.88, transform: [{ scale: 0.99 }] },
     top: { height: 78, backgroundColor: 'rgba(239, 68, 68, 0.08)', alignItems: 'center', justifyContent: 'center' },

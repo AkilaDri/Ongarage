@@ -1,3 +1,4 @@
+import { pageBg } from '../utils/material';
 import React, { useMemo, useRef, useState } from 'react';
 import { Animated, View, ScrollView, Text, Pressable, StyleSheet, Linking } from 'react-native';
 import {
@@ -70,7 +71,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onSOSPress, onPostJob, o
 
   return (
     <View style={styles.container}>
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} stickyHeaderIndices={[1]} scrollEventThrottle={16} onScroll={(e) => {
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} scrollEventThrottle={16} onScroll={(e) => {
           const y = e.nativeEvent.contentOffset.y;
           edge.setValue(Math.min(1, Math.max(0, (y - adsY.current) / 30)));
           onScrollChange?.(y);
@@ -78,15 +79,15 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onSOSPress, onPostJob, o
         {/* Categories: cut-out icons, two rows, slide sideways. They scroll away with the page. */}
         <View style={styles.categoriesBlock}>
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>සේවා අංශ</Text>
-          <Pressable onPress={() => setAllServices(true)} hitSlop={6}>
-            <Text style={styles.viewAllLink}>සියල්ල බලන්න</Text>
+          <Text style={styles.sectionTitle}>OnGarage සේවා අංශ</Text>
+          <Pressable onPress={() => setAllServices(true)} hitSlop={8} accessibilityLabel="See all services">
+            <Text style={styles.seeAll}>See all</Text>
           </Pressable>
         </View>
         <CategoryStrip onSelect={onServicePress} />
         </View>
 
-        {/* Ads: the first thing to pin under the banners; everything after them scrolls beneath */}
+        {/* Ads: they scroll with the page and fold away with the sheet, like everything else; nothing but the banners stays pinned */}
         <View style={styles.adsPinned} onLayout={(e) => (adsY.current = e.nativeEvent.layout.y)}>
           <PromoCarousel
             banners={PROMO_BANNERS}
@@ -95,7 +96,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onSOSPress, onPostJob, o
               if (g) setOpen(g);
             }}
             />
-          <PinnedEdge progress={edge} />
         </View>
 
         {/* Deals */}
@@ -143,8 +143,8 @@ const styles = themedStyles(() => StyleSheet.create({
   content: { paddingTop: 16, paddingHorizontal: 6, paddingBottom: 90, gap: 16 },
   categoriesBlock: { gap: 10 },
   // Opaque and full width (the negative margin cancels the content padding), so the lists scroll underneath it.
-  adsPinned: { marginHorizontal: -6, paddingHorizontal: 6, paddingVertical: 6, backgroundColor: getThemeMode() === 'dark' ? Colors.bgBody : '#ffffff' },
+  adsPinned: { marginHorizontal: -6, paddingHorizontal: 6, paddingVertical: 6, backgroundColor: pageBg() },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 },
-  viewAllLink: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
-  sectionTitle: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textMain },
+  seeAll: { fontSize: 15, fontFamily: FONTS.bodySemiBold, color: '#1877f2' },
+  sectionTitle: { fontSize: 15, fontFamily: FONTS.bodyBold, color: Colors.primary },
 }));

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { approvedLines, categoryInfo, Colors, FONTS, themedStyles, workshopBill } from '@ongarage/shared';
+import { approvedLines, categoryInfo, Colors, dayText, FONTS, themedStyles, workshopBill } from '@ongarage/shared';
 import { useVehicles } from '../../context/VehiclesContext';
 import type { OwnerWorkshop } from '../../context/WorkshopContext';
 import { formatDate, formatTime, money } from '../../utils/format';
@@ -59,9 +59,15 @@ export const ReceiptSheet: React.FC<{ workshop: OwnerWorkshop | null; onClose: (
         <Row label="උප එකතුව" value={money(bill.parts)} strong />
         <View style={styles.rule} />
         <View style={styles.totalRow}>
-          <Text style={styles.totalLabel}>ගෙවූ මුළු මුදල</Text>
+          <Text style={styles.totalLabel}>{p.payment && p.payment.balance > 0 ? 'මුළු බිල' : 'ගෙවූ මුළු මුදල'}</Text>
           <Text style={styles.total}>{money(bill.total)}</Text>
         </View>
+        {!!p.payment && p.payment.balance > 0 && (
+          <>
+            <Row label="ගෙවූ මුදල" value={money(p.payment.received)} />
+            <Row label={`ඉතිරි (${dayText(p.payment.promisedAt ?? p.payment.recordedAt)} දක්වා)`} value={money(p.payment.balance)} strong />
+          </>
+        )}
         <View style={styles.rule} />
         <Text style={styles.ok}>✓ ඔබගේ කේතයෙන් තහවුරු කළා — OnGarage වාර්තාවේ සටහන් විය</Text>
         {!!p.warrantyUntil && (

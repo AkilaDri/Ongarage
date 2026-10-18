@@ -7,6 +7,6 @@ export type TabId = 'requests' | 'orders' | 'stock' | 'shop';
 export const PARTS_TABS: NavItem<TabId>[] = [
   { id: 'requests', label: 'Requests', icon: RequestsIcon },
   { id: 'orders', label: 'Orders', icon: OrdersIcon },
-  { id: 'stock', label: 'Stock', icon: StockIcon },
+  { id: 'stock', label: 'Catalogue', icon: StockIcon },
   { id: 'shop', label: 'Shop', icon: ShopIcon },
 ];

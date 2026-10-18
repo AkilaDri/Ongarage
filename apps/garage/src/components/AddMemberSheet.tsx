@@ -1,3 +1,4 @@
+import { outline } from '../utils/material';
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { ActionButton, Colors, FONTS, themedStyles, softFill, softEdge, softShadow } from '@ongarage/shared';
@@ -103,11 +104,11 @@ const styles = themedStyles(() =>
       overflow: 'hidden',
     },
     handle: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: Colors.subtleBorder },
-    headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, paddingTop: 12 },
+    headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 6, paddingTop: 12 },
     title: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textMain },
     closeBtn: { width: 30, height: 30, borderRadius: 15, backgroundColor: softFill(), borderWidth: 1, borderColor: 'transparent', justifyContent: 'center', alignItems: 'center' },
     closeText: { fontSize: 12, color: Colors.textMain },
-    body: { padding: 18, gap: 10 },
+    body: { paddingVertical: 18, paddingHorizontal: 6, gap: 10 },
     label: { fontSize: 13.5, fontFamily: FONTS.titleBold, color: Colors.textMain, marginTop: 4 },
     input: {
       height: 46,
@@ -115,7 +116,7 @@ const styles = themedStyles(() =>
       borderRadius: 18,
       backgroundColor: Colors.bgCard,
       borderWidth: 1,
-      borderColor: softEdge(),
+      borderColor: outline(),
       color: Colors.textMain,
       fontSize: 14,
       fontFamily: FONTS.bodyMedium,
@@ -127,7 +128,7 @@ const styles = themedStyles(() =>
     choiceActive: { borderColor: Colors.primary, backgroundColor: 'rgba(56, 189, 248, 0.14)' },
     choiceText: { fontSize: 11.5, fontFamily: FONTS.bodyMedium, color: Colors.textMuted },
     choiceTextActive: { color: Colors.primary, fontFamily: FONTS.bodyBold },
-    toggleRow: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 18, borderWidth: 1, borderColor: softEdge(), backgroundColor: Colors.bgCard, marginTop: 6, ...softShadow() },
+    toggleRow: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 18, borderWidth: 1, borderColor: outline(), backgroundColor: Colors.bgCard, marginTop: 6, ...softShadow() },
     toggleRowOn: { borderColor: 'rgba(16, 185, 129, 0.45)' },
     check: { width: 22, height: 22, borderRadius: 7, borderWidth: 1, borderColor: 'transparent', backgroundColor: softFill(), justifyContent: 'center', alignItems: 'center' },
     checkOn: { backgroundColor: Colors.success, borderColor: Colors.success },

@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import {
   ActionButton,
+  linesOwnerBuys,
+  canRequestCancel,
   Colors,
   FONTS,
   INSPECTION_FEE,
@@ -14,14 +16,20 @@ import {
   workshopBill,
   workshopStepIndex,
   type WorkshopStage,
+  getThemeMode,
 } from '@ongarage/shared';
-import { useWorkshops } from '../../context/WorkshopContext';
-import { formatDate, money } from '../../utils/format';
+import { useWorkshops } from '../../context/WorkshopContext';import { formatDate, money } from '../../utils/format';
 import { ApprovalSheet } from './ApprovalSheet';
 import { HandoverSheet } from './HandoverSheet';
 import { ProblemSheet, TOPIC_LABEL } from './ProblemSheet';
 import { WarrantySheet } from './WarrantySheet';
 import { ReconSheet } from './ReconSheet';
+import { CancelJobSheet } from './CancelJobSheet';
+import { CancelRequestSheet } from './CancelRequestSheet';
+import { PaymentStatus } from './PaymentStatus';
+import { useChat } from '../../context/ChatContext';
+import { CustomerRatingView } from './CustomerRatingView';
+import { canAskToFit, FitPartSheet } from '../ChatFitAction';
 import { RatingSheet } from './RatingSheet';
 import { ReceiptSheet } from './ReceiptSheet';
 import { GuaranteeSheet } from './GuaranteeSheet';
@@ -39,7 +47,7 @@ const OWNER_STAGE_TEXT: Record<WorkshopStage, string> = {
   disputed: 'ඔබ වාර්තා කළ ගැටලුව',
 };
 
-type SheetId = 'approve' | 'extra' | 'recon' | 'handover' | 'problem' | 'warranty' | 'rate' | 'receipt' | 'guarantee' | null;
+type SheetId = 'fit' | 'cancel' | 'decide' | 'approve' | 'extra' | 'recon' | 'handover' | 'problem' | 'warranty' | 'rate' | 'receipt' | 'guarantee' | null;
 
 /**
  * Where a booked repair is, and what the owner does next: approve the diagnosis, collect
@@ -48,6 +56,7 @@ type SheetId = 'approve' | 'extra' | 'recon' | 'handover' | 'problem' | 'warrant
  */
 export const WorkshopTracker: React.FC<{ id: string; detailed?: boolean }> = ({ id, detailed }) => {
   const { workshops, escalate, acknowledgeClosed } = useWorkshops();
+  const { openBasket } = useChat();
   const [sheet, setSheet] = useState<SheetId>(null);
   const w = workshops[id];
   if (!w) return null;
@@ -118,6 +127,8 @@ export const WorkshopTracker: React.FC<{ id: string; detailed?: boolean }> = ({ 
                 )}
               </View>
             ) : null}
+            <PaymentStatus workshop={w} />
+            <CustomerRatingView workshop={w} />
             {gc && (
               <View style={styles.reviewBox}>
                 <Text style={styles.sub}>
@@ -155,6 +166,29 @@ export const WorkshopTracker: React.FC<{ id: string; detailed?: boolean }> = ({ 
     }
   };
 
+  // A job the owner cancelled: why, and what it cost.
+  if (p.cancelled) {
+    return (
+      <View style={styles.wrap}>
+        <View style={styles.reviewBox} accessibilityLabel="Job cancelled">
+          <Text style={[styles.stage, { color: Colors.errorText }]}>❌ ඔබ රැකියාව අවලංගු කළා</Text>
+          <Text style={styles.sub}>
+            හේතුව: {p.cancelled.reason}
+            {p.cancelled.note ? ` · “${p.cancelled.note}”` : ''}
+          </Text>
+          {!!p.cancelled.rating && <Text style={styles.sub}>⭐ ඔබ ගරාජයට ★{p.cancelled.rating} දුන්නා</Text>}
+          {p.cancelled.compensation !== undefined && (
+            <Text style={styles.sub}>
+              💰 ගරාජයට වන්දිය {money(p.cancelled.compensation)}
+              {p.cancelled.workDone ? ` · ${p.cancelled.workDone}` : ''}
+            </Text>
+          )}
+          {!!p.cancelled.feeNote && <Text style={styles.sub}>ℹ️ {p.cancelled.feeNote}</Text>}
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.wrap}>
       {p.stage !== 'closed' && <StepProgress steps={WORKSHOP_STEP_LABELS} current={workshopStepIndex(p.stage)} alert={alert || p.stage === 'disputed'} />}
@@ -164,7 +198,6 @@ export const WorkshopTracker: React.FC<{ id: string; detailed?: boolean }> = ({ 
         </View>
       )}
       <View style={styles.rowBetween}>
-        <Text style={[styles.stage, alert && { color: Colors.warning }]}>{warrantyOver ? 'අවසන් — වගකීම කල් ඉකුත් විය' : OWNER_STAGE_TEXT[p.stage]}</Text>
         {p.stage === 'closed' && p.warrantyUntil && (
           <Text style={[styles.warranty, warrantyOver && { color: Colors.textMuted }]}>🛡️ {formatDate(p.warrantyUntil)}{warrantyOver ? ' දී අවසන්' : ' දක්වා'}</Text>
         )}
@@ -175,7 +208,45 @@ export const WorkshopTracker: React.FC<{ id: string; detailed?: boolean }> = ({ 
           {TOPIC_LABEL[d.topic]} · “{d.text}”
         </Text>
       )}
-      {action()}
+      {(p.fitRequests ?? []).map((r) => (
+        <View key={r.id} style={styles.reviewBox} accessibilityLabel="Parts fitting request">
+          <Text style={styles.sub}>
+            🔩 {r.partName} සවි කිරීම —{' '}
+            {r.status === 'requested' ? '⏳ ගරාජයේ පිළිතුර බලාපොරොත්තුවෙන්' : r.status === 'accepted' ? '✅ ගරාජය පිළිගත්තා (මිල චැට් එකේ)' : `✖ ප්‍රතික්ෂේප කළා${r.declineReason ? ` — ${r.declineReason}` : ''}`}
+          </Text>
+        </View>
+      ))}
+      {p.cancelRequest ? (
+        <View style={styles.reviewBox} accessibilityLabel="Cancellation request">
+          <Text style={styles.sub}>
+            🛑 {p.cancelRequest.status === 'quoted' ? `ගරාජය වන්දිය ${money(p.cancelRequest.compensation ?? 0)} ලෙස දැනුම් දුන්නා` : 'අවලංගු කිරීමේ ඉල්ලීම — ගරාජයේ පිළිතුර බලාපොරොත්තුවෙන්'}
+          </Text>
+          <Pressable onPress={() => setSheet('decide')} hitSlop={6} accessibilityLabel="Cancellation request details">
+            <Text style={styles.link}>{p.cancelRequest.status === 'quoted' ? 'තීරණය කරන්න ›' : 'බලන්න / ඉවත් කරන්න ›'}</Text>
+          </Pressable>
+        </View>
+      ) : (
+        <>
+          {action()}
+          {!!action() && <View style={styles.sep} />}
+          {linesOwnerBuys(p).filter((l) => !w.partsBought?.[l.id]).length > 0 && (
+            <Pressable style={styles.mustBuy} onPress={() => openBasket(id)} accessibilityLabel="Buy the parts in OnMart">
+              <Text style={styles.mustBuyHead}>⚠️ ඔබ OnMart හි මිලදී ගත යුතුය - {linesOwnerBuys(p).filter((l) => !w.partsBought?.[l.id]).map((l) => l.name).join(', ')}</Text>
+              <Text style={styles.mustBuyText}>නැත්නම් අලුත්වැඩියාව ප්‍රමාද වේ · 🛍️ OnMart හි මිලදී ගන්න ›</Text>
+            </Pressable>
+          )}
+          {canAskToFit(w) && (
+            <Pressable onPress={() => setSheet('fit')} hitSlop={6} accessibilityLabel="Ask the garage to fit a new part">
+              <Text style={styles.link}>🔩 අලුත් කොටසක් සවි කරන්න ගරාජයට දන්වන්න</Text>
+            </Pressable>
+          )}
+          {canRequestCancel(p) && (
+            <Pressable onPress={() => setSheet('cancel')} hitSlop={6} accessibilityLabel="Cancel this job">
+              <Text style={[styles.link, { color: Colors.errorText }]}>✖ රැකියාව අවලංගු කරන්න</Text>
+            </Pressable>
+          )}
+        </>
+      )}
 
       {detailed && (
         <>
@@ -203,7 +274,10 @@ export const WorkshopTracker: React.FC<{ id: string; detailed?: boolean }> = ({ 
           )}
           {(p.extras ?? []).map((x) => (
             <View key={x.id} style={styles.box}>
-              <Text style={styles.boxTitle}>➕ {x.reason}</Text>
+              <Text style={styles.boxTitle}>
+                ➕ {x.reason}
+                {x.decision?.via === 'phone' ? ' · 📞 ඔබ දුරකථනයෙන් අනුමත කළා' : x.decision?.via === 'deferred' ? ' · ➡️ පසුවට තැබුවා' : ''}
+              </Text>
               {x.lines.map((l) => {
                 const ok = x.decision?.approvedLineIds.includes(l.id);
                 return (
@@ -236,6 +310,9 @@ export const WorkshopTracker: React.FC<{ id: string; detailed?: boolean }> = ({ 
         </>
       )}
 
+      <FitPartSheet id={id} visible={sheet === 'fit'} onClose={close} />
+      <CancelJobSheet workshop={sheet === 'cancel' ? w : null} onClose={close} />
+      <CancelRequestSheet workshop={sheet === 'decide' ? w : null} onClose={close} />
       <ApprovalSheet workshop={sheet === 'approve' ? w : null} onClose={close} />
       <ApprovalSheet workshop={sheet === 'extra' && extraAsk ? w : null} extraId={extraAsk?.id} onClose={close} />
       <ReconSheet workshop={sheet === 'recon' && reconAsk ? w : null} reconId={reconAsk?.id} onClose={close} />
@@ -257,6 +334,7 @@ export const WorkshopTracker: React.FC<{ id: string; detailed?: boolean }> = ({ 
 
 const styles = themedStyles(() =>
   StyleSheet.create({
+    sep: { height: 1, backgroundColor: getThemeMode() === 'dark' ? Colors.borderColor : '#dadce0' },
     wrap: { gap: 8 },
     rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
     stage: { flex: 1, fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
@@ -267,6 +345,9 @@ const styles = themedStyles(() =>
     protectedText: { fontSize: 10.5, fontFamily: FONTS.bodyBold, color: Colors.warning },
     reviewBox: { padding: 10, borderRadius: 12, backgroundColor: Colors.subtleFill, gap: 3 },
     replyLabel: { fontFamily: FONTS.bodySemiBold, color: Colors.primary },
+    mustBuy: { gap: 2, padding: 10, borderRadius: 10, borderWidth: 1.5, borderColor: getThemeMode() === 'dark' ? 'rgba(253, 214, 99, 0.5)' : '#f9ab00', backgroundColor: getThemeMode() === 'dark' ? 'rgba(253, 214, 99, 0.1)' : '#fef7e0' },
+    mustBuyHead: { fontSize: 12.5, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#fdd663' : '#b06000', lineHeight: 18 },
+    mustBuyText: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
     link: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
     label: { fontSize: 10.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, letterSpacing: 0.4 },
     sub: { flexShrink: 1, fontSize: 11, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 17 },

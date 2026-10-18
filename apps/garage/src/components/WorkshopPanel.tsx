@@ -1,6 +1,6 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Colors, FONTS, PhotoStrip, themedStyles, workshopBill, type DiagnosisLine, softEdge, softShadow } from '@ongarage/shared';
+import { Colors, FONTS, PhotoStrip, themedStyles, workshopBill, type DiagnosisLine, getThemeMode } from '@ongarage/shared';
 import { useGarage } from '../context/GarageContext';
 import { WorkshopStatus } from './BookingActions';
 import { formatDate, money } from '../utils/format';
@@ -21,7 +21,8 @@ export const WorkshopPanel: React.FC<{ booking: Booking }> = ({ booking: b }) =>
   const p = b.progress;
   if (!p) return null;
   const bill = p.handover?.bill ?? workshopBill(b.price, p, b.partsCost);
-  const closed = p.stage === 'closed';
+  // (The technician cannot be changed on a closed or cancelled job, or while a cancellation request holds the work.)
+  const closed = p.stage === 'closed' || b.status === 'cancelled' || !!p.cancelRequest;
 
   return (
     <View style={styles.wrap}>
@@ -82,7 +83,7 @@ export const WorkshopPanel: React.FC<{ booking: Booking }> = ({ booking: b }) =>
 
       {(p.extras ?? []).map((x) => (
         <View key={x.id} style={styles.box}>
-          <Text style={styles.boxTitle}>➕ අමතර වැඩ · {x.decision ? 'අයිතිකරු පිළිතුරු දුන්නා' : '⏳ අනුමැතියට'}</Text>
+          <Text style={styles.boxTitle}>➕ අමතර වැඩ · {x.decision ? (x.decision.via === 'deferred' ? '➡️ පසුවට තැබුවා' : x.decision.via === 'phone' ? '📞 දුරකථනයෙන් පිළිතුරු දුන්නා' : 'අයිතිකරු පිළිතුරු දුන්නා') : x.waitingSince ? '⏳ අයිතිකරු සම්බන්ධ නොවීය — රැඳී සිටී (නොමිලේ)' : '⏳ අනුමැතියට'}</Text>
           <Text style={styles.text}>{x.reason}</Text>
           {x.lines.map((l) => {
             const ok = x.decision?.approvedLineIds.includes(l.id);
@@ -153,27 +154,27 @@ export const WorkshopPanel: React.FC<{ booking: Booking }> = ({ booking: b }) =>
 const styles = themedStyles(() =>
   StyleSheet.create({
     wrap: { gap: 8 },
-    section: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.textMain, marginTop: 4 },
-    label: { fontSize: 13.5, fontFamily: FONTS.titleBold, color: Colors.textMain, marginTop: 2 },
-    chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-    chip: { paddingHorizontal: 11, paddingVertical: 6, borderRadius: 16, borderWidth: 1, borderColor: softEdge(), backgroundColor: Colors.bgCard, ...softShadow() },
-    chipOn: { borderColor: 'rgba(56, 189, 248, 0.6)', backgroundColor: 'rgba(56, 189, 248, 0.12)' },
-    chipText: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
+    section: { fontSize: 14, fontFamily: FONTS.bodyBold, color: Colors.primary, marginTop: 8, letterSpacing: 0.2 },
+    label: { fontSize: 14, fontFamily: FONTS.titleBold, color: Colors.textMain, marginTop: 2 },
+    chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    chip: { paddingHorizontal: 12, height: 32, justifyContent: 'center', borderRadius: 8, borderWidth: 1, borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#dadce0', backgroundColor: Colors.bgCard },
+    chipOn: { borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#d2e3fc', backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe' },
+    chipText: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
     off: { opacity: 0.6 },
-    box: { padding: 12, borderRadius: 18, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), gap: 6, ...softShadow() },
-    boxWarn: { borderColor: 'rgba(245, 158, 11, 0.5)', backgroundColor: 'rgba(245, 158, 11, 0.08)' },
-    boxTitle: { fontSize: 12, fontFamily: FONTS.bodyBold, color: Colors.textMain },
-    text: { fontSize: 11, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 17 },
-    wait: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.warning },
+    box: { padding: 16, borderRadius: 12, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#dadce0', gap: 8, shadowColor: '#3c4043', shadowOffset: { width: 0, height: 1 }, shadowOpacity: getThemeMode() === 'dark' ? 0.4 : 0.15, shadowRadius: 3, elevation: 1 },
+    boxWarn: { borderColor: 'rgba(245, 158, 11, 0.5)', backgroundColor: getThemeMode() === 'dark' ? 'rgba(245, 158, 11, 0.08)' : '#fef7e0' },
+    boxTitle: { fontSize: 14, fontFamily: FONTS.bodyBold, color: Colors.textMain },
+    text: { fontSize: 13, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 20 },
+    wait: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.warning },
     lineRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
     lineMark: { width: 14, fontSize: 12, fontWeight: '800' },
-    lineName: { flex: 1, fontSize: 11, fontFamily: FONTS.bodyMedium, color: Colors.textMain },
-    linePrice: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
+    lineName: { flex: 1, fontSize: 13.5, fontFamily: FONTS.bodyMedium, color: Colors.textMain },
+    linePrice: { fontSize: 13.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
     struck: { textDecorationLine: 'line-through', color: Colors.textMuted },
     billRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-    billValue: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
-    billTotalLabel: { fontSize: 12, fontFamily: FONTS.bodyBold, color: Colors.textMain },
-    billTotal: { fontSize: 14, fontFamily: FONTS.titleBold, color: Colors.success },
-    warranty: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: Colors.successText },
+    billValue: { fontSize: 13.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
+    billTotalLabel: { fontSize: 14, fontFamily: FONTS.bodyBold, color: Colors.textMain },
+    billTotal: { fontSize: 15, fontFamily: FONTS.titleBold, color: Colors.success },
+    warranty: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.successText },
   })
 );

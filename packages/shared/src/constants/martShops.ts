@@ -3,6 +3,7 @@ import { partMarketPrice } from '../marketplace/partPrices';
 import { PART_CATEGORY } from '../marketplace/partsMart';
 import { distanceKm } from '../utils/geo';
 import { fitmentFor, type Fit } from './martFitment';
+import { catalogueFromTemplates } from '../marketplace/partsCatalogue';
 
 // The OnMart shop directory every app agrees on (a backend will serve it). Shops are shared by
 // id and name: ps1 is the parts app's own shop ("Galle Auto Parts"); ps1–ps5 are the shops the
@@ -81,7 +82,9 @@ const shops: ShopInput[] = [
 const round1 = (n: number) => Math.round(n * 10) / 10;
 
 /** Every shop, with distances from the middle of Galle. */
-export const MART_SHOPS: ShopListing[] = shops.map((s) => ({ ...s, distanceKm: round1(distanceKm(GALLE, s.coords)) }));
+// The directory shops have a catalogue too (ps1 is the parts app's own shop, which builds its catalogue when it sets up).
+const catalogueFor = (s: { id: string }) => (s.id === 'ps1' ? undefined : catalogueFromTemplates(s.id === 'ps8' ? ['japanese', 'european'] : ['japanese']));
+export const MART_SHOPS: ShopListing[] = shops.map((s) => ({ ...s, distanceKm: round1(distanceKm(GALLE, s.coords)), catalogue: s.catalogue ?? catalogueFor(s) }));
 
 /** The shops as seen from `coords` (nearest first). */
 export const shopsNear = (coords: LatLng, list: ShopListing[] = MART_SHOPS): ShopListing[] =>

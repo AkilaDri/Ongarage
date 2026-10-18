@@ -1,7 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { DEFAULT_COORDS, MOCK_GARAGES } from '../constants/mockData';
 import { useWorkshops } from './WorkshopContext';
-import { offsetCoordinate, marketPrice } from '@ongarage/shared';
+import { offsetCoordinate, marketPrice, travelFeeFor } from '@ongarage/shared';
 import type { Bid, RepairJob } from '@ongarage/shared';
 
 const MIN = 60 * 1000;
@@ -17,14 +17,17 @@ const BIDDING_GARAGES = [
   { ...profile('TOPCODE Tuning & Service'), distanceKm: 1.2, bearing: 300, warrantyMonths: 3, estHours: 1 },
   { ...profile('Apex Motors & Hybrid Hub'), distanceKm: 3.5, bearing: 40, warrantyMonths: 1, estHours: 2 },
   { ...profile('Lanka Auto Diagnostics'), distanceKm: 2.1, bearing: 160, warrantyMonths: 2, estHours: 3 },
+  // Far away (beyond FAR_JOB_KM): its bid carries a travel compensation fee, and the owner sees it marked.
+  { ...profile('Speed Works Garage'), distanceKm: 18.6, bearing: 220, warrantyMonths: 2, estHours: 3 },
 ];
 
 const PRICE_FACTORS = [1.0, 0.82, 1.18];
-const SIMULATED_BID_DELAYS_MS = [6000, 14000, 24000];
+const SIMULATED_BID_DELAYS_MS = [6000, 14000, 24000, 36000];
 
 const makeBid = (job: Pick<RepairJob, 'categoryId' | 'coords'>, index: number, submittedAt: number): Bid => {
   const g = BIDDING_GARAGES[index % BIDDING_GARAGES.length];
   const base = marketPrice(job.categoryId);
+  const travelFee = travelFeeFor(g.distanceKm);
   return {
     id: `bid-${submittedAt}-${index}`,
     garageName: g.garageName,
@@ -33,7 +36,8 @@ const makeBid = (job: Pick<RepairJob, 'categoryId' | 'coords'>, index: number, s
     reviews: g.reviews,
     distanceKm: g.distanceKm,
     coords: offsetCoordinate(job.coords, g.distanceKm, g.bearing),
-    price: Math.round((base * PRICE_FACTORS[index % PRICE_FACTORS.length]) / 100) * 100,
+    price: Math.round((base * PRICE_FACTORS[index % PRICE_FACTORS.length]) / 100) * 100 + travelFee,
+    ...(travelFee ? { travelFee } : {}),
     warrantyMonths: g.warrantyMonths,
     estHours: g.estHours,
     submittedAt,
@@ -53,7 +57,7 @@ const seedJobs = (now: number): RepairJob[] => {
     bids: [],
   };
   received.bids = [makeBid(received, 0, now - 10 * MIN), makeBid(received, 1, now - 6 * MIN)];
-  return [
+  const list: RepairJob[] = [
     received,
     {
       ...base,
@@ -96,6 +100,9 @@ const seedJobs = (now: number): RepairJob[] => {
       bids: [],
     },
   ];
+  // Nobody near picked the brake job up, but a garage far away did: its bid carries a travel fee.
+  list[1].bids = [makeBid(list[1], 3, now - MIN)];
+  return list;
 };
 
 export const biddingEndsAt = (job: RepairJob) => job.submittedAt + job.biddingHours * HOUR;

@@ -1,3 +1,4 @@
+import { outline } from '../utils/material';
 import React, { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Colors, FONTS, GlassIcon, glassStyle, themedStyles, softEdge, softShadow, softFill } from '@ongarage/shared';
@@ -87,7 +88,7 @@ const styles = themedStyles(() =>
     flex1: { flex: 1 },
     row: { flexDirection: 'row', alignItems: 'center', gap: 6 },
     section: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textMain, marginTop: 4 },
-    list: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), borderRadius: 20, overflow: 'hidden', ...softShadow() },
+    list: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), borderRadius: 20, overflow: 'hidden', ...softShadow() },
     item: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 12 },
     divider: { borderTopWidth: 1, borderTopColor: Colors.borderColor },
     avatar: { width: 38, height: 38, borderRadius: 19, ...glassStyle(), justifyContent: 'center', alignItems: 'center' },

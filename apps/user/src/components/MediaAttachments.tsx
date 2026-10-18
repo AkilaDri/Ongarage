@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { pickPhotos } from '@ongarage/shared';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Colors, FONTS, PhotoStrip, themedStyles, VoiceNotePlayer, type VoiceNote } from '@ongarage/shared';
-import { SAMPLE_UPLOAD_PHOTOS } from '../constants/mockData';
 
 const MAX_PHOTOS = 6;
 const MAX_VOICE_SEC = 30;
@@ -48,7 +48,7 @@ export const MediaAttachments: React.FC<{
       <PhotoStrip
         photos={photos}
         height={84}
-        onAdd={photos.length < MAX_PHOTOS ? () => onPhotos([...photos, SAMPLE_UPLOAD_PHOTOS[photos.length % SAMPLE_UPLOAD_PHOTOS.length]]) : undefined}
+        onAdd={photos.length < MAX_PHOTOS ? () => void pickPhotos(MAX_PHOTOS - photos.length).then((ph) => ph.length && onPhotos([...photos, ...ph])) : undefined}
         addLabel="ඡායාරූපයක්"
       />
       {photos.length > 0 && (

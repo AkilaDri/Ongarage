@@ -1,3 +1,4 @@
+import { elevation1, outline } from '../utils/material';
 import React, { useEffect, useState } from 'react';
 import { Image, Linking, Pressable, ScrollView, StyleSheet, Share, Text, View, type ImageSourcePropType } from 'react-native';
 import { ActionButton, Colors, directionsUrl, FONTS, getThemeMode, GoogleMap, LevelBadge, LEVELS, RATING_DIMENSIONS, themedStyles, type Bid, type Garage } from '@ongarage/shared';
@@ -5,6 +6,7 @@ import { MOCK_GARAGES } from '../constants/mockData';
 import { GARAGE_COVERS, GARAGE_INFO } from '../constants/home';
 import { garageProfileContent } from '../constants/garageProfile';
 import { useUserLocation } from '../context/LocationContext';
+import { useChat } from '../context/ChatContext';
 import { ago, money } from '../utils/format';
 import { Sheet } from './Sheet';
 
@@ -44,7 +46,9 @@ export const GarageReviewsSheet: React.FC<{
   /** Opened from Home: call or book this garage. */
   onCall?: () => void;
   onBook?: () => void;
-}> = ({ garage, onClose, bid, onAccept, onCall, onBook }) => {
+  /** Opened from a service category: the inquiry form starts on that service. */
+  inquiryCategoryId?: string;
+}> = ({ garage, onClose, bid, onAccept, onCall, onBook, inquiryCategoryId }) => {
   const [shown, setShown] = useState(garage);
   useEffect(() => {
     if (garage) setShown(garage);
@@ -64,6 +68,16 @@ export const GarageReviewsSheet: React.FC<{
   }, [garageId]);
 
   const g = garage ?? shown;
+  const chat = useChat();
+  // OnChat replaces WhatsApp: the profile closes and the chat with this garage opens.
+  const startChat = (compose: boolean) => {
+    if (!g) return;
+    onClose();
+    chat.open({ id: `garage:${g.id}`, title: g.name, subtitle: 'ගරාජ පැතිකඩ', phone: g.phone, profile: 'garage', inquiry: { categoryId: inquiryCategoryId, compose } });
+  };
+  const openChat = () => startChat(false);
+  // "Send an inquiry" opens the same chat with the inquiry form ready.
+  const askInquiry = () => startChat(true);
   if (!g) return null;
   const level = g.level ? LEVELS.find((l) => l.id === g.level) : undefined;
   const info = GARAGE_INFO[g.id];
@@ -90,7 +104,8 @@ export const GarageReviewsSheet: React.FC<{
           horizontal
           pagingEnabled
           showsHorizontalScrollIndicator={false}
-          style={StyleSheet.absoluteFill}
+          // On a phone browser only sideways drags belong to the photos; a drag down is left to the sheet (swipe down to close).
+          style={[StyleSheet.absoluteFill, { touchAction: 'pan-x' } as object]}
           onLayout={(e) => setCoverW(Math.round(e.nativeEvent.layout.width))}
           onScroll={(e) => coverW > 0 && setSlide(Math.round(e.nativeEvent.contentOffset.x / coverW))}
           scrollEventThrottle={16}
@@ -162,7 +177,7 @@ export const GarageReviewsSheet: React.FC<{
           {[
             { id: 'dir', icon: '🧭', label: 'දිශාවන්', primary: true, onPress: () => Linking.openURL(directionsUrl(g.coords, user.coords)) },
             { id: 'call', icon: '📞', label: 'අමතන්න', onPress: () => (onCall ? onCall() : g.phone ? Linking.openURL(`tel:${g.phone.replace(/\s/g, '')}`) : undefined) },
-            { id: 'wa', icon: '💬', label: 'WhatsApp', onPress: () => Linking.openURL(`https://wa.me/${content.contact.whatsapp}`) },
+            { id: 'wa', icon: '💬', label: 'OnChat', onPress: openChat },
             { id: 'save', icon: saved ? '♥' : '♡', label: saved ? 'සුරැකිණි' : 'සුරකින්න', on: saved, onPress: () => setSaved((v) => !v) },
             { id: 'share', icon: '↗', label: 'බෙදාගන්න', onPress: shareGarage },
           ].map((a) => (
@@ -196,6 +211,9 @@ export const GarageReviewsSheet: React.FC<{
                 <ActionButton label="අමතන්න" icon="📞" variant="ghost" compact onPress={onCall} />
               </View>
             )}
+            <View style={styles.flex1}>
+              <ActionButton label="විමසීම" icon="❓" variant="ghost" compact onPress={askInquiry} />
+            </View>
             <View style={styles.flex2}>
               <ActionButton label="වෙන් කරන්න" icon="📅" variant="primary" compact onPress={onBook} />
             </View>
@@ -224,6 +242,11 @@ export const GarageReviewsSheet: React.FC<{
             <View style={styles.bidHeroChip}>
               <Text style={styles.bidHeroChipText}>📍 කි.මී. {bid.distanceKm}</Text>
             </View>
+            {!!bid.travelFee && (
+              <View style={[styles.bidHeroChip, { backgroundColor: 'rgba(245, 158, 11, 0.25)' }]} accessibilityLabel="Bid includes travel fee">
+                <Text style={styles.bidHeroChipText}>🚗 ගමන් ගාස්තුව ඇතුළුව · රු. {bid.travelFee.toLocaleString()}</Text>
+              </View>
+            )}
           </View>
         </View>
       )}
@@ -261,9 +284,9 @@ export const GarageReviewsSheet: React.FC<{
             <Text style={styles.gmIcon}>📞</Text>
             <View style={styles.flex1}><Text style={styles.gmText}>{g.phone || content.contact.hotline}</Text></View>
           </Pressable>
-          <Pressable style={styles.gmRow} onPress={() => Linking.openURL(`https://wa.me/${content.contact.whatsapp}`)} accessibilityLabel="WhatsApp">
+          <Pressable style={styles.gmRow} onPress={openChat} accessibilityLabel="OnChat">
             <Text style={styles.gmIcon}>💬</Text>
-            <View style={styles.flex1}><Text style={styles.gmText}>WhatsApp · +{content.contact.whatsapp}</Text></View>
+            <View style={styles.flex1}><Text style={styles.gmText}>OnChat · {g.name}</Text></View>
           </Pressable>
           <Pressable style={styles.gmRow} onPress={() => Linking.openURL(`mailto:${content.contact.email}`)} accessibilityLabel="Email">
             <Text style={styles.gmIcon}>✉️</Text>
@@ -405,16 +428,14 @@ export const GarageReviewsSheet: React.FC<{
               <Text style={styles.infoAction}>අමතන්න ›</Text>
             </Pressable>
             )}
-            {!!content.contact.whatsapp && (
-            <Pressable style={styles.infoLine} onPress={() => Linking.openURL(`https://wa.me/${content.contact.whatsapp}`)} accessibilityLabel="Open WhatsApp">
+            <Pressable style={styles.infoLine} onPress={openChat} accessibilityLabel="Open OnChat">
               <Text style={styles.infoIcon}>💬</Text>
               <View style={styles.flex1}>
-                <Text style={styles.sub}>WhatsApp</Text>
-                <Text style={styles.infoValue}>+{content.contact.whatsapp}</Text>
+                <Text style={styles.sub}>OnChat</Text>
+                <Text style={styles.infoValue}>{g.name}</Text>
               </View>
               <Text style={styles.infoAction}>කතා කරන්න ›</Text>
             </Pressable>
-            )}
             <Pressable style={styles.infoLine} onPress={() => Linking.openURL(`mailto:${content.contact.email}`)} accessibilityLabel="Send email">
               <Text style={styles.infoIcon}>✉️</Text>
               <View style={styles.flex1}>
@@ -617,51 +638,51 @@ export const GarageReviewsSheet: React.FC<{
 
 const styles = themedStyles(() =>
   StyleSheet.create({
-    tabs: { flexDirection: 'row', marginTop: 2, borderBottomWidth: 1, borderBottomColor: getThemeMode() === 'dark' ? Colors.borderColor : '#dadce0' },
+    tabs: { flexDirection: 'row', marginTop: 8, borderBottomWidth: 1, borderBottomColor: getThemeMode() === 'dark' ? Colors.borderColor : '#dadce0' },
     tabBtn: { flex: 1, height: 42, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4, borderBottomWidth: 3, borderBottomColor: 'transparent' },
     tabBtnOn: { borderBottomColor: '#1a73e8' },
     tabText: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
     tabTextOn: { color: '#1a73e8', fontFamily: FONTS.bodyBold },
-    sectionTitle: { fontSize: 14, fontFamily: FONTS.titleBold, color: Colors.textMain, marginTop: 0 },
+    sectionTitle: { fontSize: 14, fontFamily: FONTS.bodyBold, color: Colors.primary, letterSpacing: 0.2, marginTop: 0 },
     hRow: { gap: 6, paddingRight: 6 },
-    offerCard: { width: 150, padding: 8, borderRadius: 16, gap: 2 },
+    offerCard: { width: 150, padding: 8, borderRadius: 12, gap: 2 },
     offerCardIcon: { fontSize: 22 },
     offerCardTitle: { fontSize: 13, fontFamily: FONTS.titleBold, color: '#ffffff', lineHeight: 17 },
     offerCardDetail: { fontSize: 10.5, fontFamily: FONTS.bodyMedium, color: 'rgba(255,255,255,0.85)' },
     sectionHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 0 },
-    sectionTitleBare: { fontSize: 14, fontFamily: FONTS.titleBold, color: Colors.textMain },
-    jobsPill: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, backgroundColor: 'rgba(16, 185, 129, 0.15)' },
+    sectionTitleBare: { fontSize: 14, fontFamily: FONTS.bodyBold, color: Colors.primary, letterSpacing: 0.2 },
+    jobsPill: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, backgroundColor: 'rgba(16, 185, 129, 0.15)' },
     jobsPillText: { fontSize: 11, fontFamily: FONTS.bodyBold, color: Colors.success },
     serviceGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-    serviceTile: { width: 140, gap: 3, padding: 8, borderRadius: 18, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.borderColor },
+    serviceTile: { width: 140, gap: 3, padding: 12, borderRadius: 12, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), ...elevation1() },
     serviceTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-    serviceIconBox: { width: 42, height: 42, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
-    serviceTileName: { fontSize: 12.5, fontFamily: FONTS.titleBold, color: Colors.textMain, lineHeight: 17, minHeight: 34 },
+    serviceIconBox: { width: 42, height: 42, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+    serviceTileName: { fontSize: 13.5, fontFamily: FONTS.titleBold, color: Colors.textMain, lineHeight: 17, minHeight: 34 },
     jobsTrack: { height: 5, borderRadius: 3, backgroundColor: Colors.subtleFill, overflow: 'hidden', marginTop: 2 },
     jobsFill: { height: 5, borderRadius: 3 },
-    jobsText: { fontSize: 10.5, fontFamily: FONTS.bodySemiBold, color: Colors.textSoft },
-    moreBtn: { alignSelf: 'center', paddingHorizontal: 16, height: 36, borderRadius: 18, justifyContent: 'center', backgroundColor: 'rgba(36, 87, 230, 0.1)' },
+    jobsText: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: Colors.textSoft },
+    moreBtn: { alignSelf: 'center', paddingHorizontal: 16, height: 36, borderRadius: 8, justifyContent: 'center', backgroundColor: 'rgba(36, 87, 230, 0.1)' },
     moreBtnText: { fontSize: 12, fontFamily: FONTS.bodyBold, color: '#2457e6' },
-    gig: { width: 210, borderRadius: 18, overflow: 'hidden', backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.borderColor },
+    gig: { width: 210, borderRadius: 12, overflow: 'hidden', backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), ...elevation1() },
     gigImg: { width: '100%', height: 104, backgroundColor: Colors.subtleFill },
     gigTag: { position: 'absolute', top: 8, left: 8, paddingHorizontal: 10, height: 24, borderRadius: 12, justifyContent: 'center' },
     gigTagText: { fontSize: 11.5, fontFamily: FONTS.bodyBold, color: '#ffffff' },
-    gigBody: { padding: 8, gap: 3 },
-    gigTitle: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.textMain, lineHeight: 17 },
+    gigBody: { padding: 12, gap: 3 },
+    gigTitle: { fontSize: 14, fontFamily: FONTS.titleBold, color: Colors.textMain, lineHeight: 17 },
     gigMeta: { flexDirection: 'row', justifyContent: 'space-between' },
-    gigMetaText: { fontSize: 10.5, fontFamily: FONTS.bodySemiBold, color: Colors.textSoft },
-    gigBtn: { alignSelf: 'flex-start', marginTop: 2, paddingHorizontal: 14, height: 30, borderRadius: 15, justifyContent: 'center', backgroundColor: '#2457e6' },
+    gigMetaText: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: Colors.textSoft },
+    gigBtn: { alignSelf: 'flex-start', marginTop: 2, paddingHorizontal: 14, height: 30, borderRadius: 8, justifyContent: 'center', backgroundColor: '#2457e6' },
     gigBtnText: { fontSize: 11.5, fontFamily: FONTS.bodyBold, color: '#ffffff' },
-    serviceList: { borderRadius: 16, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.borderColor, overflow: 'hidden' },
+    serviceList: { borderRadius: 12, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), overflow: 'hidden', ...elevation1() },
     serviceRow: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderBottomWidth: 1, borderBottomColor: Colors.borderColor },
     serviceIcon: { fontSize: 22 },
     serviceName: { fontSize: 12.5, fontFamily: FONTS.bodyBold, color: Colors.textMain },
-    newBadge: { paddingHorizontal: 9, paddingVertical: 3, borderRadius: 10, backgroundColor: '#ef4444' },
+    newBadge: { paddingHorizontal: 9, paddingVertical: 3, borderRadius: 6, backgroundColor: '#ef4444' },
     newBadgeText: { fontSize: 10, fontFamily: FONTS.bodyBold, color: '#ffffff' },
     photoTile: { width: 128, gap: 5 },
-    photoImg: { width: 128, height: 128, borderRadius: 16, backgroundColor: Colors.subtleFill },
+    photoImg: { width: 128, height: 128, borderRadius: 12, backgroundColor: Colors.subtleFill },
     photoCaption: { fontSize: 10.5, fontFamily: FONTS.bodyMedium, color: Colors.textMuted },
-    reel: { width: 118, height: 190, borderRadius: 18, overflow: 'hidden', backgroundColor: Colors.subtleFill },
+    reel: { width: 118, height: 190, borderRadius: 12, overflow: 'hidden', backgroundColor: Colors.subtleFill },
     reelImg: { ...StyleSheet.absoluteFill, width: '100%', height: '100%' },
     reelShade: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(5, 10, 25, 0.38)' },
     reelPlay: { position: 'absolute', top: 70, left: 39, width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.88)' },
@@ -671,30 +692,30 @@ const styles = themedStyles(() =>
     reelMeta: { position: 'absolute', left: 8, right: 8, bottom: 8, gap: 2 },
     reelTitle: { fontSize: 11, fontFamily: FONTS.bodyBold, color: '#ffffff', lineHeight: 14 },
     reelViews: { fontSize: 10, fontFamily: FONTS.bodyMedium, color: 'rgba(255,255,255,0.85)' },
-    mapCard: { borderRadius: 18, overflow: 'hidden', backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.borderColor },
+    mapCard: { borderRadius: 12, overflow: 'hidden', backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), ...elevation1() },
     mapBox: { height: 60, backgroundColor: Colors.subtleFill },
     mapPin: { position: 'absolute', transform: [{ translateX: -8 }, { translateY: -20 }] },
     mapPinEmoji: { fontSize: 18 },
     mapFooter: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 8, paddingVertical: 6 },
-    dirBtn: { paddingHorizontal: 11, height: 28, borderRadius: 14, justifyContent: 'center', backgroundColor: '#2457e6' },
+    dirBtn: { paddingHorizontal: 11, height: 28, borderRadius: 8, justifyContent: 'center', backgroundColor: '#2457e6' },
     dirBtnText: { fontSize: 12, fontFamily: FONTS.bodyBold, color: '#ffffff' },
     coverWrap: { height: 360, overflow: 'hidden', borderTopLeftRadius: 28, borderTopRightRadius: 28 },
     cover: { width: '100%', height: '100%' },
     coverSlide: { height: '100%' },
     coverPlay: { position: 'absolute', alignSelf: 'center', top: '38%', width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.55)', borderWidth: 2, borderColor: '#ffffff' },
     coverPlayText: { fontSize: 22, color: '#ffffff', marginLeft: 3 },
-    coverCount: { position: 'absolute', right: 14, bottom: 46, paddingHorizontal: 10, height: 22, borderRadius: 11, justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.55)' },
+    coverCount: { position: 'absolute', right: 16, bottom: 46, paddingHorizontal: 10, height: 22, borderRadius: 11, justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.55)' },
     coverCountText: { fontSize: 10.5, fontFamily: FONTS.bodyBold, color: '#ffffff' },
-    coverVideoTag: { position: 'absolute', left: 14, top: 62, maxWidth: '70%', paddingHorizontal: 10, height: 24, borderRadius: 12, justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.6)' },
+    coverVideoTag: { position: 'absolute', left: 16, top: 64, maxWidth: '70%', paddingHorizontal: 10, height: 24, borderRadius: 12, justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.6)' },
     coverVideoTagText: { fontSize: 10.5, fontFamily: FONTS.bodyBold, color: '#ffffff' },
     coverDots: { position: 'absolute', left: 0, right: 0, bottom: 44, flexDirection: 'row', justifyContent: 'center', gap: 5 },
     coverDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.5)' },
     coverDotOn: { width: 16, backgroundColor: '#ffffff' },
     coverShade: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(8, 16, 36, 0.22)' },
     coverGrip: { position: 'absolute', top: 8, alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.7)' },
-    coverClose: { position: 'absolute', top: 14, right: 14, width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.45)' },
+    coverClose: { position: 'absolute', top: 16, right: 16, width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.45)' },
     coverCloseText: { fontSize: 13, fontWeight: '700', color: '#ffffff' },
-    statusPill: { position: 'absolute', left: 14, top: 14, paddingHorizontal: 10, height: 26, borderRadius: 13, justifyContent: 'center' },
+    statusPill: { position: 'absolute', left: 16, top: 16, paddingHorizontal: 10, height: 26, borderRadius: 13, justifyContent: 'center' },
     statusOpen: { backgroundColor: 'rgba(16, 185, 129, 0.92)' },
     statusClosed: { backgroundColor: 'rgba(100, 116, 139, 0.92)' },
     statusText: { fontSize: 11, fontFamily: FONTS.bodyBold, color: '#ffffff' },
@@ -707,47 +728,47 @@ const styles = themedStyles(() =>
     identityText: { flex: 1, paddingBottom: 6, gap: 2 },
     name: { fontSize: 19, fontFamily: FONTS.titleBold, color: Colors.textMain },
     specialization: { fontSize: 12, fontFamily: FONTS.bodyMedium, color: Colors.textMuted },
-    statRow: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 6, marginTop: 14, paddingVertical: 12, borderRadius: 16, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.borderColor },
+    statRow: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 6, marginTop: 14, paddingVertical: 14, borderRadius: 12, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), ...elevation1() },
     stat: { flex: 1, alignItems: 'center', gap: 2 },
-    statValue: { fontSize: 14, fontFamily: FONTS.titleBold, color: Colors.textMain },
-    statLabel: { fontSize: 10, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
+    statValue: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textMain },
+    statLabel: { fontSize: 11, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
     statDivider: { width: 1, height: 26, backgroundColor: Colors.borderColor },
-    contactLine: { fontSize: 12, fontFamily: FONTS.bodyMedium, color: Colors.textSoft, lineHeight: 18 },
-    offerChip: { alignSelf: 'flex-start', paddingHorizontal: 11, paddingVertical: 5, borderRadius: 13, backgroundColor: 'rgba(245, 158, 11, 0.16)' },
+    contactLine: { fontSize: 13, fontFamily: FONTS.bodyMedium, color: Colors.textSoft, lineHeight: 18 },
+    offerChip: { alignSelf: 'flex-start', paddingHorizontal: 11, paddingVertical: 5, borderRadius: 8, backgroundColor: 'rgba(245, 158, 11, 0.16)' },
     offerText: { fontSize: 11.5, fontFamily: FONTS.bodyBold, color: Colors.warning },
-    box: { padding: 8, borderRadius: 14, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.borderColor, gap: 4 },
+    box: { padding: 12, borderRadius: 12, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), gap: 4, ...elevation1() },
     dimRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-    dimLabel: { width: 118, fontSize: 11, fontFamily: FONTS.bodyMedium, color: Colors.textSoft },
+    dimLabel: { width: 118, fontSize: 12.5, fontFamily: FONTS.bodyMedium, color: Colors.textSoft },
     track: { flex: 1, height: 6, borderRadius: 3, backgroundColor: Colors.subtleFill, overflow: 'hidden' },
     fill: { height: 6, borderRadius: 3, backgroundColor: Colors.warning },
     dimValue: { width: 26, textAlign: 'right', fontSize: 11, fontFamily: FONTS.bodyBold, color: Colors.textMain },
-    review: { width: REVIEW_W, padding: 10, borderRadius: 14, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.borderColor, gap: 4 },
+    review: { width: REVIEW_W, padding: 14, borderRadius: 12, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), gap: 4, ...elevation1() },
     rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-    customer: { fontSize: 12.5, fontFamily: FONTS.bodyBold, color: Colors.textMain },
+    customer: { fontSize: 14, fontFamily: FONTS.bodyBold, color: Colors.textMain },
     stars: { fontSize: 13, color: Colors.warning },
     starsOff: { color: Colors.subtleBorder },
-    text: { fontSize: 12, fontFamily: FONTS.bodyRegular, color: Colors.textSoft, lineHeight: 18 },
-    sub: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 16 },
-    reply: { marginTop: 4, padding: 10, borderRadius: 12, backgroundColor: Colors.subtleFill, gap: 2 },
+    text: { fontSize: 13, fontFamily: FONTS.bodyRegular, color: Colors.textSoft, lineHeight: 20 },
+    sub: { fontSize: 12, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 18 },
+    reply: { marginTop: 4, padding: 10, borderRadius: 8, backgroundColor: Colors.subtleFill, gap: 2 },
     protected: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: Colors.warning, lineHeight: 17 },
     actions: { flexDirection: 'row', gap: 8 },
     flex1: { flex: 1 },
     flex2: { flex: 2 },
-    bidHero: { padding: 16, gap: 12, borderRadius: 20, backgroundColor: getThemeMode() === 'dark' ? 'rgba(96, 165, 250, 0.16)' : '#e3eeff' },
+    bidHero: { padding: 16, gap: 12, borderRadius: 12, backgroundColor: getThemeMode() === 'dark' ? 'rgba(96, 165, 250, 0.16)' : '#e3eeff' },
     bidHeroTop: { flexDirection: 'row', alignItems: 'center', gap: 10 },
     bidHeroLabel: { fontSize: 12.5, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#93c5fd' : '#1e4fa8' },
     bidHeroPrice: { fontSize: 26, lineHeight: 32, fontFamily: FONTS.titleBold, color: getThemeMode() === 'dark' ? '#dbeafe' : '#0f2f6b', letterSpacing: -0.5 },
-    bidHeroTag: { paddingHorizontal: 12, height: 26, borderRadius: 13, justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? 'rgba(147, 197, 253, 0.22)' : '#c7dcfb' },
+    bidHeroTag: { paddingHorizontal: 12, height: 26, borderRadius: 8, justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? 'rgba(147, 197, 253, 0.22)' : '#c7dcfb' },
     bidHeroTagText: { fontSize: 11, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#93c5fd' : '#1e4fa8' },
     bidHeroChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-    bidHeroChip: { paddingHorizontal: 11, height: 28, borderRadius: 14, justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.7)' },
+    bidHeroChip: { paddingHorizontal: 11, height: 28, borderRadius: 8, justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.7)' },
     bidHeroChipText: { fontSize: 11.5, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#bfdbfe' : '#1e3f86' },
-    place: { paddingHorizontal: 12, paddingTop: 8, gap: 2 },
-    placeTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    place: { paddingHorizontal: 12, paddingTop: 16, paddingBottom: 4, gap: 6 },
+    placeTop: { flexDirection: 'row', alignItems: 'center', gap: 16},
     placeLogo: { width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center' },
     placeLogoText: { fontSize: 18, fontFamily: FONTS.titleBold, color: '#ffffff', letterSpacing: 0.5 },
     placeName: { fontSize: 22, lineHeight: 28, fontFamily: FONTS.titleBold, color: Colors.textMain, letterSpacing: -0.2 },
-    placeRating: { flexDirection: 'row', alignItems: 'center', gap: 5, flexWrap: 'wrap', marginTop: 2 },
+    placeRating: { flexDirection: 'row', alignItems: 'center', gap: 5, flexWrap: 'wrap', marginTop: 4},
     placeRatingNum: { fontSize: 13.5, fontFamily: FONTS.bodyBold, color: Colors.textMain },
     placeStars: { fontSize: 14, color: '#fbbc04', letterSpacing: 1 },
     placeMuted: { fontSize: 12.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
@@ -755,9 +776,9 @@ const styles = themedStyles(() =>
     placeStatus: { fontSize: 13, fontFamily: FONTS.bodyRegular },
     placeOpen: { fontFamily: FONTS.bodyBold, color: '#188038' },
     placeClosed: { fontFamily: FONTS.bodyBold, color: '#d93025' },
-    placeActions: { gap: 14, paddingTop: 4, paddingBottom: 0, paddingRight: 6 },
-    placeAction: { alignItems: 'center', gap: 6, minWidth: 62 },
-    placeActionCircle: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? Colors.subtleFill : '#ffffff', borderWidth: 1, borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#dadce0' },
+    placeActions: { gap: 16, paddingTop: 12, paddingBottom: 4, paddingRight: 6 },
+    placeAction: { alignItems: 'center', gap: 8, minWidth: 64},
+    placeActionCircle: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? Colors.subtleFill : '#ffffff', borderWidth: 1, borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#dadce0' },
     placeActionPrimary: { backgroundColor: '#1a73e8', borderColor: '#1a73e8' },
     placeActionOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(229, 72, 61, 0.16)' : '#fdecea', borderColor: '#f5b5b0' },
     placeActionIcon: { fontSize: 19, color: '#1a73e8' },
@@ -768,31 +789,31 @@ const styles = themedStyles(() =>
     gmText: { fontSize: 12.5, fontFamily: FONTS.bodyRegular, color: Colors.textMain, lineHeight: 18 },
     infoLine: { flexDirection: 'row', alignItems: 'center', gap: 10 },
     infoIcon: { fontSize: 18, width: 26, textAlign: 'center' },
-    infoValue: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
+    infoValue: { fontSize: 13.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
     infoAction: { fontSize: 11, fontFamily: FONTS.bodyBold, color: Colors.primary },
-    hourRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 6, paddingHorizontal: 8, borderRadius: 10 },
+    hourRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 6, paddingHorizontal: 8, borderRadius: 8 },
     hourRowToday: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e3ecfd' },
-    hourDay: { fontSize: 12, fontFamily: FONTS.bodyMedium, color: Colors.textMain },
-    hourTime: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
+    hourDay: { fontSize: 13, fontFamily: FONTS.bodyMedium, color: Colors.textMain },
+    hourTime: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
     hourClosed: { color: Colors.errorText },
     hourToday: { fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1e4fa8' },
-    noteBox: { padding: 10, borderRadius: 12, backgroundColor: Colors.subtleFill },
+    noteBox: { padding: 10, borderRadius: 8, backgroundColor: Colors.subtleFill },
     noteBoxOn: { backgroundColor: 'rgba(239, 68, 68, 0.12)' },
-    noteText: { fontSize: 11.5, fontFamily: FONTS.bodyMedium, color: Colors.textSoft, lineHeight: 17 },
+    noteText: { fontSize: 12.5, fontFamily: FONTS.bodyMedium, color: Colors.textSoft, lineHeight: 17 },
     noteTextOn: { color: Colors.errorText, fontFamily: FONTS.bodySemiBold },
     chipWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-    tagChip: { paddingHorizontal: 12, height: 32, borderRadius: 16, justifyContent: 'center', backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#cfd8e3' },
-    tagChipText: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
+    tagChip: { paddingHorizontal: 12, height: 32, borderRadius: 8, justifyContent: 'center', backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline() },
+    tagChipText: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
     tagChipBrand: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e3ecfd', borderColor: 'transparent' },
     tagChipBrandText: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#1e4fa8' },
     staffRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
     staffAvatar: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
     staffAvatarText: { fontSize: 14, fontFamily: FONTS.titleBold, color: '#ffffff' },
-    certPill: { paddingHorizontal: 8, height: 22, borderRadius: 11, justifyContent: 'center', backgroundColor: 'rgba(16, 185, 129, 0.14)' },
+    certPill: { paddingHorizontal: 8, height: 22, borderRadius: 6, justifyContent: 'center', backgroundColor: 'rgba(16, 185, 129, 0.14)' },
     certPillText: { fontSize: 9.5, fontFamily: FONTS.bodyBold, color: Colors.successText },
     rateRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
-    rateName: { flex: 1, fontSize: 12.5, fontFamily: FONTS.bodyMedium, color: Colors.textMain },
-    ratePrice: { fontSize: 12.5, fontFamily: FONTS.bodyBold, color: Colors.successText },
+    rateName: { flex: 1, fontSize: 13.5, fontFamily: FONTS.bodyMedium, color: Colors.textMain },
+    ratePrice: { fontSize: 13.5, fontFamily: FONTS.bodyBold, color: Colors.successText },
     certRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
     bidPrice: { fontSize: 17, fontFamily: FONTS.titleBold, color: Colors.success },
     replyLabel: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.primary },

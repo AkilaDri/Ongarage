@@ -1,3 +1,4 @@
+import { elevation1, outline } from '../../utils/material';
 import React, { useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Colors, FONTS, LEVELS, themedStyles, type Garage } from '@ongarage/shared';
@@ -60,20 +61,20 @@ export const GarageTile: React.FC<{
 
 const styles = themedStyles(() =>
   StyleSheet.create({
-    tile: { borderRadius: 16, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.borderColor, overflow: 'hidden' },
+    tile: { borderRadius: 12, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), overflow: 'hidden', ...elevation1() },
     pressed: { opacity: 0.85 },
     cover: { width: '100%', height: 128 },
     // Badges and the heart sit on the photo: fixed light chips readable in both themes.
-    badge: { position: 'absolute', top: 8, left: 8, maxWidth: '70%', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10, backgroundColor: 'rgba(255, 255, 255, 0.92)' },
+    badge: { position: 'absolute', top: 8, left: 8, maxWidth: '70%', paddingHorizontal: 8, height: 22, justifyContent: 'center', borderRadius: 6, backgroundColor: 'rgba(255, 255, 255, 0.92)' },
     badgeAd: { backgroundColor: 'rgba(15, 23, 42, 0.75)' },
     badgeText: { fontSize: 10, fontFamily: FONTS.bodyBold, color: '#2563eb' },
     badgeAdText: { color: '#fff' },
     heart: { position: 'absolute', top: 8, right: 8, width: 30, height: 30, borderRadius: 15, backgroundColor: 'rgba(255, 255, 255, 0.85)', alignItems: 'center', justifyContent: 'center' },
     heartText: { fontSize: 16, color: '#334155', marginTop: -1 },
     heartOn: { color: '#f43f5e' },
-    body: { paddingHorizontal: 12, paddingVertical: 10, gap: 3 },
-    name: { fontSize: 13.5, fontFamily: FONTS.titleBold, color: Colors.textMain },
-    meta: { fontSize: 11, fontFamily: FONTS.bodyMedium, color: Colors.textMuted },
+    body: { paddingHorizontal: 14, paddingVertical: 12, gap: 4 },
+    name: { fontSize: 15, fontFamily: FONTS.titleBold, color: Colors.textMain },
+    meta: { fontSize: 12, fontFamily: FONTS.bodyMedium, color: Colors.textMuted },
     star: { color: Colors.warning, fontFamily: FONTS.bodyBold },
   })
 );
