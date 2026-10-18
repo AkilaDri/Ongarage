@@ -10,23 +10,31 @@ import {
   NotoSansSinhala_600SemiBold,
   NotoSansSinhala_700Bold,
 } from '@expo-google-fonts/noto-sans-sinhala';
-import { BottomNav, TitleBand, Colors, ThemeProvider, themedStyles, useTheme, headerBand, getThemeMode } from '@ongarage/shared';
+import { BottomNav, TitleBand, Colors, ThemeProvider, themedStyles, useTheme, headerBand, getThemeMode, setAppShape } from '@ongarage/shared';
+
+// This app has PickMe's shapes too (big rounded cards, pill buttons and chips, light edges, soft shadows), like the garage app. Set before the first screen is drawn.
+setAppShape('pickme');
 import { ShopProvider, useShop } from './context/ShopContext';
 import { PARTS_TABS, type TabId } from './constants/tabs';
 import { ShopHeader } from './components/ShopHeader';
 import { Toast } from './components/Toast';
+import { ChatProvider } from './context/ChatContext';
+import { ChatHeaderButton } from './components/ChatHeaderButton';
 import { RequestsScreen } from './screens/RequestsScreen';
 import { OrdersScreen } from './screens/OrdersScreen';
-import { StockScreen } from './screens/StockScreen';
+import { CatalogueScreen } from './screens/CatalogueScreen';
+import { OnboardingWizard } from './components/OnboardingWizard';
 import { ShopProfileScreen } from './screens/ShopProfileScreen';
 
-const TAB_TITLES: Partial<Record<TabId, string>> = { orders: 'ඔබගේ ඇණවුම්', stock: 'ඔබගේ තොගය' };
+const TAB_TITLES: Partial<Record<TabId, string>> = { orders: 'ඔබගේ ඇණවුම්', stock: 'ඔබගේ Catalogue එක' };
 
 export default function App() {
   return (
     <ThemeProvider>
       <ShopProvider>
-        <AppShell />
+        <ChatProvider>
+          <AppShell />
+        </ChatProvider>
       </ShopProvider>
     </ThemeProvider>
   );
@@ -36,10 +44,9 @@ export default function App() {
 // the owner and garage apps), so screens pick up the new palette without remounting.
 function AppShell() {
   const { isDark } = useTheme();
-  const { newRequests, ordersNeedingAction, stock, newCustomer, newWall, salesNeedingAction } = useShop();
-  // Badges: requests waiting for a quote, orders waiting on the shop, items out of stock.
-  const outOfStock = stock.filter((i) => i.variants.some((v) => v.qty === 0)).length;
-  const badges: Partial<Record<TabId, number>> = { requests: newRequests.length + newCustomer.length + newWall.length, orders: ordersNeedingAction.length + salesNeedingAction.length, stock: outOfStock };
+  const { newRequests, ordersNeedingAction, profile, newCustomer, newWall, salesNeedingAction } = useShop();
+  // Badges: requests waiting for an answer, orders waiting on the shop.
+  const badges: Partial<Record<TabId, number>> = { requests: newRequests.length + newCustomer.length + newWall.length, orders: ordersNeedingAction.length + salesNeedingAction.length };
   const tabs = PARTS_TABS.map((t) => ({ ...t, badge: badges[t.id] }));
   const [tab, setTab] = useState<TabId>('requests');
   const fade = useRef(new Animated.Value(0)).current;
@@ -77,12 +84,18 @@ function AppShell() {
         <View style={[styles.sheet, tab === 'shop' && styles.sheetFull]}>
           {tab === 'requests' && <RequestsScreen />}
           {tab === 'orders' && <OrdersScreen />}
-          {tab === 'stock' && <StockScreen />}
+          {tab === 'stock' && <CatalogueScreen />}
           {tab === 'shop' && <ShopProfileScreen />}
         </View>
         <View style={styles.nav}>
           <BottomNav items={tabs} activeTab={tab} onTabChange={setTab} />
         </View>
+        {/* OnChat: the icon stays at the top right on every tab */}
+        <View style={styles.floatChat} pointerEvents="box-none">
+          <ChatHeaderButton />
+        </View>
+        {/* First launch: say what the shop sells before anything else */}
+        {!profile.catalogue?.length && <OnboardingWizard />}
         <Toast />
       </SafeAreaView>
 
@@ -99,5 +112,6 @@ const styles = themedStyles(() =>
     sheet: { flex: 1, marginTop: -18, borderTopLeftRadius: 24, borderTopRightRadius: 24, overflow: 'hidden', backgroundColor: getThemeMode() === 'dark' ? Colors.bgBody : '#ffffff' },
     sheetFull: { marginTop: 0, borderTopLeftRadius: 0, borderTopRightRadius: 0 },
     nav: { position: 'absolute', left: 0, right: 0, bottom: 0 },
+    floatChat: { position: 'absolute', top: 10, right: 14, zIndex: 50, elevation: 50 },
   })
 );

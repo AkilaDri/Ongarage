@@ -1,4 +1,4 @@
-import type { DiagnosisLine, WorkshopProgress, WorkshopStage } from '../types';
+import type { DiagnosisLine, ExtraWorkRequest, WorkshopProgress, WorkshopStage } from '../types';
 import { makeCloseCode } from './closeCode';
 
 // The workshop job flow every app follows: the garage (or its technician) receives the
@@ -82,6 +82,35 @@ export const pendingRecon = (p: WorkshopProgress) => (p.recon ?? []).find((r) =>
 
 /** Extra work sent mid-repair that the owner hasn't answered yet (handover waits for it). */
 export const pendingExtra = (p: WorkshopProgress) => (p.extras ?? []).find((x) => !x.decision);
+
+/**
+ * Waiting for an owner who can't be reached is free for the garage: no fee, and the wait
+ * never counts against its delay / trust numbers (see `ownerWaitMs`).
+ */
+export const OWNER_WAIT_FEE = 0;
+
+/** Extra work the owner couldn't be reached about, so the job is on hold. */
+export const ownerWaiting = (p: WorkshopProgress) => (p.extras ?? []).find((x) => !x.decision && x.waitingSince);
+
+/** Time the job spent waiting for the owner (to leave out of delay measures). */
+export const ownerWaitMs = (p: WorkshopProgress, now: number) =>
+  (p.extras ?? []).reduce((s, x) => (x.waitingSince ? s + Math.max(0, (x.decision?.decidedAt ?? now) - x.waitingSince) : s), 0);
+
+/**
+ * The garage or technician records what the owner told them on the phone: the ticked lines
+ * are approved, the rest declined. No code is needed, but the record says it came by phone
+ * and the owner sees it in their app.
+ */
+export const decideExtraByPhone = (x: ExtraWorkRequest, approvedLineIds: string[], now: number): ExtraWorkRequest => ({
+  ...x,
+  decision: { approvedLineIds, declinedLineIds: x.lines.filter((l) => !approvedLineIds.includes(l.id)).map((l) => l.id), decidedAt: now, via: 'phone' },
+});
+
+/** The owner can't be reached: put the extra work aside (nothing approved, billed or ordered) so the agreed work can finish. */
+export const deferExtra = (x: ExtraWorkRequest, now: number): ExtraWorkRequest => ({
+  ...x,
+  decision: { approvedLineIds: [], declinedLineIds: x.lines.map((l) => l.id), decidedAt: now, via: 'deferred' },
+});
 
 /**
  * The owner's bill: labour (the agreed price plus approved labour lines) and parts

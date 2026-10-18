@@ -1,4 +1,5 @@
-import React, { useRef, useState } from 'react';
+import { elevation1, outline, pageBg } from '../utils/material';
+import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Colors, getThemeMode, themedStyles } from '@ongarage/shared';
 import { FONTS } from '@ongarage/shared';
@@ -16,7 +17,12 @@ import { useSOSRecords } from '../context/SOSRecordsContext';
 import { TxnTag } from '../components/TxnTag';
 import { useMart } from '../context/MartContext';
 import { DirectBookingCard } from '../components/DirectBookingCard';
+import { ChatButton } from '../components/ChatButton';
+import { chatDockOffset } from '../utils/chatDock';
+import { VehicleBlock } from '../components/VehicleBlock';
+import { MOCK_GARAGES } from '../constants/mockData';
 import { OrdersList } from '../components/mart/OrdersList';
+import { PayablesCard } from '../components/PayablesCard';
 import { JobPartsToBuy } from '../components/mart/JobPartsToBuy';
 import { WorkshopTracker } from '../components/workshop/WorkshopTracker';
 import { useWorkshops } from '../context/WorkshopContext';
@@ -38,8 +44,10 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
     const w = workshops[id];
     return w?.progress.stage === 'declined' || (w?.progress.stage === 'closed' && !!w.acknowledged);
   };
-  const liveBookings = bookings.filter((b) => (b.status === 'requested' || b.status === 'proposed' || b.status === 'confirmed') && !finished(b.id));
-  const doneBookings = bookings.filter((b) => b.status === 'confirmed' && finished(b.id));
+  // A job the owner cancelled with the garage moves to the "ended" list.
+  const cancelled = (id: string) => !!workshops[id]?.progress.cancelled;
+  const liveBookings = bookings.filter((b) => (b.status === 'requested' || b.status === 'proposed' || b.status === 'confirmed') && !finished(b.id) && !cancelled(b.id));
+  const doneBookings = bookings.filter((b) => b.status === 'confirmed' && finished(b.id) && !cancelled(b.id));
   const endedBookings = bookings.filter((b) => !liveBookings.includes(b) && !doneBookings.includes(b));
   // Swipe a booking for everything about it (follows the live record).
   const [detail, setDetail] = useState<{ kind: 'job' | 'booking'; id: string } | null>(null);
@@ -60,9 +68,20 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
   const { findVehicle } = useVehicles();
   // 0 to 1 as the summary tiles pin at the top; fades the edge shadow in.
   const edge = useRef(new Animated.Value(0)).current;
+  // The chat icon sits under the pinned tiles while this screen is shown.
+  const pinnedH = useRef(0);
+  const lastY = useRef(0);
+  const hidden = useRef(false);
+  useEffect(() => {
+    chatDockOffset.setValue(pinnedH.current);
+    return () => chatDockOffset.setValue(0);
+  }, []);
   // Each kind of record has its own chip: pick one to see only those records.
   const [kind, setKind] = useState<'all' | 'current' | 'done' | 'ended' | 'mart'>('all');
   const show = (k: typeof kind) => kind === 'all' || kind === k;
+  // Inside "ongoing": which kind of running work to look at.
+  const [currentKind, setCurrentKind] = useState<'all' | 'bids' | 'direct' | 'sos'>('all');
+  const showCurrent = (k: typeof currentKind) => currentKind === 'all' || currentKind === k;
   // Inside "completed": which kind of finished work to look at.
   const [doneKind, setDoneKind] = useState<'all' | 'bids' | 'direct' | 'sos' | 'past'>('all');
   const showDone = (k: typeof doneKind) => kind === 'all' || (kind === 'done' && (doneKind === 'all' || doneKind === k));
@@ -73,35 +92,48 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
     .filter((j) => j.acceptedBidId)
     .map((j) => ({ job: j, bid: j.bids.find((b) => b.id === j.acceptedBidId)! }))
     .filter((x) => x.bid);
-  const ongoing = accepted.filter((x) => !finished(x.job.id));
-  const doneJobs = accepted.filter((x) => finished(x.job.id));
+  const ongoing = accepted.filter((x) => !finished(x.job.id) && !cancelled(x.job.id));
+  const doneJobs = accepted.filter((x) => finished(x.job.id) && !cancelled(x.job.id));
+  const cancelledJobs = accepted.filter((x) => cancelled(x.job.id));
 
   const bidCard = (job: (typeof jobs)[number], bid: (typeof jobs)[number]['bids'][number]) => {
     const cat = SERVICE_CATEGORIES.find((c) => c.id === job.categoryId);
     return (
       <SwipeCard key={job.id} style={[styles.card, !finished(job.id) && styles.cardOngoing]} onOpen={() => setDetail({ kind: 'job', id: job.id })}>
+        {/* The chat button sits in the very top right corner of the card. */}
+        {(
+          <View style={styles.iconRow}>
+            <ChatButton size={44} target={{ id: job.id, title: bid.garageName, subtitle: cat?.name, phone: MOCK_GARAGES.find((g) => g.name === bid.garageName)?.phone, vehicle: findVehicle(job.vehicleId) }} />
+          </View>
+        )}
         <Pressable style={styles.row} onPress={() => setDetail({ kind: 'job', id: job.id })} accessibilityLabel={`${cat?.name ?? 'Job'} booking details`}>
           <CategoryPhoto categoryId={job.categoryId} />
           <View style={styles.flex1}>
             <Text style={styles.title}>{cat?.name ?? 'Service'}</Text>
-            <Text style={styles.sub}>
-              {bid.garageName} · {vehicleName(job.vehicleId)}
-            </Text>
+            <View style={styles.garageLine}>
+              <Text style={[styles.sub, styles.flex1]} numberOfLines={1}>
+                {bid.garageName}
+              </Text>
+            </View>
+            <VehicleBlock vehicle={findVehicle(job.vehicleId)} />
             <Text style={styles.sub}>වෙන් කළේ {formatDate(new Date(bid.submittedAt))}</Text>
-            <TxnTag kind="JOB" source={job.id} />
           </View>
-          <View style={styles.right}>
+          <View style={[styles.right, styles.rightIcons]}>
+            <View style={styles.kindTag}>
+              <Text style={styles.kindTagText}>🤝 ලංසු</Text>
+            </View>
             <Text style={styles.price}>{money(bid.price)}</Text>
             <View style={[styles.status, finished(job.id) ? styles.statusDone : styles.statusOngoing]}>
-              <Text style={[styles.statusText, { color: finished(job.id) ? Colors.success : Colors.warning }]}>{finished(job.id) ? '✓ සම්පූර්ණයි' : '● වෙන් කළා'}</Text>
+              <Text style={[styles.statusText, { color: cancelled(job.id) ? Colors.errorText : finished(job.id) ? Colors.success : Colors.warning }]}>{cancelled(job.id) ? '✕ අවලංගු කළා' : finished(job.id) ? '✓ සම්පූර්ණයි' : '● වෙන් කළා'}</Text>
             </View>
           </View>
         </Pressable>
         <View style={styles.divider} />
         <WorkshopTracker id={job.id} />
+        <View style={styles.divider} />
         <View style={styles.rowBetween}>
           <Text style={styles.sub}>
-            🛡️ මාස {bid.warrantyMonths} වගකීම · ⏱️ පැය {bid.estHours}
+            🛡️ මාස {bid.warrantyMonths} වගකීම · ⏱️ පැය {bid.estHours}{bid.travelFee ? ` · 🚗 ගමන් ගාස්තුව රු. ${bid.travelFee.toLocaleString('en-US')} ඇතුළුව` : ''}
           </Text>
           <Pressable onPress={() => Linking.openURL(directionsUrl(bid.coords, user.coords))}>
             <Text style={styles.link}>🗺️ දිශාවන්</Text>
@@ -139,19 +171,32 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
         onScroll={(e) => {
           const y = e.nativeEvent.contentOffset.y;
           edge.setValue(Math.min(1, Math.max(0, (y - 8) / 30)));
-          // The sheet rises over the top band within the first 60px of scrolling, as on Home, and settles back at the top.
-          onHeaderProgress?.(Math.min(1, Math.max(0, y / 60)));
+          // The band folds away as the page scrolls up, and comes back in full on the first drag down.
+          const dy = y - lastY.current;
+          lastY.current = y;
+          if (y <= 4 || dy < -3) {
+            if (hidden.current) {
+              hidden.current = false;
+              onHeaderProgress?.(0);
+            }
+          } else if (dy > 3 && y > 12 && !hidden.current) {
+            hidden.current = true;
+            onHeaderProgress?.(1);
+          }
         }}
       >
         {/* Pinned: the three summary tiles stay at the top while the lists scroll beneath */}
-        <View style={styles.statsPinned}>
+        <View style={styles.statsPinned} onLayout={(e) => {
+          pinnedH.current = Math.round(e.nativeEvent.layout.height);
+          chatDockOffset.setValue(pinnedH.current);
+        }}>
         <View style={styles.segment}>
           {(
             [
               { id: 'all', label: 'සියල්ල', count: 0 },
               { id: 'current', label: 'පවතින', count: ongoing.length + liveBookings.length },
               { id: 'done', label: 'සම්පූර්ණ', count: history.length + doneBookings.length + doneJobs.length + sosRecords.length },
-              { id: 'ended', label: 'අවසන්', count: endedBookings.length },
+              { id: 'ended', label: 'අවසන්', count: endedBookings.length + cancelledJobs.length },
               { id: 'mart', label: 'OnMart', count: 0 },
             ] as { id: typeof kind; label: string; count: number }[]
           ).map((c) => {
@@ -170,6 +215,31 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
             );
           })}
         </View>
+        {kind === 'current' && (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.kindChips}>
+            {(
+              [
+                { id: 'all', label: 'සියල්ල', count: ongoing.length + liveBookings.length },
+                { id: 'bids', label: '🤝 ලංසු', count: ongoing.length },
+                { id: 'direct', label: '📅 සෘජු වෙන් කිරීම්', count: liveBookings.length },
+                { id: 'sos', label: '🚨 SOS', count: 0 },
+              ] as { id: typeof currentKind; label: string; count: number }[]
+            ).map((c) => {
+              const on = currentKind === c.id;
+              return (
+                <Pressable key={c.id} style={[styles.subChip, on && styles.kindChipOn]} onPress={() => setCurrentKind(c.id)} accessibilityLabel={`Ongoing ${c.id}`}>
+                  {on && <Text style={styles.kindChipTextOn}>✓</Text>}
+                  <Text style={[styles.kindChipText, on && styles.kindChipTextOn]}>{c.label}</Text>
+                  {c.count > 0 && (
+                    <View style={styles.subBadge}>
+                      <Text style={styles.subBadgeText}>{c.count}</Text>
+                    </View>
+                  )}
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        )}
         {kind === 'done' && (
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.kindChips}>
             {(
@@ -184,10 +254,11 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
               const on = doneKind === c.id;
               return (
                 <Pressable key={c.id} style={[styles.subChip, on && styles.kindChipOn]} onPress={() => setDoneKind(c.id)} accessibilityLabel={`Completed ${c.id}`}>
+                  {on && <Text style={styles.kindChipTextOn}>✓</Text>}
                   <Text style={[styles.kindChipText, on && styles.kindChipTextOn]}>{c.label}</Text>
                   {c.count > 0 && (
-                    <View style={[styles.badge, styles.badgeGood]}>
-                      <Text style={styles.badgeText}>{c.count}</Text>
+                    <View style={styles.subBadge}>
+                      <Text style={styles.subBadgeText}>{c.count}</Text>
                     </View>
                   )}
                 </Pressable>
@@ -228,6 +299,8 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
           </View>
         )}
 
+        {(kind === 'all' || kind === 'done') && <PayablesCard />}
+
         {show('mart') && (
           <>
             <JobPartsToBuy compact onOpenMart={onOpenMart} />
@@ -239,9 +312,12 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
           <>
 
         <Text style={styles.sectionLabel}>දැනට පවතින වෙන් කිරීම්</Text>
-        {(liveBookings.length > 0 || ongoing.length > 0) && <Text style={styles.swipeHint}>සම්පූර්ණ විස්තර සඳහා කාඩ්පතක් පැත්තට ස්වයිප් කරන්න</Text>}
-        {liveBookings.map(bookingCard)}
-        {ongoing.length === 0 && liveBookings.length === 0 ? (
+        {showCurrent('direct') && liveBookings.map(bookingCard)}
+        {kind === 'current' && currentKind === 'sos' ? (
+          <View style={styles.card}>
+            <EmptyState icon="🚨" title="සක්‍රීය SOS නැත" text="SOS ඉල්ලීමක් පිළිගත් විට එය මෙහි පෙන්වනු ඇත; අවසන් වූ විට ‘සම්පූර්ණ’ යටතට යයි." />
+          </View>
+        ) : ongoing.length === 0 && liveBookings.length === 0 ? (
           <View style={styles.card}>
             <EmptyState icon="📅" title="සක්‍රීය වෙන් කිරීම් නැත" text="ලංසුවක් පිළිගත් විට ඔබගේ වෙන් කිරීම මෙහි පෙන්වනු ඇත." />
             <Pressable onPress={onOpenBids} style={styles.selfCenter}>
@@ -249,13 +325,14 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
             </Pressable>
           </View>
         ) : (
-          ongoing.map(({ job, bid }) => bidCard(job, bid))
+          showCurrent('bids') && ongoing.map(({ job, bid }) => bidCard(job, bid))
         )}
 
           </>
         )}
 
         {show('ended') && endedBookings.map(bookingCard)}
+        {show('ended') && cancelledJobs.map(({ job, bid }) => bidCard(job, bid))}
 
         {kind === 'done' && doneKind === 'sos' && sosRecords.length === 0 && (
           <View style={styles.card}>
@@ -267,6 +344,9 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
             <Text style={styles.sectionLabel}>🚨 SOS සේවා</Text>
             {sosRecords.map((r) => (
               <View key={r.id} style={styles.card} accessibilityLabel={`SOS record ${r.breakdown.label}`}>
+                <View style={styles.iconRow}>
+                  <ChatButton size={44} target={{ id: r.id, title: r.responder.name, subtitle: `SOS · ${r.breakdown.label}`, phone: r.responder.phone, profile: 'sos' }} />
+                </View>
                 <View style={styles.row}>
                   <View style={styles.sosIcon}>
                     <Text style={styles.sosIconText}>{r.breakdown.icon}</Text>
@@ -281,7 +361,7 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
                     </Text>
                     <TxnTag kind="SOS" source={r.id} />
                   </View>
-                  <View style={styles.right}>
+                  <View style={[styles.right, styles.rightIcons]}>
                     <Text style={styles.price}>{money(r.total)}</Text>
                     <View style={[styles.status, styles.statusDone]}>
                       <Text style={[styles.statusText, { color: Colors.success }]}>✓ සම්පූර්ණයි</Text>
@@ -321,6 +401,9 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
         {showDone('bids') && doneJobs.map(({ job, bid }) => bidCard(job, bid))}
         {showDone('past') && history.map((w) => (
           <View key={w.id} style={styles.card}>
+            <View style={styles.iconRow}>
+              <ChatButton size={44} target={{ id: w.id, title: w.garageName, subtitle: w.title ?? categoryInfo(w.categoryId).name, phone: MOCK_GARAGES.find((g) => g.name === w.garageName)?.phone, vehicle: w.vehicleId ? findVehicle(w.vehicleId) : undefined }} />
+            </View>
             <View style={styles.row}>
               <CategoryPhoto categoryId={w.categoryId} />
               <View style={styles.flex1}>
@@ -328,10 +411,9 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
                 <Text style={styles.sub}>
                   {w.garageName} · {formatDate(new Date(w.progress.closedAt ?? 0))}
                 </Text>
-                {!!w.vehicleId && <Text style={styles.sub}>{vehicleName(w.vehicleId)}</Text>}
-                <TxnTag kind="JOB" source={w.id} />
+                {!!w.vehicleId && <VehicleBlock vehicle={findVehicle(w.vehicleId)} />}
               </View>
-              <View style={styles.right}>
+              <View style={[styles.right, styles.rightIcons]}>
                 <Text style={styles.price}>{money(w.progress.handover?.bill.total ?? 0)}</Text>
                 <View style={[styles.status, styles.statusDone]}>
                   <Text style={[styles.statusText, { color: Colors.success }]}>✓ සම්පූර්ණයි</Text>
@@ -362,15 +444,14 @@ const Stat: React.FC<{ value: string; label: string; color: string }> = ({ value
 const styles = themedStyles(() => StyleSheet.create({
   // Transparent: the rounded sheet in App.tsx supplies the background.
   container: { flex: 1 },
-  swipeWrap: { borderRadius: 20 },
-  swipeHint: { fontSize: 10.5, fontFamily: FONTS.bodyMedium, color: Colors.textMuted },
+  swipeWrap: { borderRadius: 12 },
   flex1: { flex: 1 },
   selfCenter: { alignSelf: 'center' },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
   body: { paddingHorizontal: 6, paddingTop: 8, gap: 12, paddingBottom: 100 },
   // Opaque and full width (the negative margin cancels the body padding), so the lists scroll underneath it.
-  statsPinned: { marginHorizontal: -6, paddingHorizontal: 6, paddingTop: 8, paddingBottom: 8, backgroundColor: getThemeMode() === 'dark' ? Colors.bgBody : '#ffffff' },
+  statsPinned: { marginHorizontal: -6, paddingHorizontal: 6, paddingTop: 8, paddingBottom: 8, backgroundColor: pageBg() },
   statsRow: { flexDirection: 'row', gap: 8 },
   stat: {
     flex: 1,
@@ -390,11 +471,12 @@ const styles = themedStyles(() => StyleSheet.create({
   statValue: { fontSize: 15, fontFamily: FONTS.titleBold },
   statLabel: { fontSize: 10, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 2 },
   // Same heading style as the Home screen's sections.
-  sectionLabel: { fontSize: 13, fontFamily: FONTS.bodyBold, color: Colors.textMuted, letterSpacing: 0.3, marginTop: 10 },
+  sectionLabel: { fontSize: 14, fontFamily: FONTS.bodyBold, color: Colors.primary, letterSpacing: 0.2, marginTop: 10 },
   // Soft shadow instead of an outline (an outline only on dark, where a shadow would not show), like Home and Bids.
-  card: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#cfd6e0', borderRadius: 20, padding: 7, gap: 10, shadowColor: '#0f172a', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.1, shadowRadius: 16, elevation: 3 },
+  // PickMe look: a roomy white card with big round corners, no hard outline and a soft wide shadow.
+  card: { backgroundColor: Colors.bgCard, borderWidth: getThemeMode() === 'dark' ? 1 : 0, borderColor: Colors.borderColor, borderRadius: 24, padding: 18, gap: 16, shadowColor: '#0f172a', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.08, shadowRadius: 18, elevation: 3 },
   cardOngoing: {},
-  spendCard: { padding: 8, borderRadius: 22, gap: 6, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#cfd6e0', shadowColor: '#0f172a', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.08, shadowRadius: 16, elevation: 2 },
+  spendCard: { padding: 18, borderRadius: 24, gap: 6, backgroundColor: Colors.bgCard, borderWidth: getThemeMode() === 'dark' ? 1 : 0, borderColor: Colors.borderColor, shadowColor: '#0f172a', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.08, shadowRadius: 18, elevation: 3 },
   spendCaption: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
   spendTotal: { fontSize: 28, fontFamily: FONTS.titleBold, color: Colors.textMain },
   spendBar: { flexDirection: 'row', height: 6, borderRadius: 3, overflow: 'hidden', gap: 2, marginTop: 4, marginBottom: 6 },
@@ -406,40 +488,36 @@ const styles = themedStyles(() => StyleSheet.create({
   spendAmount: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.textMain },
   spendCount: { fontSize: 10, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
   segment: { flexDirection: 'row', gap: 6, marginTop: 8 },
-  segItem: {
-    flex: 1,
-    height: 42,
-    borderRadius: 13,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 4,
-    overflow: 'visible',
-    borderWidth: 1,
-    borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#dbe4f3',
-    backgroundColor: getThemeMode() === 'dark' ? Colors.bgCard : '#ffffff',
-  },
-  segItemOn: { backgroundColor: '#2457e6', borderColor: '#2457e6', shadowColor: '#2457e6', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.35, shadowRadius: 12, elevation: 6 },
-  segText: { fontSize: 11.5, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#2457e6' },
-  segTextOn: { color: '#ffffff' },
-  badge: { position: 'absolute', top: -6, right: -2, minWidth: 17, height: 17, paddingHorizontal: 4, borderRadius: 9, alignItems: 'center', justifyContent: 'center', backgroundColor: '#ef4444', borderWidth: 1.5, borderColor: getThemeMode() === 'dark' ? Colors.bgBody : '#ffffff' },
-  badgeGood: { backgroundColor: '#16a34a' },
-  badgeText: { fontSize: 9.5, fontFamily: FONTS.bodyBold, color: '#ffffff' },
-  kindChips: { gap: 8, paddingTop: 10, paddingRight: 16 },
-  kindChipOn: { backgroundColor: '#2457e6', borderColor: '#2457e6', shadowColor: '#2457e6', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4 },
-  subChip: { paddingHorizontal: 13, height: 34, borderRadius: 12, justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.14)' : '#e3ecfd', borderWidth: 1, borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.28)' : '#c9d9fa' },
-  kindChipText: { fontSize: 11.5, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#2457e6' },
-  kindChipTextOn: { color: '#ffffff' },
+  segItem: { flex: 1, height: 40, borderRadius: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4, overflow: 'visible', borderWidth: 1, borderColor: outline(), backgroundColor: Colors.bgCard },
+  segItemOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe', borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#d2e3fc' },
+  segText: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
+  segTextOn: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
+  badge: { marginLeft: 'auto', minWidth: 20, height: 20, paddingHorizontal: 6, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.24)' : '#d2e3fc' },
+  badgeGood: {},
+  badgeText: { fontSize: 10.5, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
+  kindChips: { gap: 10, paddingTop: 6, paddingRight: 16 },
+  subBadge: { marginLeft: 'auto', minWidth: 19, height: 19, paddingHorizontal: 5, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.34)' : '#d2e3fc' },
+  subBadgeText: { fontSize: 10, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
+  kindChipOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe', borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#d2e3fc' },
+  subChip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingLeft: 12, paddingRight: 6, height: 32, borderRadius: 8, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline() },
+  kindChipText: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textSoft },
+  kindChipTextOn: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
   sosIcon: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(239, 68, 68, 0.14)' },
   sosIconText: { fontSize: 22 },
-  divider: { height: 1, backgroundColor: Colors.borderColor },
-  title: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.textMain },
-  sub: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 1 },
-  link: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
+  divider: { height: 1, backgroundColor: getThemeMode() === 'dark' ? Colors.borderColor : '#dadce0' },
+  title: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textMain },
+  sub: { fontSize: 12.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 2 },
+  link: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
   right: { alignItems: 'flex-end', gap: 5 },
-  price: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.primary },
-  status: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10 },
+  garageLine: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  iconRow: { position: 'absolute', top: 6, right: 8, zIndex: 2, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  // Room under the icons that sit in the card's corner.
+  rightIcons: { paddingTop: 44 },
+  price: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textMain },
+  kindTag: { paddingHorizontal: 10, height: 24, justifyContent: 'center', borderRadius: 12, backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe' },
+  kindTagText: { fontSize: 11, fontWeight: '700', color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
+  status: { paddingHorizontal: 10, height: 24, justifyContent: 'center', borderRadius: 12 },
   statusOngoing: { backgroundColor: 'rgba(245, 158, 11, 0.12)' },
   statusDone: { backgroundColor: 'rgba(16, 185, 129, 0.12)' },
-  statusText: { fontSize: 9.5, fontFamily: FONTS.bodySemiBold },
+  statusText: { fontSize: 11, fontFamily: FONTS.bodySemiBold },
 }));

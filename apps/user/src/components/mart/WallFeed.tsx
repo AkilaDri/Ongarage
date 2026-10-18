@@ -1,3 +1,4 @@
+import { elevation1, outline } from '../../utils/material';
 import React, { useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
@@ -12,6 +13,8 @@ export type FeedPost = WallPost & {
   details?: React.ReactNode;
   /** Removes the owner's own post (absent once a part is reserved or bought). */
   onDelete?: () => void;
+  /** Opens the form to add to the description or photos of the owner's own post. */
+  onEdit?: () => void;
 };
 
 /** The post action icons: the same outlined thumbs-up and speech bubble a social feed uses (filled when switched on). */
@@ -74,10 +77,19 @@ const PostCard: React.FC<{ post: FeedPost; now: number }> = ({ post, now }) => {
             {post.place} · {ago(now - post.at)} · 🌐
           </Text>
         </View>
-        {post.mine && post.onDelete && (
-          <Pressable style={styles.deleteBtn} onPress={() => setConfirmDelete(true)} accessibilityLabel="Delete my post">
-            <Text style={styles.deleteText}>🗑️ මකන්න</Text>
-          </Pressable>
+        {post.mine && (post.onEdit || post.onDelete) && (
+          <View style={styles.postBtns}>
+            {post.onEdit && (
+              <Pressable style={styles.deleteBtn} onPress={post.onEdit} accessibilityLabel="Edit my post">
+                <Text style={styles.editText}>✎ සංස්කරණය</Text>
+              </Pressable>
+            )}
+            {post.onDelete && (
+              <Pressable style={styles.deleteBtn} onPress={() => setConfirmDelete(true)} accessibilityLabel="Delete my post">
+                <Text style={styles.deleteText}>🗑️ මකන්න</Text>
+              </Pressable>
+            )}
+          </View>
         )}
       </View>
 
@@ -102,6 +114,7 @@ const PostCard: React.FC<{ post: FeedPost; now: number }> = ({ post, now }) => {
         </View>
       )}
 
+      <View style={styles.rule} />
       <View style={styles.textBlock}>
         <Text style={styles.part}>🔧 {post.part}</Text>
         {!!post.description && <Text style={styles.body}>{post.description}</Text>}
@@ -111,6 +124,7 @@ const PostCard: React.FC<{ post: FeedPost; now: number }> = ({ post, now }) => {
         <Image source={{ uri: post.photos[0] }} style={styles.photo} resizeMode="cover" onError={() => setPhotoFailed(true)} accessibilityLabel={`${post.part} photo`} />
       )}
 
+      <View style={styles.rule} />
       <View style={styles.counts}>
         <Text style={styles.countText}>👍 {count}</Text>
         <Pressable onPress={() => setShowComments((s) => !s)}>
@@ -243,64 +257,65 @@ const styles = themedStyles(() =>
   StyleSheet.create({
     flex1: { flex: 1 },
     compose: { flexDirection: 'row', alignItems: 'center' },
-    scope: { flexDirection: 'row', padding: 4, borderRadius: 22, backgroundColor: softFill() },
-    scopeTab: { flex: 1, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },
-    scopeTabOn: { backgroundColor: Colors.bgCard, ...softShadow() },
-    scopeText: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
-    scopeTextOn: { color: Colors.primary },
-    filters: { gap: 8, paddingHorizontal: 16 },
-    filter: { paddingHorizontal: 13, height: 34, borderRadius: 17, justifyContent: 'center', backgroundColor: softFill(), borderWidth: 1, borderColor: softEdge() },
-    filterOn: { backgroundColor: Colors.primary, borderColor: Colors.primary },
-    filterText: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
-    filterTextOn: { color: '#ffffff' },
+    scope: { flexDirection: 'row', borderRadius: 8, overflow: 'hidden', backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline() },
+    scopeTab: { flex: 1, height: 40, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },
+    scopeTabOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe' },
+    scopeText: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
+    scopeTextOn: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
+    filters: { gap: 8, paddingHorizontal: 6 },
+    filter: { paddingHorizontal: 14, height: 32, borderRadius: 8, justifyContent: 'center', backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline() },
+    filterOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe', borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#d2e3fc' },
+    filterText: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textSoft },
+    filterTextOn: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
     composePhoto: { fontSize: 20 },
-    composeBox: { flex: 1, height: 46, borderRadius: 23, paddingLeft: 18, paddingRight: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, backgroundColor: softFill(), borderWidth: 1, borderColor: softEdge() },
-    composeText: { flex: 1, fontSize: 13, fontFamily: FONTS.bodyMedium, color: Colors.textMuted },
-    // A Facebook-style post: edge to edge (the negative margin cancels the list's side padding (6px)), hairlines above and below,
-    // 12px of inner padding for text, the photo full width, a reactions row and three equal action buttons.
-    card: { marginHorizontal: -6, paddingTop: 12, paddingBottom: 6, backgroundColor: Colors.bgCard, borderTopWidth: 1, borderBottomWidth: 1, borderColor: getThemeMode() === 'dark' ? softEdge() : '#d3d9e2' },
-    textBlock: { paddingHorizontal: 12, gap: 6, paddingBottom: 10 },
-    rule: { height: 1, marginHorizontal: 12, backgroundColor: softEdge() },
+    composeBox: { flex: 1, height: 46, borderRadius: 23, paddingLeft: 16, paddingRight: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), ...elevation1() },
+    composeText: { flex: 1, fontSize: 14, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
+    // A Material post card: 16px of inner padding for text, the photo full width, a reactions row and equal action buttons.
+    card: { paddingTop: 16, paddingBottom: 8, borderRadius: 12, overflow: 'hidden', backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), ...elevation1() },
+    textBlock: { paddingHorizontal: 16, gap: 6, paddingBottom: 12 },
+    rule: { height: 1, marginHorizontal: 16, backgroundColor: getThemeMode() === 'dark' ? Colors.borderColor : '#dadce0' },
     avatarBig: { width: 40, height: 40, borderRadius: 20 },
-    head: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 12, paddingBottom: 10 },
+    head: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingBottom: 12 },
     avatar: { width: 38, height: 38, borderRadius: 19, backgroundColor: Colors.primary, alignItems: 'center', justifyContent: 'center' },
     avatarMine: { backgroundColor: softFill() },
     avatarText: { fontSize: 15, fontFamily: FONTS.titleBold, color: '#ffffff' },
-    author: { fontSize: 15, fontFamily: FONTS.titleBold, color: Colors.textMain },
-    meta: { fontSize: 12, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 1 },
-    deleteBtn: { paddingHorizontal: 10, height: 30, borderRadius: 15, justifyContent: 'center', backgroundColor: softFill() },
+    author: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textMain },
+    meta: { fontSize: 12.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 2 },
+    deleteBtn: { paddingHorizontal: 12, height: 30, borderRadius: 8, justifyContent: 'center', backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline() },
+    postBtns: { flexDirection: 'row', gap: 6 },
+    editText: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
     deleteText: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.errorText },
-    confirm: { gap: 8, padding: 10, borderRadius: 14, backgroundColor: softFill(), marginHorizontal: 12 },
+    confirm: { gap: 8, padding: 12, borderRadius: 8, backgroundColor: getThemeMode() === 'dark' ? Colors.subtleFill : '#fef7e0', marginHorizontal: 16 },
     confirmText: { fontSize: 11.5, lineHeight: 16, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
     confirmRow: { flexDirection: 'row', gap: 8 },
-    confirmCancel: { flex: 1, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge() },
+    confirmCancel: { flex: 1, height: 36, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline() },
     confirmCancelText: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
-    confirmDelete: { flex: 1, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.errorText },
+    confirmDelete: { flex: 1, height: 36, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.errorText },
     confirmDeleteText: { fontSize: 12, fontFamily: FONTS.bodyBold, color: '#ffffff' },
-    part: { fontSize: 15, fontFamily: FONTS.titleBold, color: Colors.textMain },
-    body: { fontSize: 14, lineHeight: 20, fontFamily: FONTS.bodyRegular, color: Colors.textMain },
-    vehicleText: { fontSize: 12, fontFamily: FONTS.bodyMedium, color: Colors.textMuted },
+    part: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textMain },
+    body: { fontSize: 14, lineHeight: 21, fontFamily: FONTS.bodyRegular, color: Colors.textSoft },
+    vehicleText: { fontSize: 12.5, fontFamily: FONTS.bodyMedium, color: Colors.textMuted },
     photo: { width: '100%', height: 280, backgroundColor: softFill() },
-    counts: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10 },
-    countText: { fontSize: 11, fontFamily: FONTS.bodyMedium, color: Colors.textMuted },
-    actions: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 8, paddingVertical: 2 },
-    action: { width: 48, alignItems: 'center', justifyContent: 'center', height: 42, borderRadius: 21 },
-    actionText: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
+    counts: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 10 },
+    countText: { fontSize: 12, fontFamily: FONTS.bodyMedium, color: Colors.textMuted },
+    actions: { flexDirection: 'row', alignItems: 'center', gap: 0, paddingHorizontal: 8, paddingVertical: 2, borderTopWidth: 1, borderTopColor: getThemeMode() === 'dark' ? Colors.borderColor : '#e8eaed' },
+    action: { flex: 1, alignItems: 'center', justifyContent: 'center', height: 44, borderRadius: 8 },
+    actionText: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
     actionOn: { color: Colors.primary },
     actionHave: { color: Colors.success },
-    sent: { padding: 10, borderRadius: 12, backgroundColor: softFill(), marginHorizontal: 12 },
+    sent: { padding: 12, borderRadius: 8, backgroundColor: getThemeMode() === 'dark' ? Colors.subtleFill : '#e6f4ea', marginHorizontal: 16 },
     sentText: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: Colors.success },
-    reply: { gap: 8, padding: 10, borderRadius: 14, backgroundColor: softFill(), marginHorizontal: 12 },
+    reply: { gap: 8, padding: 12, borderRadius: 8, backgroundColor: getThemeMode() === 'dark' ? Colors.subtleFill : '#f1f3f4', marginHorizontal: 16 },
     replyTitle: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
-    input: { minHeight: 38, paddingHorizontal: 12, borderRadius: 12, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), color: Colors.textMain, fontSize: 12.5, fontFamily: FONTS.bodyRegular },
+    input: { minHeight: 40, paddingHorizontal: 12, borderRadius: 8, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), color: Colors.textMain, fontSize: 13.5, fontFamily: FONTS.bodyRegular },
     inputTall: { minHeight: 64, paddingTop: 8, textAlignVertical: 'top' },
     send: { height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.success },
     sendText: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: '#ffffff' },
-    comments: { gap: 8, paddingTop: 4, marginHorizontal: 12 },
+    comments: { gap: 8, paddingTop: 4, marginHorizontal: 16 },
     commentRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
-    bubble: { flex: 1, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 14, backgroundColor: softFill() },
+    bubble: { flex: 1, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, backgroundColor: getThemeMode() === 'dark' ? Colors.subtleFill : '#f1f3f4' },
     commentAuthor: { fontSize: 11.5, fontFamily: FONTS.bodyBold, color: Colors.textMain },
-    commentText: { fontSize: 12, lineHeight: 17, fontFamily: FONTS.bodyRegular, color: Colors.textMain },
+    commentText: { fontSize: 13, lineHeight: 19, fontFamily: FONTS.bodyRegular, color: Colors.textMain },
     commentInputRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     commentSend: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.primary },
   })

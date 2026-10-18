@@ -1,7 +1,9 @@
+import { elevation1, outline } from '../../utils/material';
 import React, { useEffect, useState } from 'react';
 import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { TxnTag } from '../TxnTag';
-import { ActionButton, ago, Colors, countdown, directionsUrl, EmptyState, FONTS, formatDate, martShop, money, PurchaseCode, themedStyles, softEdge, softFill, softShadow } from '@ongarage/shared';
+import { openFittingJob } from '../../utils/fittingBridge';
+import { ActionButton, ago, getThemeMode, ChatIconButton, Colors, countdown, directionsUrl, EmptyState, FONTS, formatDate, martShop, money, PurchaseCode, purchaseGroupProgress, themedStyles, softEdge, softFill, softShadow } from '@ongarage/shared';
 import { ACTIVE_STAGES, useMart, type MartPurchase, type PurchaseStage } from '../../context/MartContext';
 import { useUserLocation } from '../../context/LocationContext';
 import { CounterSheet } from './CounterSheet';
@@ -52,7 +54,11 @@ export const OrdersList: React.FC<{ compact?: boolean }> = ({ compact }) => {
 
     return (
       <View key={p.purchase.id} style={[styles.card, failed && styles.dim]}>
-        <View style={styles.rowBetween}>
+        {/* The chat button sits in the very top right corner of the card: it opens the shop's conversation. */}
+        <View style={styles.chatCorner}>
+          <ChatIconButton size={44} onPress={() => setThread({ enquiryId: p.purchase.enquiryId ?? o.enquiryId, shop: o.shop })} label={`Chat with ${o.shop.name}`} />
+        </View>
+        <View style={[styles.rowBetween, { alignItems: 'flex-start' }]}>
           <View style={styles.flex1}>
             <Text style={styles.title} numberOfLines={1}>
               {p.brief.name} ×{o.qty}
@@ -61,8 +67,13 @@ export const OrdersList: React.FC<{ compact?: boolean }> = ({ compact }) => {
               {o.shop.name} · {o.partType} · {ago(now - p.createdAt)}
             </Text>
             <TxnTag kind="ORD" source={p.purchase.id} />
+            {!!p.purchase.groupId && (
+              <Text style={styles.sub}>
+                📦 එකම කේතය — කොටස් {purchaseGroupProgress(purchases, p.purchase.groupId).total} ක ඇණවුමක් · මිලදී ගත්තා {purchaseGroupProgress(purchases, p.purchase.groupId).bought}
+              </Text>
+            )}
           </View>
-          <Text style={styles.price}>{money(o.total)}</Text>
+          <Text style={[styles.price, { marginTop: 40 }]}>{o.total ? money(o.total) : 'මිල කවුන්ටරයේදී'}</Text>
         </View>
 
         {!!p.purchase.jobRef && (
@@ -134,6 +145,7 @@ export const OrdersList: React.FC<{ compact?: boolean }> = ({ compact }) => {
                 {canReturn ? ` · ආපසු දීමට ${formatDate(p.purchase.returnBy!)} දක්වා` : ''}
               </Text>
             </View>
+            <ActionButton label="සවි කිරීමට ගරාජයක් සොයන්න" icon="🔩" variant="ghost" compact onPress={() => openFittingJob(p.brief.name)} />
             {p.rating ? (
               <Text style={styles.stars}>
                 ඔබගේ ශ්‍රේණිය: {'★'.repeat(p.rating.stars)}
@@ -198,10 +210,12 @@ const styles = themedStyles(() =>
     flex1: { flex: 1 },
     rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
     heading: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textMain, marginTop: 8 },
-    card: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), borderRadius: 20, padding: 14, gap: 10, ...softShadow() },
+    // The same modern card as OnMart's "My requests": big round corners, no hard outline, a soft wide shadow.
+    card: { backgroundColor: Colors.bgCard, borderWidth: getThemeMode() === 'dark' ? 1 : 0, borderColor: Colors.borderColor, borderRadius: 24, padding: 12, gap: 8, shadowColor: '#0f172a', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.08, shadowRadius: 18, elevation: 3 },
     dim: { opacity: 0.6 },
     title: { fontSize: 14, fontFamily: FONTS.titleBold, color: Colors.textMain },
     sub: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 16 },
+    chatCorner: { position: 'absolute', top: 6, right: 8, zIndex: 2 },
     price: { fontSize: 15, fontFamily: FONTS.titleBold, color: Colors.successText },
     steps: { flexDirection: 'row', justifyContent: 'space-between' },
     step: { alignItems: 'center', gap: 4, flex: 1 },

@@ -3,7 +3,8 @@ const { spec } = require('../lib.cjs');
 // OnMart Shop: put a deal on a stock item (with the live price preview), see it on the item, then free delivery and an
 // ad banner request that is reviewed and goes live. Ads are labelled and never change the shop's ranking.
 module.exports = spec('Parts shop · OnMart deals, free delivery and ad banner', 'parts', async (t) => {
-  await t.clickText('Stock');
+  await t.clickText('Catalogue');
+  await t.clickText('මිල ලැයිස්තුව');
   t.check('the seeded deals show on their stock items', (await t.has('−15% දීමනාව ක්‍රියාත්මකයි')) && (await t.has('−10% දීමනාව ක්‍රියාත්මකයි')));
 
   // A new deal on the front brake pads (Genuine): preview, set, shown on the item

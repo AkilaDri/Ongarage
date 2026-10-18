@@ -41,6 +41,14 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "OnGarage needs access to your photos so you can attach pictures of your vehicle, parts and jobs.",
+          "cameraPermission": "OnGarage needs your camera so you can take pictures of your vehicle, parts and jobs.",
+          "microphonePermission": false
+        }
       ]
     ],
     "experiments": {

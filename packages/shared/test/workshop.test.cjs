@@ -60,6 +60,30 @@ test('extra work and Recon block handover until answered', () => {
   assert.equal(w.pendingRecon({ ...recon, recon: [{ ...recon.recon[0], status: 'approved' }] }), undefined);
 });
 
+test('owner unreachable: phone approval needs no code, waiting is free, deferring bills nothing', () => {
+  const x = { id: 'x', reason: 'r', sentAt: 2, lines: [extraLine, { id: 'xl', kind: 'labour', name: 'Alignment', qty: 1, price: 2500 }] };
+  const withExtra = (e) => ({ ...decided(['p1']), extras: [e] });
+
+  const byPhone = w.decideExtraByPhone(x, ['xl'], 10);
+  assert.deepEqual(byPhone.decision, { approvedLineIds: ['xl'], declinedLineIds: ['x2p'], decidedAt: 10, via: 'phone' });
+  assert.equal(w.pendingExtra(withExtra(byPhone)), undefined, 'a phone answer unblocks handover');
+  assert.equal(w.workshopBill(3800, withExtra(byPhone)).labour, 6300, 'only the ticked line is billed');
+
+  const deferred = w.deferExtra(x, 10);
+  assert.equal(deferred.decision.via, 'deferred');
+  assert.equal(w.pendingExtra(withExtra(deferred)), undefined);
+  assert.equal(w.workshopBill(3800, withExtra(deferred)).total, 3800 + 6850, 'deferred extra work is not billed');
+  assert.equal(w.partsStillToOrder(withExtra(deferred), ['p1']).length, 0, 'and its parts are not ordered');
+
+  const waiting = { ...x, waitingSince: 1000 };
+  assert.ok(w.ownerWaiting(withExtra(waiting)));
+  assert.ok(w.pendingExtra(withExtra(waiting)), 'handover still waits for the owner');
+  assert.equal(w.OWNER_WAIT_FEE, 0, 'waiting for the owner is free');
+  assert.equal(w.ownerWaitMs(withExtra(waiting), 4000), 3000);
+  assert.equal(w.ownerWaitMs(withExtra({ ...waiting, decision: { approvedLineIds: [], declinedLineIds: [], decidedAt: 2500 } }), 9000), 1500, 'the wait ends when the owner answers');
+  assert.equal(w.ownerWaitMs(withExtra(x), 4000), 0);
+});
+
 test('warranty end clamps to the end of the month', () => {
   const end = new Date(w.warrantyEnd(new Date(2026, 0, 31).getTime(), 3));
   assert.deepEqual([end.getMonth(), end.getDate()], [3, 30]);

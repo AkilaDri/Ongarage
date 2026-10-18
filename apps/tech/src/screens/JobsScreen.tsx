@@ -1,3 +1,4 @@
+import { VehicleLine } from '@ongarage/shared';
 import React, { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import {
@@ -58,9 +59,7 @@ export const JobsScreen: React.FC = () => {
             <Text style={styles.title} numberOfLines={1}>
               {j.title}
             </Text>
-            <Text style={styles.sub} numberOfLines={1}>
-              {vehicleIcon(j.vehicle.type)} {j.vehicle.name} · {j.vehicle.plate} · {j.customer.name}
-            </Text>
+            <VehicleLine vehicle={j.vehicle} textStyle={styles.sub} extra={j.customer.name} />
           </View>
           <Text style={styles.pay}>{money(j.pay)}</Text>
         </Pressable>
@@ -257,9 +256,9 @@ const styles = themedStyles(() =>
     section: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textMain, marginTop: 4 },
     hint: { fontSize: 10.5, fontFamily: FONTS.bodyMedium, color: Colors.textMuted, textAlign: 'center' },
     chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-    chip: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: 10, backgroundColor: Colors.subtleFill },
+    chip: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 9, backgroundColor: Colors.subtleFill },
     chipAccent: { backgroundColor: 'rgba(56, 189, 248, 0.12)' },
-    chipText: { fontSize: 10.5, fontFamily: FONTS.bodyMedium, color: Colors.textMuted },
+    chipText: { fontSize: 11, fontFamily: FONTS.bodyMedium, color: Colors.textMuted },
     parts: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold },
     status: { flex: 1, fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
     link: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: Colors.primary },

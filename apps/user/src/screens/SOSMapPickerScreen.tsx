@@ -1,3 +1,4 @@
+import { elevation1, outline, pageBg } from '../utils/material';
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, Pressable, Platform, StyleSheet, TextInput, ActivityIndicator } from 'react-native';
 import { useNotice } from '../context/NoticeContext';
@@ -240,7 +241,7 @@ export const SOSMapPickerScreen: React.FC<SOSMapPickerScreenProps> = ({ initialL
 const SOFT_SHADOW = { shadowColor: '#0f172a', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.14, shadowRadius: 16, elevation: 4 } as const;
 
 const styles = themedStyles(() => StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.bgBody },
+  container: { flex: 1, backgroundColor: pageBg() },
   flex1: { flex: 1 },
   mapArea: { flex: 1 },
   mapCanvas: { ...StyleSheet.absoluteFill, justifyContent: 'center', alignItems: 'center' },
@@ -255,20 +256,10 @@ const styles = themedStyles(() => StyleSheet.create({
   input: { flex: 1, color: Colors.textMain, fontSize: 12.5, fontFamily: FONTS.bodyMedium, paddingVertical: 0, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as object) : {}) },
   searchGo: { width: 36, height: 36, borderRadius: 18, backgroundColor: Colors.primary, justifyContent: 'center', alignItems: 'center' },
   searchGoText: { fontSize: 16, fontWeight: '800', color: '#fff' },
-  suggestionsDropdown: {
-    position: 'absolute',
-    top: 66,
-    left: 16,
-    right: 16,
-    backgroundColor: Colors.bgCard,
-    borderRadius: 20,
-    overflow: 'hidden',
-    zIndex: 100,
-    ...SOFT_SHADOW,
-  },
+  suggestionsDropdown: { position: 'absolute', top: 66, left: 16, right: 16, backgroundColor: Colors.bgCard, borderRadius: 12, borderWidth: 1, borderColor: outline(), overflow: 'hidden', zIndex: 100, ...elevation1() },
   suggestionItem: { paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: Colors.borderColor },
-  suggestionText: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
-  suggestionSubText: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 2, marginLeft: 20 },
+  suggestionText: { fontSize: 14, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
+  suggestionSubText: { fontSize: 12, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 2, marginLeft: 20 },
   mapControls: { position: 'absolute', right: 16, bottom: 40, gap: 10 },
   mapControlText: { fontSize: 19, color: Colors.textMain, fontWeight: '700' },
 
@@ -281,29 +272,15 @@ const styles = themedStyles(() => StyleSheet.create({
   pinShadow: { width: 18, height: 6, borderRadius: 9, backgroundColor: 'rgba(15, 23, 42, 0.22)', marginTop: 2 },
 
   // Bottom card, overlapping the map with rounded corners
-  bottomSheet: {
-    marginTop: -24,
-    backgroundColor: Colors.bgCard,
-    paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: 16,
-    gap: 10,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    shadowColor: '#0f172a',
-    shadowOffset: { width: 0, height: -6 },
-    shadowOpacity: 0.12,
-    shadowRadius: 16,
-    elevation: 12,
-  },
+  bottomSheet: { marginTop: -24, backgroundColor: Colors.bgCard, paddingHorizontal: 24, paddingTop: 12, paddingBottom: 20, gap: 12, borderTopLeftRadius: 28, borderTopRightRadius: 28, shadowColor: '#3c4043', shadowOffset: { width: 0, height: -2 }, shadowOpacity: 0.14, shadowRadius: 8, elevation: 8 },
   handle: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: Colors.subtleBorder, marginBottom: 4 },
-  sheetTitle: { fontSize: 17, fontFamily: FONTS.titleBold, color: Colors.textMain },
-  sheetSub: { fontSize: 11.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: -4 },
-  locationRow: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 20, backgroundColor: Colors.subtleFill },
+  sheetTitle: { fontSize: 20, lineHeight: 28, fontFamily: FONTS.titleBold, color: Colors.textMain },
+  sheetSub: { fontSize: 13.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: -4 },
+  locationRow: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 12, borderWidth: 1, borderColor: outline(), backgroundColor: Colors.bgCard },
   locationDisc: { width: 40, height: 40, borderRadius: 20, backgroundColor: getThemeMode() === 'dark' ? 'rgba(239, 68, 68, 0.18)' : '#fee2e2', justifyContent: 'center', alignItems: 'center' },
   locationIcon: { fontSize: 18 },
-  locationName: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.textMain },
-  locationStatus: { fontSize: 10.5, fontFamily: FONTS.bodySemiBold, color: Colors.success, marginTop: 2 },
+  locationName: { fontSize: 15, fontFamily: FONTS.titleBold, color: Colors.textMain },
+  locationStatus: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.success, marginTop: 2 },
   confirmBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 16, borderRadius: 28, overflow: 'hidden' },
   confirmBtnText: { fontSize: 14, fontFamily: FONTS.bodyBold, color: '#fff' },
 }));

@@ -175,6 +175,13 @@ export const CUSTOMER_POOL: CustomerSeed[] = [
     audience: 'shops', coords: { latitude: 6.0602, longitude: 80.2321 }, ageMin: 9, windowMin: 60,
   },
   {
+    // A basket: a routine service's parts asked together (the shop answers every part in one sheet).
+    id: 'c3', buyer: { name: 'සුනිල් ප්‍රනාන්දු' },
+    vehicle: { name: 'Axio', plate: 'CAA-3398', type: 'Sedan', make: 'Toyota', model: 'Axio', year: 2014 },
+    briefs: [{ name: 'Engine oil 4L', qty: 1, partType: 'Genuine' }, { name: 'Oil filter', qty: 1, partType: 'OEM' }, { name: 'Air filter', qty: 1, partType: 'OEM' }, { name: 'Cabin filter', qty: 1, partType: 'OEM' }],
+    audience: 'shops', coords: { latitude: 6.0588, longitude: 80.2269 }, ageMin: 12, windowMin: 120,
+  },
+  {
     id: 'w1', buyer: { name: 'අයිතිකරුවෙක්' },
     vehicle: { name: 'Vitz', plate: 'CBA-4410', type: 'Hatchback', make: 'Toyota', model: 'Vitz', year: 2011, chassisNo: 'KSP130-2034567' },
     briefs: [{ name: 'Alternator', qty: 1, partType: 'Genuine', partNo: '27060-21060', note: 'KSP130 සඳහා.', photos: 1 }],
@@ -233,3 +240,7 @@ export const REFERRAL_SEED = (now: number): PartReferral[] => {
     sale('p2', 3, 'Spark plugs (set)', 5400, lastMonth + DAY),
   ];
 };
+
+/** Sample photos the chat can send until the camera is wired. */
+const PHOTO = (id: string) => `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=600&q=70`;
+export const SAMPLE_PHOTOS = [PHOTO('1625047509248-ec889cbff17f'), PHOTO('1517524008697-84bbe3c3fd98'), PHOTO('1503376780353-7e6692767b70')];

@@ -1,3 +1,5 @@
+import { VehicleLine } from '@ongarage/shared';
+import { elevation1, outline, pageBg } from '../utils/material';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Easing, Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -208,9 +210,7 @@ export const SOSDispatchScreen: React.FC = () => {
         <GlassIcon emoji={info.icon} />
         <View style={styles.flex1}>
           <Text style={styles.cardTitle}>{info.label}</Text>
-          <Text style={styles.sub}>
-            {vehicleIcon(request.vehicle.type)} {request.vehicle.name} · {request.vehicle.plate}
-          </Text>
+          <VehicleLine vehicle={request.vehicle} textStyle={styles.sub} />
         </View>
         <Pressable style={styles.callBtn} onPress={() => Linking.openURL(`tel:${request.customer.phone}`)}>
           <Text style={styles.callText}>📞</Text>
@@ -705,7 +705,7 @@ const FLOAT_SHADOW = { shadowColor: '#0f172a', shadowOffset: { width: 0, height:
 
 const styles = themedStyles(() =>
   StyleSheet.create({
-    container: { flex: 1, backgroundColor: Colors.bgBody },
+    container: { flex: 1, backgroundColor: pageBg() },
     flex1: { flex: 1 },
     row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
     rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
@@ -737,13 +737,13 @@ const styles = themedStyles(() =>
     stepSeg: { flex: 1, height: 4, borderRadius: 2, backgroundColor: Colors.subtleBorder },
     stepSegDone: { backgroundColor: 'rgba(239, 68, 68, 0.6)' },
     stepSegActive: { backgroundColor: '#ef4444' },
-    body: { padding: 16, paddingTop: 6, gap: 12, paddingBottom: 24 },
+    body: { paddingVertical: 16, paddingHorizontal: 6, paddingTop: 6, gap: 12, paddingBottom: 24 },
     stack: { gap: 12 },
-    liveCard: { borderColor: 'rgba(56, 189, 248, 0.5)', backgroundColor: 'rgba(56, 189, 248, 0.06)' },
+    liveCard: { borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#d2e3fc', backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe' },
     liveCall: { width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(16, 185, 129, 0.14)', justifyContent: 'center', alignItems: 'center' },
     liveCallText: { fontSize: 16 },
     takeOver: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
-    approvalCard: { borderColor: 'rgba(245, 158, 11, 0.55)', backgroundColor: 'rgba(245, 158, 11, 0.08)' },
+    approvalCard: { borderColor: 'rgba(245, 158, 11, 0.55)', backgroundColor: getThemeMode() === 'dark' ? 'rgba(245, 158, 11, 0.08)' : '#fef7e0' },
     mapFull: { ...StyleSheet.absoluteFill },
     topArea: { overflow: 'hidden', backgroundColor: Colors.mapBg },
     topAreaMap: { height: '42%' },
@@ -752,42 +752,30 @@ const styles = themedStyles(() =>
     roundBtn: { width: 46, height: 46, borderRadius: 23, backgroundColor: Colors.bgCard, justifyContent: 'center', alignItems: 'center', ...FLOAT_SHADOW },
     stepPill: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, height: 52, paddingLeft: 6, paddingRight: 16, borderRadius: 26, backgroundColor: Colors.bgCard, ...FLOAT_SHADOW },
     stepPillIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: getThemeMode() === 'dark' ? 'rgba(239, 68, 68, 0.18)' : '#fee2e2', justifyContent: 'center', alignItems: 'center' },
-    stepPillTitle: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.textMain },
-    stepPillSub: { fontSize: 10.5, fontFamily: FONTS.bodySemiBold, color: '#dc2626' },
+    stepPillTitle: { fontSize: 14, fontFamily: FONTS.titleBold, color: Colors.textMain },
+    stepPillSub: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: '#dc2626' },
     // The step lives in a rounded sheet that overlaps the map.
-    sheet: {
-      flex: 1,
-      marginTop: -24,
-      backgroundColor: Colors.bgBody,
-      borderTopLeftRadius: 28,
-      borderTopRightRadius: 28,
-      overflow: 'hidden',
-      shadowColor: '#0f172a',
-      shadowOffset: { width: 0, height: -6 },
-      shadowOpacity: 0.12,
-      shadowRadius: 16,
-      elevation: 12,
-    },
+    sheet: { flex: 1, marginTop: -24, backgroundColor: pageBg(), borderTopLeftRadius: 28, borderTopRightRadius: 28, overflow: 'hidden', shadowColor: '#3c4043', shadowOffset: { width: 0, height: -2 }, shadowOpacity: 0.14, shadowRadius: 8, elevation: 8 },
     handle: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: Colors.subtleBorder, marginTop: 10 },
     pinAnchor: { position: 'absolute', transform: [{ translateX: '-50%' }, { translateY: '-50%' }] },
     garagePin: { width: 36, height: 36, borderRadius: 18, backgroundColor: Colors.success, borderWidth: 3, borderColor: '#fff', justifyContent: 'center', alignItems: 'center', shadowColor: '#059669', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 10, elevation: 5 },
     customerPin: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#ef4444', borderWidth: 3, borderColor: '#fff', justifyContent: 'center', alignItems: 'center', shadowColor: '#dc2626', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 10, elevation: 5 },
     vanPin: { width: 36, height: 36, borderRadius: 18, backgroundColor: Colors.primary, borderWidth: 3, borderColor: '#fff', justifyContent: 'center', alignItems: 'center', shadowColor: '#0284c7', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 10, elevation: 5 },
     pinEmoji: { fontSize: 15 },
-    card: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), borderRadius: 20, padding: 14, gap: 10, ...softShadow() },
+    card: { backgroundColor: Colors.bgCard, borderRadius: 12, borderWidth: 1, borderColor: outline(), ...elevation1(), padding: 16, gap: 12 },
     centerCard: { alignItems: 'center' },
-    selected: { borderColor: Colors.success, backgroundColor: 'rgba(16, 185, 129, 0.08)' },
+    selected: { borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#d2e3fc', backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe' },
     disabledCard: { opacity: 0.5 },
-    cardTitle: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.textMain },
-    sub: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 1 },
-    label: { fontSize: 13.5, fontFamily: FONTS.titleBold, color: Colors.textMain },
-    sectionLabel: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textMain, marginTop: 4 },
-    hint: { fontSize: 11, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, textAlign: 'center' },
-    note: { fontSize: 12, fontFamily: FONTS.bodyRegular, color: Colors.textSoft, fontStyle: 'italic', textAlign: 'center' },
+    cardTitle: { fontSize: 15, fontFamily: FONTS.titleBold, color: Colors.textMain },
+    sub: { fontSize: 12.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 2 },
+    label: { fontSize: 14, fontFamily: FONTS.titleBold, color: Colors.textMain },
+    sectionLabel: { fontSize: 14, fontFamily: FONTS.bodyBold, color: Colors.primary, letterSpacing: 0.2, marginTop: 4 },
+    hint: { fontSize: 12, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, textAlign: 'center' },
+    note: { fontSize: 13, fontFamily: FONTS.bodyRegular, color: Colors.textSoft, fontStyle: 'italic', textAlign: 'center', lineHeight: 19 },
     divider: { height: 1, backgroundColor: Colors.borderColor },
     detailRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
     detailIcon: { fontSize: 14, width: 20, textAlign: 'center' },
-    detailText: { fontSize: 12, fontFamily: FONTS.bodyRegular, color: Colors.textMain, flexShrink: 1 },
+    detailText: { fontSize: 13.5, fontFamily: FONTS.bodyRegular, color: Colors.textMain, flexShrink: 1 },
     callBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.success, justifyContent: 'center', alignItems: 'center' },
     callText: { fontSize: 17 },
     avatar: { width: 44, height: 44, borderRadius: 22, ...glassStyle(), justifyContent: 'center', alignItems: 'center' },
@@ -797,10 +785,10 @@ const styles = themedStyles(() =>
     currency: { fontSize: 18, fontFamily: FONTS.titleBold, color: Colors.textMuted },
     priceInput: { flex: 1, fontSize: 28, fontWeight: '800', color: Colors.textMain, paddingVertical: 2 },
     chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-    choice: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: 'transparent', backgroundColor: softFill() },
-    choiceActive: { borderColor: Colors.success, backgroundColor: 'rgba(16, 185, 129, 0.14)' },
-    choiceText: { fontSize: 11.5, fontFamily: FONTS.bodyMedium, color: Colors.textMuted },
-    choiceTextActive: { color: Colors.successText, fontFamily: FONTS.bodyBold },
+    choice: { paddingHorizontal: 14, height: 32, justifyContent: 'center', borderRadius: 8, borderWidth: 1, borderColor: outline(), backgroundColor: Colors.bgCard },
+    choiceActive: { borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#d2e3fc', backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe' },
+    choiceText: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textSoft },
+    choiceTextActive: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8', fontFamily: FONTS.bodyBold },
     etaRow: { flexDirection: 'row', alignItems: 'center' },
     etaItem: { flex: 1, alignItems: 'center' },
     etaValue: { fontSize: 18, fontFamily: FONTS.titleBold, color: Colors.textMain },
@@ -812,21 +800,12 @@ const styles = themedStyles(() =>
     check: { width: 24, height: 24, borderRadius: 8, borderWidth: 1, borderColor: 'transparent', backgroundColor: softFill(), justifyContent: 'center', alignItems: 'center' },
     checkOn: { backgroundColor: Colors.success, borderColor: Colors.success },
     checkMark: { fontSize: 13, fontWeight: '900', color: '#fff' },
-    taskText: { flex: 1, fontSize: 12.5, fontFamily: FONTS.bodyMedium, color: Colors.textMain },
+    taskText: { flex: 1, fontSize: 14, fontFamily: FONTS.bodyMedium, color: Colors.textMain },
     taskDone: { color: Colors.textMuted, textDecorationLine: 'line-through' },
     taskSkipped: { opacity: 0.6 },
-    skipTag: { fontSize: 10, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8, backgroundColor: Colors.subtleFill },
-    feeNote: { fontSize: 11, fontFamily: FONTS.bodyRegular, color: Colors.successText, lineHeight: 16 },
-    scanner: {
-      alignSelf: 'center',
-      width: 220,
-      height: 220,
-      borderRadius: 24,
-      backgroundColor: Colors.bgCard,
-      justifyContent: 'center',
-      alignItems: 'center',
-      overflow: 'hidden',
-    },
+    skipTag: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6, backgroundColor: Colors.subtleFill },
+    feeNote: { fontSize: 12.5, fontFamily: FONTS.bodyRegular, color: Colors.successText, lineHeight: 19 },
+    scanner: { alignSelf: 'center', width: 220, height: 220, borderRadius: 12, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
     scannerEmoji: { fontSize: 90, opacity: 0.25 },
     scanLine: { position: 'absolute', left: 20, right: 20, height: 2, backgroundColor: Colors.success, shadowColor: Colors.success, shadowOpacity: 1, shadowRadius: 8 },
     corner: { position: 'absolute', width: 36, height: 36, borderColor: Colors.success },
@@ -839,13 +818,13 @@ const styles = themedStyles(() =>
     heroSuccess: { backgroundColor: Colors.success, shadowColor: Colors.success, shadowOpacity: 0.6, shadowRadius: 24, elevation: 8 },
     heroGlass: { ...glassStyle() },
     heroIcon: { fontSize: 36, color: '#fff', fontWeight: '900' },
-    heroTitle: { fontSize: 17, fontFamily: FONTS.titleBold, color: Colors.textMain, textAlign: 'center' },
-    heroText: { fontSize: 12, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, textAlign: 'center', lineHeight: 18 },
+    heroTitle: { fontSize: 20, lineHeight: 28, fontFamily: FONTS.titleBold, color: Colors.textMain, textAlign: 'center' },
+    heroText: { fontSize: 14, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, textAlign: 'center', lineHeight: 21 },
     radarWrap: { width: 84, height: 84, justifyContent: 'center', alignItems: 'center', marginBottom: 6 },
     radarRing: { position: 'absolute', width: 84, height: 84, borderRadius: 42, borderWidth: 2, borderColor: 'rgba(239, 68, 68, 0.6)' },
     radarCore: { width: 64, height: 64, borderRadius: 32, backgroundColor: '#ef4444', justifyContent: 'center', alignItems: 'center' },
     radarEmoji: { fontSize: 28 },
     stars: { fontSize: 30, color: Colors.warning, letterSpacing: 4 },
-    bottomBar: { padding: 16, paddingTop: 10, gap: 8, backgroundColor: Colors.bgBody },
+    bottomBar: { padding: 16, paddingTop: 12, gap: 8, backgroundColor: Colors.bgCard, borderTopWidth: 1, borderTopColor: outline() },
   })
 );

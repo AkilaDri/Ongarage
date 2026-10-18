@@ -1,3 +1,8 @@
+import { useChat } from '../context/ChatContext';
+import { MOCK_GARAGES } from '../constants/mockData';
+import { VehicleLine } from '@ongarage/shared';
+import { getThemeMode } from '@ongarage/shared';
+import { elevation1, outline, pageBg } from '../utils/material';
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Linking, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -34,7 +39,7 @@ import type { DirectBooking } from '../types';
 
 export type OwnerDetailTarget = { kind: 'job'; job: RepairJob } | { kind: 'booking'; booking: DirectBooking };
 
-const MAP_H = 160;
+const MAP_H = 100;
 const BOOKING_STATUS: Record<DirectBooking['status'], { label: string; color: () => string }> = {
   requested: { label: 'ගරාජයේ පිළිතුර බලාපොරොත්තුවෙන්', color: () => Colors.warning },
   proposed: { label: 'ගරාජය වෙනත් වේලාවක් යෝජනා කළා', color: () => Colors.warning },
@@ -61,6 +66,7 @@ export const OwnerDetailView: React.FC<{
   const { workshops } = useWorkshops();
   const user = useUserLocation();
   const { acceptProposal, declineProposal, cancelBooking } = useBookings();
+  const chat = useChat();
   const [shown, setShown] = useState<OwnerDetailTarget | null>(target);
   const [mounted, setMounted] = useState(!!target);
   const [now, setNow] = useState(Date.now());
@@ -164,6 +170,7 @@ export const OwnerDetailView: React.FC<{
                   </View>
                   <Text style={styles.sub}>
                     🛡️ මාස {b.warrantyMonths} වගකීම · ⏱️ පැය {b.estHours}
+                    {b.travelFee ? ` · 🚗 ගමන් ගාස්තුව ${money(b.travelFee)} ඇතුළුව (රැකියාව ${money(b.price - b.travelFee)})` : ''}
                     {isLowest && !j.acceptedBidId ? ' · 💰 අඩුම ලංසුව' : ''}
                     {isAccepted ? ' · ✓ ඔබ තෝරා ගත්තා' : ''}
                   </Text>
@@ -204,7 +211,8 @@ export const OwnerDetailView: React.FC<{
         )}
 
         <Text style={styles.section}>ගරාජය</Text>
-        <View style={styles.card}>
+        <View>
+        <View style={[styles.card, styles.cardJoined]}>
           <View style={styles.row}>
             <GlassIcon emoji="🛠️" small />
             <View style={styles.flex1}>
@@ -219,7 +227,7 @@ export const OwnerDetailView: React.FC<{
           <Fact icon={b.doorstep ? '🚛' : '🏠'} label="සේවා ස්ථානය" value={b.doorstep ? 'ගරාජය ඔබ වෙත පැමිණේ' : 'ඔබ වාහනය ගරාජයට ගෙන යයි'} />
         </View>
         <GoogleMap
-          style={[styles.map, { height: MAP_H }]}
+          style={[styles.map, styles.mapJoined, { height: MAP_H }]}
           center={b.garage.coords}
           zoom={14}
           renderOverlay={(project) => {
@@ -233,6 +241,7 @@ export const OwnerDetailView: React.FC<{
             ) : null;
           }}
         />
+        </View>
       </>
     );
   };
@@ -241,7 +250,16 @@ export const OwnerDetailView: React.FC<{
     if (job) {
       if (job.acceptedBidId) {
         const bid = job.bids.find((x) => x.id === job.acceptedBidId);
-        return bid ? <ActionButton label="ගරාජයට දිශාවන්" icon="🗺️" variant="primary" onPress={() => Linking.openURL(directionsUrl(bid.coords, user.coords))} /> : null;
+        return bid ? (
+          <View style={styles.actions}>
+            <View style={styles.flex1}>
+              <ActionButton label="කතා කරන්න" icon="💬" variant="ghost" compact onPress={() => chat.open({ id: job.id, title: bid.garageName, subtitle: categoryInfo(job.categoryId).name, phone: MOCK_GARAGES.find((g) => g.name === bid.garageName)?.phone, vehicle: findVehicle(job.vehicleId) })} />
+            </View>
+            <View style={styles.flex1}>
+              <ActionButton label="දිශාවන්" icon="🗺️" variant="primary" compact onPress={() => Linking.openURL(directionsUrl(bid.coords, user.coords))} />
+            </View>
+          </View>
+        ) : null;
       }
       if (job.bids.length === 0 && onRepublish) return <ActionButton label="සංස්කරණය කර නැවත පළ කරන්න" icon="📝" variant="primary" onPress={close(() => onRepublish(job))} />;
       return null;
@@ -262,6 +280,9 @@ export const OwnerDetailView: React.FC<{
     if (b.status === 'confirmed')
       return (
         <View style={styles.actions}>
+          <View style={styles.flex1}>
+            <ActionButton label="කතා කරන්න" icon="💬" variant="ghost" compact onPress={() => chat.open({ id: b.id, title: b.garage.name, subtitle: categoryInfo(b.categoryId).name, phone: b.garage.phone, vehicle: findVehicle(b.vehicleId) })} />
+          </View>
           <View style={styles.flex1}>
             <ActionButton label="අමතන්න" icon="📞" variant="ghost" compact onPress={() => Linking.openURL(`tel:${b.garage.phone.replace(/\s/g, '')}`)} />
           </View>
@@ -299,9 +320,7 @@ export const OwnerDetailView: React.FC<{
                   {cat.name}
                   {booking?.service ? ` · ${booking.service}` : ''}
                 </Text>
-                <Text style={styles.sub}>
-                  {vehicleIcon(vehicle.type)} {vehicle.name} · {vehicle.plate} · {ago(now - (job?.submittedAt ?? booking!.requestedAt))}
-                </Text>
+                <VehicleLine vehicle={vehicle} textStyle={styles.sub} extra={ago(now - (job?.submittedAt ?? booking!.requestedAt))} />
                 <TxnTag kind={job ? 'JOB' : 'BKG'} source={job ? job.id : booking!.id} />
               </View>
             </View>
@@ -366,12 +385,12 @@ const Fact: React.FC<{ icon: string; label: string; value: string }> = ({ icon, 
 const styles = themedStyles(() =>
   StyleSheet.create({
     flex1: { flex: 1 },
-    root: { flex: 1, backgroundColor: Colors.bgBody },
+    root: { flex: 1, backgroundColor: pageBg() },
     row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
     rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
     actions: { flexDirection: 'row', gap: 8 },
-    header: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: Colors.borderColor },
-    iconBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: Colors.subtleFill, borderWidth: 1, borderColor: Colors.borderColor, justifyContent: 'center', alignItems: 'center' },
+    header: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 6, minHeight: 56, backgroundColor: Colors.bgCard, borderBottomWidth: 1, borderBottomColor: outline(), ...elevation1() },
+    iconBtn: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
     headerTitle: { flex: 1, fontSize: 15, fontFamily: FONTS.titleBold, color: Colors.textMain },
     kindPill: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 9, paddingVertical: 5, borderRadius: 10, borderWidth: 1 },
     kindBid: { backgroundColor: 'rgba(56, 189, 248, 0.12)', borderColor: 'rgba(56, 189, 248, 0.45)' },
@@ -381,16 +400,16 @@ const styles = themedStyles(() =>
     bigTitle: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textMain },
     title: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.textMain },
     sub: { fontSize: 11, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 1, lineHeight: 17 },
-    section: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, letterSpacing: 0.4, marginTop: 6 },
+    section: { fontSize: 14, fontFamily: FONTS.bodyBold, color: Colors.primary, letterSpacing: 0.2, marginTop: 8 },
     empty: { fontSize: 11, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
     desc: { fontSize: 13, fontFamily: FONTS.bodyRegular, color: Colors.textSoft, lineHeight: 21 },
-    card: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.borderColor, borderRadius: 16, padding: 14, gap: 8 },
+    card: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), borderRadius: 12, padding: 16, gap: 10, ...elevation1() },
     cardOk: { borderColor: 'rgba(16, 185, 129, 0.55)' },
     cardBest: { borderColor: 'rgba(16, 185, 129, 0.45)' },
     cardWarn: { borderColor: 'rgba(245, 158, 11, 0.55)' },
     dim: { opacity: 0.55 },
     price: { fontSize: 15, fontFamily: FONTS.titleBold, color: Colors.success },
-    timing: { flexDirection: 'row', alignItems: 'center', padding: 12, borderRadius: 16, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.borderColor },
+    timing: { flexDirection: 'row', alignItems: 'center', padding: 16, borderRadius: 12, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), ...elevation1() },
     cell: { flex: 1, alignItems: 'center', gap: 3 },
     cellLabel: { fontSize: 10, fontFamily: FONTS.bodyMedium, color: Colors.textMuted },
     cellValue: { fontSize: 12.5, fontFamily: FONTS.titleBold, color: Colors.textMain, textAlign: 'center' },
@@ -399,13 +418,15 @@ const styles = themedStyles(() =>
     factIcon: { fontSize: 14, width: 20, textAlign: 'center' },
     factLabel: { fontSize: 11.5, fontFamily: FONTS.bodyMedium, color: Colors.textMuted, width: 92 },
     factValue: { flex: 1, fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
-    map: { borderRadius: 16, borderWidth: 1, borderColor: Colors.borderColor },
+    cardJoined: { borderBottomLeftRadius: 0, borderBottomRightRadius: 0, borderBottomWidth: 0 },
+    mapJoined: { borderTopLeftRadius: 0, borderTopRightRadius: 0 },
+    map: { borderRadius: 12, borderWidth: 1, borderColor: outline(), overflow: 'hidden' },
     pinAnchor: { position: 'absolute', transform: [{ translateX: '-50%' }, { translateY: '-50%' }] },
     pricePin: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10, backgroundColor: Colors.primary, borderWidth: 2, borderColor: '#fff' },
     pricePinBest: { backgroundColor: Colors.success },
     pricePinText: { fontSize: 10.5, fontWeight: '800', color: '#fff' },
     garagePin: { width: 32, height: 32, borderRadius: 10, backgroundColor: Colors.success, borderWidth: 2, borderColor: '#fff', justifyContent: 'center', alignItems: 'center' },
     pinEmoji: { fontSize: 15 },
-    footer: { padding: 16, paddingTop: 10, borderTopWidth: 1, borderTopColor: Colors.borderColor, backgroundColor: Colors.barBg },
+    footer: { padding: 16, paddingTop: 12, borderTopWidth: 1, borderTopColor: outline(), backgroundColor: Colors.bgCard, shadowColor: '#3c4043', shadowOffset: { width: 0, height: -1 }, shadowOpacity: getThemeMode() === 'dark' ? 0.4 : 0.12, shadowRadius: 3, elevation: 4 },
   })
 );

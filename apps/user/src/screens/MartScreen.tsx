@@ -1,3 +1,4 @@
+import { elevation1, outline, pageBg } from '../utils/material';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Easing, Linking, Platform, Modal, PanResponder, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import {
@@ -25,6 +26,8 @@ import {
   onWall,
   PinnedEdge,
   rankShops,
+  queryFromBrief,
+  shopCovers,
   SEARCH_RINGS,
   SERVICE_KITS,
   SPONSORED_SHOP_IDS,
@@ -53,8 +56,12 @@ import {
 } from '@ongarage/shared';
 import { useUserLocation } from '../context/LocationContext';
 import { useVehicles } from '../context/VehiclesContext';
-import { useMart } from '../context/MartContext';
+import { useMart, type MartEnquiry } from '../context/MartContext';
 import { EnquiryCard } from '../components/mart/EnquiryCard';
+import { RequestCard } from '../components/mart/RequestCard';
+import { EditPostSheet } from '../components/mart/EditPostSheet';
+import { groupByBatch, splitRequests } from '@ongarage/shared';
+import { OnMartAsk } from '@ongarage/shared';
 import { EnquirySheet, type EnquiryPrefill } from '../components/mart/EnquirySheet';
 import { ShopSheet } from '../components/mart/ShopSheet';
 import { OrdersList } from '../components/mart/OrdersList';
@@ -70,15 +77,17 @@ import { OfferTiles } from '../components/home/OfferTiles';
 import { ReserveSheet } from '../components/mart/ReserveSheet';
 import { ThreadSheet, type ThreadTarget } from '../components/mart/ThreadSheet';
 import type { MartSegment } from '../constants/tabs';
+import { chatDockOffset } from '../utils/chatDock';
 
 /**
  * OnMart: the spare-parts marketplace. It opens on the shops nearest the owner, which can be sorted by rating,
  * price, reply speed or service, and searched for a part (live-stock shops show whether they have it; the rest
  * are asked). Nothing nearby? Widen the search to 50 km, then to the whole country, or post on the open wall.
  */
-const ASK_STOPS = [{ offset: '0', color: '#2a4690' }, { offset: '1', color: '#0f2050' }];
-const WALL_STOPS = [{ offset: '0', color: '#8b5cf6' }, { offset: '1', color: '#d946ef' }];
-const ACTION_H = 58;
+// The same look as the SOS and repair-job banners on Home: a deep wash, a soft sheen, a badge, a title, a line, and a white round button.
+const ASK_STOPS = [{ offset: '0', color: '#2f5bd6' }, { offset: '0.5', color: '#1b3a96' }, { offset: '1', color: '#0b1c52' }];
+const WALL_STOPS = [{ offset: '0', color: '#a78bfa' }, { offset: '0.5', color: '#7c3aed' }, { offset: '1', color: '#4c1d95' }];
+const ACTION_H = 108;
 const MAP_ZOOM: Record<SearchRing, number> = { nearby: 12, wider: 10, nationwide: 7 };
 
 const TYPES: { id: PartType; label: string }[] = [
@@ -101,12 +110,15 @@ type MartScreenProps = {
   /** A part to search for as soon as OnMart opens (set when an SOS job sends the owner to buy a part). */
   searchSeed?: string;
   /** A shop whose page should open as soon as OnMart shows (from an order record in an SOS job). */
-  openShopRequest?: { id: string; at: number } | null;
+  openShopRequest?: { id: string; at: number; ask?: boolean } | null;
 };
 
 export const MartScreen: React.FC<MartScreenProps> = ({ activeVehicle, segment, onSegmentChange, onHeaderVisibilityChange, searchSeed, openShopRequest }) => {
   const { coords } = useUserLocation();
-  const { enquiries, offersFor, widen, postToWall, cancelEnquiry, purchaseFor } = useMart();
+  const [reqTab, setReqTab] = useState<'current' | 'successful' | 'closed'>('current');
+  // Adding to one's own wall post (description, photos).
+  const [editingPost, setEditingPost] = useState<MartEnquiry | null>(null);
+  const { enquiries, offersFor, widen, askMore, askShops, postToWall, cancelEnquiry, purchaseFor } = useMart();
   const { progress: edge, scrollProps } = usePinnedEdge();
   const [sort, setSort] = useState<MartSort>('distance');
   const [ring, setRing] = useState<SearchRing>('nearby');
@@ -136,6 +148,11 @@ export const MartScreen: React.FC<MartScreenProps> = ({ activeVehicle, segment, 
   const dealsY = useRef(0);
   const rootHeight = useRef(0);
   const pinnedHeight = useRef(0);
+  // The chat icon sits under the pinned bar only while this screen is shown.
+  useEffect(() => {
+    chatDockOffset.setValue(Math.round(pinnedHeight.current));
+    return () => chatDockOffset.setValue(0);
+  }, []);
   const sheetLimits = useRef({ collapsed: 0, expanded: 0 });
   const sheetStart = useRef(0);
   const sheetExpanded = useRef(false);
@@ -151,7 +168,7 @@ export const MartScreen: React.FC<MartScreenProps> = ({ activeVehicle, segment, 
     const y = e.nativeEvent.contentOffset.y;
     contentY.current = y;
     if (y > previousScrollY.current + 8 && y > 12) onHeaderVisibilityChange(false);
-    else if (y < previousScrollY.current - 8) onHeaderVisibilityChange(true);
+    else if (y < previousScrollY.current - 3) onHeaderVisibilityChange(true);
     previousScrollY.current = y;
   };
   const setSegment = (next: MartSegment) => {
@@ -253,7 +270,9 @@ export const MartScreen: React.FC<MartScreenProps> = ({ activeVehicle, segment, 
   useEffect(() => {
     if (!openShopRequest) return;
     const target = all.find((x) => x.id === openShopRequest.id);
-    if (target) setShop(target);
+    // From a chat with the shop: its request form (this shop chosen); otherwise its profile.
+    if (target && openShopRequest.ask) open({ onlyShopIds: [target.id], shopName: target.name, partType, name: '', audience: 'shops' });
+    else if (target) setShop(target);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openShopRequest]);
 
@@ -265,9 +284,17 @@ export const MartScreen: React.FC<MartScreenProps> = ({ activeVehicle, segment, 
     () => (category ? inRing.filter((s) => s.categories.includes(category.serviceCategoryId)) : inRing),
     [category, inRing]
   );
+  // What the search asks the shops' catalogues: the part and the active vehicle (make, model, chassis code).
+  const catQuery = useMemo(
+    () => (partName ? queryFromBrief({ name: partName, partType, vehicle: { name: car.name, plate: car.plate, type: car.type, make: car.make, model: car.model, chassisNo: car.chassisNo } }) : undefined),
+    [partName, partType, car.name, car.plate, car.type, car.make, car.model, car.chassisNo]
+  );
+  // Shops with a catalogue are listed only when it covers the search; shops without one stay (they answer when asked).
+  const sellers = useMemo(() => (catQuery?.partId ? categoryShops.filter((s) => !s.catalogue?.length || !!shopCovers(s.catalogue, catQuery)) : categoryShops), [categoryShops, catQuery]);
+  const matchSort = searching && !!catQuery?.partId;
   const shops = useMemo(
-    () => rankShops(categoryShops, sort, { priceOf: partName ? (s) => shopPriceFor(s.id, partName, partType) : undefined, liveStockFirst: searching }),
-    [categoryShops, sort, partName, partType, searching]
+    () => rankShops(sellers, matchSort && sort === 'distance' ? 'match' : sort, { priceOf: partName ? (s) => shopPriceFor(s.id, partName, partType) : undefined, liveStockFirst: searching && sort !== 'match', query: catQuery }),
+    [sellers, sort, partName, partType, searching, matchSort, catQuery]
   );
   const publishedStock = useMemo(
     () =>
@@ -281,8 +308,14 @@ export const MartScreen: React.FC<MartScreenProps> = ({ activeVehicle, segment, 
 
   const availability = (s: ShopListing): ShopAvailability | undefined => {
     if (!searching) return undefined;
+    // A shop that publishes stock shows what it has; otherwise a shop whose catalogue covers the search says it sells it.
+    const stocked = !!partName && s.liveStock ? availabilityAt(s.id, partName, partType) : undefined;
+    if (!stocked && catQuery?.partId && s.catalogue?.length) {
+      const m = shopCovers(s.catalogue, catQuery);
+      if (m) return { state: 'sells', tier: m.tier };
+    }
     if (!partName || !s.liveStock) return { state: 'ask' };
-    const a = availabilityAt(s.id, partName, partType);
+    const a = stocked;
     const deal = a && dealFor(s.id, partName, a.partType);
     return a ? { state: a.lowStock ? 'low' : 'inStock', price: deal ? dealPrice(a.price, deal.discountPercent) : a.price, qty: a.qty, partType: a.partType, brand: a.brand } : { state: 'out' };
   };
@@ -336,6 +369,8 @@ export const MartScreen: React.FC<MartScreenProps> = ({ activeVehicle, segment, 
       onOpenShop={openShop}
       onWiden={() => widen(m.enquiry.id)}
       onWall={() => postToWall(m.enquiry.id)}
+      onAskMore={() => askMore(m.enquiry.id)}
+      onAskShops={(ids) => askShops(m.enquiry.id, ids)}
       onCancel={() => cancelEnquiry(m.enquiry.id)}
       purchase={purchaseFor(m.enquiry.id)}
       onReserve={(offer) => setReserving({ offer, brief: m.enquiry.briefs.find((b) => b.id === offer.briefId) ?? m.enquiry.briefs[0], jobRef: m.enquiry.jobRef })}
@@ -361,6 +396,8 @@ export const MartScreen: React.FC<MartScreenProps> = ({ activeVehicle, segment, 
       mine: true,
       // A reserved or bought part is a live order, so it cannot be deleted from the wall.
       onDelete: m.enquiry.status === 'reserved' || m.enquiry.status === 'bought' ? undefined : () => cancelEnquiry(m.enquiry.id),
+      // The description and photos can be added to while the request is still open.
+      onEdit: m.enquiry.status === 'open' ? () => setEditingPost(m) : undefined,
       details: card(m),
     };
   });
@@ -413,6 +450,7 @@ export const MartScreen: React.FC<MartScreenProps> = ({ activeVehicle, segment, 
         style={styles.pinned}
         onLayout={(e) => {
           pinnedHeight.current = e.nativeEvent.layout.height;
+          chatDockOffset.setValue(Math.round(e.nativeEvent.layout.height));
           updateSheetBounds(rootHeight.current, pinnedHeight.current);
         }}
       >
@@ -505,22 +543,26 @@ export const MartScreen: React.FC<MartScreenProps> = ({ activeVehicle, segment, 
             <View style={styles.actions}>
               <Pressable style={styles.actionCard} onPress={() => open()} accessibilityLabel="Ask for a part">
                 <Gradient stops={ASK_STOPS} />
+                <View style={styles.actionSheen} pointerEvents="none" />
                 <View style={styles.actionText}>
-                  <Text style={styles.actionTitle}>කොටසක් ඉල්ලන්න</Text>
-                  <Text style={styles.actionSub} numberOfLines={1}>ළඟ වෙළඳසැල්වලින් මිල ගන්න</Text>
+                  <View style={styles.actionBadge}><Text style={styles.actionBadgeText}>OnMart</Text></View>
+                  <Text style={styles.actionTitle} numberOfLines={1}>කොටසක් ඉල්ලන්න</Text>
+                  <Text style={styles.actionSub} numberOfLines={2}>ළඟ වෙළඳසැල්වලින් මිල ගන්න</Text>
                 </View>
-                <Text style={styles.actionEmoji}>📨</Text>
+                <View style={styles.actionCircle}><Text style={styles.actionEmoji}>📨</Text></View>
               </Pressable>
               <Pressable style={styles.actionCard} onPress={() => setSegment('wall')} accessibilityLabel="Open wall shortcut">
                 <Gradient stops={WALL_STOPS} />
+                <View style={styles.actionSheen} pointerEvents="none" />
                 <View style={styles.actionText}>
-                  <Text style={styles.actionTitle}>දුර්ලභ කොටස් වෝල්</Text>
-                  <Text style={styles.actionSub} numberOfLines={1}>ලංකාව පුරා වෙළඳසැල්වලට</Text>
+                  <View style={styles.actionBadge}><Text style={styles.actionBadgeText}>ලංකාව පුරා</Text></View>
+                  <Text style={styles.actionTitle} numberOfLines={1}>දුර්ලභ කොටස් වෝල්</Text>
+                  <Text style={styles.actionSub} numberOfLines={2}>සියලු වෙළඳසැල්වලට එකවර</Text>
                 </View>
-                <Text style={styles.actionEmoji}>📣</Text>
+                <View style={styles.actionCircle}><Text style={styles.actionEmoji}>📣</Text></View>
               </Pressable>
             </View>
-            <SortChips value={sort} onChange={setSort} />
+            <SortChips value={matchSort && sort === 'distance' ? 'match' : sort} onChange={setSort} options={matchSort ? ['match', 'distance', 'rating', 'price', 'response', 'service'] : undefined} />
             <View style={styles.chips}>
               {SEARCH_RINGS.map((r) => (
                 <Pressable key={r.ring} style={[styles.chip, ring === r.ring && styles.chipOn]} onPress={() => setRing(r.ring)} accessibilityLabel={`Range ${r.ring}`}>
@@ -577,7 +619,7 @@ export const MartScreen: React.FC<MartScreenProps> = ({ activeVehicle, segment, 
                   ))}
                 </View>
                 <Pressable style={styles.focusAsk} onPress={() => askAbout('shops')} accessibilityLabel="Ask all shops">
-                  <Text style={styles.focusAskText}>📨 සියලු වෙළඳසැල්වලින් අසන්න</Text>
+                  <OnMartAsk label="සියලු වෙළඳසැල්වලින් අසන්න" textStyle={styles.focusAskText} />
                 </Pressable>
                 <Pressable style={styles.partFocusLink} onPress={() => askAbout('wall')} accessibilityLabel="Post on the wall">
                   <Text style={styles.partFocusLinkText}>📣 දුර්ලභ කොටසක්ද? වෝල් එකට දමන්න ›</Text>
@@ -598,7 +640,7 @@ export const MartScreen: React.FC<MartScreenProps> = ({ activeVehicle, segment, 
             {shops.length === 0 ? (
               <EmptyState icon="🔩" title="ළඟ වෙළඳසැල් නැත" text={widerRing ? 'පරාසය විශාල කර බලන්න.' : 'වෙළඳසැල් හමු නොවීය.'} />
             ) : (
-              shops.map((s) => <ShopCard key={s.id} shop={s} availability={availability(s)} onPress={() => setShop(s)} onCall={() => Linking.openURL(`tel:${s.phone.replace(/\s/g, '')}`)} />)
+              shops.map((s) => <ShopCard material key={s.id} shop={s} availability={availability(s)} onPress={() => setShop(s)} onCall={() => Linking.openURL(`tel:${s.phone.replace(/\s/g, '')}`)} />)
             )}
             {shops.length > 0 && widerRing && (
               <Pressable style={styles.suggest} onPress={() => setRing(widerRing)} accessibilityLabel="Show more shops">
@@ -615,7 +657,32 @@ export const MartScreen: React.FC<MartScreenProps> = ({ activeVehicle, segment, 
               <ActionButton label="කොටසක් ඉල්ලන්න" icon="＋" variant="primary" onPress={() => open()} />
             </>
           ) : (
-            enquiries.map(card)
+            (() => {
+              const sec = splitRequests(groupByBatch(enquiries));
+              const render = (gs: typeof sec.current) => gs.map((g) => <RequestCard key={g.batchId ?? g.items[0].enquiry.id} items={g.items} renderFull={card} />);
+              const count = (gs: typeof sec.current) => gs.reduce((t, g) => t + g.items.length, 0);
+              const tabs: { id: 'current' | 'successful' | 'closed'; label: string }[] = [
+                { id: 'current', label: '📨 පවතින' },
+                { id: 'successful', label: '✅ සාර්ථක' },
+                { id: 'closed', label: '🚫 අවලංගු' },
+              ];
+              const empty = { current: 'දැනට පවතින ඉල්ලීම් නැත.', successful: 'මිලදී ගත් ඉල්ලීම් නැත.', closed: 'අවලංගු කළ ඉල්ලීම් නැත.' };
+              return (
+                <>
+                  <View style={styles.reqTabs}>
+                    {tabs.map((t) => (
+                      <Pressable key={t.id} style={[styles.reqTab, reqTab === t.id && styles.chipOn]} onPress={() => setReqTab(t.id)} accessibilityLabel={`Requests ${t.id}`} accessibilityState={{ selected: reqTab === t.id }}>
+                        <Text style={[styles.chipText, reqTab === t.id && styles.chipTextOn]} numberOfLines={1}>{reqTab === t.id ? '✓ ' : ''}{t.label}</Text>
+                        <View style={[styles.reqCount, reqTab === t.id && styles.reqCountOn]}>
+                          <Text style={[styles.reqCountText, reqTab === t.id && styles.chipTextOn]}>{count(sec[t.id])}</Text>
+                        </View>
+                      </Pressable>
+                    ))}
+                  </View>
+                  {sec[reqTab].length === 0 ? <Text style={styles.pastEmpty}>{empty[reqTab]}</Text> : render(sec[reqTab])}
+                </>
+              );
+            })()
           ))}
 
         {segment === 'wall' && (
@@ -627,6 +694,7 @@ export const MartScreen: React.FC<MartScreenProps> = ({ activeVehicle, segment, 
       </ScrollView>
       </Animated.View>
 
+      <EditPostSheet item={editingPost} onClose={() => setEditingPost(null)} />
       <ShopSheet
         shop={shop}
         onClose={() => setShop(null)}
@@ -694,19 +762,19 @@ const styles = themedStyles(() =>
   StyleSheet.create({
     flex1: { flex: 1 },
     // Day theme: the wall sits on a light grey so each white post stands apart from the page (dark theme keeps its own surfaces).
-    wallBackdrop: getThemeMode() === 'dark' ? {} : { backgroundColor: '#e9edf2' },
-    pinned: { zIndex: 5, paddingTop: 12, paddingBottom: 10, gap: 10, backgroundColor: getThemeMode() === 'dark' ? Colors.bgBody : '#ffffff' },
-    searchRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16 },
-    search: { flex: 1, height: 42, paddingHorizontal: 18, paddingRight: 42, borderRadius: 21, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), color: Colors.textMain, fontSize: 13, fontFamily: FONTS.bodyRegular, ...softShadow() },
-    mapButton: { minHeight: 42, paddingHorizontal: 11, borderRadius: 22, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: softFill(), borderWidth: 1, borderColor: softEdge() },
-    mapButtonText: { fontSize: 10.5, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
+    wallBackdrop: getThemeMode() === 'dark' ? {} : { backgroundColor: pageBg() },
+    pinned: { zIndex: 5, paddingTop: 12, paddingBottom: 10, gap: 10, backgroundColor: pageBg() },
+    searchRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 6 },
+    search: { flex: 1, height: 46, paddingHorizontal: 18, paddingRight: 42, borderRadius: 23, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), color: Colors.textMain, fontSize: 14, fontFamily: FONTS.bodyRegular, ...elevation1() },
+    mapButton: { minHeight: 46, paddingHorizontal: 12, borderRadius: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline() },
+    mapButtonText: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
     categoryHeading: { paddingHorizontal: 18, marginBottom: -5, fontSize: 10.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
-    categoryTabs: { gap: 8, paddingHorizontal: 16, paddingTop: 2 },
-    categoryTab: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 11, paddingVertical: 8, borderRadius: 18, backgroundColor: softFill(), borderWidth: 1, borderColor: softEdge() },
-    categoryTabActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
+    categoryTabs: { gap: 8, paddingHorizontal: 6, paddingTop: 2 },
+    categoryTab: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, height: 34, borderRadius: 8, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline() },
+    categoryTabActive: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe', borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#d2e3fc' },
     categoryEmoji: { fontSize: 13 },
-    categoryText: { maxWidth: 112, fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
-    categoryTextActive: { color: '#ffffff' },
+    categoryText: { maxWidth: 112, fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.textSoft },
+    categoryTextActive: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
     ownerMarker: { position: 'absolute', width: 24, height: 24, borderRadius: 12, borderWidth: 3, borderColor: '#ffffff', backgroundColor: '#2589f5', alignItems: 'center', justifyContent: 'center', zIndex: 2 },
     ownerMarkerDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#ffffff' },
     mapShopMarker: { position: 'absolute', width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), ...softShadow() },
@@ -719,29 +787,42 @@ const styles = themedStyles(() =>
     sheetHeadingText: { flex: 1, gap: 2 },
     sheetTitle: { fontSize: 14, fontFamily: FONTS.titleBold, color: Colors.textMain },
     sheetSubtitle: { fontSize: 10, fontFamily: FONTS.bodyMedium, color: Colors.textMuted },
-    stockButton: { paddingHorizontal: 12, paddingVertical: 9, borderRadius: 18, backgroundColor: softFill() },
-    stockButtonText: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
+    stockButton: { paddingHorizontal: 12, height: 34, justifyContent: 'center', borderRadius: 8, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline() },
+    stockButtonText: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
     sheetBody: { paddingHorizontal: 6, paddingTop: 6, gap: 12, paddingBottom: 110 },
-    actions: { flexDirection: 'row', gap: 10, overflow: 'hidden' },
-    actionCard: { flex: 1, height: ACTION_H, borderRadius: 18, overflow: 'hidden', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12 },
-    actionText: { flex: 1, gap: 1 },
-    actionTitle: { fontSize: 13, fontFamily: FONTS.titleBold, color: '#fff' },
-    actionSub: { fontSize: 9.5, fontFamily: FONTS.bodyMedium, color: 'rgba(255, 255, 255, 0.9)' },
+    actions: { gap: 10 },
+    actionCard: { height: ACTION_H, borderRadius: 22, overflow: 'hidden', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 18, paddingVertical: 16, gap: 12, borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.2)', shadowColor: '#0b1c52', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 5 },
+    actionSheen: { position: 'absolute', top: -70, right: -40, width: 190, height: 190, borderRadius: 95, backgroundColor: 'rgba(255, 255, 255, 0.07)' },
+    actionText: { flex: 1, gap: 3 },
+    actionBadge: { alignSelf: 'flex-start', paddingHorizontal: 9, paddingVertical: 3, borderRadius: 11, backgroundColor: 'rgba(255, 255, 255, 0.16)', marginBottom: 2 },
+    actionBadgeText: { fontSize: 10, fontWeight: '800', color: '#fff', letterSpacing: 0.4 },
+    actionTitle: { fontSize: 16, fontFamily: FONTS.titleBold, color: '#fff', letterSpacing: 0.2 },
+    actionSub: { fontSize: 11, fontFamily: FONTS.bodyMedium, color: 'rgba(255, 255, 255, 0.82)' },
+    actionCircle: { width: 60, height: 60, borderRadius: 30, backgroundColor: '#ffffff', borderWidth: 4, borderColor: 'rgba(255, 255, 255, 0.35)', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
     actionEmoji: { fontSize: 26 },
     clear: { position: 'absolute', right: 86, width: 26, height: 26, borderRadius: 13, backgroundColor: softFill(), alignItems: 'center', justifyContent: 'center' },
     clearText: { fontSize: 11, color: Colors.textMuted },
     body: { paddingHorizontal: 6, paddingTop: 8, gap: 12, paddingBottom: 110 },
     chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-    chip: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 16, backgroundColor: softFill(), borderWidth: 1, borderColor: softEdge() },
-    chipOn: { backgroundColor: Colors.primary, borderColor: Colors.primary },
-    chipText: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
-    chipTextOn: { color: '#ffffff' },
-    sectionTitle: { fontSize: 15, fontFamily: FONTS.titleBold, color: Colors.textMain, marginTop: 4 },
+    chip: { paddingHorizontal: 14, height: 32, justifyContent: 'center', borderRadius: 8, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline() },
+    chipOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe', borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#d2e3fc' },
+    chipText: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textSoft },
+    chipTextOn: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
+    reqTabs: { flexDirection: 'row', gap: 8 },
+    // Google Material filter chips: 8dp corners, outlined, the selected one tonal blue with a check.
+    reqTab: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, height: 36, paddingHorizontal: 8, borderRadius: 8, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline() },
+    reqCount: { minWidth: 18, height: 18, paddingHorizontal: 4, borderRadius: 9, alignItems: 'center', justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? 'rgba(255, 255, 255, 0.08)' : '#f1f3f4' },
+    reqCountOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.28)' : '#d2e3fc' },
+    reqCountText: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
+    pastHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 6 },
+    pastToggle: { fontSize: 12, color: Colors.textMuted },
+    pastEmpty: { fontSize: 12, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
+    sectionTitle: { fontSize: 14, fontFamily: FONTS.bodyBold, color: Colors.primary, letterSpacing: 0.2, marginTop: 4 },
     count: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
     title: { fontSize: 14, fontFamily: FONTS.titleBold, color: Colors.textMain },
     sub: { fontSize: 11, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 17 },
     // The picked part: a tinted card, so it reads as "what you chose", not as one more shop card.
-    partFocus: { gap: 12, padding: 16, borderRadius: 22, backgroundColor: '#5a85ee', shadowColor: '#2457e6', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.18, shadowRadius: 10, elevation: 3 },
+    partFocus: { gap: 12, padding: 16, borderRadius: 12, backgroundColor: '#5a85ee', shadowColor: '#2457e6', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.18, shadowRadius: 10, elevation: 3 },
     partFocusHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     partFocusLabel: { fontSize: 11.5, fontFamily: FONTS.bodyBold, color: 'rgba(255,255,255,0.85)', letterSpacing: 0.4 },
     partFocusClear: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.22)' },
@@ -757,7 +838,7 @@ const styles = themedStyles(() =>
     partFocusLink: { alignSelf: 'center', paddingVertical: 2 },
     partFocusLinkText: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: 'rgba(255,255,255,0.92)' },
     resultsHeading: { fontSize: 13, fontFamily: FONTS.bodyBold, color: Colors.textMuted, marginTop: 4 },
-    search2: { gap: 10, padding: 14, borderRadius: 20, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), ...softShadow() },
+    search2: { gap: 10, padding: 14, borderRadius: 12, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), ...elevation1() },
     suggest: { alignSelf: 'center', paddingHorizontal: 14, paddingVertical: 9, borderRadius: 16, backgroundColor: 'rgba(2, 132, 199, 0.12)' },
     suggestText: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
     stockModal: { flex: 1, paddingTop: 24, paddingHorizontal: 16, backgroundColor: Colors.bgBody },
@@ -766,7 +847,7 @@ const styles = themedStyles(() =>
     closeStock: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', backgroundColor: softFill() },
     closeStockText: { fontSize: 16, color: Colors.textMain },
     stockList: { gap: 10, paddingTop: 8, paddingBottom: 32 },
-    stockItem: { gap: 5, padding: 14, borderRadius: 18, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), ...softShadow() },
+    stockItem: { gap: 5, padding: 14, borderRadius: 12, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), ...elevation1() },
     stockItemTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
     stockItemName: { flex: 1, fontSize: 14, fontFamily: FONTS.titleBold, color: Colors.textMain },
     stockPrice: { fontSize: 14, fontFamily: FONTS.bodyBold, color: Colors.primary },

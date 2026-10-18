@@ -1,3 +1,4 @@
+import { VehicleLine } from '@ongarage/shared';
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -154,9 +155,7 @@ export const SOSJobScreen: React.FC = () => {
         </View>
         <View style={styles.flex1}>
           <Text style={styles.cardTitle}>{job.title}</Text>
-          <Text style={styles.sub}>
-            {vehicleIcon(job.vehicle.type)} {job.vehicle.name} · {job.vehicle.plate}
-          </Text>
+          <VehicleLine vehicle={job.vehicle} textStyle={styles.sub} />
         </View>
       </View>
       {!!sos.note && <Text style={styles.note}>“{sos.note}”</Text>}

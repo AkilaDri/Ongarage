@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, Pressable, StyleSheet, ScrollView, TextInput, Animated, Easing, Linking, PanResponder } from 'react-native';
+import { View, Text, Pressable, StyleSheet, ScrollView, TextInput, Animated, Easing, Linking, PanResponder, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, getThemeMode, themedStyles } from '@ongarage/shared';
 import { MOCK_GARAGES } from '../constants/mockData';
@@ -50,6 +50,18 @@ export const ServiceBrowseScreen: React.FC<ServiceBrowseScreenProps> = ({ servic
   const collapsedHeight = Math.max(peekHeight + 60, Math.min(COLLAPSED_HEIGHT, fullHeight * 0.6));
   const heights = useRef({ peek: peekHeight, collapsed: collapsedHeight, expanded: fullHeight });
   heights.current = { peek: peekHeight, collapsed: collapsedHeight, expanded: fullHeight };
+
+  // The screen opens with the search box idle: the web modal focuses its first field when it mounts, which would pop the keyboard
+  // up over the map, so the focus is dropped again (a few times, as the modal can focus after the first frame).
+  const searchRef = useRef<TextInput>(null);
+  useEffect(() => {
+    const drop = () => {
+      searchRef.current?.blur();
+      if (Platform.OS === 'web') (document.activeElement as HTMLElement | null)?.blur?.();
+    };
+    const timers = [0, 80, 250, 600].map((ms) => setTimeout(drop, ms));
+    return () => timers.forEach(clearTimeout);
+  }, []);
 
   useEffect(() => {
     const id = sheetHeight.addListener(({ value }) => (currentHeight.current = value));
@@ -173,6 +185,8 @@ export const ServiceBrowseScreen: React.FC<ServiceBrowseScreenProps> = ({ servic
         <View style={styles.searchBox}>
           <Text style={styles.searchIcon}>🔍</Text>
           <TextInput
+            ref={searchRef}
+            autoFocus={false}
             style={styles.searchInput}
             placeholder="ගරාජයක් හෝ සේවාවක් සොයන්න..."
             placeholderTextColor={Colors.textMuted}
@@ -291,6 +305,7 @@ export const ServiceBrowseScreen: React.FC<ServiceBrowseScreenProps> = ({ servic
       </View>
       <GarageReviewsSheet
         garage={reviewsFor}
+        inquiryCategoryId={service.id}
         onClose={() => setReviewsFor(null)}
         onCall={reviewsFor ? () => Linking.openURL(`tel:${reviewsFor.phone.replace(/s/g, '')}`) : undefined}
         onBook={

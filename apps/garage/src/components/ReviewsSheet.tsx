@@ -1,3 +1,4 @@
+import { outline } from '../utils/material';
 import React, { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Colors, FONTS, themedStyles, softEdge, softShadow, softFill } from '@ongarage/shared';
@@ -135,12 +136,12 @@ const styles = themedStyles(() =>
     name: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.textMain },
     sub: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 1 },
     chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-    filter: { paddingHorizontal: 11, paddingVertical: 6, borderRadius: 18, borderWidth: 1, borderColor: softEdge(), backgroundColor: Colors.bgCard, ...softShadow() },
+    filter: { paddingHorizontal: 11, paddingVertical: 6, borderRadius: 18, borderWidth: 1, borderColor: outline(), backgroundColor: Colors.bgCard, ...softShadow() },
     filterActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
     filterText: { fontSize: 10.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
     filterTextActive: { color: '#fff' },
     empty: { fontSize: 11.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, textAlign: 'center', paddingVertical: 16 },
-    card: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), borderRadius: 20, padding: 14, gap: 6, ...softShadow() },
+    card: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), borderRadius: 20, padding: 14, gap: 6, ...softShadow() },
     cardLow: { borderColor: 'rgba(245, 158, 11, 0.4)' },
     stars: { fontSize: 13, color: Colors.warning, letterSpacing: 2 },
     text: { fontSize: 12.5, fontFamily: FONTS.bodyRegular, color: Colors.textSoft, lineHeight: 19 },

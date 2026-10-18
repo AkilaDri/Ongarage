@@ -1,3 +1,5 @@
+import { getThemeMode } from '@ongarage/shared';
+import { elevation1, outline } from '../../utils/material';
 import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { ActionButton, Colors, DEFAULT_COMMISSION_PERCENT, FitmentBadge, fitmentLevel, FONTS, martShop, money, PriceTagChip, priceTag, ReferralBadge, referralDisclosure, themedStyles, softEdge, softFill, type JobPartsRef, type PartBrief, type ShopOffer } from '@ongarage/shared';
@@ -33,21 +35,21 @@ export const ReserveSheet: React.FC<{ offer: ShopOffer | null; brief: PartBrief 
       title="කොටස වෙන් කර ගන්න"
       subtitle={`${o.shop.name} · ${brief.name} ×${o.qty}`}
       onClose={onClose}
-      footer={<ActionButton label={`වෙන් කර ගන්න · ${money(total)}`} icon="🔒" variant="primary" onPress={confirm} />}
+      footer={<ActionButton label={o.unitPrice ? `වෙන් කර ගන්න · ${money(total)}` : 'වෙන් කර ගන්න'} icon="🔒" variant="primary" onPress={confirm} />}
     >
       <View style={styles.card}>
         <View style={styles.rowBetween}>
           <Text style={styles.title}>
             {brief.name} ×{o.qty}
           </Text>
-          <Text style={styles.price}>{money(o.total)}</Text>
+          <Text style={styles.price}>{o.unitPrice ? money(o.total) : 'මිල කවුන්ටරයේදී'}</Text>
         </View>
         <Text style={styles.sub}>
           {o.partType}
           {o.brand ? ` · ${o.brand}` : ''} · වගකීම {o.warrantyMonths ? `මාස ${o.warrantyMonths}` : 'නැත'}
         </Text>
         <View style={styles.chips}>
-          <PriceTagChip tag={priceTag(brief.name, o.partType, o.unitPrice)} />
+          {o.unitPrice > 0 && <PriceTagChip tag={priceTag(brief.name, o.partType, o.unitPrice)} />}
         </View>
         <FitmentBadge level={fitmentLevel(brief, o.fitmentConfirmed)} />
       </View>
@@ -95,19 +97,19 @@ const styles = themedStyles(() =>
   StyleSheet.create({
     flex1: { flex: 1 },
     rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
-    card: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), borderRadius: 18, padding: 14, gap: 8 },
-    title: { fontSize: 14, fontFamily: FONTS.titleBold, color: Colors.textMain },
+    card: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), borderRadius: 12, padding: 16, gap: 8, ...elevation1() },
+    title: { fontSize: 15, fontFamily: FONTS.titleBold, color: Colors.textMain },
     price: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.successText },
-    sub: { fontSize: 11, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 17 },
+    sub: { fontSize: 12.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 19 },
     chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-    label: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, marginTop: 4 },
-    option: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 16, backgroundColor: softFill(), borderWidth: 1, borderColor: softEdge() },
-    optionOn: { borderColor: Colors.primary },
-    optionTitle: { fontSize: 12.5, fontFamily: FONTS.bodyBold, color: Colors.textMain },
+    label: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, marginTop: 4 },
+    option: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 8, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline() },
+    optionOn: { borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#d2e3fc', backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe' },
+    optionTitle: { fontSize: 14, fontFamily: FONTS.bodyBold, color: Colors.textMain },
     radio: { width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: Colors.subtleBorder, alignItems: 'center', justifyContent: 'center' },
     radioOn: { borderColor: Colors.primary },
     dot: { width: 10, height: 10, borderRadius: 5, backgroundColor: Colors.primary },
-    note: { gap: 4, padding: 12, borderRadius: 14, backgroundColor: softFill() },
-    disclosure: { gap: 6, padding: 12, borderRadius: 14, backgroundColor: 'rgba(2, 132, 199, 0.08)' },
+    note: { gap: 4, padding: 12, borderRadius: 8, backgroundColor: Colors.subtleFill },
+    disclosure: { gap: 6, padding: 12, borderRadius: 8, backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe' },
   })
 );

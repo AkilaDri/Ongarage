@@ -1,6 +1,7 @@
+import { VehicleLine } from '@ongarage/shared';
 import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { ActionButton, Colors, FONTS, themedStyles, softEdge, softFill } from '@ongarage/shared';
+import { ActionButton, CHECK_WINDOWS, Colors, FONTS, REPLY_LABEL, themedStyles, softEdge, softFill, type ShopReplyKind } from '@ongarage/shared';
 import { buyerLabel, courierFee, defaultEtaMin, useShop, variantFor, type OfferInput } from '../context/ShopContext';
 import { COURIER, listPrice } from '../constants/mockData';
 import { money } from '../utils/format';
@@ -12,11 +13,13 @@ const READY = [10, 15, 30, 60];
 const HOLD = [2, 4, 8, 24];
 const DEFAULT_WARRANTY: Record<QuoteType, number> = { Genuine: 12, OEM: 6, Recon: 1 };
 
-type Draft = { available: boolean; type: QuoteType; price: string; warranty: number; ready: number; hold: number; fit: boolean };
+const REPLIES: ShopReplyKind[] = ['have', 'none', 'check'];
+
+type Draft = { reply: ShopReplyKind; suggested: string[]; type: QuoteType; price: string; warranty: number; ready: number; hold: number; fit: boolean; checkMin: number };
 
 /** Answer a customer's enquiry: for each part, whether you have it, the type, price, warranty and when it is ready. */
 export const OfferSheet: React.FC<{ request: CustomerRequest | null; onClose: () => void }> = ({ request, onClose }) => {
-  const { profile, stock, respondToCustomer, passCustomer, priceWithDeal, liveDeal } = useShop();
+  const { profile, stock, respondToCustomer, priceWithDeal, liveDeal, neighboursFor } = useShop();
   const [shown, setShown] = useState<CustomerRequest | null>(request);
   const [drafts, setDrafts] = useState<Draft[]>([]);
   const [deliver, setDeliver] = useState(false);
@@ -32,14 +35,19 @@ export const OfferSheet: React.FC<{ request: CustomerRequest | null; onClose: ()
     const types = typesFor(b.partType);
     const type = types.find((t) => (variantFor(stock, b.name, t)?.qty ?? 0) >= b.qty) ?? types[0] ?? 'OEM';
     const v = variantFor(stock, b.name, type);
+    const inStock = !!v && v.qty >= b.qty;
     return {
-      available: !!v && v.qty >= b.qty,
+      // Stock is optional now: a shop that lists it starts from "have it", the rest choose.
+      reply: inStock ? 'have' : 'check',
+      suggested: [],
       type,
-      price: String(priceWithDeal(b.name, type, v?.price ?? listPrice(b.name, type))),
+      // The price is optional: it starts from the price list when the part is on it.
+      price: v ? String(priceWithDeal(b.name, type, v.price)) : '',
       warranty: DEFAULT_WARRANTY[type],
       ready: 15,
       hold: 4,
       fit: !!(b.vehicle.chassisNo || b.vehicle.engineNo),
+      checkMin: 60,
     };
   };
 
@@ -59,13 +67,14 @@ export const OfferSheet: React.FC<{ request: CustomerRequest | null; onClose: ()
   const method: 'courier' | 'shop' = profile.courierEnabled ? 'courier' : 'shop';
   const fee = method === 'courier' ? courierFee(r.distanceKm) : r.distanceKm <= 3 ? 0 : 300;
   const set = (i: number, change: Partial<Draft>) => setDrafts((prev) => prev.map((d, k) => (k === i ? { ...d, ...change } : d)));
+  const d0price = (i: number) => drafts[i].price;
   const pickType = (i: number, t: QuoteType) => {
     const b = e.briefs[i];
-    set(i, { type: t, price: String(priceWithDeal(b.name, t, variantFor(stock, b.name, t)?.price ?? listPrice(b.name, t))), warranty: DEFAULT_WARRANTY[t] });
+    const v = variantFor(stock, b.name, t);
+    set(i, { type: t, price: v ? String(priceWithDeal(b.name, t, v.price)) : d0price(i), warranty: DEFAULT_WARRANTY[t] });
   };
-  const anyAvailable = drafts.some((d) => d.available);
-  const valid = anyAvailable && drafts.every((d) => !d.available || Number(d.price) > 0);
-  const total = drafts.reduce((s, d, i) => (d.available ? s + (Number(d.price) || 0) * e.briefs[i].qty : s), 0);
+  const anyHave = drafts.some((d) => d.reply === 'have');
+  const total = drafts.reduce((s, d, i) => (d.reply === 'have' ? s + (Number(d.price) || 0) * e.briefs[i].qty : s), 0);
   const referred = !!e.jobRef && e.jobRef.recommendedShopIds.includes(profile.id);
 
   const submit = () => {
@@ -74,10 +83,12 @@ export const OfferSheet: React.FC<{ request: CustomerRequest | null; onClose: ()
       const v = variantFor(stock, b.name, d.type);
       return {
         briefId: b.id,
-        available: d.available,
+        available: d.reply === 'have',
+        reply: d.reply,
+        suggestedShopIds: d.reply === 'none' ? d.suggested : undefined,
         partType: d.type,
         brand: v?.brand,
-        unitPrice: d.available ? Number(d.price) || 0 : 0,
+        unitPrice: d.reply === 'have' ? Number(d.price) || 0 : 0,
         qty: b.qty,
         fitmentConfirmed: d.fit,
         warrantyMonths: d.warranty,
@@ -85,13 +96,10 @@ export const OfferSheet: React.FC<{ request: CustomerRequest | null; onClose: ()
         holdHours: d.hold,
         delivery: deliver ? { fee, etaMin: defaultEtaMin(method, r.distanceKm), courier: method === 'courier' ? COURIER : undefined } : undefined,
         note: note.trim() || undefined,
+        checkMin: d.reply === 'check' ? d.checkMin : undefined,
       };
     });
     respondToCustomer(r.id, inputs);
-    onClose();
-  };
-  const decline = () => {
-    passCustomer(r.id);
     onClose();
   };
 
@@ -101,13 +109,7 @@ export const OfferSheet: React.FC<{ request: CustomerRequest | null; onClose: ()
       title="ගනුදෙනුකරුට පිළිතුරු දෙන්න"
       subtitle={`${buyerLabel(r)} · කි.මී. ${r.distanceKm}`}
       onClose={onClose}
-      footer={
-        anyAvailable ? (
-          <ActionButton label={`පිළිතුර යවන්න · ${money(total)}`} icon="📨" variant="primary" disabled={!valid} onPress={submit} />
-        ) : (
-          <ActionButton label="තොගයේ නැත — මඟ හරින්න" icon="✕" variant="ghost" onPress={decline} />
-        )
-      }
+      footer={<ActionButton label={anyHave && total > 0 ? `පිළිතුර යවන්න · ${money(total)}` : 'පිළිතුර යවන්න'} icon="📨" variant="primary" onPress={submit} />}
     >
       {referred && (
         <View style={styles.referral}>
@@ -118,9 +120,7 @@ export const OfferSheet: React.FC<{ request: CustomerRequest | null; onClose: ()
       )}
 
       <View style={styles.vehicle}>
-        <Text style={styles.vehicleTitle}>
-          🚗 {e.briefs[0].vehicle.name} · {e.briefs[0].vehicle.plate}
-        </Text>
+        <VehicleLine vehicle={e.briefs[0].vehicle} textStyle={styles.vehicleTitle} />
         <Text style={styles.sub}>
           {[e.briefs[0].vehicle.make, e.briefs[0].vehicle.model, e.briefs[0].vehicle.year].filter(Boolean).join(' ')}
           {e.briefs[0].vehicle.chassisNo ? ` · Chassis ${e.briefs[0].vehicle.chassisNo}` : ''}
@@ -146,15 +146,38 @@ export const OfferSheet: React.FC<{ request: CustomerRequest | null; onClose: ()
                 </Text>
                 {!!b.note && <Text style={styles.sub}>“{b.note}”</Text>}
               </View>
-              <Pressable style={[styles.switch, d.available && styles.switchOn]} onPress={() => set(i, { available: !d.available })} accessibilityRole="switch" accessibilityState={{ checked: d.available }} accessibilityLabel={`Have ${b.name}`}>
-                <View style={[styles.knob, d.available && styles.knobOn]} />
-              </Pressable>
             </View>
-            <Text style={[styles.sub, have < b.qty && { color: Colors.warning }]}>
-              {types.length === 0 ? 'ඔබ මෙම වර්ගය අලෙවි නොකරයි' : `ඔබගේ තොගය: ${have}${have < b.qty ? ' — ප්‍රමාණවත් නැත' : ''}`}
-            </Text>
+            <View style={styles.chips}>
+              {REPLIES.map((k) => (
+                <Chip key={k} label={REPLY_LABEL[k]} on={d.reply === k} onPress={() => set(i, { reply: k })} />
+              ))}
+            </View>
+            {types.length === 0 ? <Text style={[styles.sub, { color: Colors.warning }]}>ඔබ මෙම වර්ගය අලෙවි නොකරයි</Text> : have > 0 ? <Text style={[styles.sub, have < b.qty && { color: Colors.warning }]}>මිල ලැයිස්තුවේ ඇති ප්‍රමාණය: {have}{have < b.qty ? ' — ප්‍රමාණවත් නැත' : ''}</Text> : null}
 
-            {d.available && (
+            {d.reply === 'check' && (
+              <>
+                <Text style={styles.label}>කොටස සොයා ගන්න ඔබට ඕන කාලය</Text>
+                <View style={styles.chips}>
+                  {CHECK_WINDOWS.map((w) => (
+                    <Chip key={w.min} label={w.label} on={d.checkMin === w.min} onPress={() => set(i, { checkMin: w.min })} />
+                  ))}
+                </View>
+                <Text style={styles.sub}>ඔබ කොටස සොයන අතරතුර ගනුදෙනුකරු ඔබගේ පිළිතුර බලා සිටී — “පැය 1ක් ඇතුළත දන්වයි” කියා ඔහුට පෙනේ. සොයා ගත්තාම නැවත පිළිතුරු දෙන්න.</Text>
+              </>
+            )}
+            {d.reply === 'none' && (
+              <>
+                <Text style={styles.label}>මෙම කොටස අලෙවි කරන අසල වෙළඳසැල් (උපරිම 3, විකල්ප)</Text>
+                {neighboursFor(b).length === 0 && <Text style={styles.sub}>යෝජනා කළ හැකි වෙළඳසැලක් නැත.</Text>}
+                <View style={styles.chips}>
+                  {neighboursFor(b).slice(0, 5).map((n) => (
+                    <Chip key={n.id} label={`${n.name} · ${n.distanceKm} km`} on={d.suggested.includes(n.id)} onPress={() => set(i, { suggested: d.suggested.includes(n.id) ? d.suggested.filter((x) => x !== n.id) : d.suggested.length < 3 ? [...d.suggested, n.id] : d.suggested })} />
+                  ))}
+                </View>
+              </>
+            )}
+
+            {d.reply === 'have' && (
               <>
                 <Text style={styles.label}>කොටස් වර්ගය</Text>
                 <View style={styles.chips}>
@@ -162,8 +185,8 @@ export const OfferSheet: React.FC<{ request: CustomerRequest | null; onClose: ()
                     <Chip key={t} label={t} on={d.type === t} onPress={() => pickType(i, t)} />
                   ))}
                 </View>
-                <Text style={styles.label}>ඒකකයක මිල (රු.) · වෙළඳපොළ {money(listPrice(b.name, d.type))}</Text>
-                <TextInput style={styles.input} value={d.price} onChangeText={(t) => set(i, { price: t.replace(/[^0-9]/g, '') })} keyboardType="number-pad" accessibilityLabel={`Price of ${b.name}`} />
+                <Text style={styles.label}>ඒකකයක මිල (රු.) — විකල්ප · වෙළඳපොළ {money(listPrice(b.name, d.type))}</Text>
+                <TextInput style={styles.input} value={d.price} onChangeText={(t) => set(i, { price: t.replace(/[^0-9]/g, '') })} keyboardType="number-pad" placeholder="මිල නොදී “තිබේ” යැයි පමණක් පිළිතුරු දිය හැක" placeholderTextColor={Colors.textMuted} accessibilityLabel={`Price of ${b.name}`} />
                 {!!liveDeal(b.name, d.type) && <Text style={styles.sub}>🏷️ ඔබගේ දීමනාව (−{liveDeal(b.name, d.type)!.discountPercent}%) ක්‍රියාත්මකයි — මිල ස්වයංක්‍රීයව අඩු කර ඇත.</Text>}
                 <Text style={styles.label}>වගකීම (මාස)</Text>
                 <View style={styles.chips}>

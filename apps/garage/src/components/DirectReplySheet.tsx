@@ -1,3 +1,5 @@
+import { CustomerBadge } from './CustomerBadge';
+import { outline } from '../utils/material';
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { ActionButton, categoryInfo, Colors, FONTS, GlassIcon, marketPrice, themedStyles, vehicleIcon, softFill, softEdge, softShadow } from '@ongarage/shared';
@@ -89,6 +91,7 @@ export const DirectReplySheet: React.FC<{ request: DirectRequest | null; mode: R
                 <Text style={styles.sub} numberOfLines={1}>
                   {vehicleIcon(shown.vehicle.type)} {shown.vehicle.name} · {shown.customer.name}
                 </Text>
+                <CustomerBadge customer={shown.customer} />
               </View>
             </View>
 
@@ -193,22 +196,22 @@ const styles = themedStyles(() =>
       overflow: 'hidden',
     },
     handle: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: Colors.subtleBorder },
-    headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, paddingTop: 12, gap: 10 },
+    headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 6, paddingTop: 12, gap: 10 },
     title: { flex: 1, fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textMain },
     closeBtn: { width: 30, height: 30, borderRadius: 15, backgroundColor: softFill(), borderWidth: 1, borderColor: 'transparent', justifyContent: 'center', alignItems: 'center' },
     closeText: { fontSize: 12, color: Colors.textMain },
-    body: { padding: 18, gap: 10 },
-    jobCard: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: 20, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), ...softShadow() },
+    body: { paddingVertical: 18, paddingHorizontal: 6, gap: 10 },
+    jobCard: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: 20, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), ...softShadow() },
     cardTitle: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.textMain },
     sub: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 1 },
     label: { fontSize: 13.5, fontFamily: FONTS.titleBold, color: Colors.textMain, marginTop: 6 },
     hint: { fontSize: 11, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 17 },
-    slot: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 18, borderWidth: 1, borderColor: softEdge(), backgroundColor: Colors.bgCard, ...softShadow() },
+    slot: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 18, borderWidth: 1, borderColor: outline(), backgroundColor: Colors.bgCard, ...softShadow() },
     slotActive: { borderColor: Colors.primary, backgroundColor: 'rgba(56, 189, 248, 0.08)' },
     slotTag: { fontSize: 10, fontFamily: FONTS.bodySemiBold },
     radio: { width: 18, height: 18, borderRadius: 9, borderWidth: 2, borderColor: Colors.subtleBorder },
     radioOn: { borderColor: Colors.primary, borderWidth: 6 },
-    priceBox: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, height: 52, borderRadius: 18, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), ...softShadow() },
+    priceBox: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, height: 52, borderRadius: 18, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), ...softShadow() },
     currency: { fontSize: 15, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
     priceInput: { flex: 1, fontSize: 20, fontWeight: '800', color: Colors.textMain },
     input: {
@@ -217,7 +220,7 @@ const styles = themedStyles(() =>
       borderRadius: 18,
       backgroundColor: Colors.bgCard,
       borderWidth: 1,
-      borderColor: softEdge(),
+      borderColor: outline(),
       color: Colors.textMain,
       fontSize: 13,
       fontFamily: FONTS.bodyMedium,

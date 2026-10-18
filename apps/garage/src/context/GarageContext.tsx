@@ -17,6 +17,7 @@ import {
   entitlementsFor,
   LEVELS,
   categoryInfo,
+  isServiceCategory,
   DEFAULT_WARRANTY_MONTHS,
   distanceKm,
   marketPrice,
@@ -24,6 +25,18 @@ import {
   offsetCoordinate,
   warrantyEnd,
   workshopBill,
+  makePayment,
+  collectPayment,
+  canRateCustomer,
+  settleCustomerRating,
+  summarizeCustomer,
+  markPaymentMissed as markMissed,
+  reschedulePayment,
+  answerClaim,
+  promiseAt,
+  dayText,
+  decideExtraByPhone,
+  deferExtra,
   type DiagnosisReport,
   type IntakeStatus,
   type SubscriptionPlan,
@@ -52,9 +65,13 @@ import {
   SOS_ARRIVAL_MS,
   SOS_POOL,
   TEAM,
+  CUSTOMER_HISTORY,
+  INQUIRIES,
+  arrivingInquiry,
 } from '../constants/mockData';
 import { formatDate } from '../utils/format';
-import type { Attendance, Booking, DirectRequest, Dispatch, DispatchStage, FeedJob, GarageProfile, JobDetails, MyBid, Notice, Review, SOSRequest, TeamMember } from '../types';
+import type { CustomerRating, CustomerRecord, CustomerTag } from '@ongarage/shared';
+import type { Attendance, Booking, Customer, DirectRequest, GarageInquiry, Dispatch, DispatchStage, FeedJob, GarageProfile, JobDetails, MyBid, Notice, Review, SOSRequest, TeamMember } from '../types';
 
 const MIN = 60 * 1000;
 const REQUEST_TTL_MS = 4 * MIN; // after this another garage is assumed to have taken it
@@ -74,7 +91,7 @@ const BOOKING_SLOT_MS = 90 * MIN;
 
 /** A booking this garage already has around that time, if any. */
 export const scheduleClash = (bookings: Booking[], at: number) =>
-  bookings.find((b) => b.status !== 'completed' && Math.abs(b.scheduledAt - at) < BOOKING_SLOT_MS) ?? null;
+  bookings.find((b) => b.status !== 'completed' && b.status !== 'cancelled' && Math.abs(b.scheduledAt - at) < BOOKING_SLOT_MS) ?? null;
 
 const makeDirect = (i: number, garage: GarageProfile, now: number): DirectRequest => {
   const { address, km, bearing, requestedMinAgo, day, hour, ...seed } = DIRECT_POOL[i];
@@ -106,7 +123,8 @@ const bookingFrom = (job: JobDetails, source: Booking['source'], at: number, pri
     locationSharedAt: job.doorstep ? undefined : Date.now(),
     id: `b-${job.id}`,
     source,
-    title: cat.name,
+    // A routine service says which one it is (Oil Change, Full Service…).
+    title: isServiceCategory(job.categoryId) && job.service ? `${cat.name} · ${job.service}` : cat.name,
     icon: cat.icon,
     customer: job.customer,
     vehicle: job.vehicle,
@@ -280,11 +298,30 @@ type GarageState = {
   /** Drop the open job entirely (declined at review, or finished). */
   closeDispatch: () => void;
   /** The technician asked for a repair charge above the quote. */
+  /** The job just closed with the owner's code and its payment has not been recorded: the prompt for it is open. */
+  payPromptId: string | null;
+  /** What the customer actually paid for a closed job: full, or a balance with a promised date (the customer confirms it). */
+  recordPayment: (id: string, input: { received: number; promisedAt?: number; note?: string }) => boolean;
+  dismissPayPrompt: () => void;
+  /** Customers' inquiries (from this garage's card in the owner app): each is a chat the garage answers. */
+  inquiries: GarageInquiry[];
+  /** What other garages have found about a customer: their payment records and the ratings garages gave (the badge on a job card). */
+  customerRecord: (customer: Customer) => CustomerRecord;
+  /** Rate the customer after a closed job (one per job): stars, fixed reasons and a short note. */
+  rateCustomer: (id: string, input: { stars: number; tags: CustomerTag[]; note?: string }) => boolean;
+  /** A payment on a balance arrived (all or part); the rest, if any, is promised for `nextAt`. */
+  collectPayment: (id: string, amount: number, nextAt?: number) => void;
+  /** The promised payment did not arrive: the customer is told and names a new day. */
+  markPaymentMissed: (id: string) => void;
+  /** The customer says they paid: confirm (it is received) or deny it. */
+  answerPaymentClaim: (id: string, ok: boolean) => void;
   approveRepairPrice: (approved: boolean) => void;
+  /** The same for any SOS job, not only the open one: the urgent bar answers it from every screen. */
+  approveRepairPriceFor: (id: string, approved: boolean) => void;
   /** Stop following the technician app and record the steps here. */
   takeOverDispatch: () => void;
 
-  placeBid: (job: FeedJob, bid: Pick<MyBid, 'price' | 'warrantyMonths' | 'estHours' | 'note'>) => void;
+  placeBid: (job: FeedJob, bid: Pick<MyBid, 'price' | 'travelFee' | 'warrantyMonths' | 'estHours' | 'note'>) => void;
   withdrawBid: (bidId: string) => void;
 
   /** Accept a direct booking at the owner's slot, or offer another time (the owner then decides). */
@@ -301,7 +338,23 @@ type GarageState = {
   sendDiagnosis: (id: string, report: DiagnosisReport) => void;
   /** Work found mid-repair: the owner approves it like the diagnosis; handover waits for the answer. */
   requestExtraWork: (id: string, extra: ExtraWorkRequest) => void;
-  markReadyForHandover: (id: string, report: HandoverReport) => void;
+  /** Change a report already sent (true when it could be changed: the owner has not answered it yet). */
+  editDiagnosis: (id: string, report: DiagnosisReport) => boolean;
+  editExtraWork: (id: string, extra: ExtraWorkRequest) => boolean;
+  /** The owner asked to cancel the job: approve it and state the compensation for the work done so far (true when it was sent). */
+  quoteCancel: (id: string, input: { compensation: number; workDone: string }) => boolean;
+  /** Answer the owner's request to fit another part: accept it (the price goes as extra work) or decline it with a reason. */
+  respondFit: (id: string, fitId: string, accept: boolean, declineReason?: string) => void;
+  /** Change the condition photos of a vehicle just received (true when it could be changed: the diagnosis has not been sent yet). */
+  editCheckIn: (id: string, photos: string[]) => boolean;
+  /** Add a detail (text and photos) to a job's card. */
+  addJobUpdate: (id: string, text: string, photos?: string[]) => void;
+  /** The owner told the garage / technician by phone which extra lines to do (no code; recorded as "by phone"). */
+  approveExtraByPhone: (id: string, extraId: string, approvedLineIds: string[]) => void;
+  /** The owner can't be reached: the job waits for them, free for the garage. */
+  holdExtraForOwner: (id: string, extraId: string) => void;
+  /** The owner can't be reached: put the extra work aside and finish the agreed work. */
+  deferExtraWork: (id: string, extraId: string) => void;  markReadyForHandover: (id: string, report: HandoverReport) => void;
   /** The owner reported a problem at handover: back to repairing. */
   startRework: (id: string) => void;
   /** The owner's QR / code checked out: close, start the warranty, book the money. */
@@ -331,7 +384,9 @@ export const GarageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   });
   const [dispatches, setDispatches] = useState<Dispatch[]>([]);
   const [openId, setOpenId] = useState<string | null>(null);
-  const [feed, setFeed] = useState<FeedJob[]>(() => FEED_POOL.slice(0, 4).map((_, i) => makeFeedJob(i, GARAGE, Date.now())));
+  const [payPromptId, setPayPromptId] = useState<string | null>(null);
+  const [feed, setFeed] = useState<FeedJob[]>(() => [0, 1, 2, 3, 5, 6].map((i) => makeFeedJob(i, GARAGE, Date.now())));
+  const [inquiries, setInquiries] = useState<GarageInquiry[]>(INQUIRIES);
   const [directs, setDirects] = useState<DirectRequest[]>(() => [makeDirect(0, GARAGE, Date.now()), makeDirect(1, GARAGE, Date.now())]);
   const [bids, setBids] = useState<MyBid[]>([]);
   const [bookings, setBookings] = useState<Booking[]>(BOOKINGS);
@@ -393,7 +448,9 @@ export const GarageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const t = setTimeout(() => {
       const job = makeFeedJob(4, live.current.profile, Date.now());
       job.postedAt = Date.now();
-      setFeed((prev) => [job, ...prev]);
+      // The arrival may only happen once (a hot reload or a changed notify must not post it twice).
+      if (live.current.feed.some((j) => j.id === job.id)) return;
+      setFeed((prev) => (prev.some((j) => j.id === job.id) ? prev : [job, ...prev]));
       if (live.current.profile.services.includes(job.categoryId)) {
         notify({ icon: '🔨', title: 'නව රැකියාවක් පළ විය', body: `${categoryInfo(job.categoryId).name} · කි.මී. ${job.distanceKm}`, tone: 'primary' });
       }
@@ -401,11 +458,22 @@ export const GarageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return () => clearTimeout(t);
   }, [notify]);
 
+  // A customer's inquiry arrives a little later (it opens as a chat in OnChat).
+  useEffect(() => {
+    const t = setTimeout(() => {
+      const q = arrivingInquiry();
+      setInquiries((prev) => (prev.some((x) => x.id === q.id) ? prev : [...prev, q]));
+      notify({ icon: '❓', title: 'නව විමසීමක්', body: `${q.customer.name} · ${categoryInfo(q.categoryId).name}${q.service ? ` · ${q.service}` : ''}`, tone: 'primary' });
+    }, 24000);
+    return () => clearTimeout(t);
+  }, [notify]);
+
   // A direct booking arrives a little later; unanswered ones lapse so the owner can go elsewhere.
   useEffect(() => {
     const t = setTimeout(() => {
       const d = makeDirect(2, live.current.profile, Date.now());
-      setDirects((prev) => [d, ...prev]);
+      if (live.current.directs.some((x) => x.id === d.id)) return;
+      setDirects((prev) => (prev.some((x) => x.id === d.id) ? prev : [d, ...prev]));
       notify({ icon: '📅', title: 'ඍජු වෙන්කිරීම් ඉල්ලීමක්', body: `${d.customer.name} ඔබව තෝරා ගත්තා · ${categoryInfo(d.categoryId).name}`, tone: 'primary' });
     }, DIRECT_ARRIVAL_MS);
     const sweep = setInterval(() => {
@@ -711,8 +779,8 @@ export const GarageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             const quote = d.quote?.price ?? 0;
             const asked = quote > 0 ? Math.round((quote * 1.3) / 50) * 50 : 2500;
             if (asked > quote) {
-              patch(id, { priceApproval: { amount: asked, status: 'pending' } });
-              notify({ icon: '💬', title: 'මිල අනුමැතිය අවශ්‍යයි', body: `${techName(id)} අලුත්වැඩියාවට රු. ${asked.toLocaleString()} ඉල්ලයි (ඇස්තමේන්තුව රු. ${quote.toLocaleString()}).`, tone: 'primary' });
+              patch(id, { priceApproval: { amount: asked, status: 'pending', askedAt: Date.now() } });
+              notify({ icon: '🚨', title: 'SOS — ක්ෂණික අනුමැතියක් අවශ්‍යයි', body: `${techName(id)} අලුත්වැඩියාවට රු. ${asked.toLocaleString()} ඉල්ලයි (ඇස්තමේන්තුව රු. ${quote.toLocaleString()}).`, tone: 'danger' });
             } else {
               patch(id, { repair: { amount: asked, needed: true } });
               continueRepair(id);
@@ -745,15 +813,22 @@ export const GarageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }, TECH_STEP_MS);
   };
 
-  const approveRepairPrice = useCallback((approved: boolean) => {
-    const id = live.current.openId;
+  const approveRepairPriceFor = useCallback((id: string, approved: boolean) => {
     const d = findDispatch(id);
-    if (!id || !d?.priceApproval || d.priceApproval.status !== 'pending') return;
+    if (!d?.priceApproval || d.priceApproval.status !== 'pending') return;
     const amount = approved ? d.priceApproval.amount : d.quote?.price ?? 0;
     patch(id, { priceApproval: { ...d.priceApproval, status: approved ? 'approved' : 'rejected' }, repair: { amount, needed: amount > 0 } });
     if (isApp(id)) continueRepair(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const approveRepairPrice = useCallback(
+    (approved: boolean) => {
+      const id = live.current.openId;
+      if (id) approveRepairPriceFor(id, approved);
+    },
+    [approveRepairPriceFor]
+  );
 
   const takeOverDispatch = useCallback(() => {
     const id = live.current.openId;
@@ -765,7 +840,7 @@ export const GarageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   // ---------- Bidding ----------
   const placeBid = useCallback(
-    (job: FeedJob, input: Pick<MyBid, 'price' | 'warrantyMonths' | 'estHours' | 'note'>) => {
+    (job: FeedJob, input: Pick<MyBid, 'price' | 'travelFee' | 'warrantyMonths' | 'estHours' | 'note'>) => {
       const jobId = job.id;
       // A won bid is booked tomorrow: it has to fit tomorrow's room (limited garages only).
       if (intakeRef.current(dayStart(Date.now()) + 24 * HOUR).remaining < input.price) {
@@ -780,13 +855,14 @@ export const GarageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       later(() => {
         const current = live.current.bids.find((b) => b.id === bid.id);
         if (!current || current.status !== 'pending' || current.submittedAt !== bid.submittedAt) return;
-        const won = bidWins(job, current.price);
+        // The travel fee is the owner's agreed compensation, not part of the price compared with the market.
+        const won = bidWins(job, current.price - (current.travelFee ?? 0));
         setBids((prev) => prev.map((b) => (b.id === bid.id ? { ...b, status: won ? 'won' : 'lost' } : b)));
         const cat = categoryInfo(job.categoryId);
         if (won) {
           const at = new Date(Date.now() + 24 * 60 * MIN);
           at.setHours(10, 0, 0, 0);
-          setBookings((prev) => [{ ...bookingFrom(job, 'bid', at.getTime(), current.price, current.note, current.warrantyMonths), id: `b-${bid.id}` }, ...prev]);
+          setBookings((prev) => [{ ...bookingFrom(job, 'bid', at.getTime(), current.price, current.note, current.warrantyMonths), id: `b-${bid.id}`, travelFee: current.travelFee }, ...prev]);
           setFeed((prev) => prev.filter((j) => j.id !== jobId));
           notify({ icon: '🏆', title: 'ඔබ ලංසුව දිනුවා!', body: `${cat.name} · ${job.customer.name} — වෙන් කිරීම කාලසටහනට එක් විය.`, tone: 'success' });
         } else {
@@ -891,9 +967,89 @@ export const GarageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       later(() => {
         const b = findBooking(id);
         if (b?.progress?.stage !== 'awaitingApproval') return;
-        patchProgress(id, { stage: 'repairing', decision: { approvedLineIds: report.lines.map((l) => l.id), declinedLineIds: [], decidedAt: Date.now() } });
-        notify({ icon: '✅', title: `${b.customer.name} අනුමත කළා`, body: report.lines.length ? `පේළි ${report.lines.length} ම අනුමතයි — අලුත්වැඩියාව අරඹන්න.` : 'අලුත්වැඩියාව අරඹන්න.', tone: 'success' });
+        const current = b.progress.diagnosis ?? report;
+        patchProgress(id, { stage: 'repairing', decision: { approvedLineIds: current.lines.map((l) => l.id), declinedLineIds: [], decidedAt: Date.now() } });
+        notify({ icon: '✅', title: `${b.customer.name} අනුමත කළා`, body: current.lines.length ? `පේළි ${current.lines.length} ම අනුමතයි — අලුත්වැඩියාව අරඹන්න.` : 'අලුත්වැඩියාව අරඹන්න.', tone: 'success' });
       }, CUSTOMER_REPLY_MS + 1500);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [later, notify, patchProgress]
+  );
+
+  const editDiagnosis = useCallback(
+    (id: string, report: DiagnosisReport) => {
+      const b = findBooking(id);
+      if (b?.progress?.stage !== 'awaitingApproval') return false;
+      patchProgress(id, { diagnosis: report });
+      notify({ icon: '✏️', title: 'පරීක්ෂා වාර්තාව වෙනස් කළා', body: 'අයිතිකරුට යාවත්කාලීන කළ වාර්තාව පෙනේ.', tone: 'primary' });
+      return true;
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [notify, patchProgress]
+  );
+
+  const editExtraWork = useCallback(
+    (id: string, extra: ExtraWorkRequest) => {
+      const b = findBooking(id);
+      const old = b?.progress?.extras?.find((e) => e.id === extra.id);
+      if (!b?.progress || !old || old.decision) return false;
+      patchProgress(id, { extras: b.progress.extras!.map((e) => (e.id === extra.id ? { ...e, ...extra, sentAt: e.sentAt, waitingSince: e.waitingSince } : e)) });
+      notify({ icon: '✏️', title: 'අමතර වැඩ ඉල්ලීම වෙනස් කළා', body: 'අයිතිකරුට යාවත්කාලීන කළ ඉල්ලීම පෙනේ.', tone: 'primary' });
+      return true;
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [notify, patchProgress]
+  );
+
+  const editCheckIn = useCallback(
+    (id: string, photos: string[]) => {
+      const st = findBooking(id)?.progress?.stage;
+      if (st !== 'diagnosing' && st !== 'received') return false;
+      patchProgress(id, { checkInPhotos: photos });
+      notify({ icon: '✏️', title: 'ලැබුණු ඡායාරූප වෙනස් කළා', body: 'අයිතිකරුට යාවත්කාලීන කළ ඡායාරූප පෙනේ.', tone: 'primary' });
+      return true;
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [notify, patchProgress]
+  );
+
+  const respondFit = useCallback(
+    (id: string, fitId: string, accept: boolean, declineReason?: string) => {
+      const b = findBooking(id);
+      const r = b?.progress?.fitRequests?.find((x) => x.id === fitId);
+      if (!b?.progress || !r || r.status !== 'requested') return;
+      patchProgress(id, { fitRequests: b.progress.fitRequests!.map((x) => (x.id === fitId ? { ...x, status: accept ? ('accepted' as const) : ('declined' as const), decidedAt: Date.now(), declineReason: accept ? undefined : declineReason } : x)) });
+      notify(accept ? { icon: '✅', title: 'ඉල්ලීම පිළිගත්තා', body: `${r.partName} සවි කිරීම — මිල අමතර වැඩ ඉල්ලීමක් ලෙස යවන්න.`, tone: 'success' } : { icon: '✖', title: 'ඉල්ලීම ප්‍රතික්ෂේප කළා', body: `${b.customer.name} ට හේතුව දැනුම් දුන්නා.`, tone: 'primary' });
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [notify, patchProgress]
+  );
+
+  const quoteCancel = useCallback(
+    (id: string, input: { compensation: number; workDone: string }) => {
+      const b = findBooking(id);
+      const req = b?.progress?.cancelRequest;
+      if (!b || !req || req.status !== 'requested') return false;
+      const compensation = Math.max(0, Math.round(input.compensation));
+      const quotedAt = Date.now();
+      patchProgress(id, { cancelRequest: { ...req, status: 'quoted', compensation, workDone: input.workDone.trim() || undefined, quotedAt } });
+      notify({ icon: '💰', title: 'වන්දි යෝජනාව යැවුවා', body: `${b.customer.name} ට රු. ${compensation.toLocaleString('en-US')} ක වන්දියක් දැනුම් දුන්නා.`, tone: 'primary' });
+      // Simulated owner: a fair compensation is accepted (the job is cancelled and the garage rated), a very high one is turned down and the work goes on.
+      later(() => {
+        const cur = findBooking(id);
+        const cr = cur?.progress?.cancelRequest;
+        if (!cur || !cr || cr.status !== 'quoted' || cr.quotedAt !== quotedAt) return;
+        if (compensation <= cur.price * 0.6) {
+          const cancelled = { at: Date.now(), by: 'owner' as const, reason: cr.reason, note: cr.note, rating: 4, compensation, workDone: cr.workDone, feeNote: compensation ? `වන්දි රු. ${compensation.toLocaleString('en-US')} ඔබට ලැබේ.` : 'ගාස්තුවක් නැත.' };
+          patchProgress(id, { cancelRequest: undefined, cancelled });
+          setBookings((prev) => prev.map((x) => (x.id === id ? { ...x, status: 'cancelled' as const, cancelled } : x)));
+          notify({ icon: '❌', title: `${cur.customer.name} රැකියාව අවලංගු කළා`, body: `වන්දිය රු. ${compensation.toLocaleString('en-US')} ක් පිළිගත්තා.`, tone: 'primary' });
+        } else {
+          patchProgress(id, { cancelRequest: undefined });
+          notify({ icon: '↩️', title: `${cur.customer.name} ඉල්ලීම ඉවත් කළා`, body: 'වන්දිය වැඩි යැයි සලකා රැකියාව දිගටම කරගෙන යයි.', tone: 'primary' });
+        }
+      }, 8000);
+      return true;
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [later, notify, patchProgress]
@@ -909,7 +1065,8 @@ export const GarageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       later(() => {
         const cur = findBooking(id);
         const x = cur?.progress?.extras?.find((e) => e.id === extra.id);
-        if (!cur?.progress || !x || x.decision) return;
+        // An owner the garage couldn't reach answers later (see holdExtraForOwner).
+        if (!cur?.progress || !x || x.decision || x.waitingSince) return;
         const decision = { approvedLineIds: x.lines.map((l) => l.id), declinedLineIds: [], decidedAt: Date.now() };
         patchProgress(id, { extras: cur.progress.extras!.map((e) => (e.id === extra.id ? { ...e, decision } : e)) });
         notify({ icon: '✅', title: `${cur.customer.name} අමතර වැඩ අනුමත කළා`, body: x.lines.some((l) => l.kind === 'part' && l.source === 'order') ? 'දැන් එම කොටස් ඇණවුම් කරන්න.' : 'වැඩ කරගෙන යන්න.', tone: 'success' });
@@ -917,6 +1074,58 @@ export const GarageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [later, notify, patchProgress]
+  );
+
+  const addJobUpdate = useCallback((id: string, text: string, photos?: string[]) => {
+    const clean = text.trim();
+    if (!clean && !photos?.length) return;
+    const update = { id: 'u-' + Date.now(), at: Date.now(), text: clean, photos: photos?.length ? photos : undefined };
+    setBookings((prev) => prev.map((b) => (b.id === id ? { ...b, updates: [...(b.updates ?? []), update] } : b)));
+  }, []);
+
+  const patchExtra = useCallback(
+    (id: string, extraId: string, change: (x: ExtraWorkRequest) => ExtraWorkRequest) => {
+      const b = findBooking(id);
+      if (!b?.progress?.extras?.some((e) => e.id === extraId && !e.decision)) return false;
+      patchProgress(id, { extras: b.progress.extras.map((e) => (e.id === extraId ? change(e) : e)) });
+      return true;
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [patchProgress]
+  );
+
+  const approveExtraByPhone = useCallback(
+    (id: string, extraId: string, approvedLineIds: string[]) => {
+      if (!patchExtra(id, extraId, (x) => decideExtraByPhone(x, approvedLineIds, Date.now()))) return;
+      notify({ icon: '📞', title: 'දුරකථනයෙන් අනුමත කළ බව සටහන් කළා', body: 'අයිතිකරුටද මෙය යෙදුමේ පෙනේ. අනුමත පේළි පමණක් අය කෙරේ.', tone: 'success' });
+    },
+    [notify, patchExtra]
+  );
+
+  const holdExtraForOwner = useCallback(
+    (id: string, extraId: string) => {
+      if (!patchExtra(id, extraId, (x) => ({ ...x, waitingSince: x.waitingSince ?? Date.now() }))) return;
+      notify({ icon: '⏳', title: 'අයිතිකරු එනතුරු රැඳී සිටී', body: 'රැඳී සිටීම නොමිලේයි — ගාස්තුවක් හෝ ප්‍රමාද දඩයක් නැත.', tone: 'primary' });
+      // Simulated owner: calls back later and approves.
+      later(() => {
+        const cur = findBooking(id);
+        const x = cur?.progress?.extras?.find((e) => e.id === extraId);
+        if (!cur?.progress || !x || x.decision) return;
+        const decision = { approvedLineIds: x.lines.map((l) => l.id), declinedLineIds: [], decidedAt: Date.now() };
+        patchProgress(id, { extras: cur.progress.extras!.map((e) => (e.id === extraId ? { ...e, decision } : e)) });
+        notify({ icon: '✅', title: `${cur.customer.name} අමතර වැඩ අනුමත කළා`, body: 'වැඩ කරගෙන යන්න.', tone: 'success' });
+      }, CUSTOMER_REPLY_MS * 4);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [later, notify, patchExtra, patchProgress]
+  );
+
+  const deferExtraWork = useCallback(
+    (id: string, extraId: string) => {
+      if (!patchExtra(id, extraId, (x) => deferExtra(x, Date.now()))) return;
+      notify({ icon: '➡️', title: 'අමතර වැඩ පසුවට තැබුවා', body: 'එකඟ වූ වැඩ අවසන් කරන්න. අයිතිකරුට “පසුව කළ යුතු” ලෙස පෙනේ.', tone: 'primary' });
+    },
+    [notify, patchExtra]
   );
 
   const markReadyForHandover = useCallback(
@@ -948,6 +1157,110 @@ export const GarageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     [patchProgress]
   );
 
+  const recordPayment = useCallback(
+    (id: string, input: { received: number; promisedAt?: number; note?: string }) => {
+      const b = findBooking(id);
+      if (!b?.progress || b.progress.stage !== 'closed' || b.progress.payment) return false;
+      const total = b.progress.handover?.bill.total ?? b.price + (b.partsCost ?? 0);
+      const payment = makePayment(total, input.received, input);
+      patchProgress(id, { payment });
+      setPayPromptId(null);
+      notify(
+        payment.status === 'paid'
+          ? { icon: '💰', title: 'ගෙවීම සටහන් කළා', body: `රු. ${total.toLocaleString('en-US')} සම්පූර්ණයි.`, tone: 'success' }
+          : { icon: '📝', title: 'ඉතිරි මුදල සටහන් කළා', body: `${b.customer.name} ඉතිරි රු. ${payment.balance.toLocaleString('en-US')} ක් පොරොන්දු දිනයට ගෙවිය යුතුයි.`, tone: 'primary' }
+      );
+      // Simulated customer: confirms the record a little later.
+      if (payment.status === 'partial')
+        later(() => {
+          const cur = findBooking(id)?.progress?.payment;
+          if (cur?.confirm === 'pending') patchProgress(id, { payment: { ...cur, confirm: 'confirmed', decidedAt: Date.now() } });
+        }, CUSTOMER_REPLY_MS);
+      return true;
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [later, notify, patchProgress]
+  );
+  const dismissPayPrompt = useCallback(() => setPayPromptId(null), []);
+
+  const customerRecord = useCallback(
+    (c: Customer): CustomerRecord => {
+      const h = CUSTOMER_HISTORY[c.phone];
+      const mine = bookings.filter((b) => b.customer.phone === c.phone);
+      return summarizeCustomer(
+        [...(h?.ratings ?? []), ...mine.flatMap((b) => (b.progress?.customerRating ? [b.progress.customerRating] : []))],
+        [...(h?.payments ?? []), ...mine.map((b) => b.progress?.payment)]
+      );
+    },
+    [bookings]
+  );
+
+  const rateCustomer = useCallback(
+    (id: string, input: { stars: number; tags: CustomerTag[]; note?: string }) => {
+      const b = findBooking(id);
+      if (!b?.progress || !canRateCustomer(b.progress)) return false;
+      const rating: CustomerRating = { id: `cr-${id}`, jobId: id, garage: live.current.profile.name, stars: Math.min(5, Math.max(1, Math.round(input.stars))), tags: input.tags, note: input.note?.trim() || undefined, at: Date.now() };
+      patchProgress(id, { customerRating: rating });
+      notify({ icon: '⭐', title: 'පාරිභෝගිකයා ශ්‍රේණිගත කළා', body: `${b.customer.name} · ★${rating.stars} — එය අනෙක් ගරාජවලට පෙනෙන වාර්තාවට එක් වේ.`, tone: 'success' });
+      // Simulated customer: answers a low rating.
+      if (rating.stars <= 2)
+        later(() => {
+          const cur = findBooking(id)?.progress?.customerRating;
+          if (cur && !cur.reply) patchProgress(id, { customerRating: { ...cur, reply: { text: 'ඉක්මනින් ගෙවන්නම්, ප්‍රමාද වීම ගැන කණගාටුයි.', at: Date.now() } } });
+        }, CUSTOMER_REPLY_MS);
+      return true;
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [later, notify, patchProgress]
+  );
+
+  const collectPaymentOn = useCallback(
+    (id: string, amount: number, nextAt?: number) => {
+      const b = findBooking(id);
+      const pay = b?.progress?.payment;
+      if (!b?.progress || !pay || pay.balance <= 0) return;
+      const next = collectPayment(pay, amount, { nextAt });
+      patchProgress(id, { payment: next, ...(next.balance <= 0 && b.progress.customerRating ? { customerRating: settleCustomerRating(b.progress.customerRating) } : {}) });
+      notify(
+        next.balance <= 0
+          ? { icon: '💰', title: 'ඉතිරි ගෙවීම ලැබුණා', body: `${b.customer.name} සම්පූර්ණයෙන් ගෙවා අවසන්.`, tone: 'success' }
+          : { icon: '📝', title: 'ගෙවීමක් සටහන් කළා', body: `ඉතිරි රු. ${next.balance.toLocaleString('en-US')} ක් ${dayText(next.promisedAt ?? Date.now())} දිනට.`, tone: 'primary' }
+      );
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [notify, patchProgress]
+  );
+
+  const markPaymentMissed = useCallback(
+    (id: string) => {
+      const b = findBooking(id);
+      const pay = b?.progress?.payment;
+      if (!b?.progress || !pay || pay.balance <= 0 || pay.missedAt) return;
+      patchProgress(id, { payment: markMissed(pay) });
+      notify({ icon: '⏰', title: 'ගෙවුවේ නැති බව දැනුම් දුන්නා', body: `${b.customer.name} ට මතක් කර, ගෙවිය හැකි නව දිනයක් ඉල්ලුවා.`, tone: 'primary' });
+      // Simulated customer: names a new day a little later.
+      later(() => {
+        const cur = findBooking(id)?.progress?.payment;
+        if (cur?.missedAt) patchProgress(id, { payment: reschedulePayment(cur, promiseAt(3)) });
+      }, CUSTOMER_REPLY_MS);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [later, notify, patchProgress]
+  );
+
+  const answerPaymentClaim = useCallback(
+    (id: string, ok: boolean) => {
+      const b = findBooking(id);
+      const pay = b?.progress?.payment;
+      if (!b?.progress || !pay?.claim || pay.claim.status !== 'pending') return;
+      const after = answerClaim(pay, ok);
+      patchProgress(id, { payment: after, ...(after.balance <= 0 && b.progress.customerRating ? { customerRating: settleCustomerRating(b.progress.customerRating) } : {}) });
+      notify(ok ? { icon: '✅', title: 'ගෙවීම තහවුරු කළා', body: `${b.customer.name} ගේ ගෙවීම ලැබුණා.`, tone: 'success' } : { icon: '✖', title: 'ගෙවීම ලැබී නැති බව දැනුම් දුන්නා', body: `${b.customer.name} ට දැනුම් දුන්නා.`, tone: 'primary' });
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [notify, patchProgress]
+  );
+
   const closeWorkshopJob = useCallback(
     (id: string) => {
       const b = findBooking(id);
@@ -975,6 +1288,8 @@ export const GarageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             : x
         )
       );
+      // Handed over is not the same as paid: ask what the customer actually paid.
+      setPayPromptId(id);
       notify({ icon: '🎉', title: 'රැකියාව අවසන්', body: `${b.customer.name} කේතයෙන් තහවුරු කළා · මාස ${b.warrantyMonths ?? DEFAULT_WARRANTY_MONTHS} වගකීම ආරම්භ විය.`, tone: 'success' });
       // Simulated owner: rates the job on the four dimensions a little later (owner app: RatingSheet).
       later(() => {
@@ -1018,7 +1333,8 @@ export const GarageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const closed = bookings.filter((b) => b.status === 'completed');
     return computeTrustScore({
       ratings,
-      jobsAccepted: TRUST_HISTORY.jobsAccepted + bookings.length,
+      // A job the owner cancelled is not the garage's failure: it does not count against its completion rate.
+      jobsAccepted: TRUST_HISTORY.jobsAccepted + bookings.filter((b) => b.status !== 'cancelled').length,
       jobsClosed: TRUST_HISTORY.jobsClosed + closed.length,
       // A problem the owner reported that needed rework counts against the garage.
       disputes: TRUST_HISTORY.disputes + bookings.filter((b) => b.progress?.dispute).length,
@@ -1066,7 +1382,7 @@ export const GarageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         // Capacity: today's register; later days assume the whole team.
         mechanicsPresent: dayStart(day) === dayStart(Date.now()) && crew.confirmed ? crew.presentIds.length : team.length,
         // New work on that day (SOS is never limited: it's an emergency).
-        todaysJobValues: bookings.filter((b) => b.source !== 'sos' && dayStart(b.scheduledAt) === dayStart(day)).map((b) => b.price),
+        todaysJobValues: bookings.filter((b) => b.source !== 'sos' && b.status !== 'cancelled' && dayStart(b.scheduledAt) === dayStart(day)).map((b) => b.price),
         planMultiplier: subscription?.plan.intakeMultiplier,
       }),
     [limitFrom, crew, team, bookings, subscription]
@@ -1086,7 +1402,7 @@ export const GarageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   }, [notify]);
   const monthWon = useMemo(() => {
     const m = new Date();
-    return FAIRNESS_SEED.monthWonBefore + bookings.filter((b) => b.source !== 'sos' && new Date(b.scheduledAt).getMonth() === m.getMonth()).reduce((s, b) => s + b.price, 0);
+    return FAIRNESS_SEED.monthWonBefore + bookings.filter((b) => b.source !== 'sos' && b.status !== 'cancelled' && new Date(b.scheduledAt).getMonth() === m.getMonth()).reduce((s, b) => s + b.price, 0);
   }, [bookings]);
   const valueCheck = subscription ? valueGuarantee(subscription.plan.fee, monthWon) : null;
   const rising = isRisingGarage({ monthsOnApp: TRUST_HISTORY.monthsOnApp, score: trust.score, closedJobs: levelStats.closedJobs });
@@ -1153,7 +1469,17 @@ export const GarageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     completeRepair,
     confirmQrScan,
     closeDispatch,
+    payPromptId,
+    recordPayment,
+    dismissPayPrompt,
+    inquiries,
+    customerRecord,
+    rateCustomer,
+    collectPayment: collectPaymentOn,
+    markPaymentMissed,
+    answerPaymentClaim,
     approveRepairPrice,
+    approveRepairPriceFor,
     takeOverDispatch,
     placeBid,
     withdrawBid,
@@ -1162,7 +1488,16 @@ export const GarageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     shareLocation,
     receiveVehicle,
     sendDiagnosis,
+    editDiagnosis,
+    editExtraWork,
+    editCheckIn,
+    respondFit,
+    quoteCancel,
     requestExtraWork,
+    addJobUpdate,
+    approveExtraByPhone,
+    holdExtraForOwner,
+    deferExtraWork,
     markReadyForHandover,
     startRework,
     closeWorkshopJob,

@@ -1,3 +1,5 @@
+import { outline } from '../../utils/material';
+import { getThemeMode } from '@ongarage/shared';
 import React, { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Colors, FONTS, Gradient, themedStyles, type MartBanner } from '@ongarage/shared';
@@ -78,14 +80,14 @@ export const MartBannerCarousel: React.FC<{ banners: MartBanner[]; onOpen: (b: M
 const styles = themedStyles(() =>
   StyleSheet.create({
     wrap: { gap: 8 },
-    banner: { height: 136, borderRadius: 18, overflow: 'hidden', justifyContent: 'flex-end' },
+    banner: { height: 136, borderRadius: 12, overflow: 'hidden', justifyContent: 'flex-end' },
     emoji: { position: 'absolute', right: 14, top: 18, fontSize: 64, opacity: 0.95 },
     adPill: { position: 'absolute', top: 10, left: 10, paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6, backgroundColor: 'rgba(255, 255, 255, 0.85)' },
     adText: { fontSize: 9.5, fontWeight: '800', color: '#0f172a' },
     copy: { padding: 14, gap: 2, paddingRight: 90 },
     title: { fontSize: 16, fontFamily: FONTS.titleBold, color: '#fff' },
     subtitle: { fontSize: 10.5, fontFamily: FONTS.bodyMedium, color: 'rgba(255, 255, 255, 0.92)' },
-    cta: { alignSelf: 'flex-start', marginTop: 6, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10, backgroundColor: '#f59e0b' },
+    cta: { alignSelf: 'flex-start', marginTop: 6, paddingHorizontal: 12, height: 28, justifyContent: 'center', borderRadius: 14, backgroundColor: '#f59e0b' },
     ctaText: { fontSize: 11, fontFamily: FONTS.bodyBold, color: '#fff' },
     dots: { flexDirection: 'row', justifyContent: 'center', gap: 5 },
     dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: Colors.subtleBorder },

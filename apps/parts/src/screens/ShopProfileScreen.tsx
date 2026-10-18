@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Colors, FONTS, GlassIcon, SERVICE_CATEGORIES, ThemeToggle, themedStyles, useTheme, softEdge, softShadow, softFill, PinnedEdge, usePinnedEdge, getThemeMode, ShopCard, COMMISSION_CAP_PERCENT, monthKey, partCategory, partMarketPrice, shopStatement, statementTotals } from '@ongarage/shared';
 import { useShop } from '../context/ShopContext';
 import { COURIER } from '../constants/mockData';
@@ -23,7 +23,9 @@ const RADIUS_PRESETS = [3, 5, 10, 15, 20];
 type SheetId = 'reviews' | 'catalogue' | 'riders' | 'card' | 'referrals' | 'promo' | null;
 
 export const ShopProfileScreen: React.FC = () => {
-  const { profile, rating, reviews, setRadius, setDelivery, listing, referrals, demand, setReferralPercent, setLiveStock, serviceScore, stats, addItem, deals, promo } = useShop();
+  const { profile, rating, reviews, setRadius, setDelivery, listing, referrals, demand, setReferralPercent, setLiveStock, serviceScore, stats, addItem, deals, promo, setupFeedback, sendSetupFeedback } = useShop();
+  const [fbStars, setFbStars] = useState(0);
+  const [fbText, setFbText] = useState('');
   const refTotals = statementTotals(shopStatement(referrals, profile.id, monthKey(Date.now())));
   const { isDark, toggle } = useTheme();
   const [sheet, setSheet] = useState<SheetId>(null);
@@ -171,6 +173,28 @@ export const ShopProfileScreen: React.FC = () => {
           දීමනා {deals.filter((d) => d.endsAt > Date.now()).length} · {promo.freeDeliveryOver ? `රු. ${promo.freeDeliveryOver.toLocaleString()}+ නොමිලේ බෙදාහැරීම` : 'නොමිලේ බෙදාහැරීමක් නැත'} · {promo.banner ? (promo.banner.status === 'live' ? 'දැන්වීම සක්‍රීයයි' : 'දැන්වීම සමාලෝචනයේ') : 'දැන්වීමක් නැත'}
         </Text>
       </Pressable>
+
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>🙋 සැකසීම ගැන ඔබේ අදහස</Text>
+        {setupFeedback ? (
+          <Text style={styles.sub}>{'★'.repeat(setupFeedback.stars)} ස්තූතියි — ඔබේ අදහස ලැබුණා.</Text>
+        ) : (
+          <>
+            <Text style={styles.sub}>Catalogue සකස් කිරීම කොපමණ පහසු වුණාද? ඔබේ අදහස අපට සැකසීම වඩා හොඳ කරන්න උදව් වේ.</Text>
+            <View style={styles.presets}>
+              {[1, 2, 3, 4, 5].map((n) => (
+                <Pressable key={n} style={[styles.preset, fbStars >= n && styles.presetOn]} onPress={() => setFbStars(n)} accessibilityLabel={`Setup rate ${n}`}>
+                  <Text style={styles.presetText}>★ {n}</Text>
+                </Pressable>
+              ))}
+            </View>
+            <TextInput style={styles.sub} value={fbText} onChangeText={setFbText} placeholder="අපහසු වූ තැන් හෝ අඩු කොටස් (විකල්ප)" placeholderTextColor={Colors.textMuted} accessibilityLabel="Setup feedback text" />
+            <Pressable style={[styles.preset, styles.presetOn, !fbStars && { opacity: 0.4 }]} disabled={!fbStars} onPress={() => sendSetupFeedback(fbStars, fbText)} accessibilityLabel="Send setup feedback">
+              <Text style={styles.presetText}>අදහස යවන්න</Text>
+            </Pressable>
+          </>
+        )}
+      </View>
 
       <Text style={styles.sectionLabel}>සැකසුම්</Text>
       <View style={styles.list}>

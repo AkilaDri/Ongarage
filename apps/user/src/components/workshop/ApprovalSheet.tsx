@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { ActionButton, Colors, FONTS, INSPECTION_FEE, PhotoStrip, themedStyles, workshopBill } from '@ongarage/shared';
+import { ActionButton, Colors, FONTS, INSPECTION_FEE, PhotoStrip, themedStyles, VoiceNotePlayer, workshopBill } from '@ongarage/shared';
 import { useWorkshops, type OwnerWorkshop } from '../../context/WorkshopContext';
 import { formatTime, money } from '../../utils/format';
 import { Sheet } from '../Sheet';
@@ -11,8 +11,14 @@ import { Sheet } from '../Sheet';
  * the inspection fee only. With `extraId`, the same for extra work found mid-repair
  * (saying no to all of it just means the garage finishes the agreed work).
  */
-export const ApprovalSheet: React.FC<{ workshop: OwnerWorkshop | null; extraId?: string; onClose: () => void }> = ({ workshop, extraId, onClose }) => {
-  const { approveDiagnosis, decideExtra, declineDiagnosis } = useWorkshops();
+export const ApprovalSheet: React.FC<{
+  workshop: OwnerWorkshop | null;
+  extraId?: string;
+  onClose: () => void;
+  /** The answer was already given: change it (the chat's edit chip on the owner's answer line). */
+  change?: boolean;
+}> = ({ workshop, extraId, onClose, change }) => {
+  const { approveDiagnosis, decideExtra, declineDiagnosis, changeDiagnosisDecision, changeExtraDecision } = useWorkshops();
   const [shown, setShown] = useState(workshop);
   const [picked, setPicked] = useState<string[]>([]);
   const [confirmStop, setConfirmStop] = useState(false);
@@ -21,17 +27,20 @@ export const ApprovalSheet: React.FC<{ workshop: OwnerWorkshop | null; extraId?:
     if (!workshop) return;
     setShown(workshop);
     const x = extraId ? workshop.progress.extras?.find((e) => e.id === extraId) : undefined;
-    setPicked((x ? x.lines : (workshop.progress.diagnosis?.lines ?? [])).map((l) => l.id));
+    const given = x ? x.decision?.approvedLineIds : workshop.progress.decision?.approvedLineIds;
+    setPicked(change && given ? given : (x ? x.lines : (workshop.progress.diagnosis?.lines ?? [])).map((l) => l.id));
     setConfirmStop(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workshop?.id]);
 
   const w = workshop ?? shown;
   const x = extraId ? w?.progress.extras?.find((e) => e.id === extraId) : undefined;
-  const d = x ? { findings: x.reason, photos: x.photos, lines: x.lines, finishBy: 0 } : w?.progress.diagnosis;
+  const d = x ? { findings: x.reason, photos: x.photos, voiceNotes: x.voiceNotes, lines: x.lines, finishBy: 0 } : w?.progress.diagnosis;
   if (!w || !d) return null;
   // Extra work builds on what is already approved; a diagnosis on the agreed price.
-  const base = x ? workshopBill(w.agreedPrice, w.progress).total : w.agreedPrice;
+  // (When changing an answer, the bill without this answer is the base.)
+  const baseProgress = change && x ? { ...w.progress, extras: w.progress.extras?.map((e) => (e.id === x.id ? { ...e, decision: undefined } : e)) } : w.progress;
+  const base = x ? workshopBill(w.agreedPrice, baseProgress).total : w.agreedPrice;
   // Parts the owner buys themselves (in OnMart) are paid to the shop, not added to the garage's bill.
   const extra = d.lines.filter((l) => picked.includes(l.id) && l.source !== 'owner').reduce((s, l) => s + l.price, 0);
   const total = base + extra;
@@ -40,7 +49,7 @@ export const ApprovalSheet: React.FC<{ workshop: OwnerWorkshop | null; extraId?:
   return (
     <Sheet
       visible={!!workshop}
-      title={x ? 'අමතර වැඩ — ඔබගේ අනුමැතියට' : 'පරීක්ෂා වාර්තාව'}
+      title={`${x ? 'අමතර වැඩ — ඔබගේ අනුමැතියට' : 'පරීක්ෂා වාර්තාව'}${change ? ' · වෙනස් කිරීම' : ''}`}
       subtitle={x ? `${w.garageName} · අලුත්වැඩියාව අතරතුර හමු විය` : `${w.garageName} · අවසන් කිරීමට ${formatTime(d.finishBy)} පමණ`}
       onClose={onClose}
       footer={
@@ -67,13 +76,14 @@ export const ApprovalSheet: React.FC<{ workshop: OwnerWorkshop | null; extraId?:
         ) : (
           <View style={styles.row}>
             <View style={styles.flex1}>
-              {x ? (
+              {x || change ? (
                 <ActionButton
                   label="කිසිවක් එපා"
                   variant="ghost"
                   compact
                   onPress={() => {
-                    decideExtra(w.id, x.id, []);
+                    if (x) (change ? changeExtraDecision : decideExtra)(w.id, x.id, []);
+                    else changeDiagnosisDecision(w.id, []);
                     onClose();
                   }}
                 />
@@ -83,12 +93,15 @@ export const ApprovalSheet: React.FC<{ workshop: OwnerWorkshop | null; extraId?:
             </View>
             <View style={styles.flex2}>
               <ActionButton
-                label={`අනුමත කරන්න · ${money(total)}`}
+                label={`${change ? 'වෙනස්කම් සුරකින්න' : 'අනුමත කරන්න'} · ${money(total)}`}
                 icon="✓"
                 variant="success"
                 compact
                 onPress={() => {
-                  if (x) decideExtra(w.id, x.id, picked);
+                  if (change) {
+                    if (x) changeExtraDecision(w.id, x.id, picked);
+                    else changeDiagnosisDecision(w.id, picked);
+                  } else if (x) decideExtra(w.id, x.id, picked);
                   else approveDiagnosis(w.id, picked);
                   onClose();
                 }}
@@ -102,6 +115,7 @@ export const ApprovalSheet: React.FC<{ workshop: OwnerWorkshop | null; extraId?:
         <Text style={styles.label}>ගරාජය සොයාගත් දේ</Text>
         <Text style={styles.text}>{d.findings}</Text>
         {!!d.photos?.length && <PhotoStrip photos={d.photos} height={80} />}
+        {d.voiceNotes?.map((n, i) => <VoiceNotePlayer key={n.id} note={n} index={i} />)}
       </View>
 
       <Text style={styles.label}>ඔබ එකඟ වන දේ තෝරන්න</Text>
@@ -117,7 +131,7 @@ export const ApprovalSheet: React.FC<{ workshop: OwnerWorkshop | null; extraId?:
               </Text>
               {l.kind === 'part' && (
                 <Text style={styles.sub}>
-                  {l.partType} · {l.source === 'order' ? 'ඔබ අනුමත කළ පසු ඇණවුම් කරයි' : l.source === 'owner' ? 'ඔබ OnMart හි මිලදී ගන්න — වෙළඳසැලට ගෙවන්න, ගරාජයේ බිලට නොවේ' : 'ගරාජයේ තොගයේ'}
+                  {l.partType} · {l.source === 'order' ? 'ඔබ අනුමත කළ පසු ඇණවුම් කරයි' : l.source === 'owner' ? 'ඔබ OnMart හි මිලදී ගත යුතුය — වෙළඳසැලට ගෙවන්න, ගරාජයේ බිලට නොවේ' : 'ගරාජයේ තොගයේ'}
                 </Text>
               )}
             </View>

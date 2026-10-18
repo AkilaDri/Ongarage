@@ -26,7 +26,7 @@ export const OfferTiles = <T extends Tile>({ offers, onOpen }: { offers: T[]; on
 const styles = themedStyles(() =>
   StyleSheet.create({
     row: { gap: 10, paddingRight: 8 },
-    tile: { width: 132, height: 150, borderRadius: 18, overflow: 'hidden', padding: 12, gap: 2 },
+    tile: { width: 132, height: 150, borderRadius: 12, overflow: 'hidden', padding: 12, gap: 2 },
     pressed: { opacity: 0.85 },
     title: { fontSize: 14, fontFamily: FONTS.titleBold, color: '#fff' },
     subtitle: { fontSize: 10.5, fontFamily: FONTS.bodyMedium, color: 'rgba(255, 255, 255, 0.9)', lineHeight: 14 },

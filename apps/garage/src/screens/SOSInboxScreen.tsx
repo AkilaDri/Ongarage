@@ -1,3 +1,5 @@
+import { VehicleLine } from '@ongarage/shared';
+import { elevation1, outline, pageBg } from '../utils/material';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Easing, PanResponder, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
@@ -296,9 +298,7 @@ export const SOSInboxScreen: React.FC = () => {
           <GlassIcon emoji={info.icon} />
           <View style={styles.flex1}>
             <Text style={styles.cardTitle}>{info.label}</Text>
-            <Text style={styles.sub}>
-              {vehicleIcon(r.vehicle.type)} {r.vehicle.name} · {r.vehicle.plate}
-            </Text>
+            <VehicleLine vehicle={r.vehicle} textStyle={styles.sub} />
           </View>
           <View style={styles.agePill}>
             <Text style={styles.ageText}>{ago(now - r.requestedAt)}</Text>
@@ -567,7 +567,7 @@ const styles = themedStyles(() =>
     mapDim: { ...StyleSheet.absoluteFill, backgroundColor: '#000' },
     bannerLayer: { position: 'absolute', top: 12, left: 16, right: 16, zIndex: 5 },
 
-    banner: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 22, padding: 16, overflow: 'hidden' },
+    banner: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 12, padding: 16, overflow: 'hidden' },
     sosBanner: { backgroundColor: '#dc2626', shadowColor: '#dc2626', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 18, elevation: 6 },
     bannerGlass: { ...StyleSheet.absoluteFill },
     liveBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'flex-start', backgroundColor: 'rgba(255, 255, 255, 0.18)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, marginBottom: 4 },
@@ -580,29 +580,29 @@ const styles = themedStyles(() =>
     countNum: { fontSize: 20, fontWeight: '900', color: '#fff', lineHeight: 22 },
     countLabel: { fontSize: 9.5, fontFamily: FONTS.bodyBold, color: '#fff' },
 
-    card: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), borderRadius: 20, padding: 14, gap: 10, ...softShadow() },
+    card: { backgroundColor: Colors.bgCard, borderRadius: 12, borderWidth: 1, borderColor: outline(), ...elevation1(), padding: 16, gap: 12 },
     offlineCard: { flexDirection: 'row', alignItems: 'center', gap: 12 },
     goOnline: { paddingHorizontal: 14, paddingVertical: 9, borderRadius: 20, backgroundColor: Colors.success },
     goOnlineText: { fontSize: 11.5, fontFamily: FONTS.bodyBold, color: '#fff' },
     topStack: { position: 'absolute', left: 16, right: 16, zIndex: 6, gap: 8 },
     crewBadge: { alignSelf: 'flex-start', marginTop: 6, paddingHorizontal: 9, paddingVertical: 3, borderRadius: 10, backgroundColor: 'rgba(255, 255, 255, 0.18)' },
     crewText: { fontSize: 10, fontWeight: '800', color: '#fff' },
-    attendCard: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 10, paddingLeft: 12, borderRadius: 22, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: getThemeMode() === 'dark' ? 'rgba(245, 158, 11, 0.5)' : 'transparent', ...softShadow() },
+    attendCard: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, paddingLeft: 14, borderRadius: 12, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: getThemeMode() === 'dark' ? 'rgba(245, 158, 11, 0.5)' : '#f5d68a', ...elevation1() },
     attendTitle: { fontSize: 12.5, fontFamily: FONTS.titleBold, color: Colors.textMain },
     attendPill: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 18, backgroundColor: Colors.warning },
-    activeCard: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 10, paddingLeft: 12, borderRadius: 22, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: getThemeMode() === 'dark' ? 'rgba(16, 185, 129, 0.5)' : 'transparent', ...softShadow() },
+    activeCard: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, paddingLeft: 14, borderRadius: 12, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: getThemeMode() === 'dark' ? 'rgba(16, 185, 129, 0.5)' : '#a8dab5', ...elevation1() },
     activeLabel: { fontSize: 10, fontFamily: FONTS.bodySemiBold, color: Colors.success },
     resumePill: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 18, backgroundColor: Colors.success },
     resumeText: { fontSize: 11, fontFamily: FONTS.bodyBold, color: '#fff' },
-    cardTitle: { fontSize: 13.5, fontFamily: FONTS.titleBold, color: Colors.textMain },
-    sub: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 1 },
+    cardTitle: { fontSize: 15, fontFamily: FONTS.titleBold, color: Colors.textMain },
+    sub: { fontSize: 12.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 2 },
 
     pinAnchor: { position: 'absolute', transform: [{ translateX: '-50%' }, { translateY: '-50%' }], alignItems: 'center', justifyContent: 'center' },
     requestPin: { width: 34, height: 34, borderRadius: 17, backgroundColor: '#ef4444', borderWidth: 3, borderColor: '#fff', justifyContent: 'center', alignItems: 'center', shadowColor: '#dc2626', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.45, shadowRadius: 10, elevation: 5 },
     pinRaised: { zIndex: 3 },
     requestPinSelected: { transform: [{ scale: 1.25 }], shadowOpacity: 0.7, shadowRadius: 16 },
-    callout: { position: 'absolute', width: CALLOUT_W, zIndex: 10, padding: 14, gap: 10, borderRadius: 24, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), shadowColor: '#0f172a', shadowOffset: { width: 0, height: 14 }, shadowOpacity: getThemeMode() === 'dark' ? 0.55 : 0.22, shadowRadius: 28, elevation: 14 },
-    caret: { position: 'absolute', width: 16, height: 16, borderRadius: 3, backgroundColor: Colors.bgCard, borderColor: softEdge(), transform: [{ rotate: '45deg' }] },
+    callout: { position: 'absolute', width: CALLOUT_W, zIndex: 10, padding: 16, gap: 12, borderRadius: 12, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), shadowColor: '#3c4043', shadowOffset: { width: 0, height: 6 }, shadowOpacity: getThemeMode() === 'dark' ? 0.5 : 0.25, shadowRadius: 12, elevation: 10 },
+    caret: { position: 'absolute', width: 16, height: 16, borderRadius: 3, backgroundColor: Colors.bgCard, borderColor: outline(), transform: [{ rotate: '45deg' }] },
     caretDown: { bottom: -7, borderRightWidth: 1, borderBottomWidth: 1 },
     caretUp: { top: -7, borderLeftWidth: 1, borderTopWidth: 1 },
     calloutClose: { width: 30, height: 30, borderRadius: 15, backgroundColor: softFill(), justifyContent: 'center', alignItems: 'center' },
@@ -610,29 +610,14 @@ const styles = themedStyles(() =>
     garagePin: { width: 36, height: 36, borderRadius: 18, backgroundColor: Colors.success, borderWidth: 3, borderColor: '#fff', justifyContent: 'center', alignItems: 'center', shadowColor: '#059669', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 10, elevation: 5 },
     pinEmoji: { fontSize: 14 },
 
-    sheet: {
-      position: 'absolute',
-      left: 0,
-      right: 0,
-      bottom: NAV_H,
-      userSelect: 'none',
-      backgroundColor: Colors.sheetBg,
-      borderTopLeftRadius: 28,
-      borderTopRightRadius: 28,
-      overflow: 'hidden',
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: -6 },
-      shadowOpacity: getThemeMode() === 'dark' ? 0.6 : 0.12,
-      shadowRadius: 20,
-      elevation: 14,
-    },
+    sheet: { position: 'absolute', left: 0, right: 0, bottom: NAV_H, userSelect: 'none', backgroundColor: pageBg(), borderTopLeftRadius: 28, borderTopRightRadius: 28, overflow: 'hidden', shadowColor: '#3c4043', shadowOffset: { width: 0, height: -2 }, shadowOpacity: getThemeMode() === 'dark' ? 0.6 : 0.16, shadowRadius: 8, elevation: 10 },
     handleHit: { alignSelf: 'center', paddingVertical: 8, paddingHorizontal: 30 },
     handle: { width: 40, height: 4, borderRadius: 2, backgroundColor: Colors.subtleBorder },
 
     chipsLayer: { position: 'absolute', top: 22, left: 0, right: 0 },
-    categoryRow: { paddingHorizontal: 16, gap: 14, paddingTop: 10 },
+    categoryRow: { paddingHorizontal: 6, gap: 14, paddingTop: 10 },
     catItem: { alignItems: 'center', gap: 6, width: 84 },
-    catTile: { width: 60, height: 60, borderRadius: 30, ...softCard(), justifyContent: 'center', alignItems: 'center' },
+    catTile: { width: 60, height: 60, borderRadius: 30, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), ...elevation1(), justifyContent: 'center', alignItems: 'center' },
     catEmoji: { fontSize: 26 },
     catBadge: {
       position: 'absolute',
@@ -643,33 +628,33 @@ const styles = themedStyles(() =>
       paddingHorizontal: 5,
       borderRadius: 11,
       borderWidth: 2,
-      borderColor: Colors.sheetBg,
+      borderColor: pageBg(),
       backgroundColor: '#ef4444',
       alignItems: 'center',
       justifyContent: 'center',
     },
     catBadgeText: { fontSize: 10.5, fontWeight: '900', color: '#fff' },
-    catLabel: { fontSize: 10.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain, textAlign: 'center' },
+    catLabel: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textMain, textAlign: 'center' },
     emptyPeek: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingTop: 22 },
     emptyPeekIcon: { fontSize: 18 },
 
     listLayer: { position: 'absolute', top: 22, left: 0, right: 0, bottom: 0 },
-    listHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingBottom: 10 },
+    listHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 6, paddingBottom: 10 },
     listTitle: { flex: 1, fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textMain },
-    filterPill: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, backgroundColor: 'rgba(239, 68, 68, 0.12)' },
-    filterText: { fontSize: 10.5, fontFamily: FONTS.bodySemiBold, color: Colors.errorText },
+    filterPill: { paddingHorizontal: 12, height: 28, justifyContent: 'center', borderRadius: 8, backgroundColor: getThemeMode() === 'dark' ? 'rgba(239, 68, 68, 0.12)' : '#fce8e6' },
+    filterText: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.errorText },
     minimize: { width: 34, height: 34, borderRadius: 17, backgroundColor: softFill(), justifyContent: 'center', alignItems: 'center' },
-    list: { paddingHorizontal: 16, paddingBottom: 24, gap: 12 },
+    list: { paddingHorizontal: 6, paddingBottom: 24, gap: 12 },
 
-    agePill: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, backgroundColor: 'rgba(239, 68, 68, 0.12)' },
-    ageText: { fontSize: 10, fontFamily: FONTS.bodySemiBold, color: Colors.errorText },
-    note: { fontSize: 12, fontFamily: FONTS.bodyRegular, color: Colors.textSoft, fontStyle: 'italic' },
-    chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-    chip: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 14, backgroundColor: softFill() },
-    chipEarn: { backgroundColor: 'rgba(16, 185, 129, 0.12)' },
-    chipText: { fontSize: 10.5, fontFamily: FONTS.bodyMedium, color: Colors.textMuted },
-    address: { fontSize: 11, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
+    agePill: { paddingHorizontal: 10, height: 24, justifyContent: 'center', borderRadius: 6, backgroundColor: getThemeMode() === 'dark' ? 'rgba(239, 68, 68, 0.12)' : '#fce8e6' },
+    ageText: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: Colors.errorText },
+    note: { fontSize: 13.5, fontFamily: FONTS.bodyRegular, color: Colors.textSoft, fontStyle: 'italic', lineHeight: 20 },
+    chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    chip: { paddingHorizontal: 10, height: 28, justifyContent: 'center', borderRadius: 8, borderWidth: 1, borderColor: outline(), backgroundColor: Colors.bgCard },
+    chipEarn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(16, 185, 129, 0.12)' : '#e6f4ea', borderColor: 'transparent' },
+    chipText: { fontSize: 12, fontFamily: FONTS.bodyMedium, color: Colors.textSoft },
+    address: { fontSize: 12.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
     actions: { flexDirection: 'row', gap: 10 },
-    hint: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, textAlign: 'center' },
+    hint: { fontSize: 12, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, textAlign: 'center' },
   })
 );

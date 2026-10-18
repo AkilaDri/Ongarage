@@ -1,4 +1,4 @@
-import type { Garage, VoiceNote } from '@ongarage/shared';
+import type { Garage, PartsFitting, VoiceNote } from '@ongarage/shared';
 
 // Owner-side views of what the owner sends to garages. When a backend exists these
 // are what the garage app receives as direct requests (its DirectRequest type).
@@ -17,6 +17,8 @@ export type DirectBookingInput = {
   doorstep: boolean;
   photos: string[];
   voiceNotes: VoiceNote[];
+  /** Parts Fitting (category 15): the part to fit and who supplies it. */
+  fitting?: PartsFitting;
 };
 
 /**

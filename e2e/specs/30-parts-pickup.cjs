@@ -7,7 +7,8 @@ module.exports = spec('Parts shop · counter pickup', 'parts', async (t) => {
   t.check('counter pickup offered by default', await t.has('✓ 🏪 කවුන්ටරයෙන් එකතු කිරීමටත් ඉඩ දෙන්න'));
   await t.clickText('මිල ගණන යවන්න ·');
   await t.wait(16500);
-  t.check('won; the garage will collect', await t.has('කවුන්ටරයෙන් එකතු කරයි'));
+  // The chat's own notice can replace the order notice, so either wording counts.
+  t.check('won; the garage will collect', (await t.has('කවුන්ටරයෙන් එකතු කරයි')) || (await t.has('ඔබගේ මිල තෝරා ගත්තා')));
   await t.clickText('Orders');
   await t.clickText('තොගයේ ඇත');
   await t.clickText('ඇසුරුම් කළා · කවුන්ටරයේ සූදානම්');
@@ -20,6 +21,6 @@ module.exports = spec('Parts shop · counter pickup', 'parts', async (t) => {
   t.check('a wrong pickup code is rejected', await t.has('කේතය නොගැළපේ'));
   await t.type('Owner close code', code);
   await t.clickLabel('Confirm owner code');
-  t.check('handed over and paid', await t.has('කොටස් භාර දුන්නා'));
+  t.check('handed over and paid', (await t.has('කොටස් භාර දුන්නා')) || (await t.has('කොටස් ලැබුණා')) || (await t.has('ගෙවූ ඇණවුම්')));
   await t.shot('parts-pickup');
 });

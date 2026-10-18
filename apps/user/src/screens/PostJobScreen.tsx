@@ -1,10 +1,12 @@
+import { VehicleLine } from '@ongarage/shared';
+import { elevation1, outline, pageBg } from '../utils/material';
 import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Animated, Easing, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, getThemeMode, themedStyles } from '@ongarage/shared';
 import { FONTS } from '@ongarage/shared';
 import { MOCK_GARAGES } from '../constants/mockData';
-import { SERVICE_CATEGORIES, type PartType } from '@ongarage/shared';
+import { FITTING_SUPPLY, PARTS_FITTING_CATEGORY_ID, SERVICE_CATEGORIES, type PartsFitting, type PartType } from '@ongarage/shared';
 import { useVehicles } from '../context/VehiclesContext';
 import { VehiclePicker } from '../components/Header';
 import { GoogleMap } from '@ongarage/shared';
@@ -171,7 +173,10 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, defaultVehi
   const [categoryId, setCategoryId] = useState<string | null>(draft?.categoryId ?? null);
   const [description, setDescription] = useState(draft?.description ?? '');
   // Republishing keeps the fault details but asks for parts and timer again.
-  const [sparePart, setSparePart] = useState<PartType | null>(null);
+  const [sparePart, setSparePart] = useState<PartType | null>(draft?.fitting?.supply === 'owner' ? 'GarageChoice' : null);
+  // Parts Fitting: the part to fit and who supplies it.
+  const [fitPart, setFitPart] = useState(draft?.fitting?.partName ?? '');
+  const [fitSupply, setFitSupply] = useState<PartsFitting['supply']>(draft?.fitting?.supply ?? 'owner');
   const [biddingHours, setBiddingHours] = useState<number | null>(null);
   const [doorstep, setDoorstep] = useState(false);
   const [showVehiclePicker, setShowVehiclePicker] = useState(false);
@@ -191,7 +196,8 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, defaultVehi
   const buddyFloat = useRef(new Animated.Value(0)).current;
 
   const vehicle = findVehicle(vehicleId);
-  const essentials = [categoryId !== null, description.trim().length > 0, sparePart !== null, biddingHours !== null];
+  const fitting = categoryId === PARTS_FITTING_CATEGORY_ID;
+  const essentials = [categoryId !== null, description.trim().length > 0, sparePart !== null || (fitting && fitSupply === 'owner'), biddingHours !== null, !fitting || fitPart.trim().length > 0];
   const percent = essentials.filter(Boolean).length * 25;
   const isComplete = percent === 100;
 
@@ -252,12 +258,14 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, defaultVehi
   };
 
   const submit = () => {
-    if (!isComplete || !categoryId || !sparePart || biddingHours === null) return;
+    if (!isComplete || !categoryId || (!sparePart && !(fitting && fitSupply === 'owner')) || biddingHours === null) return;
+    const fittingInfo: PartsFitting | undefined = fitting ? { partName: fitPart.trim(), supply: fitSupply } : undefined;
     postJob({
       categoryId,
-      description: description.trim(),
+      description: fittingInfo ? `${description.trim()}\n🔩 සවි කළ යුතු කොටස: ${fittingInfo.partName} (${FITTING_SUPPLY.find((x) => x.id === fittingInfo.supply)?.short})` : description.trim(),
+      fitting: fittingInfo,
       vehicleId,
-      sparePart,
+      sparePart: sparePart ?? 'GarageChoice',
       doorstep,
       biddingHours,
       address: user.address,
@@ -447,10 +455,7 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, defaultVehi
           <GlassIcon emoji="🚗" />
           <View style={styles.flex1}>
             <Text style={styles.eyebrow}>තෝරාගත් වාහනය</Text>
-            <Text style={styles.cardTitle}>{vehicle.name}</Text>
-            <Text style={styles.cardSub}>
-              {vehicle.plate} · {vehicle.type}
-            </Text>
+            <VehicleLine vehicle={vehicle} textStyle={styles.cardTitle} />
           </View>
           <View style={styles.changePill}>
             <Text style={styles.changePillText}>වෙනස් කරන්න</Text>
@@ -490,6 +495,23 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, defaultVehi
             value={description}
             onChangeText={setDescription}
           />
+          {fitting && (
+            <View style={{ gap: 8 }} accessibilityLabel="Parts fitting details">
+              <Text style={styles.eyebrow}>සවි කළ යුතු කොටස</Text>
+              <TextInput style={styles.textArea} placeholder="උදා: ඉදිරිපස බ්‍රේක් පෑඩ් සෙට් එක" placeholderTextColor={Colors.textMuted} value={fitPart} onChangeText={setFitPart} accessibilityLabel="Part to fit" />
+              <Text style={styles.eyebrow}>කොටස සපයන්නේ කවුද?</Text>
+              <View style={styles.choiceGrid}>
+                {FITTING_SUPPLY.map((s) => {
+                  const active = fitSupply === s.id;
+                  return (
+                    <Pressable key={s.id} style={[styles.choice, active && styles.choiceActive]} onPress={() => setFitSupply(s.id)} accessibilityLabel={`Part supplied by ${s.id}`}>
+                      <Text style={[styles.choiceText, active && styles.choiceTextActive]}>{s.label}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+          )}
           <Text style={styles.eyebrow}>ඡායාරූප සහ හඬ සටහන් (විකල්ප)</Text>
           <MediaAttachments photos={photos} voiceNotes={voiceNotes} onPhotos={setPhotos} onVoiceNotes={setVoiceNotes} />
         </StepCard>
@@ -586,7 +608,7 @@ const fieldEdge = () => (isDay() ? '#b9c6d6' : 'transparent');
 const SOFT_SHADOW = { shadowColor: '#0f172a', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.1, shadowRadius: 16, elevation: 3 } as const;
 
 const styles = themedStyles(() => StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.bgBody },
+  container: { flex: 1, backgroundColor: pageBg() },
   flex1: { flex: 1 },
   rowCenter: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
@@ -616,36 +638,36 @@ const styles = themedStyles(() => StyleSheet.create({
   progressTrack: { height: 6, marginHorizontal: 6, marginTop: 12, borderRadius: 3, overflow: 'hidden', backgroundColor: isDay() ? '#d5dde8' : Colors.subtleBorder },
   progressFill: { height: '100%', borderRadius: 3, backgroundColor: Colors.primary },
   body: { paddingHorizontal: 6, paddingTop: 10, gap: 10, paddingBottom: 20 },
-  eyebrow: { fontSize: 10.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, letterSpacing: 0.3 },
-  changePill: { paddingHorizontal: 12, height: 30, borderRadius: 15, justifyContent: 'center', backgroundColor: 'rgba(56, 189, 248, 0.15)' },
-  changePillText: { fontSize: 11, fontFamily: FONTS.bodyBold, color: Colors.primary },
-  stepCard: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: cardEdge(), borderRadius: 22, padding: 12, gap: 10, ...SOFT_SHADOW },
+  eyebrow: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, letterSpacing: 0.3 },
+  changePill: { paddingHorizontal: 12, height: 30, borderRadius: 8, justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe' },
+  changePillText: { fontSize: 12, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
+  stepCard: { backgroundColor: Colors.bgCard, borderRadius: 12, borderWidth: 1, borderColor: outline(), ...elevation1(), padding: 16, gap: 12 },
   stepHead: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   stepBadge: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.primary },
   stepBadgeDone: { backgroundColor: Colors.success },
   stepBadgeText: { fontSize: 17, fontFamily: FONTS.titleBold, color: '#ffffff' },
   stepBadgeTextDone: { color: '#ffffff', fontSize: 18 },
-  stepTitle: { fontSize: 15, fontFamily: FONTS.titleBold, color: Colors.textMain },
-  toggleRow: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: 18, backgroundColor: fieldFill(), borderWidth: 1, borderColor: fieldEdge() },
-  toggleRowOn: { borderColor: Colors.primary, backgroundColor: 'rgba(56, 189, 248, 0.1)' },
+  stepTitle: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textMain },
+  toggleRow: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 8, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline() },
+  toggleRowOn: { borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#d2e3fc', backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe' },
   // Same heading style as the Home screen's sections.
-  sectionLabel: { fontSize: 14.5, fontFamily: FONTS.titleBold, color: Colors.textMain, marginTop: 6 },
-  required: { fontSize: 10, fontFamily: FONTS.bodySemiBold, color: Colors.warning, marginTop: 4 },
-  hint: { fontSize: 11, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
-  card: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: cardEdge(), borderRadius: 20, padding: 14, gap: 10, ...SOFT_SHADOW },
-  cardActive: { borderWidth: 1, borderColor: Colors.primary, backgroundColor: 'rgba(56, 189, 248, 0.08)' },
-  cardTitle: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.textMain },
-  cardSub: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 1 },
-  link: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
+  sectionLabel: { fontSize: 14, fontFamily: FONTS.bodyBold, color: Colors.primary, letterSpacing: 0.2, marginTop: 6 },
+  required: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: Colors.warning, marginTop: 4 },
+  hint: { fontSize: 12, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 18 },
+  card: { backgroundColor: Colors.bgCard, borderRadius: 12, borderWidth: 1, borderColor: outline(), ...elevation1(), padding: 16, gap: 12 },
+  cardActive: { borderWidth: 1, borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#d2e3fc', backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe' },
+  cardTitle: { fontSize: 15, fontFamily: FONTS.titleBold, color: Colors.textMain },
+  cardSub: { fontSize: 12.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 2 },
+  link: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
 
-  buddyBanner: { borderRadius: 18, padding: 16, gap: 8, overflow: 'hidden', backgroundColor: '#0ea5e9' },
+  buddyBanner: { borderRadius: 12, padding: 16, gap: 8, overflow: 'hidden', backgroundColor: '#0ea5e9' },
   buddyOpen: { borderColor: 'rgba(56, 189, 248, 0.5)', backgroundColor: 'rgba(14, 165, 233, 0.08)' },
   buddyEmoji: { fontSize: 22 },
   buddyTitle: { fontSize: 12.5, fontFamily: FONTS.bodyBold, color: '#fff', letterSpacing: 0.5 },
   buddySub: { fontSize: 11.5, fontFamily: FONTS.bodyRegular, color: 'rgba(255, 255, 255, 0.9)', lineHeight: 17 },
-  pill: { paddingHorizontal: 12, paddingVertical: 5, borderRadius: 14, backgroundColor: Colors.subtleFill },
+  pill: { paddingHorizontal: 12, height: 28, justifyContent: 'center', borderRadius: 8, backgroundColor: Colors.subtleFill },
   pillText: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
-  buddyInput: { minHeight: 56, color: Colors.textMain, fontSize: 13, fontFamily: FONTS.bodyRegular, textAlignVertical: 'top', paddingVertical: 4 },
+  buddyInput: { minHeight: 56, color: Colors.textMain, fontSize: 14, fontFamily: FONTS.bodyRegular, textAlignVertical: 'top', paddingVertical: 4 },
   micBtn: { width: 40, height: 40, borderRadius: 20, ...glassStyle(), justifyContent: 'center', alignItems: 'center' },
   micBtnOn: { backgroundColor: 'rgba(239, 68, 68, 0.35)', borderColor: Colors.error },
   micText: { fontSize: 17 },
@@ -654,18 +676,18 @@ const styles = themedStyles(() => StyleSheet.create({
   buddyStatus: { paddingTop: 4 },
   questions: { gap: 12 },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  metaChip: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10, backgroundColor: Colors.subtleFill },
-  metaChipText: { fontSize: 10.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
-  safety: { padding: 10, borderRadius: 12, borderWidth: 1, borderColor: Colors.error, backgroundColor: 'rgba(239, 68, 68, 0.12)', gap: 4 },
+  metaChip: { paddingHorizontal: 8, height: 20, justifyContent: 'center', borderRadius: 6, backgroundColor: Colors.subtleFill },
+  metaChipText: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
+  safety: { padding: 12, borderRadius: 8, borderWidth: 1, borderColor: Colors.error, backgroundColor: getThemeMode() === 'dark' ? 'rgba(239, 68, 68, 0.12)' : '#fce8e6', gap: 4 },
   safetyTitle: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: Colors.errorText },
   safetyAction: { fontSize: 11.5, fontFamily: FONTS.bodyBold, color: Colors.errorText, textDecorationLine: 'underline' },
   question: { gap: 6 },
-  questionText: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
-  option: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 18, borderWidth: 1, borderColor: Colors.borderColor, backgroundColor: Colors.subtleFill },
-  optionActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
-  optionText: { fontSize: 11.5, fontFamily: FONTS.bodyMedium, color: Colors.textMuted },
-  optionTextActive: { color: Colors.bgDark },
-  resultCard: { borderRadius: 16, padding: 14, gap: 8, overflow: 'hidden', backgroundColor: '#059669' },
+  questionText: { fontSize: 14, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
+  option: { paddingHorizontal: 14, height: 32, justifyContent: 'center', borderRadius: 8, borderWidth: 1, borderColor: outline(), backgroundColor: Colors.bgCard },
+  optionActive: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe', borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#d2e3fc' },
+  optionText: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textSoft },
+  optionTextActive: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
+  resultCard: { borderRadius: 12, padding: 16, gap: 8, overflow: 'hidden', backgroundColor: '#059669' },
   resultTitle: { fontSize: 14, fontFamily: FONTS.titleBold, color: '#fff' },
   resultText: { fontSize: 12, fontFamily: FONTS.bodyRegular, color: 'rgba(255, 255, 255, 0.9)' },
   resultLabel: { fontSize: 11.5, fontFamily: FONTS.bodyRegular, color: 'rgba(255, 255, 255, 0.75)' },
@@ -679,43 +701,23 @@ const styles = themedStyles(() => StyleSheet.create({
   // No box: the artwork stands on the page; the chosen category sits on a soft sky-blue disc.
   tile: { width: 58, height: 58, borderRadius: 29, justifyContent: 'center', alignItems: 'center' },
   tileActive: { backgroundColor: 'rgba(76, 161, 209, 0.22)', borderWidth: 2, borderColor: Colors.primary },
-  tileLabel: { fontSize: 10.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain, textAlign: 'center', lineHeight: 13, minHeight: 26 },
+  tileLabel: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain, textAlign: 'center', lineHeight: 14, minHeight: 28 },
   tileLabelActive: { color: Colors.primary, fontFamily: FONTS.bodyBold },
 
-  textArea: {
-    minHeight: 72,
-    backgroundColor: fieldFill(),
-    borderWidth: 1,
-    borderColor: fieldEdge(),
-    borderRadius: 18,
-    padding: 14,
-    color: Colors.textMain,
-    fontSize: 13,
-    fontFamily: FONTS.bodyRegular,
-    textAlignVertical: 'top',
-  },
+  textArea: { minHeight: 88, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), borderRadius: 8, padding: 16, color: Colors.textMain, fontSize: 14, fontFamily: FONTS.bodyRegular, textAlignVertical: 'top' },
   choiceGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  choice: {
-    width: '48.5%',
-    flexGrow: 1,
-    paddingVertical: 9,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: fieldEdge(),
-    backgroundColor: fieldFill(),
-    alignItems: 'center',
-  },
-  choiceActive: { borderWidth: 2, borderColor: Colors.success, backgroundColor: 'rgba(16, 185, 129, 0.15)' },
-  choiceText: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: isDay() ? '#334155' : Colors.textMuted },
-  choiceTextActive: { color: Colors.successText, fontFamily: FONTS.bodyBold },
-  map: { height: 80, borderRadius: 20, overflow: 'hidden' },
-  mapBig: { height: 360, borderRadius: 18, overflow: 'hidden' },
+  choice: { width: '48.5%', flexGrow: 1, height: 44, justifyContent: 'center', borderRadius: 8, borderWidth: 1, borderColor: outline(), backgroundColor: Colors.bgCard, alignItems: 'center' },
+  choiceActive: { borderWidth: 1, borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#d2e3fc', backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe' },
+  choiceText: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textSoft },
+  choiceTextActive: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8', fontFamily: FONTS.bodyBold },
+  map: { height: 96, borderRadius: 12, overflow: 'hidden', borderWidth: 1, borderColor: outline() },
+  mapBig: { height: 360, borderRadius: 12, overflow: 'hidden' },
   mapHint: { position: 'absolute', right: 8, bottom: 8, paddingHorizontal: 10, height: 24, borderRadius: 12, justifyContent: 'center', backgroundColor: 'rgba(15, 23, 42, 0.7)' },
   mapHintText: { fontSize: 10.5, fontFamily: FONTS.bodyBold, color: '#fff' },
   mapBackdrop: { flex: 1, justifyContent: 'center', paddingHorizontal: 16, backgroundColor: 'rgba(6, 12, 30, 0.55)' },
-  mapWindow: { gap: 10, padding: 12, borderRadius: 24, backgroundColor: Colors.bgCard },
+  mapWindow: { gap: 12, padding: 16, borderRadius: 28, backgroundColor: Colors.bgCard },
   mapWindowHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  mapWindowTitle: { fontSize: 15, fontFamily: FONTS.titleBold, color: Colors.textMain },
+  mapWindowTitle: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textMain },
   closeBtnDark: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.subtleFill },
   closeTextDark: { fontSize: 14, color: Colors.textMain },
   pinAnchor: { position: 'absolute', transform: [{ translateX: '-50%' }, { translateY: '-50%' }] },
@@ -744,7 +746,7 @@ const styles = themedStyles(() => StyleSheet.create({
   check: { width: 22, height: 22, borderRadius: 11, borderWidth: 1.5, borderColor: Colors.subtleBorder, justifyContent: 'center', alignItems: 'center' },
   checkOn: { backgroundColor: Colors.primary, borderColor: Colors.primary },
   checkMark: { fontSize: 12, fontWeight: '900', color: Colors.bgDark },
-  timerValue: { paddingHorizontal: 12, paddingVertical: 3, borderRadius: 10, backgroundColor: 'rgba(56, 189, 248, 0.15)' },
-  timerValueText: { fontSize: 12.5, fontFamily: FONTS.bodyBold, color: Colors.primary },
-  footer: { padding: 16, paddingTop: 12, backgroundColor: Colors.barBg, borderTopLeftRadius: 24, borderTopRightRadius: 24, shadowColor: '#0f172a', shadowOffset: { width: 0, height: -6 }, shadowOpacity: 0.1, shadowRadius: 14, elevation: 10 },
+  timerValue: { paddingHorizontal: 12, height: 26, justifyContent: 'center', borderRadius: 8, backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe' },
+  timerValueText: { fontSize: 13, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
+  footer: { padding: 16, paddingTop: 12, backgroundColor: Colors.bgCard, borderTopWidth: 1, borderTopColor: outline(), shadowColor: '#3c4043', shadowOffset: { width: 0, height: -1 }, shadowOpacity: getThemeMode() === 'dark' ? 0.4 : 0.12, shadowRadius: 3, elevation: 4 },
 }));

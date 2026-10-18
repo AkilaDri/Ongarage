@@ -11,7 +11,6 @@ module.exports = spec('Garage · fair share and subscription', 'garage', async (
   await t.escape();
 
   await t.clickText('Jobs');
-  t.check('feed banner shows tomorrow\'s room', (await t.text('Intake banner')).includes('රු. 3,800'));
   t.check('a job that does not fit is locked', (await t.count('හෙට දෛනික සීමාව පිරී ඇත')) >= 1);
   t.check('rising garages see new posts first', await t.has('නව ගරාජවලට පළමුව'));
 

@@ -1,3 +1,4 @@
+import { VehicleLine } from '@ongarage/shared';
 import React, { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { ActionButton, categoryInfo, Colors, EmptyState, FONTS, GlassIcon, Icon, SwipeCard, themedStyles, vehicleIcon, type IconName, softEdge, softShadow, NAVY, softFill, getThemeMode, PinnedEdge, usePinnedEdge, ReferralBadge } from '@ongarage/shared';
@@ -81,10 +82,7 @@ export const RequestsScreen: React.FC = () => {
             <Text style={[styles.badgeText, { color: urgent ? Colors.errorText : Colors.primary }]}>{countdown(left)}</Text>
           </View>
         </Pressable>
-        <Text style={styles.vehicle}>
-          {vehicleIcon(r.vehicle.type)} {r.vehicle.name} · {r.vehicle.plate}
-          {r.vehicle.chassis ? ` · ${r.vehicle.chassis}` : ''}
-        </Text>
+        <VehicleLine vehicle={r.vehicle} textStyle={styles.vehicle} extra={r.vehicle.chassis || undefined} />
         <View style={styles.lines}>
           {r.lines.map((l) => (
             <StockLine key={l.id} line={l} types={types} />
@@ -178,10 +176,7 @@ export const RequestsScreen: React.FC = () => {
             <Text style={[styles.badgeText, { color: urgent ? Colors.errorText : Colors.primary }]}>{countdown(left)}</Text>
           </View>
         </Pressable>
-        <Text style={styles.vehicle}>
-          {vehicleIcon(v.type)} {v.name} · {v.plate}
-          {v.chassisNo ? ` · ${v.chassisNo}` : ''}
-        </Text>
+        <VehicleLine vehicle={v} textStyle={styles.vehicle} extra={v.chassisNo || undefined} />
         <View style={styles.lines}>
           {e.briefs.map((b) => {
             const have = (['Genuine', 'OEM', 'Recon'] as const).reduce((sum, t) => sum + (variantFor(stock, b.name, t)?.qty ?? 0), 0);
@@ -197,6 +192,7 @@ export const RequestsScreen: React.FC = () => {
         </View>
         <View style={styles.chips}>
           <Chip text={r.via === 'wall' ? '📣 විවෘත පෝස්ට් එක' : '🛍️ සෘජු ඉල්ලීම'} accent />
+          {e.briefs.length > 1 && <Chip text={`📦 කොටස් ${e.briefs.length} ක ඉල්ලීම — එකවර පිළිතුරු දෙන්න`} accent />}
           {e.briefs.some((b) => b.photos?.length) && <Chip text="📷 ඡායාරූප" />}
           {e.briefs.some((b) => b.partNo) && <Chip text={`# ${e.briefs.find((b) => b.partNo)!.partNo}`} />}
           {v.chassisNo && <Chip text="චැසි අංකය ඇත" />}
@@ -378,7 +374,8 @@ const styles = themedStyles(() =>
     tabCountText: { fontSize: 9.5, fontWeight: '800', color: Colors.textMuted },
     body: { padding: 16, paddingTop: 8, gap: 12, paddingBottom: 100 },
     hint: { fontSize: 10.5, fontFamily: FONTS.bodyMedium, color: Colors.textMuted, textAlign: 'center' },
-    card: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), borderRadius: 20, padding: 14, gap: 10, ...softShadow() },
+    // The same modern card as OnMart's "My requests": big round corners, no hard outline, a soft wide shadow.
+    card: { backgroundColor: Colors.bgCard, borderWidth: getThemeMode() === 'dark' ? 1 : 0, borderColor: Colors.borderColor, borderRadius: 24, padding: 12, gap: 8, shadowColor: '#0f172a', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.08, shadowRadius: 18, elevation: 3 },
     dim: { opacity: 0.55 },
     title: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.textMain },
     sub: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 1, lineHeight: 16 },
@@ -388,10 +385,10 @@ const styles = themedStyles(() =>
     badgeUrgent: { borderColor: 'rgba(239, 68, 68, 0.45)', backgroundColor: 'rgba(239, 68, 68, 0.12)' },
     badgeText: { fontSize: 10, fontFamily: FONTS.bodySemiBold },
     chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-    chip: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: 10, backgroundColor: Colors.subtleFill },
+    chip: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 9, backgroundColor: Colors.subtleFill },
     chipAccent: { backgroundColor: 'rgba(56, 189, 248, 0.12)' },
     chipWarn: { backgroundColor: 'rgba(245, 158, 11, 0.14)' },
-    chipText: { fontSize: 10.5, fontFamily: FONTS.bodyMedium, color: Colors.textMuted },
+    chipText: { fontSize: 11, fontFamily: FONTS.bodyMedium, color: Colors.textMuted },
     price: { fontSize: 14, fontFamily: FONTS.titleBold, color: Colors.success },
     status: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: 10 },
     statusText: { fontSize: 10.5, fontFamily: FONTS.bodySemiBold },

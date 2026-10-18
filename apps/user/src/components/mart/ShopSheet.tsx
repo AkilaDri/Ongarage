@@ -1,8 +1,11 @@
+import { elevation1, outline } from '../../utils/material';
 import React from 'react';
 import { Image, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { ActionButton, Colors, FONTS, categoryInfo, directionsUrl, getThemeMode, GoogleMap, martDeals, MART_STOCK, money, shopServiceScore, themedStyles, type ShopListing } from '@ongarage/shared';
+import { ActionButton, catalogueSummary, Colors, FONTS, categoryInfo, directionsUrl, getThemeMode, GoogleMap, martDeals, MART_STOCK, money, shopServiceScore, themedStyles, type ShopListing } from '@ongarage/shared';
+import { OnMartAsk } from '@ongarage/shared';
 import { GARAGE_COVERS } from '../../constants/home';
 import { useUserLocation } from '../../context/LocationContext';
+import { useChat } from '../../context/ChatContext';
 import { Sheet } from '../Sheet';
 import { CATEGORIES, OTHER, categoryOf } from './stockCategories';
 import { StockSearchSheet } from './StockSearchSheet';
@@ -20,6 +23,7 @@ type Tab = 'menu' | 'info';
  * a + button - and a bar at the bottom that collects what you picked into one request to the shop.
  */
 export const ShopSheet: React.FC<{ shop: ShopListing | null; onClose: () => void; onAsk: (shop: ShopListing, partName?: string) => void }> = ({ shop, onClose, onAsk }) => {
+  const chat = useChat();
   const [shown, setShown] = React.useState<ShopListing | null>(shop);
   const tab: Tab = 'menu';
   const [partQuery, setPartQuery] = React.useState('');
@@ -132,8 +136,11 @@ export const ShopSheet: React.FC<{ shop: ShopListing | null; onClose: () => void
           <Pressable style={[styles.pfAction, { backgroundColor: '#2457e6' }]} onPress={() => Linking.openURL(directionsUrl(s.coords, user.coords))} accessibilityLabel="Shop directions">
             <Text style={styles.pfActionText}>🧭 මාර්ගය</Text>
           </Pressable>
+          <Pressable style={[styles.pfAction, { backgroundColor: '#1a73e8' }]} onPress={() => { onClose(); chat.open({ id: `shop:${s.id}`, title: s.name, subtitle: 'OnMart', phone: s.phone, profile: 'shop' }); }} accessibilityLabel="OnChat with shop">
+            <Text style={styles.pfActionText}>💬 OnChat</Text>
+          </Pressable>
           <Pressable style={[styles.pfAction, { backgroundColor: '#8b5cf6' }]} onPress={() => { if (!main) setShowInfo(false); onAsk(s); }} accessibilityLabel="Ask shop">
-            <Text style={styles.pfActionText}>💬 අසන්න</Text>
+            <OnMartAsk label="අසන්න" textStyle={styles.pfActionText} />
           </Pressable>
         </View>
         {main && (
@@ -284,6 +291,7 @@ export const ShopSheet: React.FC<{ shop: ShopListing | null; onClose: () => void
         <Text style={styles.pfTitle}>වෙළඳසැල පිළිබඳ</Text>
         <Info icon="🕗" label="විවෘත වේලාවන්" value={s.openHours} />
         <Info icon="🧰" label="අලෙවි කරන වර්ග" value={s.types.join(' · ')} />
+        {!!s.catalogue?.length && <Info icon="📚" label="අලෙවි කරන කොටස්" value={catalogueSummary(s.catalogue, 6).join('\n')} />}
         <Info icon="🔧" label="කොටස් ඇති සේවා වර්ග" value={s.categories.map((c) => categoryInfo(c).name).join(' · ')} />
         <Info icon="📞" label="දුරකථන" value={s.phone} />
       </View>
@@ -403,7 +411,7 @@ const styles = themedStyles(() =>
     pfActionText: { fontSize: 12.5, fontFamily: FONTS.bodyBold, color: '#ffffff' },
     pfMore: { alignSelf: 'stretch', alignItems: 'center', paddingVertical: 4 },
     pfMoreText: { fontSize: 12, fontFamily: FONTS.bodyBold, color: blue() },
-    pfSection: { gap: 8, padding: 12, borderRadius: 20, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: edge() },
+    pfSection: { gap: 8, padding: 12, borderRadius: 12, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), ...elevation1() },
     pfTitle: { fontSize: 15, fontFamily: FONTS.titleBold, color: Colors.textMain },
     metric: { gap: 4 },
     metricTop: { flexDirection: 'row', justifyContent: 'space-between' },
@@ -479,7 +487,7 @@ const styles = themedStyles(() =>
     deliveryChip: { paddingHorizontal: 12, height: 32, borderRadius: 16, justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? 'rgba(255,255,255,0.08)' : '#eceef2' },
     deliveryChipText: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
     sectionTitle: { fontSize: 14, fontFamily: FONTS.titleBold, color: Colors.textMain, marginTop: 8 },
-    infoList: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: edge(), borderRadius: 24, padding: 14, gap: 14 },
+    infoList: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), borderRadius: 12, padding: 14, gap: 14, ...elevation1() },
     title: { fontSize: 13.5, fontFamily: FONTS.titleBold, color: Colors.textMain },
     sub: { fontSize: 11, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 16 },
     infoDivider: { height: 1, backgroundColor: edge() },
@@ -491,7 +499,7 @@ const styles = themedStyles(() =>
     infoIconBox: { width: 30, height: 30, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e3ecfd' },
     infoIcon: { fontSize: 16, textAlign: 'center' },
     infoValue: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
-    mapCard: { borderRadius: 24, overflow: 'hidden', backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: edge() },
+    mapCard: { borderRadius: 12, overflow: 'hidden', backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), ...elevation1() },
     mapBox: { height: 70, backgroundColor: Colors.subtleFill },
     mapPin: { position: 'absolute', transform: [{ translateX: -9 }, { translateY: -22 }] },
     mapPinEmoji: { fontSize: 20 },
