@@ -31,6 +31,8 @@ export const OrdersList: React.FC<{ compact?: boolean }> = ({ compact }) => {
   const [thread, setThread] = useState<ThreadTarget | null>(null);
   const [returning, setReturning] = useState<MartPurchase | null>(null);
   const [now, setNow] = useState(Date.now());
+  // The order whose full record is open.
+  const [open, setOpen] = useState<string | null>(null);
 
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 1000);
@@ -53,42 +55,89 @@ export const OrdersList: React.FC<{ compact?: boolean }> = ({ compact }) => {
     const canReturn = p.stage === 'bought' && (p.purchase.returnBy ?? 0) > now;
 
     return (
-      <View key={p.purchase.id} style={[styles.card, failed && styles.dim]}>
+      <Pressable key={p.purchase.id} style={[styles.card, failed && styles.dim]} onPress={() => setOpen(p.purchase.id)} accessibilityLabel={`Order ${p.brief.name}`}>
         {/* The chat button sits in the very top right corner of the card: it opens the shop's conversation. */}
         <View style={styles.chatCorner}>
-          <ChatIconButton size={44} onPress={() => setThread({ enquiryId: p.purchase.enquiryId ?? o.enquiryId, shop: o.shop })} label={`Chat with ${o.shop.name}`} />
+          <ChatIconButton size={40} onPress={() => setThread({ enquiryId: p.purchase.enquiryId ?? o.enquiryId, shop: o.shop })} label={`Chat with ${o.shop.name}`} />
         </View>
-        <View style={[styles.rowBetween, { alignItems: 'flex-start' }]}>
+        <View style={styles.headRow}>
+          <Text style={styles.title} numberOfLines={1}>
+            {p.brief.name} ×{o.qty}
+          </Text>
+        </View>
+        <View style={styles.divider} />
+        <View style={styles.rowBetween}>
           <View style={styles.flex1}>
-            <Text style={styles.title} numberOfLines={1}>
-              {p.brief.name} ×{o.qty}
+            <Text style={styles.sub} numberOfLines={1}>
+              {o.shop.name}
             </Text>
             <Text style={styles.sub} numberOfLines={1}>
-              {o.shop.name} · {o.partType} · {ago(now - p.createdAt)}
+              {o.partType} · {ago(now - p.createdAt)}
             </Text>
-            <TxnTag kind="ORD" source={p.purchase.id} />
-            {!!p.purchase.groupId && (
-              <Text style={styles.sub}>
-                📦 එකම කේතය — කොටස් {purchaseGroupProgress(purchases, p.purchase.groupId).total} ක ඇණවුමක් · මිලදී ගත්තා {purchaseGroupProgress(purchases, p.purchase.groupId).bought}
-              </Text>
-            )}
           </View>
-          <Text style={[styles.price, { marginTop: 40 }]}>{o.total ? money(o.total) : 'මිල කවුන්ටරයේදී'}</Text>
+          <View style={styles.right}>
+            <Text style={styles.price}>{o.total ? money(o.total) : 'මිල කවුන්ටරයේදී'}</Text>
+            <View style={[styles.chip, failed ? styles.chipFail : p.stage === 'bought' ? styles.chipDone : styles.chipLive]}>
+              <Text style={[styles.chipText, { color: failed ? Colors.errorText : p.stage === 'bought' ? Colors.success : Colors.warning }]}>
+                {failed ? { rejected: '✕ ප්‍රතික්ෂේප', released: '✕ අවසන්', returned: '↩ ආපසු දුන්නා' }[p.stage as 'rejected' | 'released' | 'returned'] : p.stage === 'bought' ? '✓ මිලදී ගත්තා' : '● ' + (steps[Math.max(0, step)]?.label ?? '')}
+              </Text>
+            </View>
+          </View>
         </View>
+        <View style={styles.divider} />
 
-        {!!p.purchase.jobRef && (
-          <Text style={styles.ref}>🤝 {p.purchase.jobRef.garage.name} නිර්දේශ කළා — ඔබ මිලදී ගත් විට ගරාජයට දැනුම් දෙයි</Text>
+        <View style={styles.rowBetween}>
+          <Text style={[styles.sub, styles.flex1]} numberOfLines={1}>
+            {p.stage === 'ready' || p.stage === 'arrived' ? '🔍 කොටස පරීක්ෂා කිරීමට සූදානම්' : p.stage === 'bought' && p.warrantyUntil ? `🛡️ වගකීම ${formatDate(p.warrantyUntil)} දක්වා` : 'සියලු විස්තර සහ වාර්තාව'}
+          </Text>
+          <Text style={styles.link}>විස්තර ›</Text>
+        </View>
+        {p.stage === 'bought' && (
+          <>
+            <View style={styles.divider} />
+            <Pressable style={styles.fitRow} onPress={() => openFittingJob(p.brief.name)} accessibilityLabel="Find a garage to fit the part">
+              <Text style={styles.fitText}>🔩 සවි කිරීමට ගරාජයක් සොයන්න</Text>
+              <Text style={styles.fitText}>›</Text>
+            </Pressable>
+          </>
         )}
+      </Pressable>
+    );
+  };
 
+  // The full record of one order: where it stands, the code to show at the counter, calls and directions, the warranty, rating and return.
+  const detailBody = (p: MartPurchase) => {
+    const o = p.offer;
+    const del = p.purchase.fulfilment === 'delivery';
+    const steps = del ? DELIVERY_STEPS : PICKUP_STEPS;
+    const step = steps.findIndex((x) => x.id === p.stage);
+    const active = ACTIVE_STAGES.includes(p.stage);
+    const left = p.purchase.reservedUntil - now;
+    const shop = martShop(o.shop.id);
+    const failed = p.stage === 'rejected' || p.stage === 'released' || p.stage === 'returned';
+    const canReturn = p.stage === 'bought' && (p.purchase.returnBy ?? 0) > now;
+    return (
+      <>
+        <View style={styles.record}>
+          <Text style={styles.sub}>වෙළඳසැල: {o.shop.name}</Text>
+          <Text style={styles.sub}>
+            {o.partType} · ×{o.qty} · {o.total ? money(o.total) : 'මිල කවුන්ටරයේදී'}
+          </Text>
+          <Text style={styles.sub}>ඇණවුම් කළේ {ago(now - p.createdAt)} · {del ? 'බෙදාහැරීම' : 'කවුන්ටරයෙන් ගැනීම'}</Text>
+          <TxnTag kind="ORD" source={p.purchase.id} />
+        </View>
         {!failed && (
           <View style={styles.steps}>
-            {steps.map((s, i) => (
-              <View key={s.id} style={styles.step}>
+            {steps.map((x, i) => (
+              <View key={x.id} style={styles.step}>
                 <View style={[styles.dot, i <= step && styles.dotDone]} />
-                <Text style={[styles.stepText, i <= step && { color: Colors.textMain }]}>{s.label}</Text>
+                <Text style={[styles.stepText, i <= step && { color: Colors.textMain }]}>{x.label}</Text>
               </View>
             ))}
           </View>
+        )}
+        {!!p.purchase.jobRef && (
+          <Text style={styles.ref}>🤝 {p.purchase.jobRef.garage.name} නිර්දේශ කළා — ඔබ මිලදී ගත් විට ගරාජයට දැනුම් දෙයි</Text>
         )}
 
         {(p.stage === 'reserved' || p.stage === 'ready') && !del && (
@@ -175,7 +224,7 @@ export const OrdersList: React.FC<{ compact?: boolean }> = ({ compact }) => {
         {p.stage === 'released' && <Text style={styles.fail}>🔓 වෙන් කිරීම අවසන් විය</Text>}
         {p.stage === 'returned' && <Text style={styles.fail}>↩️ ආපසු දුන්නා — {p.returnReason}</Text>}
         {active && p.stage === 'dispatched' && <Text style={styles.sub}>දොරකඩදී කොටස පරීක්ෂා කර ගෙවන්න.</Text>}
-      </View>
+      </>
     );
   };
 
@@ -183,6 +232,12 @@ export const OrdersList: React.FC<{ compact?: boolean }> = ({ compact }) => {
     <>
       {compact && <Text style={styles.heading}>OnMart කොටස් ඇණවුම්</Text>}
       {purchases.map(card)}
+      <Sheet visible={!!open} title={purchases.find((x) => x.purchase.id === open)?.brief.name ?? ''} subtitle={purchases.find((x) => x.purchase.id === open)?.offer.shop.name} onClose={() => setOpen(null)}>
+        {(() => {
+          const cur = purchases.find((x) => x.purchase.id === open);
+          return cur ? detailBody(cur) : null;
+        })()}
+      </Sheet>
       <CounterSheet item={inspect} onClose={() => setInspect(null)} />
       <ThreadSheet target={thread} onClose={() => setThread(null)} />
       <Sheet visible={!!returning} title="කොටස ආපසු දෙන්න" subtitle={returning ? `${returning.offer.shop.name} · ${returning.brief.name}` : undefined} onClose={() => setReturning(null)}>
@@ -209,19 +264,31 @@ const styles = themedStyles(() =>
   StyleSheet.create({
     flex1: { flex: 1 },
     rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
-    heading: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textMain, marginTop: 8 },
+    heading: { fontSize: 14, fontFamily: FONTS.bodyBold, color: Colors.primary, letterSpacing: 0.2, marginTop: 10 },
     // The same modern card as OnMart's "My requests": big round corners, no hard outline, a soft wide shadow.
-    card: { backgroundColor: Colors.bgCard, borderWidth: getThemeMode() === 'dark' ? 1 : 0, borderColor: Colors.borderColor, borderRadius: 24, padding: 12, gap: 8, shadowColor: '#0f172a', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.08, shadowRadius: 18, elevation: 3 },
+    card: { backgroundColor: Colors.bgCard, borderWidth: getThemeMode() === 'dark' ? 1 : 0, borderColor: Colors.borderColor, borderRadius: 24, padding: 16, gap: 12, shadowColor: '#0f172a', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.08, shadowRadius: 18, elevation: 3 },
     dim: { opacity: 0.6 },
     title: { fontSize: 14, fontFamily: FONTS.titleBold, color: Colors.textMain },
     sub: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 16 },
     chatCorner: { position: 'absolute', top: 6, right: 8, zIndex: 2 },
     price: { fontSize: 15, fontFamily: FONTS.titleBold, color: Colors.successText },
+    fitRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', height: 36, paddingHorizontal: 14, borderRadius: 18, backgroundColor: softFill() },
+    fitText: { fontSize: 12.5, fontFamily: FONTS.bodyBold, color: Colors.primary },
+    link: { fontSize: 12, fontFamily: FONTS.bodyBold, color: Colors.primary },
+    record: { padding: 12, borderRadius: 14, backgroundColor: softFill(), gap: 3 },
     steps: { flexDirection: 'row', justifyContent: 'space-between' },
     step: { alignItems: 'center', gap: 4, flex: 1 },
     dot: { width: 12, height: 12, borderRadius: 6, backgroundColor: Colors.subtleBorder },
     dotDone: { backgroundColor: Colors.success },
     stepText: { fontSize: 9.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, textAlign: 'center' },
+    headRow: { minHeight: 40, justifyContent: 'center', paddingRight: 56 },
+    divider: { height: 1, backgroundColor: getThemeMode() === 'dark' ? Colors.borderColor : '#dadce0' },
+    right: { alignItems: 'flex-end', gap: 5 },
+    chip: { paddingHorizontal: 10, height: 24, justifyContent: 'center', borderRadius: 12, borderWidth: 1 },
+    chipLive: { backgroundColor: 'rgba(245, 158, 11, 0.12)', borderColor: 'rgba(245, 158, 11, 0.3)' },
+    chipDone: { backgroundColor: 'rgba(16, 185, 129, 0.16)', borderColor: 'rgba(16, 185, 129, 0.35)' },
+    chipFail: { backgroundColor: 'rgba(239, 68, 68, 0.1)', borderColor: 'rgba(239, 68, 68, 0.3)' },
+    chipText: { fontSize: 11, fontFamily: FONTS.bodySemiBold },
     ref: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.primary, lineHeight: 17 },
     hold: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.warning, lineHeight: 17 },
     actions: { flexDirection: 'row', gap: 8 },

@@ -55,7 +55,9 @@ import { type MartSegment, type TabId } from './constants/tabs';
 import { categoryInfo, type Garage, type JobDraft, type PickedLocation, type ServiceCategory } from '@ongarage/shared';
 
 // The title band other tabs show instead of the greeting header (Home has the header; Account has nothing and uses the full screen).
-const TAB_TITLES: Partial<Record<TabId, string>> = { bids: 'ඔබගේ ලංසු වල තත්ත්වය', activity: 'ඔබේ ක්‍රියාකාරකම්', profile: 'ඔබගේ ගිණුම' };
+const TAB_TITLES: Partial<Record<TabId, string>> = { bids: 'ඔබගේ ලංසු වල තත්ත්වය', activity: 'ඔබේ ක්‍රියාකාරකම්', mart: 'OnMart', profile: 'ඔබගේ ගිණුම' };
+/** The title bar of every tab but Home: a plain line of text at the top of the screen. */
+const PAGE_TITLE_H = 52;
 
 // Banner sizes: stacked cards at the top of Home, one compact row once the page is scrolled.
 const SOS_H = 108;
@@ -258,30 +260,28 @@ function AppShell() {
     <ChatProvider inboxReturn={activeTab === 'home'}>
     <SafeAreaProvider>
       <StatusBar style={isDark ? "light" : "dark"} />
-      <SafeAreaView style={[styles.container, activeTab === 'profile' && styles.containerFull]} edges={['top']}>
-        {/* One header band on every tab: a short greeting and the active vehicle. */}
-        {activeTab === 'home' ? (
+      <SafeAreaView style={[styles.container, activeTab !== 'home' && styles.containerFull]} edges={['top']}>
+        {/* The header band (greeting, sky, active vehicle) is Home's alone: the other tabs start at the top of the screen. */}
+        {activeTab === 'home' && (
           <View onLayout={(e) => setHeaderH(Math.round(e.nativeEvent.layout.height))}>
             <Header />
           </View>
-        ) : activeTab === 'mart' ? (
-          <Animated.View style={{ height: martHeaderCollapse.interpolate({ inputRange: [0, 1], outputRange: [HEADER_BAND_H, 0] }), overflow: 'hidden' }}>
-            <MartHeader />
-          </Animated.View>
-        ) : activeTab !== 'profile' && TAB_TITLES[activeTab] ? (
-          // Activity and Bids: the top bar folds away completely while the page scrolls (the same fold as OnMart's header).
-          // Its natural height is measured once per tab so it can fold to nothing.
-          <Animated.View
-            style={foldableBar && titleH > 0 ? { height: martHeaderCollapse.interpolate({ inputRange: [0, 1], outputRange: [titleH, 0] }), overflow: 'hidden' } : undefined}
-          >
-            <View onLayout={(e) => foldableBar && setTitleH(Math.round(e.nativeEvent.layout.height))}>
-              <TitleBand
-                title={TAB_TITLES[activeTab]!}
-                action={activeTab === 'bids' ? { label: '＋ නව ලංසුවක්', onPress: () => openPost(null) } : undefined}
-              />
+        )}
+        {/* Every other tab starts with its title; it folds away with the page scroll like the old header did. */}
+        {activeTab !== 'home' && !!TAB_TITLES[activeTab] && (
+          <Animated.View style={{ height: martHeaderCollapse.interpolate({ inputRange: [0, 1], outputRange: [PAGE_TITLE_H, 0] }), overflow: 'hidden' }}>
+            <View style={styles.pageTitleBar}>
+              <Text style={styles.pageTitle} numberOfLines={1}>
+                {TAB_TITLES[activeTab]}
+              </Text>
+              {activeTab === 'bids' && (
+                <Pressable style={styles.pageTitleAction} onPress={() => openPost(null)} accessibilityLabel="New bid request">
+                  <Text style={styles.pageTitleActionText}>＋ නව ලංසුවක්</Text>
+                </Pressable>
+              )}
             </View>
           </Animated.View>
-        ) : null}
+        )}
 
         {/* Sticky banners on Home with animated rounded bottom corners */}
         {activeTab === 'home' && (
@@ -350,7 +350,7 @@ function AppShell() {
         <Animated.View
           style={[
             styles.sheet,
-            activeTab !== 'profile' && styles.sheetOverlap,
+            activeTab === 'home' && styles.sheetOverlap,
             activeTab === 'home' && styles.sheetHome,
             // On Home the sheet's top corners straighten once the page has scrolled up to the top of the screen.
             activeTab === 'home' && { borderTopLeftRadius: lerp(24, 0), borderTopRightRadius: lerp(24, 0) },
@@ -540,6 +540,11 @@ const styles = themedStyles(() => StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.bgBody },
   // Account: no header band, the page fills the screen.
   containerFull: { backgroundColor: pageBg() },
+  // Room on the right for the chat bubble that floats over the top right corner.
+  pageTitleBar: { height: PAGE_TITLE_H, flexDirection: 'row', alignItems: 'center', gap: 10, paddingLeft: 12, paddingRight: 76 },
+  pageTitle: { flexShrink: 1, fontSize: 18, fontFamily: FONTS.titleBold, color: Colors.textMain },
+  pageTitleAction: { paddingHorizontal: 12, height: 32, borderRadius: 16, justifyContent: 'center', backgroundColor: '#e8f0fe', borderWidth: 1, borderColor: '#d2e3fc' },
+  pageTitleActionText: { fontSize: 12, fontFamily: FONTS.bodyBold, color: '#1a73e8' },
   floatChat: { position: 'absolute', top: 10, right: 14, zIndex: 50, elevation: 50 },
   // The tab's screen overlaps the header band with rounded top corners.
   sheet: { flex: 1, backgroundColor: pageBg() },

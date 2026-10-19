@@ -4,6 +4,10 @@ import { Colors, getThemeMode, themedStyles } from '../theme/colors';
 import { FONTS } from '../theme/fonts';
 import { Icon } from './Icons';
 
+/** The blocks of a sheet's body, with fragments opened up and empty ones dropped, so each block can be told from the next by a thin line. */
+const blocks = (children: React.ReactNode): React.ReactNode[] =>
+  React.Children.toArray(children).flatMap((c) => (React.isValidElement(c) && c.type === React.Fragment ? blocks((c.props as { children?: React.ReactNode }).children) : [c]));
+
 /** A bottom sheet with a title, scrolling body and an optional fixed footer. */
 export const Sheet: React.FC<{
   visible: boolean;
@@ -70,6 +74,15 @@ export const Sheet: React.FC<{
 
   if (!mounted) return null;
 
+  // A thin line between one block of the body and the next (not in a full-screen sheet, which is a chat or a form with its own layout).
+  const divided = (kids: React.ReactNode) =>
+    blocks(kids).map((c, i) => (
+      <React.Fragment key={i}>
+        {i > 0 && <View style={styles.blockLine} />}
+        {c}
+      </React.Fragment>
+    ));
+
   return (
     <Modal visible transparent animationType="none" statusBarTranslucent onRequestClose={onClose}>
       <Animated.View style={[styles.backdrop, { opacity: slide }]}>
@@ -110,7 +123,7 @@ export const Sheet: React.FC<{
             if (hero) setFull(e.nativeEvent.contentOffset.y > 24);
           }} keyboardShouldPersistTaps="handled" contentContainerStyle={hero ? styles.bodyHero : styles.body} showsVerticalScrollIndicator={false} stickyHeaderIndices={undefined}>
             {hero}
-            {hero ? <View style={[styles.heroBody, compact && styles.heroBodyCompact]}>{children}</View> : children}
+            {hero ? <View style={[styles.heroBody, compact && styles.heroBodyCompact]}>{divided(children)}</View> : fullScreen ? children : divided(children)}
           </ScrollView>
           )}
           {!!footer && <View style={[styles.footer, fullScreen && styles.footerScreen]}>{footer}</View>}
@@ -151,6 +164,7 @@ const styles = themedStyles(() =>
     appTitle: { fontSize: 18, fontFamily: FONTS.titleBold, color: Colors.textMain },
     appSub: { fontSize: 12, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 1 },
     footerScreen: { paddingHorizontal: 8, paddingTop: 8, paddingBottom: 10, gap: 8, shadowOpacity: 0, elevation: 0, backgroundColor: 'transparent' },
+    blockLine: { height: 1, backgroundColor: getThemeMode() === 'dark' ? Colors.borderColor : '#e1e5eb' },
     handle: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: Colors.subtleBorder },
     headerRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 18, paddingTop: 12 },
     title: { fontSize: 17, fontFamily: FONTS.titleBold, color: Colors.textMain },

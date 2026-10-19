@@ -7,7 +7,6 @@ import { useVehicles } from '../context/VehiclesContext';
 import { useWorkshops } from '../context/WorkshopContext';
 import { WorkshopTracker } from './workshop/WorkshopTracker';
 import { CategoryPhoto } from './home/CategoryPhoto';
-import { ChatButton } from './ChatButton';
 import { VehicleBlock } from './VehicleBlock';
 import { useUserLocation } from '../context/LocationContext';
 import { countdown, formatDate, formatTime, money } from '../utils/format';
@@ -35,23 +34,38 @@ export const DirectBookingCard: React.FC<{ booking: DirectBooking; onBookAgain: 
   const cancelledJob = !!workshops[b.id]?.progress.cancelled;
   // Once the garage has the vehicle, the workshop steps replace the "how to get there" details.
   const started = (workshops[b.id]?.progress.stage ?? 'booked') !== 'booked';
+  // A finished job shows just its card: the step-by-step tracker is for running work (the details view has it all).
+  const w = workshops[b.id];
+  const finishedJob = w?.progress.stage === 'declined' || (w?.progress.stage === 'closed' && !!w.acknowledged);
   const media = [b.photos.length && `📷 ${b.photos.length}`, b.voiceNotes.length && `🎙️ ${b.voiceNotes.length}`].filter(Boolean).join('  ');
 
   return (
-    <View style={[styles.card, b.status === 'confirmed' && styles.confirmed, b.status === 'proposed' && styles.proposed, (ended || cancelledJob) && styles.ended]}>
+    <View style={[styles.card, b.status === 'confirmed' && styles.confirmed, b.status === 'proposed' && styles.proposed, (ended || cancelledJob) && styles.ended, finishedJob && !cancelledJob && styles.done]}>
       {/* The chat button sits in the very top right corner of the card. */}
       {(
         <View style={styles.iconRow}>
-          <ChatButton size={44} target={{ id: b.id, title: b.garage.name, subtitle: cat.name, phone: b.garage.phone, vehicle: v }} />
+          <CategoryPhoto categoryId={b.categoryId} size={40} />
         </View>
       )}
+      {finishedJob && !cancelledJob && (
+        <>
+          <View style={styles.headRow}>
+            <Text style={styles.title}>
+              {cat.name}
+              {b.service ? ` · ${b.service}` : ''}
+            </Text>
+          </View>
+          <View style={styles.divider} />
+        </>
+      )}
       <Pressable style={styles.row} onPress={onOpen} disabled={!onOpen} accessibilityLabel={`${cat.name} booking details`}>
-        <CategoryPhoto categoryId={b.categoryId} />
-        <View style={styles.flex1}>
-          <Text style={styles.title}>
-            {cat.name}
-            {b.service ? ` · ${b.service}` : ''}
-          </Text>
+        <View style={[styles.flex1, !(finishedJob && !cancelledJob) && styles.textClear]}>
+          {!(finishedJob && !cancelledJob) && (
+            <Text style={styles.title}>
+              {cat.name}
+              {b.service ? ` · ${b.service}` : ''}
+            </Text>
+          )}
           <View style={styles.garageLine}>
             <Text style={[styles.sub, styles.flex1]} numberOfLines={1}>
               {b.garage.name}
@@ -59,7 +73,7 @@ export const DirectBookingCard: React.FC<{ booking: DirectBooking; onBookAgain: 
           </View>
           <VehicleBlock vehicle={v} />
         </View>
-        <View style={[styles.tagCol, styles.tagColIcons]}>
+        <View style={[styles.tagCol, !(finishedJob && !cancelledJob) && styles.tagColIcons]}>
           <View style={styles.tag}>
             <Text style={styles.tagText}>📅 ඍජු සේවා</Text>
           </View>
@@ -98,7 +112,7 @@ export const DirectBookingCard: React.FC<{ booking: DirectBooking; onBookAgain: 
         </>
       )}
 
-      {b.status === 'confirmed' && b.scheduledAt && started && <WorkshopTracker id={b.id} />}
+      {b.status === 'confirmed' && b.scheduledAt && started && !finishedJob && <WorkshopTracker id={b.id} />}
 
       {b.status === 'confirmed' && b.scheduledAt && !started && (
         <>
@@ -152,6 +166,8 @@ export const DirectBookingCard: React.FC<{ booking: DirectBooking; onBookAgain: 
 const styles = themedStyles(() =>
   StyleSheet.create({
     flex1: { flex: 1 },
+    // Keeps the heading clear of the icons in the card's top right corner.
+    textClear: { paddingRight: 56 },
     row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
     garageLine: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     iconRow: { position: 'absolute', top: 6, right: 8, zIndex: 2, flexDirection: 'row', alignItems: 'center', gap: 8 },
@@ -159,6 +175,8 @@ const styles = themedStyles(() =>
     tagColIcons: { paddingTop: 44 },
     rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
     detailsCorner: { alignSelf: 'flex-end' },
+    // A finished job's heading row (beside the icon in the corner), with a full-width line under it.
+    headRow: { minHeight: 40, justifyContent: 'center', paddingRight: 56 },
     divider: { height: 1, backgroundColor: getThemeMode() === 'dark' ? Colors.borderColor : '#dadce0' },
     actions: { flexDirection: 'row', gap: 8 },
     card: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), borderRadius: 12, padding: 12, gap: 12, ...elevation1() },
@@ -166,7 +184,9 @@ const styles = themedStyles(() =>
     confirmed: { borderWidth: 1, borderColor: 'rgba(16, 185, 129, 0.5)' },
     proposed: { borderWidth: 1, borderColor: 'rgba(245, 158, 11, 0.55)' },
     ended: { opacity: 0.7 },
-    title: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textMain },
+    // A finished job: a tighter card.
+    done: { padding: 16, gap: 12 },
+    title: { fontSize: 14, fontFamily: FONTS.titleBold, color: Colors.textMain },
     sub: { fontSize: 12.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 2, lineHeight: 18 },
     hint: { fontSize: 12, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
     tagCol: { alignItems: 'flex-end', gap: 4 },

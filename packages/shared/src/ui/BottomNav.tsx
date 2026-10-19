@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, Easing, View, Text, Pressable, StyleSheet } from 'react-native';
-import Svg, { Path } from 'react-native-svg';
+import Svg, { Circle, Path } from 'react-native-svg';
 import { Colors, getThemeMode, themedStyles } from '../theme/colors';
 import { FONTS } from '../theme/fonts';
 
@@ -203,3 +203,98 @@ const styles = themedStyles(() => StyleSheet.create({
   },
   badgeText: { fontSize: 9, fontWeight: '800', color: '#fff' },
 }));
+
+// ---------- Line icons for the garage, parts shop and technician bars and OnMart's bar ----------
+// Plain rounded outlines in the same style as the owner app's bar: the open tab is dark navy with a soft tint inside, the others grey.
+type LineIconProps = { active: boolean; size?: number };
+
+const LineFrame: React.FC<LineIconProps & { fill?: string; children: React.ReactNode }> = ({ active, size = 26, fill, children }) => {
+  const t = navIconTones(active);
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={t.ink} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+      {!!fill && <Path d={fill} fill={active ? t.accent : 'none'} fillOpacity={0.28} stroke="none" />}
+      {children}
+    </Svg>
+  );
+};
+
+export const ShopLineIcon: React.FC<LineIconProps> = (p) => (
+  <LineFrame {...p} fill="M4 10h16v10H4z">
+    <Path d="M3.5 9.5L5 4h14l1.5 5.5" />
+    <Path d="M3.5 9.5a2.8 2.8 0 005.5 0 2.8 2.8 0 006 0 2.8 2.8 0 005.5 0" />
+    <Path d="M5 11v9h14v-9" />
+    <Path d="M10 20v-5h4v5" />
+  </LineFrame>
+);
+export const RequestLineIcon: React.FC<LineIconProps> = (p) => (
+  <LineFrame {...p} fill="M6 3h8l5 5v13H6z">
+    <Path d="M6 3h8l5 5v13H6z" />
+    <Path d="M14 3v5h5" />
+    <Path d="M9.5 13h6M9.5 17h4" />
+  </LineFrame>
+);
+export const WallLineIcon: React.FC<LineIconProps> = (p) => (
+  <LineFrame {...p} fill="M4 10v4h3.5L14 18V6L7.5 10z">
+    <Path d="M4 10v4h3.5L14 18V6L7.5 10z" />
+    <Path d="M17 9.5a3.5 3.5 0 010 5" />
+    <Path d="M7.5 14l1 5h2.5l-.8-4.2" />
+  </LineFrame>
+);
+export const OrdersLineIcon: React.FC<LineIconProps> = (p) => (
+  <LineFrame {...p} fill="M3.5 7.5L12 3l8.5 4.5v9L12 21l-8.5-4.5z">
+    <Path d="M3.5 7.5L12 3l8.5 4.5v9L12 21l-8.5-4.5z" />
+    <Path d="M3.5 7.5L12 12l8.5-4.5" />
+    <Path d="M12 12v9" />
+  </LineFrame>
+);
+export const JobsLineIcon: React.FC<LineIconProps> = (p) => (
+  <LineFrame {...p} fill="M3 8h18v12H3z">
+    <Path d="M3 8h18v12H3z" />
+    <Path d="M9 8V5h6v3" />
+    <Path d="M3 13h18" />
+    <Path d="M10.5 13v2h3v-2" />
+  </LineFrame>
+);
+export const SosLineIcon: React.FC<LineIconProps> = (p) => (
+  <LineFrame {...p}>
+    <Circle cx={12} cy={12} r={9} />
+    <Circle cx={12} cy={12} r={3.8} />
+    <Path d="M5.6 5.6l3.7 3.7M14.7 14.7l3.7 3.7M18.4 5.6l-3.7 3.7M9.3 14.7l-3.7 3.7" />
+  </LineFrame>
+);
+export const ScheduleLineIcon: React.FC<LineIconProps> = (p) => (
+  <LineFrame {...p} fill="M4 6h16v14H4z">
+    <Path d="M4 6h16v14H4z" />
+    <Path d="M4 10.5h16" />
+    <Path d="M8 3.5v4M16 3.5v4" />
+    <Path d="M8 14h2M14 14h2M8 17h2" />
+  </LineFrame>
+);
+export const GarageLineIcon: React.FC<LineIconProps> = (p) => (
+  <LineFrame {...p} fill="M5 10l7-5 7 5v10H5z">
+    <Path d="M3 11l9-7 9 7" />
+    <Path d="M5 10v10h14V10" />
+    <Path d="M8 20v-6h8v6" />
+    <Path d="M8 17h8" />
+  </LineFrame>
+);
+export const ProfileLineIcon: React.FC<LineIconProps> = (p) => (
+  <LineFrame {...p}>
+    <Circle cx={12} cy={8} r={4} />
+    <Path d="M4.5 21c0-4 3.4-6.5 7.5-6.5s7.5 2.5 7.5 6.5" />
+  </LineFrame>
+);
+export const EarningsLineIcon: React.FC<LineIconProps> = (p) => (
+  <LineFrame {...p}>
+    <Circle cx={12} cy={12} r={9} />
+    <Path d="M12 6.5v11" />
+    <Path d="M14.8 9.3c-.5-.9-1.5-1.4-2.8-1.4-1.6 0-2.8.8-2.8 2 0 1.3 1.2 1.7 2.8 2.1 1.6.4 2.8.8 2.8 2.1 0 1.2-1.2 2-2.8 2-1.3 0-2.4-.6-2.9-1.5" />
+  </LineFrame>
+);
+export const StockLineIcon: React.FC<LineIconProps> = (p) => (
+  <LineFrame {...p} fill="M12 3.5l8.5 4.3L12 12 3.5 7.8z">
+    <Path d="M12 3.5l8.5 4.3L12 12 3.5 7.8z" />
+    <Path d="M3.5 12L12 16.3 20.5 12" />
+    <Path d="M3.5 16.2L12 20.5l8.5-4.3" />
+  </LineFrame>
+);

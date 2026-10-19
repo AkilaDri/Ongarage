@@ -17,13 +17,13 @@ import { useSOSRecords } from '../context/SOSRecordsContext';
 import { TxnTag } from '../components/TxnTag';
 import { useMart } from '../context/MartContext';
 import { DirectBookingCard } from '../components/DirectBookingCard';
-import { ChatButton } from '../components/ChatButton';
 import { chatDockOffset } from '../utils/chatDock';
 import { VehicleBlock } from '../components/VehicleBlock';
 import { MOCK_GARAGES } from '../constants/mockData';
 import { OrdersList } from '../components/mart/OrdersList';
 import { PayablesCard } from '../components/PayablesCard';
 import { JobPartsToBuy } from '../components/mart/JobPartsToBuy';
+import { RecordDetailView, type RecordTarget } from '../components/RecordDetailView';
 import { WorkshopTracker } from '../components/workshop/WorkshopTracker';
 import { useWorkshops } from '../context/WorkshopContext';
 import { money } from '../utils/format';
@@ -60,6 +60,8 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
     const j = jobs.find((x) => x.id === detail.id);
     return j ? { kind: 'job', job: j } : null;
   })();
+  // A finished SOS service or past workshop job opens its full record.
+  const [record, setRecord] = useState<RecordTarget | null>(null);
   const bookingCard = (b: (typeof bookings)[number]) => (
     <SwipeCard key={b.id} style={styles.swipeWrap} onOpen={() => setDetail({ kind: 'booking', id: b.id })}>
       <DirectBookingCard booking={b} onBookAgain={onBookAgain} onOpen={() => setDetail({ kind: 'booking', id: b.id })} />
@@ -77,14 +79,14 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
     return () => chatDockOffset.setValue(0);
   }, []);
   // Each kind of record has its own chip: pick one to see only those records.
-  const [kind, setKind] = useState<'all' | 'current' | 'done' | 'ended' | 'mart'>('all');
-  const show = (k: typeof kind) => kind === 'all' || kind === k;
+  const [kind, setKind] = useState<'current' | 'done' | 'ended' | 'mart'>('done');
+  const show = (k: typeof kind) => kind === k;
   // Inside "ongoing": which kind of running work to look at.
-  const [currentKind, setCurrentKind] = useState<'all' | 'bids' | 'direct' | 'sos'>('all');
-  const showCurrent = (k: typeof currentKind) => currentKind === 'all' || currentKind === k;
+  const [currentKind, setCurrentKind] = useState<'bids' | 'direct' | 'sos'>('bids');
+  const showCurrent = (k: typeof currentKind) => currentKind === k;
   // Inside "completed": which kind of finished work to look at.
-  const [doneKind, setDoneKind] = useState<'all' | 'bids' | 'direct' | 'sos' | 'past'>('all');
-  const showDone = (k: typeof doneKind) => kind === 'all' || (kind === 'done' && (doneKind === 'all' || doneKind === k));
+  const [doneKind, setDoneKind] = useState<'bids' | 'direct' | 'sos'>('bids');
+  const showDone = (k: typeof doneKind) => kind === 'done' && doneKind === k;
   const vehicleName = (id: string) => findVehicle(id).name;
   const user = useUserLocation();
 
@@ -99,17 +101,24 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
   const bidCard = (job: (typeof jobs)[number], bid: (typeof jobs)[number]['bids'][number]) => {
     const cat = SERVICE_CATEGORIES.find((c) => c.id === job.categoryId);
     return (
-      <SwipeCard key={job.id} style={[styles.card, !finished(job.id) && styles.cardOngoing]} onOpen={() => setDetail({ kind: 'job', id: job.id })}>
+      <SwipeCard key={job.id} style={[styles.card, !finished(job.id) && styles.cardOngoing, finished(job.id) && !cancelled(job.id) && styles.cardDone]} onOpen={() => setDetail({ kind: 'job', id: job.id })}>
         {/* The chat button sits in the very top right corner of the card. */}
         {(
           <View style={styles.iconRow}>
-            <ChatButton size={44} target={{ id: job.id, title: bid.garageName, subtitle: cat?.name, phone: MOCK_GARAGES.find((g) => g.name === bid.garageName)?.phone, vehicle: findVehicle(job.vehicleId) }} />
+            <CategoryPhoto categoryId={job.categoryId} size={40} />
           </View>
         )}
+        {finished(job.id) && !cancelled(job.id) && (
+          <>
+            <View style={styles.headRow}>
+              <Text style={styles.title}>{cat?.name ?? 'Service'}</Text>
+            </View>
+            <View style={styles.divider} />
+          </>
+        )}
         <Pressable style={styles.row} onPress={() => setDetail({ kind: 'job', id: job.id })} accessibilityLabel={`${cat?.name ?? 'Job'} booking details`}>
-          <CategoryPhoto categoryId={job.categoryId} />
           <View style={styles.flex1}>
-            <Text style={styles.title}>{cat?.name ?? 'Service'}</Text>
+            {!(finished(job.id) && !cancelled(job.id)) && <Text style={styles.title}>{cat?.name ?? 'Service'}</Text>}
             <View style={styles.garageLine}>
               <Text style={[styles.sub, styles.flex1]} numberOfLines={1}>
                 {bid.garageName}
@@ -118,27 +127,40 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
             <VehicleBlock vehicle={findVehicle(job.vehicleId)} />
             <Text style={styles.sub}>වෙන් කළේ {formatDate(new Date(bid.submittedAt))}</Text>
           </View>
-          <View style={[styles.right, styles.rightIcons]}>
+          <View style={[styles.right, !(finished(job.id) && !cancelled(job.id)) && styles.rightIcons]}>
             <View style={styles.kindTag}>
               <Text style={styles.kindTagText}>🤝 ලංසු</Text>
             </View>
-            <Text style={styles.price}>{money(bid.price)}</Text>
+            <Text style={[styles.price, finished(job.id) && !cancelled(job.id) && styles.priceDone]}>{money(bid.price)}</Text>
             <View style={[styles.status, finished(job.id) ? styles.statusDone : styles.statusOngoing]}>
               <Text style={[styles.statusText, { color: cancelled(job.id) ? Colors.errorText : finished(job.id) ? Colors.success : Colors.warning }]}>{cancelled(job.id) ? '✕ අවලංගු කළා' : finished(job.id) ? '✓ සම්පූර්ණයි' : '● වෙන් කළා'}</Text>
             </View>
           </View>
         </Pressable>
         <View style={styles.divider} />
-        <WorkshopTracker id={job.id} />
-        <View style={styles.divider} />
-        <View style={styles.rowBetween}>
-          <Text style={styles.sub}>
-            🛡️ මාස {bid.warrantyMonths} වගකීම · ⏱️ පැය {bid.estHours}{bid.travelFee ? ` · 🚗 ගමන් ගාස්තුව රු. ${bid.travelFee.toLocaleString('en-US')} ඇතුළුව` : ''}
-          </Text>
-          <Pressable onPress={() => Linking.openURL(directionsUrl(bid.coords, user.coords))}>
-            <Text style={styles.link}>🗺️ දිශාවන්</Text>
-          </Pressable>
-        </View>
+        {finished(job.id) ? (
+          <View style={styles.rowBetween}>
+            <Text style={[styles.sub, styles.flex1]} numberOfLines={1}>
+              🛡️ මාස {bid.warrantyMonths} වගකීම
+            </Text>
+            <Pressable onPress={() => setDetail({ kind: 'job', id: job.id })} hitSlop={8}>
+              <Text style={styles.link}>විස්තර ›</Text>
+            </Pressable>
+          </View>
+        ) : (
+          <>
+            <WorkshopTracker id={job.id} />
+            <View style={styles.divider} />
+            <View style={styles.rowBetween}>
+              <Text style={styles.sub}>
+                🛡️ මාස {bid.warrantyMonths} වගකීම · ⏱️ පැය {bid.estHours}{bid.travelFee ? ` · 🚗 ගමන් ගාස්තුව රු. ${bid.travelFee.toLocaleString('en-US')} ඇතුළුව` : ''}
+              </Text>
+              <Pressable onPress={() => Linking.openURL(directionsUrl(bid.coords, user.coords))}>
+                <Text style={styles.link}>🗺️ දිශාවන්</Text>
+              </Pressable>
+            </View>
+          </>
+        )}
       </SwipeCard>
     );
   };
@@ -193,7 +215,6 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
         <View style={styles.segment}>
           {(
             [
-              { id: 'all', label: 'සියල්ල', count: 0 },
               { id: 'current', label: 'පවතින', count: ongoing.length + liveBookings.length },
               { id: 'done', label: 'සම්පූර්ණ', count: history.length + doneBookings.length + doneJobs.length + sosRecords.length },
               { id: 'ended', label: 'අවසන්', count: endedBookings.length + cancelledJobs.length },
@@ -219,7 +240,6 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.kindChips}>
             {(
               [
-                { id: 'all', label: 'සියල්ල', count: ongoing.length + liveBookings.length },
                 { id: 'bids', label: '🤝 ලංසු', count: ongoing.length },
                 { id: 'direct', label: '📅 සෘජු වෙන් කිරීම්', count: liveBookings.length },
                 { id: 'sos', label: '🚨 SOS', count: 0 },
@@ -244,11 +264,9 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.kindChips}>
             {(
               [
-                { id: 'all', label: 'සියල්ල', count: history.length + doneBookings.length + doneJobs.length + sosRecords.length },
                 { id: 'bids', label: '🤝 ලංසු', count: doneJobs.length },
                 { id: 'direct', label: '📅 සෘජු වෙන් කිරීම්', count: doneBookings.length },
                 { id: 'sos', label: '🚨 SOS', count: sosRecords.length },
-                { id: 'past', label: '🧾 පැරණි රැකියා', count: history.length },
               ] as { id: typeof doneKind; label: string; count: number }[]
             ).map((c) => {
               const on = doneKind === c.id;
@@ -269,7 +287,7 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
           <PinnedEdge progress={edge} />
         </View>
 
-        {kind === 'all' && (
+        {kind === 'done' && (
           <View style={styles.spendCard} accessibilityLabel="Total spending">
             <Text style={styles.spendCaption}>මුළු වියදම</Text>
             <Text style={styles.spendTotal}>{money(totalSpent)}</Text>
@@ -299,7 +317,7 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
           </View>
         )}
 
-        {(kind === 'all' || kind === 'done') && <PayablesCard />}
+        {kind === 'done' && <PayablesCard />}
 
         {show('mart') && (
           <>
@@ -311,7 +329,6 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
         {show('current') && (
           <>
 
-        <Text style={styles.sectionLabel}>දැනට පවතින වෙන් කිරීම්</Text>
         {showCurrent('direct') && liveBookings.map(bookingCard)}
         {kind === 'current' && currentKind === 'sos' ? (
           <View style={styles.card}>
@@ -341,18 +358,19 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
         )}
         {showDone('sos') && sosRecords.length > 0 && (
           <>
-            <Text style={styles.sectionLabel}>🚨 SOS සේවා</Text>
             {sosRecords.map((r) => (
-              <View key={r.id} style={styles.card} accessibilityLabel={`SOS record ${r.breakdown.label}`}>
+              <Pressable key={r.id} style={[styles.card, styles.cardDone]} onPress={() => setRecord({ kind: 'sos', record: r })} accessibilityLabel={`SOS record ${r.breakdown.label}`}>
                 <View style={styles.iconRow}>
-                  <ChatButton size={44} target={{ id: r.id, title: r.responder.name, subtitle: `SOS · ${r.breakdown.label}`, phone: r.responder.phone, profile: 'sos' }} />
-                </View>
-                <View style={styles.row}>
                   <View style={styles.sosIcon}>
                     <Text style={styles.sosIconText}>{r.breakdown.icon}</Text>
                   </View>
+                </View>
+                <View style={styles.headRow}>
+                  <Text style={styles.title}>SOS · {r.breakdown.label}</Text>
+                </View>
+                <View style={styles.divider} />
+                <View style={styles.row}>
                   <View style={styles.flex1}>
-                    <Text style={styles.title}>SOS · {r.breakdown.label}</Text>
                     <Text style={styles.sub}>
                       {r.responder.name} · {r.responder.mechanic}
                     </Text>
@@ -361,73 +379,71 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
                     </Text>
                     <TxnTag kind="SOS" source={r.id} />
                   </View>
-                  <View style={[styles.right, styles.rightIcons]}>
-                    <Text style={styles.price}>{money(r.total)}</Text>
+                  <View style={styles.right}>
+                    <Text style={[styles.price, styles.priceDone]}>{money(r.total)}</Text>
                     <View style={[styles.status, styles.statusDone]}>
                       <Text style={[styles.statusText, { color: Colors.success }]}>✓ සම්පූර්ණයි</Text>
                     </View>
                   </View>
                 </View>
                 <View style={styles.divider} />
-                <Text style={styles.sub}>📍 {r.address}</Text>
+                <Text style={styles.sub} numberOfLines={2}>
+                  📍 {r.address}
+                </Text>
+                <View style={styles.divider} />
                 <View style={styles.rowBetween}>
-                  <Text style={styles.sub}>පැමිණීමේ ගාස්තුව</Text>
-                  <Text style={styles.sub}>{money(r.fees.callout)}</Text>
-                </View>
-                <View style={styles.rowBetween}>
-                  <Text style={styles.sub}>අලුත්වැඩියා ගාස්තුව</Text>
-                  <Text style={styles.sub}>{money(r.fees.repair)}</Text>
-                </View>
-                {!!r.fees.part && (
-                  <View style={styles.rowBetween}>
-                    <Text style={styles.sub}>OnMart කොටස ({r.fees.part.name}) · {r.fees.part.shop}</Text>
-                    <Text style={styles.sub}>{money(r.fees.part.amount)}</Text>
-                  </View>
-                )}
-                <View style={styles.rowBetween}>
-                  <Text style={styles.sub}>ඔබගේ ශ්‍රේණිගත කිරීම</Text>
+                  <Text style={[styles.sub, styles.flex1]} numberOfLines={2}>
+                    පැමිණීම {money(r.fees.callout)} · අලුත්වැඩියා {money(r.fees.repair)}
+                    {r.fees.part ? ` · ${r.fees.part.name} ${money(r.fees.part.amount)}` : ''}
+                  </Text>
                   <Text style={[styles.sub, { color: Colors.warning }]}>{'★'.repeat(r.rating)}{'☆'.repeat(5 - r.rating)}</Text>
                 </View>
-                {r.tags.length > 0 && <Text style={styles.sub}>{r.tags.join(' · ')}</Text>}
-              </View>
+              </Pressable>
             ))}
           </>
         )}
 
         {show('done') && (
           <>
-        <Text style={styles.sectionLabel}>සම්පූර්ණ කළ සේවා</Text>
         {showDone('direct') && doneBookings.map(bookingCard)}
         {showDone('bids') && doneJobs.map(({ job, bid }) => bidCard(job, bid))}
-        {showDone('past') && history.map((w) => (
-          <View key={w.id} style={styles.card}>
+        {showDone('bids') && history.map((w) => (
+          <Pressable key={w.id} style={[styles.card, styles.cardDone]} onPress={() => setRecord({ kind: 'history', workshop: w })} accessibilityLabel={`Past job ${w.title ?? categoryInfo(w.categoryId).name}`}>
             <View style={styles.iconRow}>
-              <ChatButton size={44} target={{ id: w.id, title: w.garageName, subtitle: w.title ?? categoryInfo(w.categoryId).name, phone: MOCK_GARAGES.find((g) => g.name === w.garageName)?.phone, vehicle: w.vehicleId ? findVehicle(w.vehicleId) : undefined }} />
+              <CategoryPhoto categoryId={w.categoryId} size={40} />
             </View>
+            <View style={styles.headRow}>
+              <Text style={styles.title}>{w.title ?? categoryInfo(w.categoryId).name}</Text>
+            </View>
+            <View style={styles.divider} />
             <View style={styles.row}>
-              <CategoryPhoto categoryId={w.categoryId} />
               <View style={styles.flex1}>
-                <Text style={styles.title}>{w.title ?? categoryInfo(w.categoryId).name}</Text>
                 <Text style={styles.sub}>
                   {w.garageName} · {formatDate(new Date(w.progress.closedAt ?? 0))}
                 </Text>
                 {!!w.vehicleId && <VehicleBlock vehicle={findVehicle(w.vehicleId)} />}
               </View>
-              <View style={[styles.right, styles.rightIcons]}>
-                <Text style={styles.price}>{money(w.progress.handover?.bill.total ?? 0)}</Text>
+              <View style={styles.right}>
+                <Text style={[styles.price, styles.priceDone]}>{money(w.progress.handover?.bill.total ?? 0)}</Text>
                 <View style={[styles.status, styles.statusDone]}>
                   <Text style={[styles.statusText, { color: Colors.success }]}>✓ සම්පූර්ණයි</Text>
                 </View>
               </View>
             </View>
             <View style={styles.divider} />
-            <WorkshopTracker id={w.id} />
-          </View>
+            <View style={styles.rowBetween}>
+              <Text style={[styles.sub, styles.flex1]} numberOfLines={1}>
+                🛡️ මාස {w.warrantyMonths} වගකීම
+              </Text>
+              <Text style={styles.link}>විස්තර ›</Text>
+            </View>
+          </Pressable>
         ))}
           </>
         )}
       </ScrollView>
       <OwnerDetailView target={detailTarget} onClose={() => setDetail(null)} />
+      <RecordDetailView target={record} onClose={() => setRecord(null)} />
     </View>
   );
 };
@@ -476,6 +492,9 @@ const styles = themedStyles(() => StyleSheet.create({
   // PickMe look: a roomy white card with big round corners, no hard outline and a soft wide shadow.
   card: { backgroundColor: Colors.bgCard, borderWidth: getThemeMode() === 'dark' ? 1 : 0, borderColor: Colors.borderColor, borderRadius: 24, padding: 18, gap: 16, shadowColor: '#0f172a', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.08, shadowRadius: 18, elevation: 3 },
   cardOngoing: {},
+  // A finished job: a little tighter, and the price in green.
+  cardDone: { padding: 16, gap: 12 },
+  priceDone: { color: Colors.successText },
   spendCard: { padding: 18, borderRadius: 24, gap: 6, backgroundColor: Colors.bgCard, borderWidth: getThemeMode() === 'dark' ? 1 : 0, borderColor: Colors.borderColor, shadowColor: '#0f172a', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.08, shadowRadius: 18, elevation: 3 },
   spendCaption: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
   spendTotal: { fontSize: 28, fontFamily: FONTS.titleBold, color: Colors.textMain },
@@ -487,25 +506,29 @@ const styles = themedStyles(() => StyleSheet.create({
   spendLabel: { flex: 1, fontSize: 10.5, fontFamily: FONTS.bodyMedium, color: Colors.textMuted },
   spendAmount: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.textMain },
   spendCount: { fontSize: 10, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
-  segment: { flexDirection: 'row', gap: 6, marginTop: 8 },
+  segment: { flexDirection: 'row', gap: 6, marginTop: 14 },
   segItem: { flex: 1, height: 40, borderRadius: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4, overflow: 'visible', borderWidth: 1, borderColor: outline(), backgroundColor: Colors.bgCard },
   segItemOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe', borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#d2e3fc' },
   segText: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
   segTextOn: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
-  badge: { marginLeft: 'auto', minWidth: 20, height: 20, paddingHorizontal: 6, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.24)' : '#d2e3fc' },
+  badge: { position: 'absolute', top: -9, right: 8, minWidth: 20, height: 20, paddingHorizontal: 6, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: '#1a73e8', borderWidth: 2, borderColor: pageBg() },
   badgeGood: {},
-  badgeText: { fontSize: 10.5, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
-  kindChips: { gap: 10, paddingTop: 6, paddingRight: 16 },
-  subBadge: { marginLeft: 'auto', minWidth: 19, height: 19, paddingHorizontal: 5, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.34)' : '#d2e3fc' },
-  subBadgeText: { fontSize: 10, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
+  badgeText: { fontSize: 10.5, fontFamily: FONTS.bodyBold, color: '#ffffff' },
+  kindChips: { gap: 10, paddingTop: 14, paddingRight: 16 },
+  subBadge: { position: 'absolute', top: -9, right: 4, minWidth: 19, height: 19, paddingHorizontal: 5, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: '#1a73e8', borderWidth: 2, borderColor: pageBg() },
+  subBadgeText: { fontSize: 10, fontFamily: FONTS.bodyBold, color: '#ffffff' },
   kindChipOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe', borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#d2e3fc' },
-  subChip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingLeft: 12, paddingRight: 6, height: 32, borderRadius: 8, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline() },
+  subChip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, height: 32, borderRadius: 8, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline() },
   kindChipText: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textSoft },
   kindChipTextOn: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
-  sosIcon: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(239, 68, 68, 0.14)' },
+  // Keeps the heading clear of the icons in the card's top right corner.
+  textClear: { paddingRight: 56 },
+  sosIcon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(239, 68, 68, 0.14)' },
   sosIconText: { fontSize: 22 },
+  // A finished job's heading row (beside the icon in the corner), with a full-width line under it.
+  headRow: { minHeight: 40, justifyContent: 'center', paddingRight: 56 },
   divider: { height: 1, backgroundColor: getThemeMode() === 'dark' ? Colors.borderColor : '#dadce0' },
-  title: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textMain },
+  title: { fontSize: 14, fontFamily: FONTS.titleBold, color: Colors.textMain },
   sub: { fontSize: 12.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 2 },
   link: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
   right: { alignItems: 'flex-end', gap: 5 },
@@ -518,6 +541,6 @@ const styles = themedStyles(() => StyleSheet.create({
   kindTagText: { fontSize: 11, fontWeight: '700', color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
   status: { paddingHorizontal: 10, height: 24, justifyContent: 'center', borderRadius: 12 },
   statusOngoing: { backgroundColor: 'rgba(245, 158, 11, 0.12)' },
-  statusDone: { backgroundColor: 'rgba(16, 185, 129, 0.12)' },
+  statusDone: { backgroundColor: 'rgba(16, 185, 129, 0.16)', borderWidth: 1, borderColor: 'rgba(16, 185, 129, 0.35)' },
   statusText: { fontSize: 11, fontFamily: FONTS.bodySemiBold },
 }));

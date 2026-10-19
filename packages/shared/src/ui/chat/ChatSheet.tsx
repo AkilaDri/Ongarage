@@ -671,8 +671,8 @@ const styles = themedStyles(() =>
     msg: { fontSize: 15.5, fontFamily: FONTS.bodyRegular, color: Colors.textMain, lineHeight: 23 },
     // An important step of the job (vehicle received, parts, price, handover…): a tonal Material card with a blue accent edge, not a chat bubble.
     event: { alignSelf: 'stretch', paddingHorizontal: 14, paddingVertical: 12, borderRadius: 12, borderWidth: 1, borderColor: getThemeMode() === 'dark' ? '#3c4043' : '#dadce0', backgroundColor: getThemeMode() === 'dark' ? '#202124' : '#ffffff', shadowColor: '#3c4043', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.18, shadowRadius: 2, elevation: 1 },
-    eventLine: { color: getThemeMode() === 'dark' ? '#e8eaed' : '#202124', fontSize: 14.5, lineHeight: 21 },
-    eventHead: { fontSize: 16.5, lineHeight: 24 },
+    eventLine: {},
+    eventHead: {},
     // The tag says which side wrote the step (garage, owner, shop, technician), in that side's own colour.
     eventMine: { backgroundColor: getThemeMode() === 'dark' ? '#1c2b4a' : '#e8f0fe', borderColor: getThemeMode() === 'dark' ? '#2f4b7c' : '#c6dafc' },
     // The Job Info card's cream: what a side other than the owner and the garage owner (technician, parts shop) posts uses it too.
@@ -816,8 +816,8 @@ const wa = themedStyles(() => {
     theirs: { backgroundColor: c.theirs, borderBottomLeftRadius: 4 },
     msg: { fontSize: 13.5, fontFamily: FONTS.bodyRegular, color: c.text, lineHeight: 19 },
     event: { alignSelf: 'stretch', paddingHorizontal: 12, paddingVertical: 10, borderRadius: 12, borderWidth: 1, borderColor: getThemeMode() === 'dark' ? '#3c4043' : '#dadce0', backgroundColor: getThemeMode() === 'dark' ? '#202124' : '#ffffff', shadowColor: '#3c4043', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.12, shadowRadius: 4, elevation: 6 },
-    eventLine: { color: c.text, fontSize: 13.5, lineHeight: 19 },
-    eventHead: { fontSize: 15, lineHeight: 21 },
+    eventLine: {},
+    eventHead: {},
     eventMine: { backgroundColor: getThemeMode() === 'dark' ? '#1c2b4a' : '#e8f0fe', borderColor: getThemeMode() === 'dark' ? '#2f4b7c' : '#c6dafc' },
     // The Job Info card's cream: what a side other than the owner and the garage owner (technician, parts shop) posts uses it too.
     eventJobInfo: { backgroundColor: getThemeMode() === 'dark' ? '#182229' : '#ffeecd', borderColor: getThemeMode() === 'dark' ? '#2a3942' : '#f1dfb4' },
