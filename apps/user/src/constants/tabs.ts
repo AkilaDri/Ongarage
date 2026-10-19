@@ -1,9 +1,9 @@
-import type { NavItem } from '@ongarage/shared';
+import { OrdersLineIcon, RequestLineIcon, ShopLineIcon, WallLineIcon, type NavItem } from '@ongarage/shared';
 import { AccountIcon, HomeIcon } from '../components/NavIcons';
 import { ActivityListIcon } from '../components/ActivityListIcon';
 import { OnGarageIcon } from '../components/OnGarageIcon';
 import { BidsBillIcon } from '../components/BidsBillIcon';
-import { MartIcon, OrdersIcon, RequestsIcon, ShopsIcon, WallIcon } from '../components/MartNavIcon';
+import { MartIcon } from '../components/MartNavIcon';
 
 export type TabId = 'home' | 'bids' | 'activity' | 'mart' | 'profile';
 export type MartSegment = 'shops' | 'mine' | 'wall' | 'orders';
@@ -16,13 +16,13 @@ export const MART_TABS: NavItem<MartNavId>[] = [
     id: 'shops',
     label: 'වෙළඳසැල්',
     accessibilityLabel: 'OnMart shops',
-    icon: ShopsIcon,
+    icon: ShopLineIcon,
   },
   {
     id: 'mine',
     label: 'මගේ ඉල්ලීම්',
     accessibilityLabel: 'OnMart mine',
-    icon: RequestsIcon,
+    icon: RequestLineIcon,
   },
   {
     id: 'ongarage',
@@ -34,13 +34,13 @@ export const MART_TABS: NavItem<MartNavId>[] = [
     id: 'wall',
     label: 'විවෘත',
     accessibilityLabel: 'OnMart wall',
-    icon: WallIcon,
+    icon: WallLineIcon,
   },
   {
     id: 'orders',
     label: 'ඇණවුම්',
     accessibilityLabel: 'OnMart orders',
-    icon: OrdersIcon,
+    icon: OrdersLineIcon,
   },
 ];
 

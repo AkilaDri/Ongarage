@@ -1,5 +1,5 @@
 import { LkPlate, bidWork } from '@ongarage/shared';
-import { elevation1, outline } from '../utils/material';
+import { elevation1, outline, pageBg } from '../utils/material';
 import React, { useEffect, useRef, useState } from 'react';
 import { chatDockOffset } from '../utils/chatDock';
 import { Linking, Pressable, ScrollView, StyleSheet, Text, View, Image } from 'react-native';
@@ -434,7 +434,7 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, onRepu
                 {t.label}
               </Text>
               {t.count > 0 && (
-                <View style={[styles.tabCount, active && styles.tabCountActive]}>
+                <View style={[styles.tabCount, { backgroundColor: badgeColor(t.id) }]}>
                   <Text style={styles.tabCountText}>{t.count}</Text>
                 </View>
               )}
@@ -545,16 +545,15 @@ const styles = themedStyles(() => StyleSheet.create({
   minBtn: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(56, 189, 248, 0.12)', borderWidth: 1, borderColor: 'rgba(56, 189, 248, 0.45)' },
   // One white surface with a thin outline and a light elevation; the selected tab has a line under it (Material primary tabs).
   // The three views (received, waiting, expired) are three separate chips, like the garage app's: each its own outlined chip, the selected one tonal blue.
-  tabBar: { paddingHorizontal: 6, paddingTop: 12, paddingBottom: 6 },
+  tabBar: { paddingHorizontal: 6, paddingTop: 20, paddingBottom: 6 },
   segRow: { flexDirection: 'row', gap: 8 },
   segChip: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, height: 44, paddingHorizontal: 6, borderRadius: 12, borderWidth: 1, borderColor: outline(), backgroundColor: Colors.bgCard, ...elevation1() },
   segChipOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe', borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#d2e3fc' },
   segChipText: { flexShrink: 1, fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
   segChipTextOn: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
   // The count is a soft blue pill (like a small info chip) on the corner, so the label row never wraps on narrow tabs.
-  tabCount: { marginLeft: 'auto', minWidth: 20, height: 20, paddingHorizontal: 6, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.24)' : '#d2e3fc' },
-  tabCountActive: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.4)' : '#aecbfa' },
-  tabCountText: { fontSize: 10.5, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
+  tabCount: { position: 'absolute', top: -9, right: 8, minWidth: 20, height: 20, paddingHorizontal: 6, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: pageBg() },
+  tabCountText: { fontSize: 10.5, fontFamily: FONTS.bodyBold, color: '#ffffff' },
   tabCountTextActive: {},
   body: { paddingHorizontal: 6, paddingTop: 4, gap: 12, paddingBottom: 24 },
   fullMap: { ...StyleSheet.absoluteFill },

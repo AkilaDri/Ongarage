@@ -673,9 +673,11 @@ export const MartScreen: React.FC<MartScreenProps> = ({ activeVehicle, segment, 
                     {tabs.map((t) => (
                       <Pressable key={t.id} style={[styles.reqTab, reqTab === t.id && styles.chipOn]} onPress={() => setReqTab(t.id)} accessibilityLabel={`Requests ${t.id}`} accessibilityState={{ selected: reqTab === t.id }}>
                         <Text style={[styles.chipText, reqTab === t.id && styles.chipTextOn]} numberOfLines={1}>{reqTab === t.id ? '✓ ' : ''}{t.label}</Text>
-                        <View style={[styles.reqCount, reqTab === t.id && styles.reqCountOn]}>
-                          <Text style={[styles.reqCountText, reqTab === t.id && styles.chipTextOn]}>{count(sec[t.id])}</Text>
-                        </View>
+                        {count(sec[t.id]) > 0 && (
+                          <View style={styles.reqCount}>
+                            <Text style={styles.reqCountText}>{count(sec[t.id])}</Text>
+                          </View>
+                        )}
                       </Pressable>
                     ))}
                   </View>
@@ -808,12 +810,11 @@ const styles = themedStyles(() =>
     chipOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe', borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#d2e3fc' },
     chipText: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textSoft },
     chipTextOn: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
-    reqTabs: { flexDirection: 'row', gap: 8 },
+    reqTabs: { flexDirection: 'row', gap: 8, marginTop: 10 },
     // Google Material filter chips: 8dp corners, outlined, the selected one tonal blue with a check.
     reqTab: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, height: 36, paddingHorizontal: 8, borderRadius: 8, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline() },
-    reqCount: { minWidth: 18, height: 18, paddingHorizontal: 4, borderRadius: 9, alignItems: 'center', justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? 'rgba(255, 255, 255, 0.08)' : '#f1f3f4' },
-    reqCountOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.28)' : '#d2e3fc' },
-    reqCountText: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
+    reqCount: { position: 'absolute', top: -9, right: 8, minWidth: 20, height: 20, paddingHorizontal: 6, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: '#1a73e8', borderWidth: 2, borderColor: pageBg() },
+    reqCountText: { fontSize: 10.5, fontFamily: FONTS.bodyBold, color: '#ffffff' },
     pastHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 6 },
     pastToggle: { fontSize: 12, color: Colors.textMuted },
     pastEmpty: { fontSize: 12, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },

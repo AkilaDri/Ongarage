@@ -141,10 +141,11 @@ const styles = themedStyles(() => StyleSheet.create({
   container: { flex: 1 },
   scroll: { flex: 1 },
   content: { paddingTop: 16, paddingHorizontal: 6, paddingBottom: 90, gap: 16 },
-  categoriesBlock: { gap: 10 },
+  // The categories sit in their own soft rounded panel, header and four-column grid together.
+  categoriesBlock: { gap: 14, padding: 14, borderRadius: 24, backgroundColor: getThemeMode() === 'dark' ? 'rgba(255,255,255,0.05)' : '#f1f4f9' },
   // Opaque and full width (the negative margin cancels the content padding), so the lists scroll underneath it.
   adsPinned: { marginHorizontal: -6, paddingHorizontal: 6, paddingVertical: 6, backgroundColor: pageBg() },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 },
-  seeAll: { fontSize: 15, fontFamily: FONTS.bodySemiBold, color: '#1877f2' },
+  seeAll: { fontSize: 15, fontFamily: FONTS.bodyBold, color: '#1877f2' },
   sectionTitle: { fontSize: 15, fontFamily: FONTS.bodyBold, color: Colors.primary },
 }));

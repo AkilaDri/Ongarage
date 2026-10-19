@@ -2,7 +2,7 @@ import React from 'react';
 import { StyleSheet, Text, View, type StyleProp, type TextStyle } from 'react-native';
 import { vehicleIcon } from '../constants/vehicles';
 import { FONTS } from '../theme/fonts';
-import { themedStyles } from '../theme/colors';
+import { Colors, themedStyles } from '../theme/colors';
 
 /** "CAD-8821" or "WP KV 4412" -> its letters and its digits. */
 const parts = (plate: string) => {
@@ -13,7 +13,7 @@ const parts = (plate: string) => {
 };
 
 /**
- * A vehicle number plate drawn like a Sri Lankan one: a yellow plate with a black rim and bold
+ * A vehicle number plate: a plain outlined plate (no yellow fill) with bold
  * black lettering, the letters and the digits split by a dash. Motorbikes carry the two-line
  * plate: letters above, digits below.
  */
@@ -44,15 +44,15 @@ export const LkPlate: React.FC<{ plate: string; stacked?: boolean; small?: boole
 
 const styles = themedStyles(() =>
   StyleSheet.create({
-    // The plate itself: yellow, with a thin dark edge.
-    plate: { alignSelf: 'flex-start', padding: 3, borderRadius: 9, backgroundColor: '#fdd835' },
+    // The plate itself: no fill.
+    plate: { alignSelf: 'flex-start', padding: 3, borderRadius: 9, backgroundColor: 'transparent' },
     plateSmall: { padding: 0, borderRadius: 5 },
     // The black rim inside it.
-    rim: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16, paddingVertical: 6, borderRadius: 6, borderWidth: 2.5, borderColor: '#111111' },
+    rim: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16, paddingVertical: 6, borderRadius: 6, borderWidth: 2.5, borderColor: Colors.textMuted },
     rimSmall: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 5, borderWidth: 2 },
     line: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-    text: { fontSize: 30, fontFamily: FONTS.titleBold, fontWeight: '900', color: '#111111', letterSpacing: 3, lineHeight: 36 },
-    textSmall: { fontSize: 12.5, fontFamily: FONTS.titleBold, fontWeight: '900', color: '#111111', letterSpacing: 1.2, lineHeight: 16 },
+    text: { fontSize: 30, fontFamily: FONTS.titleBold, fontWeight: '900', color: Colors.textMain, letterSpacing: 3, lineHeight: 36 },
+    textSmall: { fontSize: 12.5, fontFamily: FONTS.titleBold, fontWeight: '900', color: Colors.textMain, letterSpacing: 1.2, lineHeight: 16 },
     dash: { letterSpacing: 0 },
   })
 );

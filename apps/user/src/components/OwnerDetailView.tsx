@@ -33,6 +33,8 @@ import { WorkshopTracker } from './workshop/WorkshopTracker';
 import { useUserLocation } from '../context/LocationContext';
 import { sparePartLabel } from '../constants/labels';
 import { Toast } from './Toast';
+import { ChatButton } from './ChatButton';
+import { CompletedRecord } from './CompletedRecord';
 import { TxnTag } from './TxnTag';
 import { ago, countdown, formatDate, formatTime, money } from '../utils/format';
 import type { DirectBooking } from '../types';
@@ -222,9 +224,11 @@ export const OwnerDetailView: React.FC<{
               </Text>
             </View>
           </View>
-          <Fact icon="📍" label="ලිපිනය" value={b.garage.address} />
-          <Fact icon="📞" label="දුරකථනය" value={b.status === 'confirmed' ? b.garage.phone : 'තහවුරු වූ පසු'} />
-          <Fact icon={b.doorstep ? '🚛' : '🏠'} label="සේවා ස්ථානය" value={b.doorstep ? 'ගරාජය ඔබ වෙත පැමිණේ' : 'ඔබ වාහනය ගරාජයට ගෙන යයි'} />
+          <Rows>
+            <Fact icon="📍" label="ලිපිනය" value={b.garage.address} />
+            <Fact icon="📞" label="දුරකථනය" value={b.status === 'confirmed' ? b.garage.phone : 'තහවුරු වූ පසු'} />
+            <Fact icon={b.doorstep ? '🚛' : '🏠'} label="සේවා ස්ථානය" value={b.doorstep ? 'ගරාජය ඔබ වෙත පැමිණේ' : 'ඔබ වාහනය ගරාජයට ගෙන යයි'} />
+          </Rows>
         </View>
         <GoogleMap
           style={[styles.map, styles.mapJoined, { height: MAP_H }]}
@@ -306,6 +310,12 @@ export const OwnerDetailView: React.FC<{
               <Icon name="x" size={16} color={Colors.textMain} />
             </Pressable>
             <Text style={styles.headerTitle}>{job ? 'රැකියා විස්තර' : 'වෙන්කිරීම් විස්තර'}</Text>
+            {(() => {
+              const bid = job?.bids.find((x) => x.id === job.acceptedBidId);
+              if (job && bid) return <ChatButton size={36} target={{ id: job.id, title: bid.garageName, subtitle: cat.name, phone: MOCK_GARAGES.find((g) => g.name === bid.garageName)?.phone, vehicle }} />;
+              if (booking) return <ChatButton size={36} target={{ id: booking.id, title: booking.garage.name, subtitle: cat.name, phone: booking.garage.phone, vehicle }} />;
+              return null;
+            })()}
             <View style={[styles.kindPill, booking ? styles.kindDirect : styles.kindBid]}>
               <Icon name={booking ? 'calendar' : 'tag'} size={12} color={booking ? Colors.success : Colors.primary} />
               <Text style={[styles.kindText, { color: booking ? Colors.success : Colors.primary }]}>{booking ? 'ඍජු වෙන්කිරීම' : 'ලංසු සඳහා'}</Text>
@@ -336,6 +346,8 @@ export const OwnerDetailView: React.FC<{
               </>
             )}
 
+            <CompletedRecord id={shown.kind === 'job' ? shown.job.id : shown.booking.id} />
+
             <Text style={styles.section}>ඔබ එවූ විස්තරය</Text>
             <View style={styles.card}>
               <Text style={styles.desc}>{description}</Text>
@@ -351,9 +363,11 @@ export const OwnerDetailView: React.FC<{
               <>
                 <Text style={styles.section}>අවශ්‍යතා</Text>
                 <View style={styles.card}>
-                  <Fact icon="🔩" label="අමතර කොටස්" value={sparePartLabel(job.sparePart)} />
-                  <Fact icon="🚛" label="සේවා ස්ථානය" value={job.doorstep ? 'නිවසටම පැමිණීම' : 'ගරාජයට ගෙන යයි'} />
-                  <Fact icon="📍" label="ස්ථානය" value={job.address} />
+                  <Rows>
+                    <Fact icon="🔩" label="අමතර කොටස්" value={sparePartLabel(job.sparePart)} />
+                    <Fact icon="🚛" label="සේවා ස්ථානය" value={job.doorstep ? 'නිවසටම පැමිණීම' : 'ගරාජයට ගෙන යයි'} />
+                    <Fact icon="📍" label="ස්ථානය" value={job.address} />
+                  </Rows>
                 </View>
               </>
             )}
@@ -366,6 +380,21 @@ export const OwnerDetailView: React.FC<{
     </Modal>
   );
 };
+
+
+/** The rows of a card with a thin line between each of them. */
+const Rows: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <>
+    {React.Children.toArray(children)
+      .filter(Boolean)
+      .map((c, i) => (
+        <React.Fragment key={i}>
+          {i > 0 && <View style={styles.rowLine} />}
+          {c}
+        </React.Fragment>
+      ))}
+  </>
+);
 
 const Cell: React.FC<{ label: string; value: string; color?: string }> = ({ label, value, color }) => (
   <View style={styles.cell}>
@@ -414,6 +443,7 @@ const styles = themedStyles(() =>
     cellLabel: { fontSize: 10, fontFamily: FONTS.bodyMedium, color: Colors.textMuted },
     cellValue: { fontSize: 12.5, fontFamily: FONTS.titleBold, color: Colors.textMain, textAlign: 'center' },
     divider: { width: 1, alignSelf: 'stretch', backgroundColor: Colors.borderColor },
+    rowLine: { height: 1, backgroundColor: outline() },
     fact: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     factIcon: { fontSize: 14, width: 20, textAlign: 'center' },
     factLabel: { fontSize: 11.5, fontFamily: FONTS.bodyMedium, color: Colors.textMuted, width: 92 },
