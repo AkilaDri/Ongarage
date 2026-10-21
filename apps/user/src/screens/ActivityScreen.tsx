@@ -1,3 +1,4 @@
+import { PostBody, PostHead } from '../components/PostCard';
 import { onActivityFocus, takeActivityFocus, type ActivityFocus } from '../utils/activityFocus';
 import { elevation1, outline, pageBg } from '../utils/material';
 import React, { useEffect, useRef, useState } from 'react';
@@ -104,7 +105,7 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
       <DirectBookingCard booking={b} onBookAgain={onBookAgain} onOpen={() => setDetail({ kind: 'booking', id: b.id })} />
     </SwipeCard>
   );
-  const { findVehicle } = useVehicles();
+  const { findVehicle, vehicles } = useVehicles();
   // 0 to 1 as the summary tiles pin at the top; fades the edge shadow in.
   const edge = useRef(new Animated.Value(0)).current;
   // The chat icon sits under the pinned tiles while this screen is shown.
@@ -154,44 +155,23 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
     const cat = SERVICE_CATEGORIES.find((c) => c.id === job.categoryId);
     return (
       <SwipeCard key={job.id} style={[styles.card, !finished(job.id) && styles.cardOngoing, finished(job.id) && !cancelled(job.id) && styles.cardDone]} onOpen={() => setDetail({ kind: 'job', id: job.id })}>
-        {/* The chat button sits in the very top right corner of the card. */}
-        {(
-          <>
-          <View style={styles.iconRow}>
-            <CategoryPhoto categoryId={job.categoryId} size={52} />
-          </View>
-          </>
-        )}
-        {finished(job.id) && !cancelled(job.id) && (
-          <>
-            <View style={styles.headRow}>
-              <Text style={styles.title}>{cat?.name ?? 'Service'}</Text>
-              <RatingLine rating={workshops[job.id]?.review?.rating} onRate={workshops[job.id] ? () => setRating(workshops[job.id]) : undefined} />
-            </View>
-            <View style={styles.divider} />
-          </>
-        )}
-        <Pressable style={styles.row} onPress={() => setDetail({ kind: 'job', id: job.id })} accessibilityLabel={`${cat?.name ?? 'Job'} booking details`}>
-          <View style={styles.flex1}>
-            {!(finished(job.id) && !cancelled(job.id)) && <Text style={styles.title}>{cat?.name ?? 'Service'}</Text>}
-            <View style={styles.garageLine}>
-              <Text style={[styles.sub, styles.flex1]} numberOfLines={1}>
-                {bid.garageName}
-              </Text>
-            </View>
-            <VehicleBlock vehicle={findVehicle(job.vehicleId)} />
-            <Text style={styles.sub}>වෙන් කළේ {formatDate(new Date(bid.submittedAt))}</Text>
-          </View>
-          <View style={[styles.right, !(finished(job.id) && !cancelled(job.id)) && styles.rightIcons]}>
-            <View style={styles.kindTag}>
-              <Text style={styles.kindTagText}>🤝 ලංසු</Text>
-            </View>
-            <Text style={[styles.price, finished(job.id) && !cancelled(job.id) && styles.priceDone]}>{money(bid.price)}</Text>
+        {/* Laid out like a Facebook post (the same as the garage app's cards): the picture, the garage and its tag, the date, the price with three dots; the vehicle line and the subject under. */}
+        <PostHead
+          photo={<CategoryPhoto categoryId={job.categoryId} size={48} />}
+          name={bid.garageName}
+          garage={{ id: bid.garageId, name: bid.garageName }}
+          meta={`වෙන් කළේ ${formatDate(new Date(bid.submittedAt))}`}
+          price={money(bid.price)}
+          onMore={() => setDetail({ kind: 'job', id: job.id })}
+        />
+        <PostBody vehicle={findVehicle(job.vehicleId)} kind="bid" subject={cat?.name ?? 'Service'} onPress={() => setDetail({ kind: 'job', id: job.id })}>
+          <View style={styles.rowBetween}>
+            {finished(job.id) && !cancelled(job.id) ? <RatingLine rating={workshops[job.id]?.review?.rating} onRate={workshops[job.id] ? () => setRating(workshops[job.id]) : undefined} /> : <View />}
             <View style={[styles.status, finished(job.id) ? styles.statusDone : styles.statusOngoing]}>
               <Text style={[styles.statusText, { color: cancelled(job.id) ? Colors.errorText : finished(job.id) ? Colors.success : Colors.warning }]}>{cancelled(job.id) ? '✕ අවලංගු කළා' : finished(job.id) ? '✓ සම්පූර්ණයි' : '● වෙන් කළා'}</Text>
             </View>
           </View>
-        </Pressable>
+        </PostBody>
         <View style={styles.divider} />
         {finished(job.id) ? (
           <View style={styles.rowBetween}>
@@ -445,33 +425,24 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
             {sosRecords.map((r) => (
               <SwipeCard key={r.id} style={[styles.card, styles.cardDone]} onOpen={() => setRecord({ kind: 'sos', record: r })}>
               <Pressable style={styles.cardInner} onPress={() => setRecord({ kind: 'sos', record: r })} accessibilityLabel={`SOS record ${r.breakdown.label}`}>
-                <View style={styles.iconRow}>
-                  <View style={styles.sosIcon}>
-                    {r.breakdown.id && BREAKDOWN_IMAGES[r.breakdown.id] ? <Image source={BREAKDOWN_IMAGES[r.breakdown.id]} style={styles.sosImage} resizeMode="contain" /> : <Text style={styles.sosIconText}>{r.breakdown.icon}</Text>}
-                  </View>
-                </View>
-                <View style={styles.headRow}>
-                  <Text style={styles.title}>SOS · {r.breakdown.label}</Text>
-                  <RatingLine rating={r.rating} />
-                </View>
-                <View style={styles.divider} />
-                <View style={styles.row}>
-                  <View style={styles.flex1}>
-                    <Text style={styles.sub}>
-                      {r.responder.name} · {r.responder.mechanic}
-                    </Text>
-                    <Text style={styles.sub}>
-                      {r.vehicleName} · {r.vehiclePlate} · {formatDate(new Date(r.completedAt))}
-                    </Text>
-                    <TxnTag kind="SOS" source={r.id} />
-                  </View>
-                  <View style={styles.right}>
-                    <Text style={[styles.price, styles.priceDone]}>{money(r.total)}</Text>
+                <PostHead
+                  photo={
+                    <View style={styles.sosIcon}> {r.breakdown.id && BREAKDOWN_IMAGES[r.breakdown.id] ? <Image source={BREAKDOWN_IMAGES[r.breakdown.id]} style={styles.sosImage} resizeMode="contain" /> : <Text style={styles.sosIconText}>{r.breakdown.icon}</Text>} </View>
+                  }
+                  name={r.responder.name}
+                  meta={`${r.responder.mechanic} · ${formatDate(new Date(r.completedAt))}`}
+                  price={money(r.total)}
+                  onMore={() => setRecord({ kind: 'sos', record: r })}
+                />
+                <PostBody vehicle={vehicles.find((x) => x.plate === r.vehiclePlate) ?? { type: 'Sedan', name: r.vehicleName, plate: r.vehiclePlate }} kind="sos" subject={`SOS · ${r.breakdown.label}`}>
+                  <View style={styles.rowBetween}>
+                    <RatingLine rating={r.rating} />
                     <View style={[styles.status, styles.statusDone]}>
                       <Text style={[styles.statusText, { color: Colors.success }]}>✓ සම්පූර්ණයි</Text>
                     </View>
                   </View>
-                </View>
+                  <TxnTag kind="SOS" source={r.id} />
+                </PostBody>
                 <View style={styles.divider} />
                 <Text style={styles.sub} numberOfLines={2}>
                   📍 {r.address}
@@ -497,28 +468,22 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
         {showDone('bids') && history.map((w) => (
           <SwipeCard key={w.id} style={[styles.card, styles.cardDone]} onOpen={() => setRecord({ kind: 'history', workshop: w })}>
           <Pressable style={styles.cardInner} onPress={() => setRecord({ kind: 'history', workshop: w })} accessibilityLabel={`Past job ${w.title ?? categoryInfo(w.categoryId).name}`}>
-            <View style={styles.iconRow}>
-              <CategoryPhoto categoryId={w.categoryId} size={52} />
-            </View>
-            <View style={styles.headRow}>
-              <Text style={styles.title}>{w.title ?? categoryInfo(w.categoryId).name}</Text>
-              <RatingLine rating={w.review?.rating} onRate={() => setRating(w)} />
-            </View>
-            <View style={styles.divider} />
-            <View style={styles.row}>
-              <View style={styles.flex1}>
-                <Text style={styles.sub}>
-                  {w.garageName} · {formatDate(new Date(w.progress.closedAt ?? 0))}
-                </Text>
-                {!!w.vehicleId && <VehicleBlock vehicle={findVehicle(w.vehicleId)} />}
-              </View>
-              <View style={styles.right}>
-                <Text style={[styles.price, styles.priceDone]}>{money(w.progress.handover?.bill.total ?? 0)}</Text>
+            <PostHead
+              photo={<CategoryPhoto categoryId={w.categoryId} size={48} />}
+              name={w.garageName}
+              garage={{ id: w.garageId, name: w.garageName }}
+              meta={formatDate(new Date(w.progress.closedAt ?? 0))}
+              price={money(w.progress.handover?.bill.total ?? 0)}
+              onMore={() => setRecord({ kind: 'history', workshop: w })}
+            />
+            <PostBody vehicle={w.vehicleId ? findVehicle(w.vehicleId) : undefined} kind="bid" subject={w.title ?? categoryInfo(w.categoryId).name}>
+              <View style={styles.rowBetween}>
+                <RatingLine rating={w.review?.rating} onRate={() => setRating(w)} />
                 <View style={[styles.status, styles.statusDone]}>
                   <Text style={[styles.statusText, { color: Colors.success }]}>✓ සම්පූර්ණයි</Text>
                 </View>
               </View>
-            </View>
+            </PostBody>
             <View style={styles.divider} />
             <View style={styles.rowBetween}>
               <Text style={[styles.sub, styles.flex1]} numberOfLines={1}>

@@ -62,9 +62,9 @@ export const RelationTag: React.FC<{ level: RelationLevel; count?: number; onPre
 };
 
 /** The numbers of a record at a glance: jobs together, since when, the last one, what they came to and the average rating. */
-export const RelationSummary: React.FC<{ jobs: number; since?: number; last?: number; total: number; avgRating?: number }> = ({ jobs, since, last, total, avgRating }) => (
+export const RelationSummary: React.FC<{ jobs: number; since?: number; last?: number; total: number; avgRating?: number; /** Leave out the "jobs together" tile. */ hideJobs?: boolean }> = ({ jobs, since, last, total, avgRating, hideJobs }) => (
   <View style={styles.summary}>
-    <Stat label="එකට කළ රැකියා" value={String(jobs)} />
+    {!hideJobs && <Stat label="එකට කළ රැකියා" value={String(jobs)} />}
     <Stat label="මුළු වටිනාකම" value={money(total)} />
     <Stat label="පළමු වතාව" value={since ? formatDate(since) : '—'} />
     <Stat label="අවසන් වතාව" value={last ? formatDate(last) : '—'} />

@@ -126,6 +126,8 @@ export type FeedJob = JobDetails & {
   distanceKm: number;
   /** Bids from other garages so far. */
   otherBids: number;
+  /** The owner posted this job again after its bidding ran out with no bid chosen: the same job, on offer once more. */
+  republished?: boolean;
 };
 
 export type BidStatus = 'pending' | 'won' | 'lost' | 'withdrawn';

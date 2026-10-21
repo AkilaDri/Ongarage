@@ -1,3 +1,4 @@
+import { DrivingToGarage } from './DrivingToGarage';
 import React, { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { OnChatIcon } from '@ongarage/shared';
@@ -46,19 +47,25 @@ export const ServiceModeNote: React.FC<{ booking: Booking }> = ({ booking: b }) 
   if (mode === 'doorstep') {
     return (
       <View style={[styles.note, styles.noteDoorstep]}>
-        <Text style={styles.noteTitle}>🚛 නිවසටම පැමිණීම — ඔබ පාරිභෝගිකයා වෙත යා යුතුයි</Text>
+        <Text style={styles.noteTitle}>🚛 ඔබ පාරිභෝගිකයා වෙත යා යුතුයි</Text>
         <Text style={styles.noteSub}>📍 {b.address}</Text>
       </View>
     );
   }
+  // The garage has said it received the vehicle: now it waits for the customer to confirm, in their own app, that they handed it over (the report can be written meanwhile).
+  if (b.progress && b.progress.stage !== 'booked') {
+    const confirmed = !!b.progress.handoverConfirmedAt;
+    return (
+      <View style={[styles.note, styles.noteWalkin, { flexDirection: 'row', alignItems: 'center', gap: 10 }]}>
+        <Text style={[styles.noteTitle, { flex: 1 }]}>{confirmed ? '✓ පාරිභෝගිකයා වාහනය ලබා දුන් බව සනාථ කළා' : 'පාරිභෝගිකයා වාහනය ලබා දුන් බව සනාථ කරන තෙක් රැඳී සිටී'}</Text>
+        {!confirmed && <DrivingToGarage />}
+      </View>
+    );
+  }
   return (
-    <View style={[styles.note, styles.noteWalkin]}>
-      <Text style={styles.noteTitle}>🏠 පාරිභෝගිකයා වාහනය ගරාජයට ගෙන එයි</Text>
-      <Text style={styles.noteSub}>
-        {b.locationSharedAt
-          ? `✓ ඔබගේ ස්ථානය සහ දුරකථන අංකය යවා ඇත · ${ago(Date.now() - b.locationSharedAt)} — මගදී ඔවුන්ට ඔබව ඇමතිය හැක.`
-          : 'ඔබගේ ස්ථානය තවම යවා නැත.'}
-      </Text>
+    <View style={[styles.note, styles.noteWalkin, { flexDirection: 'row', alignItems: 'center', gap: 10 }]}>
+      <Text style={[styles.noteTitle, { flex: 1 }]}>පාරිභෝගිකයා වාහනය ගරාජයට ගෙන එයි</Text>
+      <DrivingToGarage />
     </View>
   );
 };
@@ -174,35 +181,27 @@ export const BookingActions: React.FC<{ booking: Booking }> = ({ booking: b }) =
   return (
     <View style={styles.wrap}>
       <FitRequestNote booking={b} />
-      <View style={styles.row}>
-        <View style={styles.flex1}>
-          {mode === 'walkin' ? (
-            <ActionButton
-              label="ස්ථානය යවන්න"
-              icon="📍"
-              variant="ghost"
-              compact
-              onPress={() => {
-                sendGarageLocation(profile, b, `${formatDate(b.scheduledAt)} · ${formatTime(b.scheduledAt)}`);
-                shareLocation(b.id);
-              }}
-            />
-          ) : (
-            <ActionButton label="දිශාවන්" icon="🗺️" variant="ghost" compact onPress={() => openDirections(b, profile)} />
-          )}
-        </View>
-        <View style={styles.flex1}>
-          {/* OnChat takes the place of the call button; the unread count shows beside its name. */}
-          <Pressable style={styles.chatPill} onPress={() => openChat(chatTargetOf(b))} accessibilityLabel={unreadChat > 0 ? `OnChat, ${unreadChat} unread` : 'OnChat'}>
-            <OnChatIcon width={52} color={getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8'} />
-            {unreadChat > 0 && (
-              <View style={styles.chatPillBadge}>
-                <Text style={styles.chatPillBadgeText}>{unreadChat > 9 ? '9+' : unreadChat}</Text>
-              </View>
+      {/* Sending the location (or the directions) is only needed before the vehicle is received. */}
+      {(!p || p.stage === 'booked') && (
+        <View style={styles.row}>
+          <View style={styles.flex1}>
+            {mode === 'walkin' ? (
+              <ActionButton
+                label="ස්ථානය යවන්න"
+                icon="📍"
+                variant="ghost"
+                compact
+                onPress={() => {
+                  sendGarageLocation(profile, b, `${formatDate(b.scheduledAt)} · ${formatTime(b.scheduledAt)}`);
+                  shareLocation(b.id);
+                }}
+              />
+            ) : (
+              <ActionButton label="දිශාවන්" icon="🗺️" variant="ghost" compact onPress={() => openDirections(b, profile)} />
             )}
-          </Pressable>
+          </View>
         </View>
-      </View>
+      )}
       {p?.dispute?.status === 'rework' && p.stage === 'repairing' && <Text style={styles.waiting}>🔧 නැවත හදමින්: “{p.dispute.text}”</Text>}
       {step()}
 
@@ -277,9 +276,6 @@ const styles = themedStyles(() =>
   StyleSheet.create({
     flex1: { flex: 1 },
     // The OnChat button: just the icon on a tonal pill (same height as the buttons beside it), the unread count on its corner.
-    chatPill: { alignItems: 'center', justifyContent: 'center', paddingVertical: 8 },
-    chatPillBadge: { position: 'absolute', top: 2, right: 8, minWidth: 18, height: 18, paddingHorizontal: 4, borderRadius: 9, backgroundColor: '#ef4444', alignItems: 'center', justifyContent: 'center' },
-    chatPillBadgeText: { fontSize: 11, fontFamily: FONTS.bodyBold, color: '#ffffff' },
     flex2: { flex: 2 },
     wrap: { gap: 8 },
     row: { flexDirection: 'row', gap: 8 },

@@ -1,5 +1,6 @@
 import { CustomerHistoryLink, CustomerHistoryList, CustomerHistoryTag, CustomerRecordTabs } from './CustomerHistory';
 import { CategoryArt } from './CategoryArt';
+import { ClipboardLineIcon } from '@ongarage/shared';
 import { VehicleIcon3D, VehicleLabel } from '@ongarage/shared';
 import { CustomerBadge } from './CustomerBadge';
 import { VehicleLine } from '@ongarage/shared';
@@ -28,7 +29,7 @@ import { pageBg } from '../utils/pageBg';
 import { bidDeadline, useGarage } from '../context/GarageContext';
 import { Toast } from './Toast';
 import { BookingJobCard } from './BookingJobCard';
-import { AddJobDetailFab, AddJobDetailSheet } from './JobCardUpdates';
+import { AddJobDetailSheet } from './JobCardUpdates';
 import { NoPhotoAnimation } from './NoPhotoAnimation';
 import { ago, countdown, formatDate, formatTime, money } from '../utils/format';
 import type { BidStatus, Booking, DirectRequest, FeedJob, JobDetails, MyBid } from '../types';
@@ -71,6 +72,8 @@ export const JobDetailView: React.FC<{
   const [galleryW, setGalleryW] = useState(0);
   const [lightbox, setLightbox] = useState<number | null>(null);
   const [addOpen, setAddOpen] = useState(false);
+  // A finished job touched in the record tab opens its own details window, on top of this one.
+  const [nested, setNested] = useState<Booking | null>(null);
   // A returning customer's job has two tabs: the job's details and the record of earlier work for them.
   const [view, setView] = useState<'details' | 'records'>('details');
   const [now, setNow] = useState(Date.now());
@@ -119,6 +122,8 @@ export const JobDetailView: React.FC<{
       : shown.kind === 'myBid'
         ? shown.bid.job
         : shown.job;
+  // How the job came: a direct booking, a bid (posted or won), or an SOS call.
+  const kind: 'Booking' | 'Bid' | 'SOS' = booking ? (booking.source === 'sos' ? 'SOS' : booking.source === 'direct' ? 'Booking' : 'Bid') : direct ? 'Booking' : 'Bid';
   const cat = booking ? { name: booking.title, icon: booking.icon } : categoryInfo(job.categoryId);
   const photos = job.photos ?? [];
   const voices = job.voiceNotes ?? [];
@@ -136,35 +141,38 @@ export const JobDetailView: React.FC<{
         ]}
       >
         <SafeAreaView style={styles.flex1} edges={['top', 'bottom']}>
-          <View style={styles.header}>
-            <Pressable style={styles.iconBtn} onPress={onClose} hitSlop={8} accessibilityLabel="Close details">
-              <Icon name="x" size={16} color={Colors.textMain} />
-            </Pressable>
-            <Text style={styles.headerTitle}>{booking ? 'රැකියා කාඩ්පත' : 'රැකියා විස්තර'}</Text>
-            {booking ? (
-              <View style={[styles.kindPill, styles.kindDirect]}>
-                <Icon name="check-circle" size={12} color={Colors.success} />
-                <Text style={[styles.kindText, { color: Colors.success }]}>තහවුරු වූ වෙන්කිරීම</Text>
+          {/* No top bar: only the close button, floating at the top left over the page. */}
+          <Pressable style={styles.floatClose} onPress={onClose} hitSlop={8} accessibilityLabel="Close details">
+            <Icon name="x" size={16} color={Colors.textMain} />
+          </Pressable>
+          {/* The title at the very top of the window, beside the close button. */}
+          <View style={styles.floatTitle} accessibilityRole="header">
+            <View style={styles.floatTitleIcon}>
+              <ClipboardLineIcon active size={26} />
+            </View>
+            <View style={styles.flex1}>
+              <View style={styles.headTitleRow}>
+                <Text style={styles.floatTitleText}>රැකියා තොරතුරු</Text>
+                {/* At the right end, the customer's New / Old tag, then how the job came (a booking, a bid, or an SOS). */}
+                <View style={styles.headTags}>
+                  {(!!booking || !!direct) && <CustomerHistoryTag customer={job.customer} />}
+                <View style={[styles.headKind, kind === 'Booking' ? styles.headKindBooking : kind === 'SOS' ? styles.headKindSos : styles.headKindBid]}>
+                  <Text style={[styles.headKindText, { color: kind === 'Booking' ? Colors.success : kind === 'SOS' ? Colors.errorText : Colors.primary }]}>{kind}</Text>
+                </View>
+                </View>
               </View>
-            ) : myBid ? (
-              <View style={[styles.kindPill, styles.kindBid]}>
-                <Icon name="tag" size={12} color={Colors.primary} />
-                <Text style={[styles.kindText, { color: Colors.primary }]}>මගේ ලංසුව</Text>
-              </View>
-            ) : (
-              <View style={[styles.kindPill, direct ? styles.kindDirect : styles.kindBid]}>
-                <Icon name={direct ? 'calendar' : 'tag'} size={12} color={direct ? Colors.success : Colors.primary} />
-                <Text style={[styles.kindText, { color: direct ? Colors.success : Colors.primary }]}>{direct ? 'ඍජු වෙන්කිරීම' : 'ලංසු සඳහා'}</Text>
-              </View>
-            )}
+              <Text style={styles.floatTitleSub} numberOfLines={1}>
+                {cat.name} · {job.vehicle.registrationNo || job.vehicle.plate}
+              </Text>
+            </View>
           </View>
 
-          <View style={styles.flex1}>
+          <View style={[styles.flex1, { paddingTop: 52 }]}>
           {/* Private while the job is only open for bids: the tabs exist once the garage has been chosen (a booking, or a won bid). */}
           {(!!booking || !!direct) && <CustomerRecordTabs customer={job.customer} view={view} onChange={setView} />}
           {view === 'records' && (!!booking || !!direct) ? (
             <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
-              <CustomerHistoryList customer={job.customer} />
+              <CustomerHistoryList customer={job.customer} onOpenJob={(b) => setNested(b)} />
             </ScrollView>
           ) : (
           <ScrollView contentContainerStyle={booking ? styles.bodyWithFab : styles.body} showsVerticalScrollIndicator={false}>
@@ -213,7 +221,7 @@ export const JobDetailView: React.FC<{
                   {cat.name}
                   {direct?.service ? ` · ${direct.service}` : ''}
                 </Text>
-                <VehicleLabel type={job.vehicle.type} style={styles.sub} tail={booking || direct ? <CustomerHistoryTag customer={job.customer} /> : undefined}>{job.vehicle.name} · {job.customer.name} · {ago(now - (direct ? direct.requestedAt : myBid ? myBid.submittedAt : bidJob!.postedAt))}
+                <VehicleLabel type={job.vehicle.type} style={styles.sub} >{job.vehicle.name} · {job.customer.name} · {ago(now - (direct ? direct.requestedAt : myBid ? myBid.submittedAt : bidJob!.postedAt))}
                 </VehicleLabel>
               </View>
             </View>
@@ -296,7 +304,7 @@ export const JobDetailView: React.FC<{
               )}
               {voices.length > 0 && (
                 <View style={styles.voices}>
-                  <Text style={styles.voiceLabel}>🎙️ පාරිභෝගිකයාගේ හඬ සටහන් ({voices.length})</Text>
+                  <Text style={styles.voiceLabel}>🎙️ Voice note ({voices.length})</Text>
                   {voices.map((n, i) => (
                     <VoiceNotePlayer key={n.id} note={n} index={i} compact />
                   ))}
@@ -371,13 +379,13 @@ export const JobDetailView: React.FC<{
             )}
           </ScrollView>
           )}
-          {booking && booking.status !== 'completed' && booking.status !== 'cancelled' && !booking.progress?.cancelRequest && <AddJobDetailFab onPress={() => setAddOpen(true)} />}
           </View>
 
           <View style={styles.footer}>{renderActions(shown)}</View>
         </SafeAreaView>
       </Animated.View>
 
+      {!!nested && <JobDetailView target={{ kind: 'booking', booking: nested }} onClose={() => setNested(null)} renderActions={renderActions} />}
       {booking && <AddJobDetailSheet booking={booking} visible={addOpen} onClose={() => setAddOpen(false)} />}
 
       {/* Full-screen photo viewer */}
@@ -424,6 +432,18 @@ const styles = themedStyles(() =>
     flex1: { flex: 1 },
     root: { flex: 1, backgroundColor: pageBg() },
     row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    floatClose: { position: 'absolute', top: 10, left: 10, zIndex: 20, width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#dadce0' },
+    floatTitle: { position: 'absolute', top: 6, left: 54, right: 16, zIndex: 20, height: 44, flexDirection: 'row', alignItems: 'center', gap: 10 },
+    floatTitleIcon: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe' },
+    headTags: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    headTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+    headKind: { paddingHorizontal: 7, height: 18, justifyContent: 'center', borderRadius: 9 },
+    headKindBooking: { backgroundColor: 'rgba(16, 185, 129, 0.14)' },
+    headKindBid: { backgroundColor: 'rgba(56, 189, 248, 0.16)' },
+    headKindSos: { backgroundColor: 'rgba(239, 68, 68, 0.12)' },
+    headKindText: { fontSize: 10, lineHeight: 12, fontFamily: FONTS.bodyBold },
+    floatTitleText: { fontSize: 14, fontFamily: FONTS.titleBold, color: Colors.textMain, lineHeight: 18 },
+    floatTitleSub: { fontSize: 11, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 15 },
     header: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 6, minHeight: 56, backgroundColor: Colors.bgCard, borderBottomWidth: 1, borderBottomColor: outline(), ...elevation1() },
     iconBtn: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
     headerTitle: { flex: 1, fontSize: 18, fontFamily: FONTS.titleBold, color: Colors.textMain },

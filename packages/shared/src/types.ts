@@ -545,6 +545,8 @@ export type PartFitRequest = {
   requestedAt: number;
   decidedAt?: number;
   declineReason?: string;
+  /** A part the customer brings (supply "owner"): when the garage confirmed it received it (handed over with the vehicle). */
+  partReceivedAt?: number;
 };
 
 /** The owner's request to cancel a job in progress: the garage answers it with its compensation for the work done so far, then the owner decides. */
@@ -566,6 +568,8 @@ export type WorkshopProgress = {
   stage: WorkshopStage;
   checkInPhotos?: string[];
   receivedAt?: number;
+  /** The owner confirmed (in their app) that they really handed the vehicle over, after the garage said it had received it. */
+  handoverConfirmedAt?: number;
   diagnosis?: DiagnosisReport;
   decision?: OwnerDecision;
   extras?: ExtraWorkRequest[];

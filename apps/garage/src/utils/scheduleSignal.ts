@@ -13,3 +13,14 @@ export const onOpenBookingDetail = (l: Listener) => {
     listeners.delete(l);
   };
 };
+
+/** The "order this part from OnMart" button on a job card opens the parts request sheet, which lives in the Schedule screen. */
+type PartsListener = (bookingId: string) => void;
+const partsListeners = new Set<PartsListener>();
+export const openPartsRequest = (id: string) => partsListeners.forEach((l) => l(id));
+export const onOpenPartsRequest = (l: PartsListener) => {
+  partsListeners.add(l);
+  return () => {
+    partsListeners.delete(l);
+  };
+};

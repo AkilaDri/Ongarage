@@ -148,7 +148,7 @@ export const FEED_POOL: FeedSeed[] = [
   {
     categoryId: '7', description: 'බ්‍රේක් තද කරන විට කෑගසන ශබ්දයක් ඇසේ.', customer: c('ලහිරු බණ්ඩාර', '0779876503'),
     vehicle: v('Alto K6A', 'KV-4412', 'Hatchback'), sparePart: 'OEM', doorstep: true, biddingHours: 6,
-    otherBids: 0, address: 'උනවටුන', km: 3.0, bearing: 140, postedMinAgo: 2,
+    otherBids: 0, address: 'උනවටුන', km: 3.0, bearing: 140, postedMinAgo: 2, republished: true,
     voiceNotes: [voice('vn3', 24)],
   },
   {
@@ -161,7 +161,7 @@ export const FEED_POOL: FeedSeed[] = [
   {
     categoryId: '5', description: 'Check engine ලයිට් දැල්වී ඇත. ස්කෑන් කර දෝෂය හඳුනා ගැනීමට අවශ්‍යයි.', customer: c('නදීශා විජේසිංහ', '0779876505'),
     vehicle: v('Aqua', 'CBD-7712', 'Hatchback'), sparePart: 'GarageChoice', doorstep: true, biddingHours: 8,
-    otherBids: 3, address: 'බද්දේගම පාර', km: 3.6, bearing: 25, postedMinAgo: 70,
+    otherBids: 3, address: 'බද්දේගම පාර', km: 3.6, bearing: 25, postedMinAgo: 70, republished: true,
   },
   {
     categoryId: '4', description: 'වායු සමීකරණය (A/C) සීතල හුළඟ ලබා නොදේ.', customer: c('ශෙහාන් ගුණවර්ධන', '0779876506'),
@@ -218,7 +218,7 @@ export const BOOKINGS: Booking[] = [
     vehicle: v('March K11', 'WP-1029', 'Hatchback'), address: 'වක්වැල්ල පාර', coords: { latitude: 6.0533, longitude: 80.2302 },
     doorstep: true, scheduledAt: tomorrowAt(14), price: 8200, status: 'scheduled',
     // The owner asked for another part to be fitted: the garage accepts or declines it (see FitRequestNote).
-    progress: { ...newWorkshopProgress(), fitRequests: [{ id: 'fit-b2', partName: 'Wiper blades (front)', supply: 'owner', note: 'OnMart එකෙන් ගත්තා.', status: 'requested', requestedAt: Date.now() - 20 * 60 * 1000 }] }, warrantyMonths: 6, assignedTechId: 'm2',
+    progress: { ...newWorkshopProgress(), fitRequests: [{ id: 'fit-b2', partName: 'Wiper blades (front)', supply: 'owner', status: 'requested', requestedAt: Date.now() - 20 * 60 * 1000 }] }, warrantyMonths: 6, assignedTechId: 'm2',
     job: bookedJob('job-b2', '11', 'බැටරිය බැහැලා, වාහනය පණගන්වන්න බැහැ. ගෙදරටම ඇවිත් මාරු කරන්න පුළුවන්ද?', c('කවිෂා රත්නායක', '0779876508'),
       v('March K11', 'WP-1029', 'Hatchback'), 'වක්වැල්ල පාර', { latitude: 6.0533, longitude: 80.2302 }, 2.3, true, { photos: [JOB_PHOTOS[1]], sparePart: 'Genuine' }),
   },

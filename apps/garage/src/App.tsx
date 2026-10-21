@@ -1,3 +1,5 @@
+import { onFly } from './utils/fly';
+import { FlyLayer } from './components/FlyLayer';
 import { GarageActivityView } from './components/GarageActivityView';
 import { GarageCalendar } from './components/GarageCalendar';
 import { MoneyCalendarIcon } from './components/MoneyCalendarIcon';
@@ -134,6 +136,8 @@ function AppShell() {
   const martTabs = MART_TABS.map((t) => ({ ...t, badge: martBadges[t.id] }));
   // How far the headers have scrolled away on this page: the title band and the page's own tab bar both follow it.
   const header = useCollapsingHeader();
+  // A bid sent: the Jobs page's header (and its chips) comes back down, so "My bids" is in view for the token to land on.
+  useEffect(() => onFly((k) => k === 'bid' && header.reset()), [header.reset]);
   const martShift = header.shift;
   const [bandH, setBandH] = useState(76);
   useEffect(() => {
@@ -257,6 +261,7 @@ function AppShell() {
         {/* A technician's repair charge waits for the owner during an SOS job: it follows the owner to every screen until answered. */}
         <SosApprovalBanner />
         <Toast />
+        <FlyLayer />
       </SafeAreaView>
 
       <GarageCalendar visible={calendarOpen} onClose={() => setCalendarOpen(false)} view={scheduleView} />

@@ -1,5 +1,5 @@
 import { CustomerHistoryTag } from '../components/CustomerHistory';
-import { onOpenBookingDetail } from '../utils/scheduleSignal';
+import { onOpenBookingDetail, onOpenPartsRequest } from '../utils/scheduleSignal';
 import { VehicleSearchSheet } from '../components/VehicleSearchSheet';
 import { CategoryArt } from '../components/CategoryArt';
 import { SosLineIcon, ScheduleLineIcon, ReceiptLineIcon } from '@ongarage/shared';
@@ -48,7 +48,7 @@ export const ScheduleScreen: React.FC<{ onOpenParts: (requestId: string) => void
   // Parts only for lines the owner approved (or named in the post), or once a request exists.
   // SOS parts are handled after the roadside job.
   // (No parts requests while a cancellation request holds the job.)
-  const showParts = (b: Booking) => b.source !== 'sos' && !b.progress?.cancelRequest && (!!requestFor(b.id) || !b.progress || toOrderFor(b).length > 0);
+  const showParts = (b: Booking) => b.source !== 'sos' && b.progress?.stage !== 'booked' && !b.progress?.cancelRequest && (!!requestFor(b.id) || !b.progress || toOrderFor(b).length > 0);
   const [segment, setSegment] = useState<Segment>('upcoming');
   // The reports of a job (diagnosis, extra work, handover) in one popup, from its card.
   const [reportFor, setReportFor] = useState<Booking | null>(null);
@@ -59,6 +59,8 @@ export const ScheduleScreen: React.FC<{ onOpenParts: (requestId: string) => void
   const [searchOpen, setSearchOpen] = useState(false);
   // The calendar in the title bar opens a booking's details here.
   useEffect(() => onOpenBookingDetail((id) => setDetailId(id)), []);
+  // "Order this part from OnMart" on a job card opens the parts request for that job.
+  useEffect(() => onOpenPartsRequest((id) => setPartsFor(bookings.find((x) => x.id === id) ?? null)), [bookings]);
   const [partsFor, setPartsFor] = useState<Booking | null>(null);
   // Follows the live booking, so starting or finishing work updates the open details.
   const detail: DetailTarget | null = useMemo(() => {
@@ -98,6 +100,7 @@ export const ScheduleScreen: React.FC<{ onOpenParts: (requestId: string) => void
               <Text style={[styles.postName, styles.nameShrink]} numberOfLines={1}>
                 {b.customer.name}
               </Text>
+              <CustomerBadge customer={b.customer} compact />
               <CustomerHistoryTag customer={b.customer} />
             </View>
             <Text style={styles.postMeta} numberOfLines={1}>
@@ -116,6 +119,8 @@ export const ScheduleScreen: React.FC<{ onOpenParts: (requestId: string) => void
         </View>
 
         <View style={styles.postBody}>
+          {/* The subject of the job (its category and what it is) comes first in the body, above the rest. */}
+          <Text style={styles.postSubjectHead}>{b.title}</Text>
           <View style={[styles.row, styles.oneLine]}>
             <LkPlate plate={b.vehicle.plate} stacked={b.vehicle.type === 'Motorbike'} small fontSize={11.5} />
             <VehicleLabel type={b.vehicle.type} style={styles.postText} numberOfLines={1}>
@@ -123,13 +128,11 @@ export const ScheduleScreen: React.FC<{ onOpenParts: (requestId: string) => void
             </VehicleLabel>
             <View style={[styles.source, b.source === 'sos' ? styles.sourceSos : b.source === 'direct' ? styles.sourceDirect : styles.sourceBid]}>
               <Text style={[styles.sourceText, { color: b.source === 'sos' ? Colors.errorText : b.source === 'direct' ? Colors.success : Colors.primary }]}>
-                {b.source === 'sos' ? 'SOS' : b.source === 'direct' ? 'ඍජු' : 'ලංසු'}
+                {b.source === 'sos' ? 'SOS' : b.source === 'direct' ? 'Booked' : 'ලංසු'}
               </Text>
             </View>
             {!!b.job?.voiceNotes?.length && <Text style={styles.voiceMark}>🎙️ {b.job.voiceNotes.length}</Text>}
           </View>
-          {/* The subject of the job (its category and what it is) comes under the vehicle line, as the post's own text does. */}
-          <Text style={styles.postSubject}>{b.title}</Text>
         </View>
 
         <View style={[styles.chips, styles.cardBody]}>
@@ -305,7 +308,7 @@ const styles = themedStyles(() =>
     // Material cards: 12px corners, a thin outline, light elevation; a header, a body of chips and an action area.
     card: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#dadce0', borderRadius: 12, shadowColor: '#3c4043', shadowOffset: { width: 0, height: 1 }, shadowOpacity: getThemeMode() === 'dark' ? 0.4 : 0.15, shadowRadius: 3, elevation: 1 },
     cardActive: { borderColor: Colors.primary },
-    cardHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingTop: 16, paddingBottom: 10 },
+    cardHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: 8, paddingRight: 16, paddingTop: 14, paddingBottom: 10 },
     cardBody: { paddingHorizontal: 16, paddingBottom: 14 },
     cardActions: { paddingHorizontal: 16, paddingVertical: 12, borderTopWidth: 1, borderTopColor: getThemeMode() === 'dark' ? Colors.borderColor : '#e8eaed' },
     plateRow: { marginTop: 6 },
@@ -319,6 +322,7 @@ const styles = themedStyles(() =>
     postName: { fontSize: 13, fontFamily: FONTS.bodyBold, color: Colors.textMain },
     postMeta: { fontSize: 12, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 1 },
     postBody: { paddingHorizontal: 16, paddingBottom: 12, gap: 10 },
+    postSubjectHead: { fontSize: 13, fontFamily: FONTS.bodyRegular, color: Colors.textSoft, marginTop: 2 },
     postSubject: { fontSize: 15, fontFamily: FONTS.titleBold, color: Colors.textMain, lineHeight: 22 },
     postText: { fontSize: 15, fontFamily: FONTS.bodyRegular, color: Colors.textMain, lineHeight: 22 },
     cardTitle: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textMain },

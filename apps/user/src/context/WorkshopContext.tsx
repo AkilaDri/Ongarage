@@ -1,3 +1,4 @@
+import { flyTo } from '../utils/fly';
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import {
   approvedLines,
@@ -862,6 +863,7 @@ export const WorkshopProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           warrantyUntil: warrantyEnd(now, w.warrantyMonths),
           dispute: w.progress.dispute ? { ...w.progress.dispute, status: 'resolved' } : undefined,
         });
+        flyTo('done');
         notify({ icon: '🎉', title: 'රැකියාව අවසන්', body: `${w.garageName} ඔබගේ කේතය තහවුරු කළා · මාස ${w.warrantyMonths} වගකීම ආරම්භ විය.`, tone: 'success' });
       }, SCAN_MS);
     },

@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Colors, EmptyState, FONTS, RELATION_HELP, RELATION_LABEL, RELATION_PRIVACY, RelationSummary, RelationTag, getThemeMode, phoneKey, relationLevel, themedStyles } from '@ongarage/shared';
+import { ClipboardLineIcon, ReceiptLineIcon, Colors, EmptyState, FONTS, RELATION_HELP, RELATION_LABEL, RELATION_PRIVACY, RelationSummary, RelationTag, getThemeMode, phoneKey, relationLevel, themedStyles } from '@ongarage/shared';
 import { Sheet } from './Sheet';
 import { CategoryArt } from './CategoryArt';
 import { useGarage } from '../context/GarageContext';
@@ -61,7 +61,7 @@ export const CustomerHistoryLink: React.FC<{ customer: Customer }> = ({ customer
 };
 
 /** The jobs this garage has done for one customer: what, when, on which vehicle, what it cost and the warranty. */
-export const CustomerHistoryList: React.FC<{ customer: Customer }> = ({ customer }) => {
+export const CustomerHistoryList: React.FC<{ customer: Customer; /** Opens the full details window of a finished job. */ onOpenJob?: (b: Booking) => void }> = ({ customer, onOpenJob }) => {
   const { done, running, cancelled, disputes, level } = useCustomerHistory(customer);
   const total = done.reduce((n, b) => n + b.price, 0);
   const times = done.map((b) => b.completedAt ?? b.scheduledAt);
@@ -71,10 +71,7 @@ export const CustomerHistoryList: React.FC<{ customer: Customer }> = ({ customer
   const active = done.find((b) => !!b.progress?.warrantyUntil && b.progress.warrantyUntil > Date.now());
   return (
     <View style={styles.list}>
-      <View style={styles.levelRow}>
-        <RelationTag level={level} />
-      </View>
-      {done.length > 0 && <RelationSummary jobs={done.length} since={Math.min(...times)} last={Math.max(...times)} total={total} avgRating={rated.length ? rated.reduce((n, x) => n + x, 0) / rated.length : undefined} />}
+      {done.length > 0 && <RelationSummary hideJobs jobs={done.length} since={Math.min(...times)} last={Math.max(...times)} total={total} avgRating={rated.length ? rated.reduce((n, x) => n + x, 0) / rated.length : undefined} />}
       {!!active && <Text style={styles.good}>🛡️ {active.title} සඳහා වගකීම තවම බලපායි ({formatDate(active.progress!.warrantyUntil!)} දක්වා)</Text>}
       {running > 0 && <Text style={styles.running}>🔧 දැනට ඔහු වෙනුවෙන් පවතින රැකියා {running}</Text>}
       {(cancelled > 0 || disputes > 0) && (
@@ -86,7 +83,7 @@ export const CustomerHistoryList: React.FC<{ customer: Customer }> = ({ customer
         <EmptyState icon="🧾" title="සම්පූර්ණ කළ රැකියා නැත" text="මෙම පාරිභෝගිකයාට ඔබ රැකියාවක් අවසන් කළ විට එය මෙහි වාර්තා වේ." />
       ) : (
         done.map((b) => (
-          <Pressable key={b.id} style={styles.row} onPress={() => setPicked(b)} accessibilityLabel={`${b.title} full record`}>
+          <Pressable key={b.id} style={styles.row} onPress={() => (onOpenJob ? onOpenJob(b) : setPicked(b))} accessibilityLabel={`${b.title} full record`}>
             <CategoryArt emoji={b.icon} size={36} />
             <View style={styles.flex1}>
               <Text style={styles.title} numberOfLines={1}>
@@ -217,9 +214,9 @@ export const CustomerHistorySheet: React.FC<{ visible: boolean; onClose: () => v
 export const CustomerRecordTabs: React.FC<{ customer: Customer; view: 'details' | 'records'; onChange: (v: 'details' | 'records') => void }> = ({ customer, view, onChange }) => {
   const { done } = useCustomerHistory(customer);
   if (done.length === 0) return null;
-  const tabs: { id: 'details' | 'records'; label: string }[] = [
-    { id: 'details', label: 'රැකියා විස්තර' },
-    { id: 'records', label: `කලින් වාර්තා (${done.length})` },
+  const tabs: { id: 'details' | 'records'; label: string; Icon: React.ComponentType<{ active: boolean; size?: number }> }[] = [
+    { id: 'details', label: 'රැකියා විස්තර', Icon: ClipboardLineIcon },
+    { id: 'records', label: `කලින් වාර්තා (${done.length})`, Icon: ReceiptLineIcon },
   ];
   return (
     <View style={styles.tabs}>
@@ -227,6 +224,7 @@ export const CustomerRecordTabs: React.FC<{ customer: Customer; view: 'details' 
         const on = view === t.id;
         return (
           <Pressable key={t.id} style={[styles.tab, on && styles.tabOn]} onPress={() => onChange(t.id)} accessibilityRole="tab" accessibilityState={{ selected: on }} accessibilityLabel={t.label}>
+            <t.Icon active={on} size={20} />
             <Text style={[styles.tabText, on && styles.tabTextOn]}>{t.label}</Text>
           </Pressable>
         );
@@ -257,7 +255,7 @@ const styles = themedStyles(() =>
     warn: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.warning },
     help: { fontSize: 12, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 19 },
     tabs: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingTop: 10, paddingBottom: 4 },
-    tab: { flex: 1, height: 38, alignItems: 'center', justifyContent: 'center', borderRadius: 10, borderWidth: 1, borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#dadce0', backgroundColor: Colors.bgCard },
+    tab: { flex: 1, height: 42, flexDirection: 'row', gap: 6, alignItems: 'center', justifyContent: 'center', borderRadius: 10, borderWidth: 1, borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#dadce0', backgroundColor: Colors.bgCard },
     tabOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe', borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#d2e3fc' },
     tabText: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
     tabTextOn: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },

@@ -4,6 +4,15 @@ import { countdown, FONTS, getThemeMode } from '@ongarage/shared';
 import { TimeClock } from './TimeClock';
 
 const native = Platform.OS !== 'web';
+const two = (n: number) => String(n).padStart(2, '0');
+/** The time left with its seconds, whatever its size: 3h 20m 05s. */
+const withSeconds = (ms: number) => {
+  if (ms <= 0) return countdown(ms);
+  const h = Math.floor(ms / 3600000);
+  const m = Math.floor((ms % 3600000) / 60000);
+  const sec = Math.floor((ms % 60000) / 1000);
+  return h > 0 ? `${h}h ${two(m)}m ${two(sec)}s` : `${two(m)}m ${two(sec)}s`;
+};
 const dark = () => getThemeMode() === 'dark';
 
 // The colours of the countdown pill (Google's green / amber / red, softened in the dark theme).
@@ -33,7 +42,7 @@ export const CountdownPill: React.FC<{ ms: number; urgent: boolean }> = ({ ms, u
   }, [level, pulse]);
 
   return (
-    <View style={styles.wrap} accessibilityLabel={`Time left ${countdown(ms)}`}>
+    <View style={styles.wrap} accessibilityLabel={`Time left ${withSeconds(ms)}`}>
       {level !== 'ok' && (
         <Animated.View
           pointerEvents="none"
@@ -45,7 +54,7 @@ export const CountdownPill: React.FC<{ ms: number; urgent: boolean }> = ({ ms, u
       )}
       <View style={[styles.pill, { backgroundColor: tone.bg(), borderColor: tone.edge() }]}>
         <TimeClock ms={ms} size={14} color={tone.ink()} />
-        <Text style={[styles.time, { color: tone.ink() }]}>{countdown(ms)}</Text>
+        <Text style={[styles.time, { color: tone.ink() }]}>{withSeconds(ms)}</Text>
       </View>
     </View>
   );

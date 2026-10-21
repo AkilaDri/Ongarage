@@ -1,3 +1,4 @@
+import { PostBody, PostHead } from './PostCard';
 import { WaitingDots } from './WaitingDots';
 import { elevation1, outline } from '../utils/material';
 import React, { useEffect, useState } from 'react';
@@ -45,56 +46,29 @@ export const DirectBookingCard: React.FC<{ booking: DirectBooking; onBookAgain: 
 
   return (
     <View style={[styles.card, b.status === 'confirmed' && styles.confirmed, b.status === 'proposed' && styles.proposed, (ended || cancelledJob) && styles.ended, finishedJob && !cancelledJob && styles.done]}>
-      {/* The chat button sits in the very top right corner of the card. */}
-      {(
-        <>
-        <View style={styles.iconRow}>
-          <CategoryPhoto categoryId={b.categoryId} size={52} />
-        </View>
-        </>
-      )}
-      {finishedJob && !cancelledJob && (
-        <>
-          <View style={styles.headRow}>
-            <Text style={styles.title}>
-              {cat.name}
-              {b.service ? ` · ${b.service}` : ''}
+      {/* Laid out like a Facebook post (the same as the garage app's cards): the picture, the garage and its tag, the date, the price with three dots; the vehicle line and the subject under. */}
+      <PostHead
+        photo={<CategoryPhoto categoryId={b.categoryId} size={48} />}
+        name={b.garage.name}
+        garage={{ id: b.garage.id, name: b.garage.name }}
+        meta={`${formatDate(b.scheduledAt ?? b.preferredAt)} · ${formatTime(b.scheduledAt ?? b.preferredAt)}`}
+        price={b.estimate ? money(b.estimate) : b.proposal ? money(b.proposal.estimate) : '—'}
+        onMore={() => onOpen?.()}
+      />
+      <PostBody vehicle={v} kind="direct" subject={`${cat.name}${b.service ? ` · ${b.service}` : ''}`} onPress={onOpen}>
+        {finishedJob && !cancelledJob && (
+          workshops[b.id]?.review?.rating ? (
+            <Text style={styles.rating}>
+              {'★'.repeat(Math.round(workshops[b.id]!.review!.rating))}
+              {'☆'.repeat(5 - Math.round(workshops[b.id]!.review!.rating))} {workshops[b.id]!.review!.rating.toFixed(1)}
             </Text>
-            {workshops[b.id]?.review?.rating ? (
-              <Text style={styles.rating}>
-                {'★'.repeat(Math.round(workshops[b.id]!.review!.rating))}
-                {'☆'.repeat(5 - Math.round(workshops[b.id]!.review!.rating))} {workshops[b.id]!.review!.rating.toFixed(1)}
-              </Text>
-            ) : w ? (
-              <Pressable style={styles.rateChip} onPress={() => setRating(true)} hitSlop={6} accessibilityLabel="Rate this job">
-                <Text style={styles.rateChipText}>☆ Rate</Text>
-              </Pressable>
-            ) : null}
-          </View>
-          <View style={styles.divider} />
-        </>
-      )}
-      <Pressable style={styles.row} onPress={onOpen} disabled={!onOpen} accessibilityLabel={`${cat.name} booking details`}>
-        <View style={[styles.flex1, !(finishedJob && !cancelledJob) && styles.textClear]}>
-          {!(finishedJob && !cancelledJob) && (
-            <Text style={styles.title}>
-              {cat.name}
-              {b.service ? ` · ${b.service}` : ''}
-            </Text>
-          )}
-          <View style={styles.garageLine}>
-            <Text style={[styles.sub, styles.flex1]} numberOfLines={1}>
-              {b.garage.name}
-            </Text>
-          </View>
-          <VehicleBlock vehicle={v} />
-        </View>
-        <View style={[styles.tagCol, !(finishedJob && !cancelledJob) && styles.tagColIcons]}>
-          <View style={styles.tag}>
-            <Text style={styles.tagText}>📅 ඍජු සේවා</Text>
-          </View>
-        </View>
-      </Pressable>
+          ) : w ? (
+            <Pressable style={styles.rateChip} onPress={() => setRating(true)} hitSlop={6} accessibilityLabel="Rate this job">
+              <Text style={styles.rateChipText}>☆ Rate</Text>
+            </Pressable>
+          ) : null
+        )}
+      </PostBody>
       <View style={styles.divider} />
 
       {b.status === 'requested' && (

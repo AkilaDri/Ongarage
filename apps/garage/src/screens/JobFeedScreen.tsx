@@ -1,5 +1,6 @@
+import { registerFlyTarget } from '../utils/fly';
 import { JobsLineIcon, OrdersLineIcon } from '@ongarage/shared';
-import Svg, { Path, Rect } from 'react-native-svg';
+import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import { CustomerHistoryTag } from '../components/CustomerHistory';
 import { WaitingDots } from '../components/WaitingDots';
 import { CategoryArt } from '../components/CategoryArt';
@@ -22,6 +23,8 @@ import type { BidStatus, DirectRequest, FeedJob, JobDetails, MyBid } from '../ty
 // Bidding jobs, direct bookings and this garage's bids share the Jobs tab, so the
 // bottom navigation keeps four tabs.
 type Segment = 'open' | 'direct' | 'mine';
+/** A job this close to the garage (km) counts as near. */
+const NEAR_KM = 3;
 type Scope = 'services' | 'all';
 
 const STATUS: Record<BidStatus, { label: string; color: () => string }> = {
@@ -45,8 +48,20 @@ export const JobFeedScreen: React.FC<{ shift: Animated.Value; onScrollY: (y: num
   }, [barH]);
   const { feed, directs, bids, profile, withdrawBid, has, headStartUntil, intakeOn } = useGarage();
   const [segment, setSegment] = useState<Segment>('open');
+  // The "My bids" chip: where a bid just sent flies to (its place is measured when the token lands).
+  const myBidsChip = React.useRef<View>(null);
+  useEffect(() => {
+    registerFlyTarget('bid', () => new Promise((resolve) => (myBidsChip.current ? myBidsChip.current.measureInWindow((x, y, w, h) => resolve({ x: x + w / 2, y: y + h / 2 })) : resolve(null))));
+    return () => registerFlyTarget('bid', null);
+  }, []);
   // The icon after "All": every open job as one row (to see them all at once and bid quickly) instead of a full card each.
   const [rowsView, setRowsView] = useState(false);
+  // The funnel icon: only the jobs few garages have bid on yet (at most one bid), the quietest first: the best chance to win.
+  const [fewBids, setFewBids] = useState(false);
+  // The turning-arrows icon: only the jobs the owner posted again after the bidding ran out, the same job on offer once more.
+  const [republishedOnly, setRepublishedOnly] = useState(false);
+  // The pin icon: only the jobs close to the garage (within NEAR_KM), the nearest first.
+  const [nearest, setNearest] = useState(false);
   const [scope, setScope] = useState<Scope>('services');
   const [sheet, setSheet] = useState<{ job: FeedJob; existing?: MyBid } | null>(null);
   const [reply, setReply] = useState<{ request: DirectRequest; mode: ReplyMode } | null>(null);
@@ -62,7 +77,11 @@ export const JobFeedScreen: React.FC<{ shift: Animated.Value; onScrollY: (y: num
   const open = feed.filter((j) => bidDeadline(j) > now);
   const mine = open.filter((j) => profile.services.includes(j.categoryId));
   // The job that closes first comes first, so nothing runs out unseen.
-  const shown = [...(scope === 'services' ? mine : open)].sort((a, b) => bidDeadline(a) - bidDeadline(b));
+  const shown = [...(scope === 'services' ? mine : open)]
+    .filter((j) => !fewBids || j.otherBids <= 1)
+    .filter((j) => !republishedOnly || j.republished)
+    .filter((j) => !nearest || j.distanceKm <= NEAR_KM)
+    .sort((a, b) => (nearest && a.distanceKm !== b.distanceKm ? a.distanceKm - b.distanceKm : fewBids && a.otherBids !== b.otherBids ? a.otherBids - b.otherBids : bidDeadline(a) - bidDeadline(b)));
   // Waiting on this garage first, soonest deadline first.
   const directList = [...directs].sort((a, b) => (a.status === b.status ? a.respondBy - b.respondBy : a.status === 'new' ? -1 : 1));
   const newDirects = directs.filter((d) => d.status === 'new').length;
@@ -258,7 +277,7 @@ export const JobFeedScreen: React.FC<{ shift: Animated.Value; onScrollY: (y: num
   );
 
   /** A Facebook-style post header: round avatar, the poster in bold, time and details in grey under it, the time left at the end. */
-  const postHeader = (emoji: string, name: string, meta: string, trailing?: React.ReactNode, lead?: React.ReactNode, before?: React.ReactNode) => (
+  const postHeader = (emoji: string, name: string, meta: string, trailing?: React.ReactNode, lead?: React.ReactNode, before?: React.ReactNode, subject?: string) => (
     <View style={styles.postHeader}>
       <CategoryArt emoji={emoji} size={48} />
       <View style={styles.flex1}>
@@ -272,6 +291,11 @@ export const JobFeedScreen: React.FC<{ shift: Animated.Value; onScrollY: (y: num
         <Text style={styles.postMeta} numberOfLines={1}>
           {meta}
         </Text>
+        {!!subject && (
+          <Text style={styles.postSubjectHead} numberOfLines={1}>
+            {subject}
+          </Text>
+        )}
       </View>
       {trailing}
     </View>
@@ -320,8 +344,13 @@ export const JobFeedScreen: React.FC<{ shift: Animated.Value; onScrollY: (y: num
     return (
       <View key={job.id} style={styles.card}>
         <Pressable onPress={() => openJob(job)} accessibilityLabel={`${cat.name} job details`}>
-        {postHeader(cat.icon, job.customer.name, `${ago(now - job.postedAt)} · ${cat.name} · ${job.vehicle.name}`, timeLeft(left, left < 30 * 60 * 1000), <CustomerBadge customer={job.customer} compact />)}
+        {postHeader(cat.icon, job.customer.name, `${ago(now - job.postedAt)} · ${job.vehicle.name}`, timeLeft(left, left < 30 * 60 * 1000), <><CustomerBadge customer={job.customer} compact />{job.republished && <View style={styles.republishedTag} accessibilityLabel="Posted again">
+            <Svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke={getThemeMode() === 'dark' ? '#fbbf24' : '#b06000'} strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
+              <Path d="M4 12a8 8 0 0113-6l3 3M20 4v5h-5M20 12a8 8 0 01-13 6l-3-3M4 20v-5h5" />
+            </Svg>
+          </View>}</>)}
         <View style={styles.postBody}>
+          <Text style={styles.postSubjectHead}>{cat.name}</Text>
           <Text style={styles.postText} numberOfLines={4}>
             {job.description}
           </Text>
@@ -352,12 +381,12 @@ export const JobFeedScreen: React.FC<{ shift: Animated.Value; onScrollY: (y: num
         {postHeader(
           cat.icon,
           d.customer.name,
-          `${ago(now - d.requestedAt)} · ${cat.name}${d.service ? ` · ${d.service}` : ''} · ${d.vehicle.name}`,
+          `${ago(now - d.requestedAt)} · ${d.vehicle.name}`,
           d.status === 'new' ? timeLeft(left, left < 30 * 60 * 1000) : undefined,
-          // After the customer's name: whether they are new to the garage or have been served before, then their badge.
+          // After the customer's name: the stars the garages gave them, then whether they are new to this garage or have been served before.
           <>
-            <CustomerHistoryTag customer={d.customer} />
             <CustomerBadge customer={d.customer} compact />
+            <CustomerHistoryTag customer={d.customer} />
           </>
         )}
         <View style={styles.postBody}>
@@ -367,6 +396,7 @@ export const JobFeedScreen: React.FC<{ shift: Animated.Value; onScrollY: (y: num
               {formatDate(d.preferredAt)} · {formatTime(d.preferredAt)}
             </Text>
           </View>
+          <Text style={styles.postSubjectHead}>{`${cat.name}${d.service ? ` · ${d.service}` : ''}`}</Text>
           <Text style={styles.postText} numberOfLines={4}>
             {d.description}
           </Text>
@@ -422,7 +452,7 @@ export const JobFeedScreen: React.FC<{ shift: Animated.Value; onScrollY: (y: num
           {segments.map((t) => {
             const active = segment === t.id;
             return (
-              <Pressable key={t.id} style={[styles.segChip, active && styles.segChipOn]} onPress={() => setSegment(t.id)} accessibilityLabel={t.label}>
+              <Pressable key={t.id} ref={t.id === 'mine' ? myBidsChip : undefined} style={[styles.segChip, active && styles.segChipOn]} onPress={() => setSegment(t.id)} accessibilityLabel={t.label}>
                 <Icon name={t.icon} size={15} color={active ? (getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8') : Colors.textMuted} />
                 <Text style={[styles.segChipText, active && styles.segChipTextOn]} numberOfLines={1}>
                   {t.label}
@@ -475,9 +505,30 @@ export const JobFeedScreen: React.FC<{ shift: Animated.Value; onScrollY: (y: num
                   )}
                 </Svg>
               </Pressable>
+              <Pressable style={[styles.filter, fewBids && styles.filterActive]} onPress={() => setFewBids((v) => !v)} accessibilityRole="button" accessibilityState={{ selected: fewBids }} accessibilityLabel={fewBids ? 'Show all the jobs' : 'Only the jobs with the fewest bids'}>
+                <Svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke={fewBids ? (getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8') : Colors.textMuted} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+                  <Path d="M7 4v15M7 19l-3-3.5M7 19l3-3.5" />
+                  <Path d="M13 6h7M13 12h5M13 18h3" />
+                </Svg>
+              </Pressable>
+              <Pressable style={[styles.filter, republishedOnly && styles.filterActive]} onPress={() => setRepublishedOnly((v) => !v)} accessibilityRole="button" accessibilityState={{ selected: republishedOnly }} accessibilityLabel={republishedOnly ? 'Show all the jobs' : 'Only the jobs posted again'}>
+                <Svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke={republishedOnly ? (getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8') : Colors.textMuted} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+                  <Path d="M4 12a8 8 0 0113-6l3 3M20 4v5h-5M20 12a8 8 0 01-13 6l-3-3M4 20v-5h5" />
+                </Svg>
+              </Pressable>
+              <Pressable style={[styles.filter, nearest && styles.filterActive]} onPress={() => setNearest((v) => !v)} accessibilityRole="button" accessibilityState={{ selected: nearest }} accessibilityLabel={nearest ? 'Show all the jobs' : `Only the jobs within ${NEAR_KM} km`}>
+                <Svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke={nearest ? (getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8') : Colors.textMuted} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+                  <Path d="M12 21s-7-6.2-7-11a7 7 0 0114 0c0 4.8-7 11-7 11z" />
+                  <Circle cx={12} cy={10} r={2.5} />
+                </Svg>
+              </Pressable>
             </View>
             {shown.length === 0 ? (
+              fewBids || republishedOnly || nearest ? (
+                <EmptyState icon="🔎" title={nearest ? 'ළඟම රැකියා නැත' : republishedOnly ? 'නැවත පළ කළ රැකියා නැත' : 'අඩු ලංසු සහිත රැකියා නැත'} text={nearest ? `ගරාජයේ සිට කි.මී. ${NEAR_KM} ඇතුළත රැකියා නැත. පෙරහන ඉවත් කර සියල්ල බලන්න.` : republishedOnly ? 'ලංසු කාලය අවසන් වී හිමියන් නැවත පළ කළ රැකියා මෙහි පෙන්වයි.' : 'සියලු රැකියාවලට දැනටමත් ලංසු කිහිපයක් ඇත. පෙරහන ඉවත් කර සියල්ල බලන්න.'} />
+              ) : (
               <EmptyState icon="📭" title="නව රැකියා නැත" text="වාහන හිමියන් ඔබගේ සේවා සඳහා රැකියා පළ කළ විට ඒවා මෙහි පෙන්වනු ඇත." />
+              )
             ) : (
               rowsView ? <View style={styles.jobRows}>{shown.map(jobRow)}</View> : shown.map(jobCard)
             )}
@@ -551,8 +602,10 @@ const styles = themedStyles(() =>
     card: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#dadce0', borderRadius: 12, shadowColor: '#3c4043', shadowOffset: { width: 0, height: 1 }, shadowOpacity: getThemeMode() === 'dark' ? 0.4 : 0.15, shadowRadius: 3, elevation: 1 },
     nameShrink: { flexShrink: 1 },
     nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    republishedTag: { width: 22, height: 20, alignItems: 'center', justifyContent: 'center', borderRadius: 10, backgroundColor: getThemeMode() === 'dark' ? 'rgba(245, 158, 11, 0.14)' : '#fef7e0' },
+    postSubjectHead: { fontSize: 13, fontFamily: FONTS.bodyRegular, color: Colors.textSoft, marginTop: 2 },
     historyRow: { paddingHorizontal: 16, paddingTop: 2, paddingBottom: 6 },
-    postHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingTop: 16, paddingBottom: 10 },
+    postHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: 8, paddingRight: 16, paddingTop: 14, paddingBottom: 10 },
     postAvatar: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? Colors.subtleFill : '#e8f0fe' },
     postAvatarEmoji: { fontSize: 22 },
     postName: { fontSize: 13, fontFamily: FONTS.bodyBold, color: Colors.textMain },

@@ -1,3 +1,4 @@
+import { FlyLayer } from './components/FlyLayer';
 import { pageBg } from './utils/material';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Platform, View, StyleSheet, Modal, Text, Pressable } from 'react-native';
@@ -482,6 +483,7 @@ function AppShell() {
           )}
         </View>
         <Toast />
+        <FlyLayer />
         {askMart && (
           <ModalCard
             material
