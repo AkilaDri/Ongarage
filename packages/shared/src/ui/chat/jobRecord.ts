@@ -36,7 +36,7 @@ export const jobRecordText = (job: {
     '📋 Job Info',
     job.title,
     job.who ? `👤 ${job.who.label}: ${job.who.name}${job.who.phone ? ' · ' + job.who.phone : ''}` : '',
-    v ? `${vehicleIcon(v.type)} ${v.name} · ${v.registrationNo || v.plate}` : '',
+    v ? `${v.name} · ${v.registrationNo || v.plate}` : '',
     details,
     numbers,
     job.description ? `📝 ${job.description}` : '',

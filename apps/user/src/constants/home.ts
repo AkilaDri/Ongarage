@@ -6,40 +6,59 @@ import type { ImageSourcePropType } from 'react-native';
 
 const DAY = 24 * 60 * 60 * 1000;
 
-/** Round category photos, by SERVICE_CATEGORIES id. */
+/** Category artwork (the designer's cut-outs in assets/job cat icons), by SERVICE_CATEGORIES id. */
 export const CATEGORY_IMAGES: Record<string, ImageSourcePropType> = {
-  '1': require('../../assets/home/category-icons/mechanical.png'),
-  '2': require('../../assets/home/category-icons/electrical.png'),
-  '3': require('../../assets/home/category-icons/hybrid.png'),
-  '4': require('../../assets/home/category-icons/ac.png'),
-  '5': require('../../assets/home/category-icons/scan.png'),
-  '6': require('../../assets/home/category-icons/tyres.png'),
-  '7': require('../../assets/home/category-icons/brakes.png'),
-  '8': require('../../assets/home/category-icons/paint.png'),
-  '9': require('../../assets/home/category-icons/wash.png'),
-  '10': require('../../assets/home/category-icons/tuning.png'),
-  '11': require('../../assets/home/category-icons/battery.png'),
-  '12': require('../../assets/home/category-icons/towing.png'),
+  '1': require('../../assets/job cat icons/mechanical.png'),
+  '2': require('../../assets/job cat icons/electrical.png'),
+  '3': require('../../assets/job cat icons/hybrid.png'),
+  '4': require('../../assets/job cat icons/ac.png'),
+  '5': require('../../assets/job cat icons/scan.png'),
+  '6': require('../../assets/job cat icons/tyres.png'),
+  '7': require('../../assets/job cat icons/brakes.png'),
+  '8': require('../../assets/job cat icons/paint.png'),
+  '9': require('../../assets/job cat icons/wash.png'),
+  '10': require('../../assets/job cat icons/tuning.png'),
+  '11': require('../../assets/job cat icons/battery.png'),
+  '12': require('../../assets/job cat icons/towing.png'),
+  '13': require('../../assets/job cat icons/ev-charging.png'), // EV Charging
+  '14': require('../../assets/job cat icons/service.png'), // Service
+  '16': require('../../assets/job cat icons/petrol.png'), // Fuel Station
 };
 
 /**
- * Optical fit for each category icon. The artwork files differ in canvas size, margins and how much of
- * the frame the drawing fills, so each one is scaled by its visible area (not its outer border) and
- * centred on the drawing; dx / dy are fractions of the frame. Regenerate if an icon is replaced.
+ * Optical fit for each category icon. The artwork files differ in how much of the frame the drawing fills and where it
+ * sits, so each one is scaled to a common visible size and centred on the drawing; dx / dy are fractions of the frame.
+ * Worked out from each file's visible area: regenerate if an icon is replaced.
  */
 export const CATEGORY_ICON_FIT: Record<string, { scale: number; dx: number; dy: number }> = {
-  '1': { scale: 0.97, dx: 0.0004, dy: 0.0284 }, // mechanical
-  '2': { scale: 1.168, dx: 0.0009, dy: 0.0328 }, // electrical
-  '3': { scale: 1.069, dx: 0.0004, dy: 0.0093 }, // hybrid
-  '4': { scale: 0.997, dx: 0, dy: 0.0044 }, // ac
-  '5': { scale: 1.065, dx: 0, dy: 0.0265 }, // scan
-  '6': { scale: 1.06, dx: 0.0004, dy: 0.0142 }, // tyres
-  '7': { scale: 1.047, dx: 0.0004, dy: 0.0244 }, // brakes
-  '8': { scale: 1.015, dx: 0.0004, dy: 0.0279 }, // paint
-  '9': { scale: 0.991, dx: 0.0004, dy: 0.0319 }, // wash
-  '10': { scale: 1.044, dx: 0.0009, dy: 0.0244 }, // tuning
-  '11': { scale: 1.104, dx: 0.0018, dy: 0.027 }, // battery
-  '12': { scale: 1.119, dx: 0.0004, dy: 0.0279 }, // towing
+  '1': { scale: 1.2, dx: 0.0035, dy: -0.0047 }, // mechanical
+  '2': { scale: 1.2, dx: 0.0117, dy: 0.0058 }, // electrical
+  '3': { scale: 1.11, dx: 0.0238, dy: -0.0108 }, // hybrid
+  '4': { scale: 1.2, dx: 0.0163, dy: -0.0457 }, // ac
+  '5': { scale: 1.143, dx: 0.0179, dy: -0.0491 }, // scan
+  '6': { scale: 1.2, dx: 0.0047, dy: 0.0187 }, // tyres
+  '7': { scale: 1.2, dx: 0.0023, dy: -0.021 }, // brakes
+  '8': { scale: 1.2, dx: 0.0058, dy: -0.0282 }, // paint
+  '9': { scale: 1.2, dx: 0.0351, dy: 0 }, // wash
+  '10': { scale: 1.178, dx: -0.0161, dy: -0.0126 }, // tuning
+  '11': { scale: 1.2, dx: 0, dy: -0.0047 }, // battery
+  '12': { scale: 1.157, dx: 0.0011, dy: -0.0011 }, // towing
+  '13': { scale: 1.12, dx: 0, dy: 0 }, // ev charging
+  '14': { scale: 1.12, dx: 0, dy: 0 }, // service
+  '16': { scale: 1.12, dx: 0, dy: 0 }, // fuel station
+};
+
+/** The artwork of each SOS breakdown type (BREAKDOWN_TYPES id), from assets/sos-icons. */
+export const BREAKDOWN_IMAGES: Record<string, ImageSourcePropType> = {
+  mechanical: require('../../assets/sos-icons/mechanical.png'),
+  battery: require('../../assets/sos-icons/battery.png'),
+  tire: require('../../assets/sos-icons/tire.png'),
+  fuel: require('../../assets/sos-icons/fuel.png'),
+  towing: require('../../assets/sos-icons/towing.png'),
+  lockout: require('../../assets/sos-icons/lockout.png'),
+  overheating: require('../../assets/sos-icons/overheating.png'),
+  winching: require('../../assets/sos-icons/winching.png'),
+  accident: require('../../assets/sos-icons/accident.png'),
 };
 
 /** One cover photo per garage (MOCK_GARAGES id). */

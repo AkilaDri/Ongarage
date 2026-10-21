@@ -1,3 +1,5 @@
+import { BreakdownArt } from '../components/BreakdownArt';
+import { VehicleIcon3D } from '@ongarage/shared';
 import { VehicleLine } from '@ongarage/shared';
 import { elevation1, outline, pageBg } from '../utils/material';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
@@ -186,7 +188,7 @@ export const SOSDispatchScreen: React.FC = () => {
               {c && (
                 <View style={[styles.pinAnchor, { left: c.x, top: c.y }]} pointerEvents="none">
                   <View style={styles.customerPin}>
-                    <Text style={styles.pinEmoji}>{vehicleIcon(request.vehicle.type)}</Text>
+                    <VehicleIcon3D type={request.vehicle.type} size={26} />
                   </View>
                 </View>
               )}
@@ -207,7 +209,7 @@ export const SOSDispatchScreen: React.FC = () => {
   const requestCard = (
     <View style={styles.card}>
       <View style={styles.row}>
-        <GlassIcon emoji={info.icon} />
+        <BreakdownArt id={request?.breakdownId ?? 'mechanical'} size={56} />
         <View style={styles.flex1}>
           <Text style={styles.cardTitle}>{info.label}</Text>
           <VehicleLine vehicle={request.vehicle} textStyle={styles.sub} />

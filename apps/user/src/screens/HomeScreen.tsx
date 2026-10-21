@@ -78,12 +78,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onSOSPress, onPostJob, o
         }}>
         {/* Categories: cut-out icons, two rows, slide sideways. They scroll away with the page. */}
         <View style={styles.categoriesBlock}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>OnGarage සේවා අංශ</Text>
-          <Pressable onPress={() => setAllServices(true)} hitSlop={8} accessibilityLabel="See all services">
-            <Text style={styles.seeAll}>See all</Text>
-          </Pressable>
-        </View>
         <CategoryStrip onSelect={onServicePress} />
         </View>
 
@@ -140,12 +134,13 @@ const styles = themedStyles(() => StyleSheet.create({
   // Transparent: the rounded sheet in App.tsx supplies the background.
   container: { flex: 1 },
   scroll: { flex: 1 },
-  content: { paddingTop: 16, paddingHorizontal: 6, paddingBottom: 90, gap: 16 },
+  content: { paddingTop: 8, paddingHorizontal: 6, paddingBottom: 90, gap: 20 },
   // The categories sit in their own soft rounded panel, header and four-column grid together.
-  categoriesBlock: { gap: 14, padding: 14, borderRadius: 24, backgroundColor: getThemeMode() === 'dark' ? 'rgba(255,255,255,0.05)' : '#f1f4f9' },
+  // The categories have no fill or side padding of their own: the icon boxes start at the same edge as the cards below (the page's 6px).
+  categoriesBlock: { gap: 14, paddingHorizontal: 0, paddingBottom: 14, paddingTop: 8, borderRadius: 24, backgroundColor: 'transparent' },
   // Opaque and full width (the negative margin cancels the content padding), so the lists scroll underneath it.
   adsPinned: { marginHorizontal: -6, paddingHorizontal: 6, paddingVertical: 6, backgroundColor: pageBg() },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 },
-  seeAll: { fontSize: 15, fontFamily: FONTS.bodyBold, color: '#1877f2' },
+  seeAll: { fontSize: 10.5, fontFamily: FONTS.bodyBold, color: '#1877f2' },
   sectionTitle: { fontSize: 15, fontFamily: FONTS.bodyBold, color: Colors.primary },
 }));

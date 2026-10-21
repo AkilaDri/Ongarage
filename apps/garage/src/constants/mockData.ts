@@ -256,6 +256,59 @@ export const BOOKINGS: Booking[] = [
   },
 ];
 
+// Jobs this garage finished earlier for customers whose new bookings are in the lists above: so a returning customer shows as one (with the
+// dates of what was done before), a regular one has three or more, and one not seen for over a year is lapsed.
+const earlier = (
+  id: string,
+  source: Booking['source'],
+  title: string,
+  icon: string,
+  customer: Customer,
+  vehicle: CustomerVehicle,
+  daysAgo: number,
+  price: number,
+  rating: number,
+  note?: string
+): Booking => {
+  const at = Date.now() - daysAgo * DAY;
+  return {
+    id,
+    source,
+    title,
+    icon,
+    customer,
+    vehicle,
+    address: 'ගාල්ල',
+    coords: { latitude: 6.0329, longitude: 80.217 },
+    doorstep: false,
+    scheduledAt: at - 3 * HOUR,
+    price,
+    status: 'completed',
+    completedAt: at,
+    rating,
+    warrantyMonths: 3,
+    ...(note ? { note } : {}),
+    progress: { ...newWorkshopProgress(), stage: 'closed', receivedAt: at - 4 * HOUR, closedAt: at, warrantyUntil: at + 90 * DAY },
+  };
+};
+const EARLIER_JOBS: Booking[] = [
+  // Ishara (booked A/C Repair): twice before -> returning
+  earlier('e1', 'direct', 'Oil Change', '🛢️', c('ඉෂාරා සමරවීර', '0779876514'), v('Vezel', 'CAB-7781', 'SUV'), 48, 5200, 5, 'එන්ජින් ඔයිල් සහ පෙරහන මාරු කළා.'),
+  earlier('e2', 'bid', 'Brake Pads', '🛑', c('ඉෂාරා සමරවීර', '0779876514'), v('Vezel', 'CAB-7781', 'SUV'), 150, 9800, 4),
+  // Nuwan (engine overhaul booked): three times before -> regular
+  earlier('e3', 'bid', 'Battery Replacement', '🔋', c('නුවන් ජයවර්ධන', '0779876513'), v('Premio', 'CAD-4410', 'Sedan'), 35, 12500, 5),
+  earlier('e4', 'direct', 'Full Service', '🛠️', c('නුවන් ජයවර්ධන', '0779876513'), v('Premio', 'CAD-4410', 'Sedan'), 120, 14500, 5, 'ගියර් ඔයිල් සහ බ්‍රේක් ෆ්ලුයිඩ් ද මාරු කළා.'),
+  earlier('e5', 'sos', 'ටයර් පන්චර්', '🛞', c('නුවන් ජයවර්ධන', '0779876513'), v('Premio', 'CAD-4410', 'Sedan'), 260, 3500, 4),
+  // Ruwan (suspension check booked): one job more than a year ago -> lapsed
+  earlier('e6', 'bid', 'Wheel Alignment', '🛞', c('රුවන් අබේසිංහ', '0779876515'), v('Axio', 'CAA-3398', 'Sedan'), 430, 4500, 5),
+  // Dulan and Malsha (direct requests waiting): one and three before
+  earlier('e7', 'direct', 'A/C Gas Refill', '❄', c('දුලාන් අබේසේකර', '0779876511'), v('Fit GP5', 'CAK-6610', 'Hatchback'), 70, 6500, 5),
+  earlier('e8', 'bid', 'Oil Change', '🛢️', c('මල්ෂා කරුණාරත්න', '0779876512'), v('Wagon R', 'CAP-2045', 'Hatchback'), 25, 4200, 5),
+  earlier('e9', 'direct', 'Brake Service', '🛑', c('මල්ෂා කරුණාරත්න', '0779876512'), v('Wagon R', 'CAP-2045', 'Hatchback'), 95, 7800, 4),
+  earlier('e10', 'bid', 'Full Service', '🛠️', c('මල්ෂා කරුණාරත්න', '0779876512'), v('Wagon R', 'CAP-2045', 'Hatchback'), 180, 11800, 5),
+];
+BOOKINGS.push(...EARLIER_JOBS);
+
 // Owners who booked this garage directly from a service category.
 type DirectSeed = Omit<DirectRequest, 'id' | 'requestedAt' | 'preferredAt' | 'respondBy' | 'status' | 'location' | 'distanceKm'> & {
   address: string;
@@ -287,8 +340,14 @@ export const DIRECT_POOL: DirectSeed[] = [
   {
     // A routine service: the garage's handover form asks for what was done, the mileage and the next service.
     categoryId: '14', service: 'Oil Change', description: 'කි.මී. 5,000ක් ධාවනය කර ඇත. එන්ජින් තෙල් සහ පෙරහන මාරු කරන්න.',
-    customer: c('චමින්ද ප්‍රනාන්දු', '0779876514'), vehicle: v('Aqua', 'CBA-7712', 'Hatchback'), sparePart: 'OEM', doorstep: false,
+    customer: c('චමින්ද ප්‍රනාන්දු', '0779876516'), vehicle: v('Aqua', 'CBA-7712', 'Hatchback'), sparePart: 'OEM', doorstep: false,
     address: 'උණවටුන', km: 1.8, bearing: 150, requestedMinAgo: 0, day: 2, hour: 9,
+  },
+  {
+    // A customer this garage has served three times before (see EARLIER_JOBS) books again: it arrives a little later, like a real new request.
+    categoryId: '6', service: 'Wheel Alignment', description: 'ස්ටියරින් එක එක පැත්තකට ඇදෙනවා. වීල් ඇලයින්මන්ට් එකක් කරන්න.',
+    customer: c('නුවන් ජයවර්ධන', '0779876513'), vehicle: v('Premio', 'CAD-4410', 'Sedan'), sparePart: 'GarageChoice', doorstep: false,
+    address: 'ගාල්ල කොටුව', km: 1.2, bearing: 200, requestedMinAgo: 0, day: 1, hour: 10,
   },
 ];
 

@@ -1,3 +1,6 @@
+import { CustomerHistoryTag } from './CustomerHistory';
+import { CategoryArt } from './CategoryArt';
+import { VehicleLabel } from '@ongarage/shared';
 import { CustomerBadge } from './CustomerBadge';
 import { outline } from '../utils/material';
 import React, { useEffect, useRef, useState } from 'react';
@@ -82,15 +85,14 @@ export const DirectReplySheet: React.FC<{ request: DirectRequest | null; mode: R
 
           <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
             <View style={styles.jobCard}>
-              <GlassIcon emoji={cat.icon} small />
+              <CategoryArt emoji={cat.icon} size={40} />
               <View style={styles.flex1}>
                 <Text style={styles.cardTitle}>
                   {cat.name}
                   {shown.service ? ` · ${shown.service}` : ''}
                 </Text>
-                <Text style={styles.sub} numberOfLines={1}>
-                  {vehicleIcon(shown.vehicle.type)} {shown.vehicle.name} · {shown.customer.name}
-                </Text>
+                <VehicleLabel type={shown.vehicle.type} style={styles.sub} numberOfLines={1} tail={<CustomerHistoryTag customer={shown.customer} />}>{shown.vehicle.name} · {shown.customer.name}
+                </VehicleLabel>
                 <CustomerBadge customer={shown.customer} />
               </View>
             </View>

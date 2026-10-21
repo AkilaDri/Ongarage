@@ -11,7 +11,7 @@ const HOUR = 60 * MIN;
 // profiles (MOCK_GARAGES), so a bid and the garage's page always agree.
 const profile = (name: string) => {
   const g = MOCK_GARAGES.find((x) => x.name === name)!;
-  return { garageName: g.name, level: g.level, rating: g.rating, reviews: g.reviews };
+  return { garageId: g.id, garageName: g.name, level: g.level, rating: g.rating, reviews: g.reviews };
 };
 const BIDDING_GARAGES = [
   { ...profile('TOPCODE Tuning & Service'), distanceKm: 1.2, bearing: 300, warrantyMonths: 3, estHours: 1 },
@@ -30,6 +30,7 @@ const makeBid = (job: Pick<RepairJob, 'categoryId' | 'coords'>, index: number, s
   const travelFee = travelFeeFor(g.distanceKm);
   return {
     id: `bid-${submittedAt}-${index}`,
+    garageId: g.garageId,
     garageName: g.garageName,
     level: g.level,
     rating: g.rating,
@@ -156,7 +157,7 @@ export const BidsProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const job = live.current.find((j) => j.id === jobId);
       const bid = job?.bids.find((b) => b.id === bidId);
       // The winning garage takes the vehicle in and follows the workshop steps.
-      if (job && bid) startWorkshop({ id: jobId, garageName: bid.garageName, categoryId: job.categoryId, agreedPrice: bid.price, scheduledAt: Date.now(), doorstep: job.doorstep, warrantyMonths: bid.warrantyMonths, vehicleId: job.vehicleId, partType: job.sparePart, protectedJob: bid.level === 'premier' });
+      if (job && bid) startWorkshop({ id: jobId, garageId: bid.garageId, garageName: bid.garageName, categoryId: job.categoryId, agreedPrice: bid.price, scheduledAt: Date.now(), doorstep: job.doorstep, warrantyMonths: bid.warrantyMonths, vehicleId: job.vehicleId, partType: job.sparePart, protectedJob: bid.level === 'premier' });
     },
     [startWorkshop]
   );

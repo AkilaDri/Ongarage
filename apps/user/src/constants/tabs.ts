@@ -1,9 +1,5 @@
-import { OrdersLineIcon, RequestLineIcon, ShopLineIcon, WallLineIcon, type NavItem } from '@ongarage/shared';
-import { AccountIcon, HomeIcon } from '../components/NavIcons';
-import { ActivityListIcon } from '../components/ActivityListIcon';
+import { ClipboardLineIcon, HomeLineIcon, OrdersLineIcon, ProfileLineIcon, ReceiptLineIcon, RequestLineIcon, ShopLineIcon, WallLineIcon, type NavItem } from '@ongarage/shared';
 import { OnGarageIcon } from '../components/OnGarageIcon';
-import { BidsBillIcon } from '../components/BidsBillIcon';
-import { MartIcon } from '../components/MartNavIcon';
 
 export type TabId = 'home' | 'bids' | 'activity' | 'mart' | 'profile';
 export type MartSegment = 'shops' | 'mine' | 'wall' | 'orders';
@@ -14,13 +10,13 @@ export type MartNavId = MartSegment | 'ongarage';
 export const MART_TABS: NavItem<MartNavId>[] = [
   {
     id: 'shops',
-    label: 'වෙළඳසැල්',
+    label: 'Shops',
     accessibilityLabel: 'OnMart shops',
     icon: ShopLineIcon,
   },
   {
     id: 'mine',
-    label: 'මගේ ඉල්ලීම්',
+    label: 'Requests',
     accessibilityLabel: 'OnMart mine',
     icon: RequestLineIcon,
   },
@@ -32,13 +28,13 @@ export const MART_TABS: NavItem<MartNavId>[] = [
   },
   {
     id: 'wall',
-    label: 'විවෘත',
+    label: 'On Feed',
     accessibilityLabel: 'OnMart wall',
     icon: WallLineIcon,
   },
   {
     id: 'orders',
-    label: 'ඇණවුම්',
+    label: 'Orders',
     accessibilityLabel: 'OnMart orders',
     icon: OrdersLineIcon,
   },
@@ -46,10 +42,10 @@ export const MART_TABS: NavItem<MartNavId>[] = [
 
 // The icons are the designer's artwork (assets/updated_icons), converted by scripts/build-nav-icons.cjs.
 export const USER_TABS: NavItem<TabId>[] = [
-  { id: 'home', label: 'Home', icon: HomeIcon },
-  { id: 'bids', label: 'Bids', icon: BidsBillIcon },
+  { id: 'home', label: 'Home', icon: HomeLineIcon },
+  { id: 'bids', label: 'Bids', icon: ReceiptLineIcon },
   // OnMart sits in the middle of the bar.
-  { id: 'mart', label: 'OnMart', icon: MartIcon },
-  { id: 'activity', label: 'Activity', icon: ActivityListIcon },
-  { id: 'profile', label: 'Account', icon: AccountIcon },
+  { id: 'mart', label: 'OnMart', icon: ShopLineIcon },
+  { id: 'activity', label: 'Activity', icon: ClipboardLineIcon },
+  { id: 'profile', label: 'Account', icon: ProfileLineIcon },
 ];

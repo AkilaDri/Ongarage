@@ -1,3 +1,6 @@
+import { CustomerHistoryLink, CustomerHistoryList, CustomerHistoryTag, CustomerRecordTabs } from './CustomerHistory';
+import { CategoryArt } from './CategoryArt';
+import { VehicleIcon3D, VehicleLabel } from '@ongarage/shared';
 import { CustomerBadge } from './CustomerBadge';
 import { VehicleLine } from '@ongarage/shared';
 import React, { useEffect, useRef, useState } from 'react';
@@ -33,7 +36,7 @@ import type { BidStatus, Booking, DirectRequest, FeedJob, JobDetails, MyBid } fr
 export type DetailTarget = { kind: 'bid'; job: FeedJob } | { kind: 'myBid'; bid: MyBid } | { kind: 'direct'; job: DirectRequest } | { kind: 'booking'; booking: Booking };
 
 const BID_STATUS: Record<BidStatus, { label: string; color: () => string }> = {
-  pending: { label: 'පාරිභෝගිකයා සලකා බලමින්', color: () => Colors.warning },
+  pending: { label: 'සලකා බලමින්', color: () => Colors.warning },
   won: { label: 'දිනුවා · කාලසටහනට එක් විය', color: () => Colors.successText },
   lost: { label: 'අහිමි විය', color: () => Colors.errorText },
   withdrawn: { label: 'ඉවත් කළා', color: () => Colors.textMuted },
@@ -68,6 +71,8 @@ export const JobDetailView: React.FC<{
   const [galleryW, setGalleryW] = useState(0);
   const [lightbox, setLightbox] = useState<number | null>(null);
   const [addOpen, setAddOpen] = useState(false);
+  // A returning customer's job has two tabs: the job's details and the record of earlier work for them.
+  const [view, setView] = useState<'details' | 'records'>('details');
   const [now, setNow] = useState(Date.now());
   const fade = useRef(new Animated.Value(0)).current;
 
@@ -76,6 +81,7 @@ export const JobDetailView: React.FC<{
       setShown(target);
       setMounted(true);
       setPage(0);
+      setView('details');
       fade.setValue(0);
       Animated.timing(fade, { toValue: 1, duration: 340, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
     } else if (mounted) {
@@ -154,6 +160,13 @@ export const JobDetailView: React.FC<{
           </View>
 
           <View style={styles.flex1}>
+          {/* Private while the job is only open for bids: the tabs exist once the garage has been chosen (a booking, or a won bid). */}
+          {(!!booking || !!direct) && <CustomerRecordTabs customer={job.customer} view={view} onChange={setView} />}
+          {view === 'records' && (!!booking || !!direct) ? (
+            <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
+              <CustomerHistoryList customer={job.customer} />
+            </ScrollView>
+          ) : (
           <ScrollView contentContainerStyle={booking ? styles.bodyWithFab : styles.body} showsVerticalScrollIndicator={false}>
             {booking ? (
               <BookingJobCard booking={booking} />
@@ -194,15 +207,14 @@ export const JobDetailView: React.FC<{
 
             {/* Title */}
             <View style={styles.row}>
-              <GlassIcon emoji={cat.icon} />
+              <CategoryArt emoji={cat.icon} size={52} />
               <View style={styles.flex1}>
                 <Text style={styles.title}>
                   {cat.name}
                   {direct?.service ? ` · ${direct.service}` : ''}
                 </Text>
-                <Text style={styles.sub}>
-                  {vehicleIcon(job.vehicle.type)} {job.vehicle.name} · {job.customer.name} · {ago(now - (direct ? direct.requestedAt : myBid ? myBid.submittedAt : bidJob!.postedAt))}
-                </Text>
+                <VehicleLabel type={job.vehicle.type} style={styles.sub} tail={booking || direct ? <CustomerHistoryTag customer={job.customer} /> : undefined}>{job.vehicle.name} · {job.customer.name} · {ago(now - (direct ? direct.requestedAt : myBid ? myBid.submittedAt : bidJob!.postedAt))}
+                </VehicleLabel>
               </View>
             </View>
 
@@ -302,7 +314,7 @@ export const JobDetailView: React.FC<{
                 value={job.doorstep ? 'නිවසටම පැමිණීම (ඔබ යයි)' : 'පාරිභෝගිකයා ගරාජයට ගෙන එයි'}
               />
               <View style={styles.fact}>
-                <Text style={styles.factIcon}>{vehicleIcon(job.vehicle.type)}</Text>
+                <VehicleIcon3D type={job.vehicle.type} size={22} />
                 <Text style={styles.factLabel}>වාහනය</Text>
                 <VehicleLine vehicle={job.vehicle} textStyle={styles.factValue} />
               </View>
@@ -330,7 +342,7 @@ export const JobDetailView: React.FC<{
                     {c && (
                       <View style={[styles.pinAnchor, { left: c.x, top: c.y }]} pointerEvents="none">
                         <View style={styles.customerPin}>
-                          <Text style={styles.pinEmoji}>{vehicleIcon(job.vehicle.type)}</Text>
+                          <VehicleIcon3D type={job.vehicle.type} size={26} />
                         </View>
                       </View>
                     )}
@@ -347,6 +359,9 @@ export const JobDetailView: React.FC<{
             <View style={styles.card}>
               <Fact icon="👤" label="නම" value={job.customer.name} />
               <CustomerBadge customer={job.customer} />
+              {/* Private while the job is only open for bids: shown once the garage has been chosen (a booking, or a won bid). */}
+              {(!!booking || !!direct) && <CustomerHistoryLink customer={job.customer} />}
+              {!booking && !direct && <Text style={styles.empty}>🔒 පාරිභෝගිකයාගේ කලින් වාර්තාව රැකියාව දිනූ පසු පෙනේ.</Text>}
               <Fact icon="📞" label="දුරකථනය" value={maskPhone(job.customer.phone)} />
               <Text style={styles.empty}>
                 {direct ? 'වෙන්කිරීම තහවුරු කළ පසු' : 'ලංසුව දිනූ පසු'} සම්පූර්ණ අංකය මෙහි සහ “Schedule” ටැබයේ පෙනේ.
@@ -355,6 +370,7 @@ export const JobDetailView: React.FC<{
               </>
             )}
           </ScrollView>
+          )}
           {booking && booking.status !== 'completed' && booking.status !== 'cancelled' && !booking.progress?.cancelRequest && <AddJobDetailFab onPress={() => setAddOpen(true)} />}
           </View>
 

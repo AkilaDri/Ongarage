@@ -27,6 +27,7 @@ export * from './ui/PartTypeChip';
 
 // Business rules every app agrees on (trust, levels, fair share, guarantee, closing codes).
 export * from './marketplace/trust';
+export * from './marketplace/relationship';
 export * from './marketplace/levels';
 export * from './marketplace/fairness';
 export * from './marketplace/guarantee';
@@ -85,6 +86,7 @@ export * from './ui/workshop/CloseJobSheet';
 export * from './ui/workshop/PaymentReceivedSheet';
 export * from './ui/workshop/ExtraByPhoneSheet';
 export * from './ui/LkPlate';
+export * from './ui/VehicleIcon3D';
 export * from './ui/chat/ChatSheet';
 export * from './ui/chat/useChatStore';export * from './utils/initials';
 export * from './ui/chat/ChatInboxSheet';
@@ -93,3 +95,7 @@ export * from './ui/chat/chatTerms';
 export * from './ui/chat/CallPill';
 export * from './ui/workshop/ServiceRecordFields';
 export * from './ui/workshop/JobReportSheet';
+export * from './ui/emojiLine';
+export * from './ui/OnChatIcon';
+export * from './ui/TwinkleStar';
+export * from './ui/RelationTag';

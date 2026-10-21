@@ -1,7 +1,8 @@
 import React from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Colors, FONTS, themedStyles, type Garage } from '@ongarage/shared';
 import { GarageTile } from './GarageTile';
+import { DotScroll } from './DotScroll';
 
 /** A titled sideways row of garage tiles; the arrow opens the whole list. */
 export const GarageRow: React.FC<{
@@ -21,11 +22,11 @@ export const GarageRow: React.FC<{
           <Text style={styles.arrowText}>›</Text>
         </View>
       </Pressable>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
+      <DotScroll contentContainerStyle={styles.row}>
         {garages.map((g) => (
           <GarageTile key={g.id} garage={g} ad={ad} onOpen={() => onOpen(g)} onSaveChange={(s) => onSaveChange(g, s)} />
         ))}
-      </ScrollView>
+      </DotScroll>
     </View>
   );
 };

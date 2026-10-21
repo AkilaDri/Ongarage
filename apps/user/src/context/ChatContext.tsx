@@ -32,6 +32,8 @@ export type ChatThreadInfo = InboxThread & { mart?: ThreadTarget };
 type ChatApi = {
   /** Opens the chat of a job with its garage. */
   open: (target: ChatTarget) => void;
+  /** Opens a chat and sends a first message in it (a direct reply to a post on the On Feed): the message is read in OnChat from then on. */
+  openWith: (target: ChatTarget, text: string) => void;
   /** Puts a chat in OnChat without opening it (a garage took the owner's SOS): it is listed even before the first message. */
   start: (target: ChatTarget) => void;
   /** Messages from the garage the owner has not read yet. */
@@ -242,6 +244,14 @@ export const ChatProvider: React.FC<{ children: React.ReactNode; /** The Home ta
     [store.markRead, store.note, store.seenAt, threads]
   );
 
+  const openWith = useCallback(
+    (t: ChatTarget, text: string) => {
+      open(t);
+      void store.send(t.id, { text });
+    },
+    [open, store.send]
+  );
+
   const start = useCallback((t: ChatTarget) => {
     names.current[t.id] = t.title;
     store.markFresh(t.id);
@@ -269,7 +279,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode; /** The Home ta
   }, [count, target, store.markRead]);
 
   return (
-    <ChatContext.Provider value={{ open, start, unread: store.unread, openInbox: () => setInbox(true), totalUnread, logCall, openBasket: setBasketFor }}>
+    <ChatContext.Provider value={{ open, openWith, start, unread: store.unread, openInbox: () => setInbox(true), totalUnread, logCall, openBasket: setBasketFor }}>
       {children}
       <ChatInboxSheet
         visible={inbox}

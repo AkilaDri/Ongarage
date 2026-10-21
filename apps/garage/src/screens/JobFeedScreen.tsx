@@ -1,3 +1,8 @@
+import { JobsLineIcon, OrdersLineIcon } from '@ongarage/shared';
+import Svg, { Path, Rect } from 'react-native-svg';
+import { CustomerHistoryTag } from '../components/CustomerHistory';
+import { WaitingDots } from '../components/WaitingDots';
+import { CategoryArt } from '../components/CategoryArt';
 import { chatDockOffset } from '../utils/chatDock';
 import React, { useEffect, useMemo, useState } from 'react';
 import { pageBg } from '../utils/pageBg';
@@ -20,7 +25,7 @@ type Segment = 'open' | 'direct' | 'mine';
 type Scope = 'services' | 'all';
 
 const STATUS: Record<BidStatus, { label: string; color: () => string }> = {
-  pending: { label: 'පාරිභෝගිකයා සලකා බලමින්', color: () => Colors.warning },
+  pending: { label: 'සලකා බලමින්', color: () => Colors.warning },
   won: { label: 'දිනුවා · කාලසටහනට එක් විය', color: () => Colors.successText },
   lost: { label: 'අහිමි විය', color: () => Colors.errorText },
   withdrawn: { label: 'ඉවත් කළා', color: () => Colors.textMuted },
@@ -40,6 +45,8 @@ export const JobFeedScreen: React.FC<{ shift: Animated.Value; onScrollY: (y: num
   }, [barH]);
   const { feed, directs, bids, profile, withdrawBid, has, headStartUntil, intakeOn } = useGarage();
   const [segment, setSegment] = useState<Segment>('open');
+  // The icon after "All": every open job as one row (to see them all at once and bid quickly) instead of a full card each.
+  const [rowsView, setRowsView] = useState(false);
   const [scope, setScope] = useState<Scope>('services');
   const [sheet, setSheet] = useState<{ job: FeedJob; existing?: MyBid } | null>(null);
   const [reply, setReply] = useState<{ request: DirectRequest; mode: ReplyMode } | null>(null);
@@ -77,7 +84,7 @@ export const JobFeedScreen: React.FC<{ shift: Animated.Value; onScrollY: (y: num
 
   const segments: { id: Segment; label: string; icon: IconName; count: number; alert?: boolean }[] = [
     { id: 'open', label: 'ලංසු රැකියා', icon: 'inbox', count: mine.length },
-    { id: 'direct', label: 'ඍජු ඉල්ලීම්', icon: 'calendar', count: newDirects, alert: newDirects > 0 },
+    { id: 'direct', label: 'Booking', icon: 'calendar', count: newDirects, alert: newDirects > 0 },
     { id: 'mine', label: 'මගේ ලංසු', icon: 'tag', count: bids.filter((b) => b.status === 'pending').length },
   ];
 
@@ -99,7 +106,10 @@ export const JobFeedScreen: React.FC<{ shift: Animated.Value; onScrollY: (y: num
         <View style={styles.rowBetween}>
           <View style={styles.flex1}>
             <Text style={styles.cardTitle}>ඔබගේ ලංසුව: {money(pending.price)}{pending.travelFee ? ` · 🚗 ගමන ${money(pending.travelFee)} ඇතුළුව` : ''}</Text>
-            <Text style={[styles.sub, { color: Colors.warning }]}>● පාරිභෝගිකයා සලකා බලමින්</Text>
+            <View style={styles.statusRow}>
+              <WaitingDots color={Colors.warning} />
+              <Text style={[styles.sub, { color: Colors.warning }]}>සලකා බලමින්</Text>
+            </View>
           </View>
           <Pressable style={styles.linkBtn} onPress={go(() => setSheet({ job, existing: pending }))}>
             <Text style={styles.link}>සංස්කරණය</Text>
@@ -234,9 +244,7 @@ export const JobFeedScreen: React.FC<{ shift: Animated.Value; onScrollY: (y: num
   /** The card header: a round avatar, the title and subtitle, and a trailing value. */
   const cardHeader = (emoji: string, title: string, subtitle: string, trailing?: React.ReactNode) => (
     <View style={styles.cardHeader}>
-      <View style={styles.avatar}>
-        <Text style={styles.avatarEmoji}>{emoji}</Text>
-      </View>
+      <CategoryArt emoji={emoji} size={44} />
       <View style={styles.flex1}>
         <Text style={styles.cardTitle} numberOfLines={1}>
           {title}
@@ -250,13 +258,12 @@ export const JobFeedScreen: React.FC<{ shift: Animated.Value; onScrollY: (y: num
   );
 
   /** A Facebook-style post header: round avatar, the poster in bold, time and details in grey under it, the time left at the end. */
-  const postHeader = (emoji: string, name: string, meta: string, trailing?: React.ReactNode, lead?: React.ReactNode) => (
+  const postHeader = (emoji: string, name: string, meta: string, trailing?: React.ReactNode, lead?: React.ReactNode, before?: React.ReactNode) => (
     <View style={styles.postHeader}>
-      <View style={styles.postAvatar}>
-        <Text style={styles.postAvatarEmoji}>{emoji}</Text>
-      </View>
+      <CategoryArt emoji={emoji} size={48} />
       <View style={styles.flex1}>
         <View style={styles.nameRow}>
+          {before}
           <Text style={[styles.postName, styles.nameShrink]} numberOfLines={1}>
             {name}
           </Text>
@@ -270,13 +277,50 @@ export const JobFeedScreen: React.FC<{ shift: Animated.Value; onScrollY: (y: num
     </View>
   );
 
+  /** Whether a bid can be placed from the row itself (nothing holds it back: a head start, the day's limit, a locked high-value job). */
+  const canQuickBid = (job: FeedJob) =>
+    !pendingFor(job.id) &&
+    !headStartUntil(job) &&
+    intakeOn(dayStart(Date.now()) + 24 * 60 * 60 * 1000).remaining >= marketPrice(job.categoryId) &&
+    !(isHighValueJob(job.categoryId) && !has('highValueJobs')) &&
+    profile.services.includes(job.categoryId);
+
+  /** A job in one row: what it is and for whom, how far, the time left and how many bids it has, and the button to bid. */
+  const jobRow = (job: FeedJob) => {
+    const cat = categoryInfo(job.categoryId);
+    const left = bidDeadline(job) - now;
+    const pending = pendingFor(job.id);
+    return (
+      <Pressable key={job.id} style={styles.jobRow} onPress={() => openJob(job)} accessibilityLabel={`${cat.name} job`}>
+        <CategoryArt emoji={cat.icon} size={36} />
+        <View style={styles.flex1}>
+          <Text style={styles.jobRowName} numberOfLines={1}>
+            {cat.name} · {job.customer.name}
+          </Text>
+          <Text style={styles.jobRowSub} numberOfLines={1}>
+            {job.vehicle.name} · {job.distanceKm} km · ⏱ {countdown(left)} · 🤝 {job.otherBids ?? 0}
+          </Text>
+        </View>
+        {pending ? (
+          <Text style={styles.jobRowDone}>{money(pending.price)}</Text>
+        ) : canQuickBid(job) ? (
+          <Pressable style={styles.jobRowBid} onPress={() => setSheet({ job })} hitSlop={6} accessibilityLabel={`Bid for ${cat.name}`}>
+            <Text style={styles.jobRowBidText}>ලංසුව</Text>
+          </Pressable>
+        ) : (
+          <Text style={styles.jobRowLock}>🔒</Text>
+        )}
+      </Pressable>
+    );
+  };
+
   const jobCard = (job: FeedJob) => {
     const cat = categoryInfo(job.categoryId);
     const left = bidDeadline(job) - now;
     return (
       <View key={job.id} style={styles.card}>
         <Pressable onPress={() => openJob(job)} accessibilityLabel={`${cat.name} job details`}>
-        {postHeader(cat.icon, job.customer.name, `${ago(now - job.postedAt)} · ${cat.name} · ${vehicleIcon(job.vehicle.type)} ${job.vehicle.name}`, timeLeft(left, left < 30 * 60 * 1000), <CustomerBadge customer={job.customer} compact />)}
+        {postHeader(cat.icon, job.customer.name, `${ago(now - job.postedAt)} · ${cat.name} · ${job.vehicle.name}`, timeLeft(left, left < 30 * 60 * 1000), <CustomerBadge customer={job.customer} compact />)}
         <View style={styles.postBody}>
           <Text style={styles.postText} numberOfLines={4}>
             {job.description}
@@ -308,9 +352,13 @@ export const JobFeedScreen: React.FC<{ shift: Animated.Value; onScrollY: (y: num
         {postHeader(
           cat.icon,
           d.customer.name,
-          `${ago(now - d.requestedAt)} · ${cat.name}${d.service ? ` · ${d.service}` : ''} · ${vehicleIcon(d.vehicle.type)} ${d.vehicle.name}`,
+          `${ago(now - d.requestedAt)} · ${cat.name}${d.service ? ` · ${d.service}` : ''} · ${d.vehicle.name}`,
           d.status === 'new' ? timeLeft(left, left < 30 * 60 * 1000) : undefined,
-          <CustomerBadge customer={d.customer} compact />
+          // After the customer's name: whether they are new to the garage or have been served before, then their badge.
+          <>
+            <CustomerHistoryTag customer={d.customer} />
+            <CustomerBadge customer={d.customer} compact />
+          </>
         )}
         <View style={styles.postBody}>
           <View style={styles.slot}>
@@ -338,9 +386,16 @@ export const JobFeedScreen: React.FC<{ shift: Animated.Value; onScrollY: (y: num
       <Pressable key={bid.id} style={[styles.card, bid.status === 'withdrawn' && styles.dim]} onPress={() => setDetail({ kind: 'myBid', id: bid.id })} accessibilityLabel={`${cat.name} bid details`}>
         {cardHeader(cat.icon, cat.name, `${bid.job.vehicle.name} · ${bid.job.customer.name} · ${ago(now - bid.submittedAt)}`, <Text style={styles.price}>{money(bid.price)}</Text>)}
         <View style={styles.cardBody}>{chips([bid.warrantyMonths ? `🛡️ මාස ${bid.warrantyMonths} වගකීම` : 'වගකීමක් නැත', `⏱️ පැය ${bid.estHours}`, !!bid.travelFee && `🚗 ගමන් ගාස්තුව ඇතුළුව ${money(bid.travelFee)}`, !!bid.job.fitting && fittingLabel(bid.job.fitting)])}</View>
+        {/* A bid the garage has won: the customer's record with this garage is shown now (it stays private while the job is only open for bids). */}
+        {bid.status === 'won' && (
+          <View style={styles.historyRow}>
+            <CustomerHistoryTag customer={bid.job.customer} />
+          </View>
+        )}
         <View style={[styles.cardActions, styles.rowBetween]}>
           <View style={styles.statusRow}>
-            <View style={[styles.dot, { backgroundColor: s.color() }]} />
+            {/* While the customer is still deciding, three dots beat one after another: the bid is waiting for an answer. */}
+            {bid.status === 'pending' ? <WaitingDots color={s.color()} /> : <View style={[styles.dot, { backgroundColor: s.color() }]} />}
             <Text style={[styles.statusText, { color: s.color() }]}>{s.label}</Text>
           </View>
           {bid.status === 'pending' && (
@@ -399,19 +454,32 @@ export const JobFeedScreen: React.FC<{ shift: Animated.Value; onScrollY: (y: num
             <View style={styles.filters}>
               {(
                 [
-                  ['services', '🔧'],
-                  ['all', '📋'],
-                ] as [Scope, string][]
-              ).map(([id, label]) => (
+                  ['services', JobsLineIcon],
+                  ['all', OrdersLineIcon],
+                ] as [Scope, React.ComponentType<{ active: boolean; size?: number }>][]
+              ).map(([id, FilterIcon]) => (
                 <Pressable key={id} style={[styles.filter, scope === id && styles.filterActive]} onPress={() => setScope(id)} accessibilityLabel={id === 'services' ? 'My services' : 'All jobs'} accessibilityState={{ selected: scope === id }}>
-                  <Text style={[styles.filterText, scope === id && styles.filterTextActive, { fontSize: 14, lineHeight: 18 }]}>{label}</Text>
+                  <FilterIcon active={scope === id} size={20} />
+                  {id === 'all' && <Text style={[styles.filterText, scope === id && styles.filterTextActive]}>All</Text>}
                 </Pressable>
               ))}
+              <Pressable style={[styles.filter, rowsView && styles.filterActive]} onPress={() => setRowsView((v) => !v)} accessibilityRole="button" accessibilityState={{ selected: rowsView }} accessibilityLabel={rowsView ? 'Show the jobs as cards' : 'Show all the jobs as rows'}>
+                <Svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke={rowsView ? (getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8') : Colors.textMuted} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+                  {rowsView ? (
+                    <>
+                      <Rect x={4} y={4} width={16} height={7} rx={2} />
+                      <Rect x={4} y={13} width={16} height={7} rx={2} />
+                    </>
+                  ) : (
+                    <Path d="M4 6h16M4 12h16M4 18h16" />
+                  )}
+                </Svg>
+              </Pressable>
             </View>
             {shown.length === 0 ? (
               <EmptyState icon="📭" title="නව රැකියා නැත" text="වාහන හිමියන් ඔබගේ සේවා සඳහා රැකියා පළ කළ විට ඒවා මෙහි පෙන්වනු ඇත." />
             ) : (
-              shown.map(jobCard)
+              rowsView ? <View style={styles.jobRows}>{shown.map(jobRow)}</View> : shown.map(jobCard)
             )}
           </>
         )}
@@ -466,15 +534,15 @@ const styles = themedStyles(() =>
     segChipOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe', borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#d2e3fc' },
     segChipText: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, flexShrink: 1 },
     segChipTextOn: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
-    segCount: { marginLeft: 'auto', minWidth: 20, height: 20, paddingHorizontal: 6, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.24)' : '#d2e3fc' },
-    segCountOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.4)' : '#aecbfa' },
-    segCountAlert: {},
-    segCountText: { fontSize: 10.5, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
+    segCount: { position: 'absolute', top: -9, right: 6, minWidth: 20, height: 20, paddingHorizontal: 5, borderRadius: 10, borderWidth: 2, borderColor: pageBg(), alignItems: 'center', justifyContent: 'center', backgroundColor: '#1a73e8' },
+    segCountOn: { backgroundColor: '#1a73e8' },
+    segCountAlert: { backgroundColor: '#ef4444' },
+    segCountText: { fontSize: 10.5, fontFamily: FONTS.bodyBold, color: '#ffffff' },
     segCountTextOn: {},
 
     body: { paddingVertical: 16, paddingHorizontal: 6, paddingTop: 4, gap: 14, paddingBottom: 250 },
     filters: { flexDirection: 'row', gap: 8 },
-    filter: { minWidth: 40, paddingHorizontal: 10, height: 28, alignItems: 'center', justifyContent: 'center', borderRadius: 14, borderWidth: 1, borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#dadce0', backgroundColor: Colors.bgCard },
+    filter: { minWidth: 40, flexDirection: 'row', gap: 5, paddingHorizontal: 10, height: 28, alignItems: 'center', justifyContent: 'center', borderRadius: 14, borderWidth: 1, borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#dadce0', backgroundColor: Colors.bgCard },
     filterActive: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe', borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#d2e3fc' },
     filterText: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.textSoft },
     filterTextActive: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
@@ -483,19 +551,28 @@ const styles = themedStyles(() =>
     card: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#dadce0', borderRadius: 12, shadowColor: '#3c4043', shadowOffset: { width: 0, height: 1 }, shadowOpacity: getThemeMode() === 'dark' ? 0.4 : 0.15, shadowRadius: 3, elevation: 1 },
     nameShrink: { flexShrink: 1 },
     nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-    postHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 12, paddingTop: 12, paddingBottom: 8 },
+    historyRow: { paddingHorizontal: 16, paddingTop: 2, paddingBottom: 6 },
+    postHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingTop: 16, paddingBottom: 10 },
     postAvatar: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? Colors.subtleFill : '#e8f0fe' },
     postAvatarEmoji: { fontSize: 22 },
-    postName: { fontSize: 15, fontFamily: FONTS.bodyBold, color: Colors.textMain },
+    postName: { fontSize: 13, fontFamily: FONTS.bodyBold, color: Colors.textMain },
     postMeta: { fontSize: 12, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 1 },
-    postBody: { paddingHorizontal: 12, paddingBottom: 10, gap: 8 },
+    postBody: { paddingHorizontal: 16, paddingBottom: 14, gap: 10 },
     postText: { fontSize: 15, fontFamily: FONTS.bodyRegular, color: Colors.textMain, lineHeight: 22 },
-    postStats: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8 },
+    postStats: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12 },
     postStat: { fontSize: 12.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
-    postActions: { paddingHorizontal: 8, paddingVertical: 8, borderTopWidth: 1, borderTopColor: getThemeMode() === 'dark' ? Colors.borderColor : '#dadce0' },
-    cardHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 8, paddingTop: 16, paddingBottom: 8 },
-    cardBody: { paddingHorizontal: 8, paddingBottom: 14, gap: 10 },
-    cardActions: { paddingHorizontal: 8, paddingVertical: 12, borderTopWidth: 1, borderTopColor: getThemeMode() === 'dark' ? Colors.borderColor : '#e8eaed' },
+    postActions: { paddingHorizontal: 16, paddingVertical: 12, borderTopWidth: 1, borderTopColor: getThemeMode() === 'dark' ? Colors.borderColor : '#dadce0' },
+    cardHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingTop: 18, paddingBottom: 10 },
+    cardBody: { paddingHorizontal: 16, paddingBottom: 16, gap: 10 },
+    cardActions: { paddingHorizontal: 16, paddingVertical: 14, borderTopWidth: 1, borderTopColor: getThemeMode() === 'dark' ? Colors.borderColor : '#e8eaed' },
+    jobRows: { gap: 8 },
+    jobRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 12, borderWidth: 1, borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#dadce0', backgroundColor: Colors.bgCard },
+    jobRowName: { fontSize: 13.5, fontFamily: FONTS.titleBold, color: Colors.textMain },
+    jobRowSub: { fontSize: 11.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 1 },
+    jobRowBid: { paddingHorizontal: 12, height: 32, justifyContent: 'center', borderRadius: 16, backgroundColor: '#1a73e8' },
+    jobRowBidText: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: '#ffffff' },
+    jobRowDone: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.warning },
+    jobRowLock: { fontSize: 16 },
     avatar: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? Colors.subtleFill : '#e8f0fe' },
     avatarEmoji: { fontSize: 20 },
     media: { paddingHorizontal: 0, paddingBottom: 0 },

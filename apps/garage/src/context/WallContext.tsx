@@ -65,6 +65,13 @@ type WallState = {
   posts: WallPost[];
   likes: (id: string, base: number) => { count: number; liked: boolean };
   toggleLike: (id: string) => void;
+  /** Whether the owner saved a post (the bookmark on it), and switching that on or off. */
+  isSaved: (id: string) => boolean;
+  toggleSave: (id: string) => void;
+  /** The owner shared a post (the share button). */
+  markShared: (id: string) => void;
+  /** The record of what the owner did on the feed: the ids of the posts they liked, commented on, shared, wrote to and saved. */
+  record: () => { liked: string[]; commented: string[]; shared: string[]; messaged: string[]; saved: string[]; sharedAt: Record<string, number> };
   commentsFor: (id: string) => WallComment[];
   addComment: (id: string, text: string) => void;
   replyFor: (id: string) => WallReply | undefined;
@@ -75,10 +82,14 @@ const WallContext = createContext<WallState | null>(null);
 
 export const WallProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [liked, setLiked] = useState<Record<string, boolean>>({});
+  const [saved, setSaved] = useState<Record<string, boolean>>({});
+  const [shared, setShared] = useState<Record<string, number>>({});
   const [comments, setComments] = useState<Record<string, WallComment[]>>({});
   const [replies, setReplies] = useState<Record<string, WallReply>>({});
 
   const toggleLike = useCallback((id: string) => setLiked((l) => ({ ...l, [id]: !l[id] })), []);
+  const markShared = useCallback((id: string) => setShared((m) => ({ ...m, [id]: Date.now() })), []);
+  const toggleSave = useCallback((id: string) => setSaved((m) => ({ ...m, [id]: !m[id] })), []);
   const addComment = useCallback(
     (id: string, text: string) => setComments((c) => ({ ...c, [id]: [...(c[id] ?? []), { id: `${id}-${Date.now()}`, author: 'ඔබ', text, at: Date.now() }] })),
     []
@@ -90,12 +101,23 @@ export const WallProvider: React.FC<{ children: React.ReactNode }> = ({ children
       posts: SEED,
       likes: (id, base) => ({ count: base + (liked[id] ? 1 : 0), liked: !!liked[id] }),
       toggleLike,
+      isSaved: (id) => !!saved[id],
+      toggleSave,
+      markShared,
+      record: () => ({
+        liked: Object.keys(liked).filter((id) => liked[id]),
+        commented: Object.keys(comments).filter((id) => comments[id]?.length),
+        shared: Object.keys(shared),
+        messaged: Object.keys(replies),
+        saved: Object.keys(saved).filter((id) => saved[id]),
+        sharedAt: shared,
+      }),
       commentsFor: (id) => [...(BASE_COMMENTS[id] ?? []), ...(comments[id] ?? [])],
       addComment,
       replyFor: (id) => replies[id],
       sendReply,
     }),
-    [liked, comments, replies, toggleLike, addComment, sendReply]
+    [liked, saved, shared, comments, replies, toggleLike, toggleSave, markShared, addComment, sendReply]
   );
   return <WallContext.Provider value={value}>{children}</WallContext.Provider>;
 };

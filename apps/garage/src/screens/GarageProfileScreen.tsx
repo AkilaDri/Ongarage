@@ -7,10 +7,8 @@ import { Colors, dayStart, FONTS, GlassIcon, glassStyle, LevelBadge, levelProgre
 import { useGarage } from '../context/GarageContext';
 import { VANS } from '../constants/mockData';
 import { ago } from '../utils/format';
-import { AttendanceSheet } from '../components/AttendanceSheet';
 import { ServicesSheet } from '../components/ServicesSheet';
 import { ReviewsSheet } from '../components/ReviewsSheet';
-import { TeamManageSheet } from '../components/TeamManageSheet';
 import { PublicProfileSheet } from '../components/PublicProfileSheet';
 import { LevelSheet } from '../components/LevelSheet';
 import { FairShareSheet } from '../components/FairShareSheet';
@@ -32,10 +30,10 @@ const RADIUS_PRESETS = [3, 5, 8, 10, 15];
 const RADIUS_MIN = 1;
 const RADIUS_MAX = 15;
 
-type SheetId = 'attendance' | 'services' | 'reviews' | 'team' | 'profile' | 'level' | 'fair' | null;
+type SheetId = 'services' | 'reviews' | 'profile' | 'level' | 'fair' | null;
 
 export const GarageProfileScreen: React.FC<{ shift: Animated.Value; onScrollY: (y: number) => void }> = ({ shift, onScrollY }) => {
-  const { profile, rating, reviews, team, crew, setCoverage, setOnBreak, trust, level, levelStats, graceDaysLeft, limitFrom, intakeOn, subscription, recommendedPlan } = useGarage();
+  const { profile, rating, reviews, setCoverage, trust, level, levelStats, graceDaysLeft, limitFrom, intakeOn, subscription, recommendedPlan } = useGarage();
   const limited = limitFrom !== undefined && Date.now() >= limitFrom;
   const tomorrow = intakeOn(dayStart(Date.now()) + 24 * 60 * 60 * 1000);
   const next = nextLevel(level.id);
@@ -49,8 +47,6 @@ export const GarageProfileScreen: React.FC<{ shift: Animated.Value; onScrollY: (
   const [sheet, setSheet] = useState<SheetId>(null);
   const close = () => setSheet(null);
 
-  const present = team.filter((m) => crew.presentIds.includes(m.id));
-  const absent = team.filter((m) => !crew.presentIds.includes(m.id));
   const unanswered = reviews.filter((r) => !r.reply).length;
   const latest = reviews[0];
   const serviceNames = SERVICE_CATEGORIES.filter((c) => profile.services.includes(c.id)).map((c) => c.name);
@@ -78,91 +74,8 @@ export const GarageProfileScreen: React.FC<{ shift: Animated.Value; onScrollY: (
       <ReceivablesCard />
       <DashboardTiles onReviews={() => setSheet('reviews')} onLevel={() => setSheet('level')} />
 
-      {/* ---------- Today ---------- */}
-      <Text style={styles.sectionLabel}>අද</Text>
-
-      <View style={styles.card}>
-        <View style={styles.rowBetween}>
-          <Text style={styles.cardTitle}>👨‍🔧 දැන් කණ්ඩායම</Text>
-          {crew.confirmed && (
-            <Pressable onPress={() => setSheet('attendance')} hitSlop={6}>
-              <Text style={styles.link}>පැමිණීම ›</Text>
-            </Pressable>
-          )}
-        </View>
-
-        {!crew.confirmed ? (
-          <>
-            <Text style={styles.warnText}>⚠️ අද පැමිණීම තහවුරු කර නැත — තහවුරු කරන තුරු SOS භාර ගත නොහැක.</Text>
-            <Pressable style={({ pressed }) => [styles.primaryBtn, pressed && styles.pressed]} onPress={() => setSheet('attendance')}>
-              <Text style={styles.primaryBtnText}>📋 අද පැමිණීම තහවුරු කරන්න</Text>
-            </Pressable>
-          </>
-        ) : (
-          <>
-            <View style={styles.counts}>
-              <Count value={crew.free} label="නිදහස්" color={Colors.success} />
-              <Count value={crew.breakIds.length} label="විවේකයේ" color={Colors.warning} />
-              <Count value={crew.committedJobs} label="SOS රැකියාවල" color={Colors.primary} />
-              <Count value={absent.length} label="නිවාඩු" color={Colors.textMuted} />
-            </View>
-
-            {present.map((m) => {
-              const onJob = crew.onJobIds.includes(m.id);
-              const onBreak = crew.breakIds.includes(m.id);
-              return (
-                <View key={m.id} style={styles.member}>
-                  <View style={[styles.avatar, onBreak && styles.avatarBreak, onJob && styles.avatarJob]}>
-                    <Text style={styles.avatarEmoji}>{onJob ? '🚐' : onBreak ? '☕' : '👨‍🔧'}</Text>
-                  </View>
-                  <View style={styles.flex1}>
-                    <Text style={styles.memberName} numberOfLines={1}>
-                      {m.name}
-                    </Text>
-                    <Text style={styles.sub} numberOfLines={1}>
-                      {m.role}
-                    </Text>
-                  </View>
-                  {onJob ? (
-                    <View style={[styles.pill, styles.pillJob]}>
-                      <Text style={[styles.pillText, { color: Colors.primary }]}>SOS රැකියාවක</Text>
-                    </View>
-                  ) : (
-                    // One clear two-way switch: ready for a job, or away for a while.
-                    <View style={styles.segment}>
-                      <Pressable
-                        style={[styles.segBtn, !onBreak && styles.segReady]}
-                        onPress={() => onBreak && setOnBreak(m.id, false)}
-                        accessibilityLabel={`${m.name} ready`}
-                      >
-                        <Text style={[styles.segText, !onBreak && { color: '#fff' }]}>සූදානම්</Text>
-                      </Pressable>
-                      <Pressable
-                        style={[styles.segBtn, onBreak && styles.segBreak]}
-                        onPress={() => !onBreak && setOnBreak(m.id, true)}
-                        accessibilityLabel={`${m.name} on break`}
-                      >
-                        <Text style={[styles.segText, onBreak && { color: '#fff' }]}>☕ විවේක</Text>
-                      </Pressable>
-                    </View>
-                  )}
-                </View>
-              );
-            })}
-            {present.length === 0 && <Text style={styles.sub}>අද කිසිවෙකු පැමිණ නැත.</Text>}
-            {absent.length > 0 && (
-              <Pressable style={styles.absentRow} onPress={() => setSheet('attendance')}>
-                <Text style={styles.sub} numberOfLines={1}>
-                  🏖️ නිවාඩු: {absent.map((m) => m.name).join(', ')}
-                </Text>
-                <Text style={styles.link}>වෙනස් කරන්න</Text>
-              </Pressable>
-            )}
-            <Text style={styles.hint}>විවේකයේ සිටින අයව SOS රැකියාවකට පැවරිය නොහැකි අතර ඔබගේ SOS ධාරිතාවද ඒ අනුව අඩු වේ.</Text>
-          </>
-        )}
-      </View>
-
+      {/* ---------- SOS ---------- */}
+      <Text style={styles.sectionLabel}>SOS</Text>
       <View style={styles.card}>
         <View style={styles.rowBetween}>
           <Text style={styles.cardTitle}>📡 SOS සේවා කලාපය</Text>
@@ -263,7 +176,6 @@ export const GarageProfileScreen: React.FC<{ shift: Animated.Value; onScrollY: (
       <Text style={styles.sectionLabel}>සැකසුම්</Text>
       <View style={styles.list}>
         <SettingRow icon="🧰" title="ලබා දෙන සේවා" value={`${serviceNames.length}/${SERVICE_CATEGORIES.length} · ${serviceNames.slice(0, 3).join(', ')}${serviceNames.length > 3 ? '…' : ''}`} onPress={() => setSheet('services')} />
-        <SettingRow icon="👥" title="කණ්ඩායම සහ වාහන" value={`සේවකයන් ${team.length} · වාහන ${VANS.length} · එක් කරන්න / ඉවත් කරන්න`} onPress={() => setSheet('team')} divider />
         <SettingRow icon="🪪" title="පාරිභෝගිකයන්ට පෙනෙන ආකාරය" value="ගරාජ කාඩ්පත සහ තොරතුරු" onPress={() => setSheet('profile')} divider />
         <View style={[styles.settingRow, styles.divider]}>
           <GlassIcon emoji={isDark ? '🌙' : '☀️'} small />
@@ -277,10 +189,8 @@ export const GarageProfileScreen: React.FC<{ shift: Animated.Value; onScrollY: (
 
       <Text style={styles.version}>OnGarage Garage · v0.1.0</Text>
 
-      <AttendanceSheet visible={sheet === 'attendance'} onClose={close} />
       <ServicesSheet visible={sheet === 'services'} onClose={close} />
       <ReviewsSheet visible={sheet === 'reviews'} onClose={close} />
-      <TeamManageSheet visible={sheet === 'team'} onClose={close} />
       <PublicProfileSheet visible={sheet === 'profile'} onClose={close} />
       <LevelSheet visible={sheet === 'level'} onClose={close} />
       <FairShareSheet visible={sheet === 'fair'} onClose={close} />

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { OnChatIcon } from '@ongarage/shared';
 import {
   ActionButton,
   approvedLines,
@@ -175,10 +176,6 @@ export const BookingActions: React.FC<{ booking: Booking }> = ({ booking: b }) =
       <FitRequestNote booking={b} />
       <View style={styles.row}>
         <View style={styles.flex1}>
-          {/* OnChat takes the place of the call button; the unread count shows beside its name. */}
-          <ActionButton label={unreadChat > 0 ? `OnChat · ${unreadChat}` : 'OnChat'} icon="💬" variant="ghost" compact onPress={() => openChat(chatTargetOf(b))} />
-        </View>
-        <View style={styles.flex1}>
           {mode === 'walkin' ? (
             <ActionButton
               label="ස්ථානය යවන්න"
@@ -193,6 +190,17 @@ export const BookingActions: React.FC<{ booking: Booking }> = ({ booking: b }) =
           ) : (
             <ActionButton label="දිශාවන්" icon="🗺️" variant="ghost" compact onPress={() => openDirections(b, profile)} />
           )}
+        </View>
+        <View style={styles.flex1}>
+          {/* OnChat takes the place of the call button; the unread count shows beside its name. */}
+          <Pressable style={styles.chatPill} onPress={() => openChat(chatTargetOf(b))} accessibilityLabel={unreadChat > 0 ? `OnChat, ${unreadChat} unread` : 'OnChat'}>
+            <OnChatIcon width={52} color={getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8'} />
+            {unreadChat > 0 && (
+              <View style={styles.chatPillBadge}>
+                <Text style={styles.chatPillBadgeText}>{unreadChat > 9 ? '9+' : unreadChat}</Text>
+              </View>
+            )}
+          </Pressable>
         </View>
       </View>
       {p?.dispute?.status === 'rework' && p.stage === 'repairing' && <Text style={styles.waiting}>🔧 නැවත හදමින්: “{p.dispute.text}”</Text>}
@@ -268,6 +276,10 @@ export const BookingActions: React.FC<{ booking: Booking }> = ({ booking: b }) =
 const styles = themedStyles(() =>
   StyleSheet.create({
     flex1: { flex: 1 },
+    // The OnChat button: just the icon on a tonal pill (same height as the buttons beside it), the unread count on its corner.
+    chatPill: { alignItems: 'center', justifyContent: 'center', paddingVertical: 8 },
+    chatPillBadge: { position: 'absolute', top: 2, right: 8, minWidth: 18, height: 18, paddingHorizontal: 4, borderRadius: 9, backgroundColor: '#ef4444', alignItems: 'center', justifyContent: 'center' },
+    chatPillBadgeText: { fontSize: 11, fontFamily: FONTS.bodyBold, color: '#ffffff' },
     flex2: { flex: 2 },
     wrap: { gap: 8 },
     row: { flexDirection: 'row', gap: 8 },

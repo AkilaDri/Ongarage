@@ -1,3 +1,5 @@
+import { CustomerHistoryTag } from './CustomerHistory';
+import { VehicleIcon3D, VehicleLabel } from '@ongarage/shared';
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import {
@@ -77,16 +79,21 @@ export const BookingJobCard: React.FC<{ booking: Booking }> = ({ booking: b }) =
           </View>
         </View>
         <LkPlate plate={b.vehicle.plate} stacked={b.vehicle.type === 'Motorbike'} />
-        <Text style={styles.vehicle}>
-          {vehicleIcon(b.vehicle.type)} {b.vehicle.name} · {b.vehicle.type}
-        </Text>
+        <VehicleLabel type={b.vehicle.type} style={styles.vehicle}>{b.vehicle.name} · {b.vehicle.type}
+        </VehicleLabel>
         <View style={styles.rule} />
         <Field label="සේවාව" value={b.icon + ' ' + b.title} />
         <Field label="මූලාශ්‍රය" value={SOURCE[b.source]} />
         <Field label="වෙන් කළ වේලාව" value={formatDate(b.scheduledAt) + ' · ' + formatTime(b.scheduledAt)} />
         <Field label="තත්ත්වය" value={stage} />
         <View style={styles.rule} />
-        <Field label="පාරිභෝගිකයා" value={b.customer.name} />
+        <View style={styles.field}>
+          <Text style={styles.fieldLabel}>පාරිභෝගිකයා</Text>
+          <View style={styles.nameWithTag}>
+            <Text style={styles.fieldValue}>{b.customer.name}</Text>
+            <CustomerHistoryTag customer={b.customer} />
+          </View>
+        </View>
         <View style={styles.field}>
           <Text style={styles.fieldLabel}>දුරකථනය</Text>
           <Text style={styles.fieldValue}>{b.customer.phone}</Text>
@@ -205,7 +212,7 @@ export const BookingJobCard: React.FC<{ booking: Booking }> = ({ booking: b }) =
               {c && (
                 <View style={[styles.pinAnchor, { left: c.x, top: c.y }]} pointerEvents="none">
                   <View style={[styles.pin, { backgroundColor: Colors.primary }]}>
-                    <Text style={styles.pinEmoji}>{vehicleIcon(job.vehicle.type)}</Text>
+                    <VehicleIcon3D type={job.vehicle.type} size={26} />
                   </View>
                 </View>
               )}
@@ -231,6 +238,7 @@ const Field: React.FC<{ label: string; value: string }> = ({ label, value }) => 
 const styles = themedStyles(() =>
   StyleSheet.create({
     flex1: { flex: 1 },
+    nameWithTag: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 },
     sheet: {
       backgroundColor: Colors.bgCard,
       borderWidth: 1,

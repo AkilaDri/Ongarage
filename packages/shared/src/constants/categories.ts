@@ -16,6 +16,7 @@ export const SERVICE_CATEGORIES: ServiceCategory[] = [
   { id: '11', name: 'Batteries', icon: '🔋', color: '#eab308', subcategories: ['Battery Replacement', 'Terminal Cleaning', 'Charging Check'] },
   { id: '12', name: 'Towing', icon: '🛻', color: '#f97316', subcategories: ['Flatbed Towing', 'Recovery Winch', 'Emergency Transport'] },
   { id: '15', name: 'Parts Fitting', icon: '🔩', color: '#14b8a6', subcategories: ['Brake Pads', 'Battery', 'Tyres', 'Lights & Bulbs', 'Filters', 'Belts & Hoses', 'Wipers', 'Other part'] },
+  { id: '16', name: 'Fuel Station', icon: '⛽', color: '#ef4444', subcategories: ['Petrol', 'Diesel', 'Tyre Air Check', 'Oil Top-up', 'Coolant Top-up', 'Quick Wash'] },
   { id: '13', name: 'EV Charging', icon: '🔌', color: '#22c55e', subcategories: ['AC Charging Port', 'DC Fast Charging', 'Home Charger Install', 'Mobile EV Charging'] },
 ];
 
@@ -23,7 +24,7 @@ export const SERVICE_CATEGORIES: ServiceCategory[] = [
 // from it, the garage app uses it to suggest a competitive bid.
 const MARKET_PRICE: Record<string, number> = {
   '1': 4500, '2': 3500, '3': 6500, '4': 3000, '5': 2500, '6': 2000,
-  '7': 3800, '8': 9000, '9': 2500, '10': 12000, '11': 8000, '12': 3500, '13': 2000, '14': 6500, '15': 2500,
+  '7': 3800, '8': 9000, '9': 2500, '10': 12000, '11': 8000, '12': 3500, '13': 2000, '14': 6500, '15': 2500, '16': 1500,
 };
 
 export const marketPrice = (categoryId: string) => MARKET_PRICE[categoryId] ?? 4000;

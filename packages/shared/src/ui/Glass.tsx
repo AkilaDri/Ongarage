@@ -123,8 +123,8 @@ export const InfoChip: React.FC<{ text: string }> = ({ text }) => {
   );
 };
 
-export const EmptyState: React.FC<{ icon: string; title: string; text: string }> = ({ icon, title, text }) => (
-  <View style={styles.empty}>
+export const EmptyState: React.FC<{ icon: string; title: string; text: string; /** Without the card round it (when it already sits inside one). */ bare?: boolean }> = ({ icon, title, text, bare }) => (
+  <View style={[styles.empty, !bare && styles.emptyCard]}>
     <View style={styles.emptyIcon}>
       <Text style={styles.emptyEmoji}>{icon}</Text>
     </View>
@@ -185,6 +185,7 @@ const styles = themedStyles(() => StyleSheet.create({
   glassIconEmojiSmall: { fontSize: 17 },
 
   empty: { alignItems: 'center', gap: 8, paddingVertical: 40, paddingHorizontal: 24 },
+  emptyCard: { borderRadius: 24, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), ...softShadow() },
   emptyIcon: { width: 80, height: 80, borderRadius: 40, ...softCard(), justifyContent: 'center', alignItems: 'center', marginBottom: 4 },
   emptyEmoji: { fontSize: 34 },
   emptyTitle: { fontSize: 15, fontFamily: FONTS.titleBold, color: Colors.textMain, textAlign: 'center' },

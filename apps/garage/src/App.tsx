@@ -1,6 +1,9 @@
+import { GarageActivityView } from './components/GarageActivityView';
+import { GarageCalendar } from './components/GarageCalendar';
+import { MoneyCalendarIcon } from './components/MoneyCalendarIcon';
 import { pageBg } from './utils/pageBg';
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Modal, StyleSheet, View } from 'react-native';
+import { Animated, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
@@ -11,7 +14,7 @@ import {
   NotoSansSinhala_600SemiBold,
   NotoSansSinhala_700Bold,
 } from '@expo-google-fonts/noto-sans-sinhala';
-import { BottomNav, type NavAlert, TitleBand, Colors, ThemeProvider, themedStyles, useTheme, headerBand, getThemeMode, setAppShape } from '@ongarage/shared';
+import { BottomNav, ClipboardLineIcon, FONTS, ScheduleLineIcon, SosLineIcon, type NavAlert, TitleBand, Colors, ThemeProvider, themedStyles, useTheme, headerBand, getThemeMode, setAppShape } from '@ongarage/shared';
 
 // The garage app has PickMe's shapes (big rounded cards, pill buttons and chips, light edges, soft shadows); the other apps keep the Material shapes. Set before the first screen is drawn.
 setAppShape('pickme');
@@ -89,6 +92,13 @@ function AppShell() {
   const tabs = GARAGE_TABS.map((t) => ({ ...t, badge: badges[t.id], alert: t.id === 'sos' ? sosAlert : undefined }));
   // Jobs is the home screen: the garage opens on the work waiting for it.
   const [tab, setTab] = useState<TabId>('jobs');
+  // The Schedule page has two titles: the schedule itself and the Activity (every transaction, with the commissions).
+  const [calendarOpen, setCalendarOpen] = useState(false);
+  const [scheduleView, setScheduleView] = useState<'schedule' | 'activity'>('schedule');
+  const openScheduleView = (v: 'schedule' | 'activity') => {
+    setScheduleView(v);
+    header.reset();
+  };
   // On the Jobs tab, backing out of a conversation opened from the inbox returns to the inbox.
   const { setInboxReturn } = useChat();
   useEffect(() => setInboxReturn(tab === 'jobs'), [tab]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -160,38 +170,59 @@ function AppShell() {
 
   if (!fontsLoaded) return null;
 
+  // Jobs, Schedule and OnMart have a top header band; SOS and Profile start right at the top.
+  const band = tab === 'jobs' || tab === 'schedule' || tab === 'parts' ? bandH : 0;
+
   return (
     <SafeAreaProvider>
       <StatusBar style={isDark ? 'light' : 'dark'} />
-      <SafeAreaView style={[styles.container, tab === 'garage' && styles.containerFull]} edges={['top']}>
+      <SafeAreaView style={[styles.container, (tab === 'garage' || tab === 'schedule' || tab === 'sos') && styles.containerFull]} edges={['top']}>
         {tab === 'jobs' || tab === 'schedule' || tab === 'parts' ? (
           // Jobs, Schedule and OnMart: the title band and the sheet move up together as the page's list scrolls (a transform, so
           // nothing is re-laid out). The block reaches one band-height past the bottom (under the bottom bar), so when it has
           // moved up it still fills the screen. The page's own tab bar moves with it (see the page).
-          <Animated.View style={{ flex: 1, marginBottom: -bandH, transform: [{ translateY: martShift.interpolate({ inputRange: [0, HEADER_SCROLL], outputRange: [0, -bandH], extrapolate: 'clamp' }) }] }}>
+          <Animated.View style={{ flex: 1, marginBottom: -band, transform: [{ translateY: martShift.interpolate({ inputRange: [0, HEADER_SCROLL], outputRange: [0, -band], extrapolate: 'clamp' }) }] }}>
             <View onLayout={(e) => e.nativeEvent.layout.height > 0 && setBandH(e.nativeEvent.layout.height)}>
-              {tab === 'jobs' ? (
-                <GarageHeader />
-              ) : (
-                <TitleBand title={TAB_TITLES[tab]!} />
-              )}
+              {tab === 'jobs' && <GarageHeader />}
+              {tab === 'parts' && <TitleBand title={TAB_TITLES.parts!} />}
+              {tab === 'schedule' && <TitleBand
+                  title="Schedule"
+                  backgroundColor={pageBg()}
+                  right={
+                    // Two calendars that can be told apart: the Schedule's is the plain calendar (blue); the Activitys' is a calendar with a coin on its page (green), for the money.
+                    <Pressable style={[styles.calendarBtn, scheduleView === 'activity' && styles.calendarBtnMoney]} onPress={() => setCalendarOpen(true)} accessibilityLabel={scheduleView === 'activity' ? 'Open transactions calendar' : 'Open schedule calendar'}>
+                      {scheduleView === 'activity' ? <MoneyCalendarIcon size={26} /> : <ScheduleLineIcon active size={26} />}
+                    </Pressable>
+                  }
+                  // The open title stands first; touching the other one swaps them with a slide (the title band does the ordering).
+                  tabs={[
+                    { id: 'schedule', label: 'Schedule', icon: <ScheduleLineIcon active size={26} />, active: scheduleView === 'schedule', onPress: () => openScheduleView('schedule') },
+                    { id: 'activity', label: 'Activitys', icon: <ClipboardLineIcon active size={26} />, active: scheduleView === 'activity', onPress: () => openScheduleView('activity') },
+                  ]}
+                />}
             </View>
             {/* The tab's screen overlaps the header band with rounded top corners, like the owner app. */}
-            <View style={styles.sheet}>
+            <View style={[styles.sheet, tab === 'schedule' && styles.sheetFull]}>
               {tab === 'jobs' && <JobFeedScreen shift={martShift} onScrollY={header.onScrollY} />}
-              {tab === 'schedule' && <ScheduleScreen onOpenParts={openParts} shift={martShift} onScrollY={header.onScrollY} />}
+              {tab === 'schedule' && (
+                <>
+                  {/* Both stay mounted, so the Schedule keeps its tab and scroll while the Activity is open. */}
+                  <View style={[styles.flex1, scheduleView !== 'schedule' && { display: 'none' }]}>
+                    <ScheduleScreen onOpenParts={openParts} shift={martShift} onScrollY={header.onScrollY} />
+                  </View>
+                  {scheduleView === 'activity' && <GarageActivityView />}
+                </>
+              )}
               {tab === 'parts' && (
-                <OnMartScreen shift={martShift} onScrollY={header.onScrollY} setBarShown={header.setShown} reset={header.reset} bandHeight={bandH} top={martTop} onTopChange={setMartTop} section={martSection} onSectionChange={setMartSection} searchSeed={martSeed} shopRequest={martShopReq} focusId={partsFocus} onFocusHandled={() => setPartsFocus(null)} />
+                <OnMartScreen shift={martShift} onScrollY={header.onScrollY} setBarShown={header.setShown} reset={header.reset} bandHeight={band} top={martTop} onTopChange={setMartTop} section={martSection} onSectionChange={setMartSection} searchSeed={martSeed} shopRequest={martShopReq} focusId={partsFocus} onFocusHandled={() => setPartsFocus(null)} />
               )}
             </View>
           </Animated.View>
         ) : (
           <>
-            {TAB_TITLES[tab] ? (
-              <TitleBand title={TAB_TITLES[tab]!} />
-            ) : null}
+            {tab === 'sos' && <TitleBand title="SOS" icon={<SosLineIcon active size={28} />} backgroundColor={pageBg()} />}
             {/* The tab's screen overlaps the header band with rounded top corners, like the owner app. */}
-            <View style={[styles.sheet, tab === 'garage' && styles.sheetFull]}>
+            <View style={[styles.sheet, (tab === 'garage' || tab === 'sos') && styles.sheetFull]}>
               {tab === 'sos' && <SOSInboxScreen />}
               {tab === 'garage' && <GarageProfileScreen shift={martShift} onScrollY={header.onScrollY} />}
             </View>
@@ -228,6 +259,7 @@ function AppShell() {
         <Toast />
       </SafeAreaView>
 
+      <GarageCalendar visible={calendarOpen} onClose={() => setCalendarOpen(false)} view={scheduleView} />
       {/* The job just closed with the owner's code: what did the customer actually pay? */}
       <PaymentPrompt />
       <PaymentReminders />
@@ -251,6 +283,8 @@ const styles = themedStyles(() =>
     flex1: { flex: 1 },
     sheet: { flex: 1, marginTop: -18, borderTopLeftRadius: 24, borderTopRightRadius: 24, overflow: 'hidden', backgroundColor: pageBg() },
     nav: { position: 'absolute', left: 0, right: 0, bottom: 0 },
-    floatChat: { position: 'absolute', top: 10, right: 14, zIndex: 50, elevation: 50 },
+    calendarBtn: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe' },
+    calendarBtnMoney: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(129, 201, 149, 0.16)' : '#e6f4ea' },
+    floatChat: { position: 'absolute', top: 10, right: 14, zIndex: 50 },
   })
 );

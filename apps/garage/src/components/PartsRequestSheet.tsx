@@ -1,3 +1,4 @@
+import { CategoryArt } from './CategoryArt';
 import { outline } from '../utils/material';
 import { pickPhotos } from '@ongarage/shared';
 import { VehicleLine } from '@ongarage/shared';
@@ -106,7 +107,7 @@ export const PartsRequestSheet: React.FC<{ booking: Booking | null; onClose: () 
       footer={<ActionButton label={lines.length ? `වෙළඳසැල් වෙත යවන්න (${lines.length})` : 'කොටසක් එක් කරන්න'} icon="📨" variant="primary" disabled={!lines.length} onPress={send} />}
     >
       <View style={styles.booking}>
-        <GlassIcon emoji={shown.icon} small />
+        <CategoryArt emoji={shown.icon} size={40} />
         <View style={styles.flex1}>
           <Text style={styles.title}>{shown.title}</Text>
           <VehicleLine vehicle={shown.vehicle} textStyle={styles.sub} extra={'වැඩ ' + formatDate(shown.scheduledAt) + ' ' + formatTime(shown.scheduledAt)} />

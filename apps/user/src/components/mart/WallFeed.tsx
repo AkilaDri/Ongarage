@@ -1,10 +1,12 @@
+import { OnChatIcon } from '@ongarage/shared';
 import { elevation1, outline } from '../../utils/material';
 import React, { useState } from 'react';
-import { Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View, Platform, Share } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { ago, Colors, EmptyState, FONTS, getThemeMode, money, SERVICE_CATEGORIES, softEdge, softFill, softShadow, themedStyles } from '@ongarage/shared';
 import { useWall, type WallPost } from '../../context/WallContext';
 import { useNotice } from '../../context/NoticeContext';
+import { useChat } from '../../context/ChatContext';
 
 /** A post on the wall, whether another owner's or the signed-in owner's own request. */
 export type FeedPost = WallPost & {
@@ -22,6 +24,8 @@ const ICON_PATHS = {
   like: 'M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3',
   comment: 'M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z',
   send: 'M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z',
+  bookmark: 'M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z',
+  share: 'M18 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM6 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM18 22a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98',
   inbox: 'M22 12h-6l-2 3h-4l-2-3H2M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z',
 };
 const ActionIcon: React.FC<{ name: keyof typeof ICON_PATHS; color: string; filled?: boolean }> = ({ name, color, filled }) => (
@@ -39,6 +43,7 @@ const Avatar: React.FC<{ name: string; mine?: boolean; big?: boolean }> = ({ nam
 const PostCard: React.FC<{ post: FeedPost; now: number }> = ({ post, now }) => {
   const wall = useWall();
   const { notify } = useNotice();
+  const chat = useChat();
   const { count, liked } = wall.likes(post.id, post.baseLikes);
   const comments = wall.commentsFor(post.id);
   const sent = wall.replyFor(post.id);
@@ -52,6 +57,23 @@ const PostCard: React.FC<{ post: FeedPost; now: number }> = ({ post, now }) => {
   // A photo that cannot load (offline) is dropped rather than left as an empty grey box.
   const [photoFailed, setPhotoFailed] = useState(false);
 
+  // Share: the phone's own share sheet (or the browser's); where there is none the post is copied, so it can be pasted into a message.
+  const sharePost = async () => {
+    wall.markShared(post.id);
+    const text = `${post.part} — ${post.vehicle ? post.vehicle + ' · ' : ''}${post.place} (OnMart On Feed · ${post.author})\n${post.description}`.trim();
+    try {
+      const nav = (globalThis as { navigator?: { share?: (d: { title: string; text: string }) => Promise<void>; clipboard?: { writeText: (t: string) => Promise<void> } } }).navigator;
+      if (nav?.share) await nav.share({ title: post.part, text });
+      else if (Platform.OS !== 'web') await Share.share({ message: text });
+      else if (nav?.clipboard) {
+        await nav.clipboard.writeText(text);
+        notify({ icon: '📋', title: 'පෝස්ට් එක පිටපත් කළා', body: 'වෙනත් තැනක අලවා බෙදාගන්න.', tone: 'primary' });
+      }
+    } catch {
+      // the share sheet was closed: nothing to do
+    }
+  };
+
   const submitComment = () => {
     const text = comment.trim();
     if (!text) return;
@@ -62,7 +84,9 @@ const PostCard: React.FC<{ post: FeedPost; now: number }> = ({ post, now }) => {
     const amount = Number(price.replace(/[^\d]/g, ''));
     wall.sendReply(post.id, { price: amount > 0 ? amount : undefined, message: message.trim() });
     setReplying(false);
-    notify({ icon: '🙋', title: 'පිළිතුර එවා ඇත', body: `${post.author} වෙත සෘජුවම දැනුම් දුන්නා.`, tone: 'primary' });
+    // A direct message to the poster is a conversation: it opens in OnChat, with what was written as its first message.
+    const text = ['🙋 මෙම කොටස මා ළඟ තිබේ.', amount > 0 ? `මිල රු. ${amount.toLocaleString('en-US')}` : '', message.trim()].filter(Boolean).join(' · ');
+    chat.openWith({ id: `feed:${post.id}`, title: post.author, subtitle: 'On Feed', profile: 'shop' }, text);
   };
 
   return (
@@ -114,7 +138,6 @@ const PostCard: React.FC<{ post: FeedPost; now: number }> = ({ post, now }) => {
         </View>
       )}
 
-      <View style={styles.rule} />
       <View style={styles.textBlock}>
         <Text style={styles.part}>🔧 {post.part}</Text>
         {!!post.description && <Text style={styles.body}>{post.description}</Text>}
@@ -124,14 +147,15 @@ const PostCard: React.FC<{ post: FeedPost; now: number }> = ({ post, now }) => {
         <Image source={{ uri: post.photos[0] }} style={styles.photo} resizeMode="cover" onError={() => setPhotoFailed(true)} accessibilityLabel={`${post.part} photo`} />
       )}
 
-      <View style={styles.rule} />
       <View style={styles.counts}>
-        <Text style={styles.countText}>👍 {count}</Text>
-        <Pressable onPress={() => setShowComments((s) => !s)}>
-          <Text style={styles.countText}>අදහස් {comments.length}</Text>
-        </Pressable>
+        {/* the likes first, then the comments (touching the comments count opens the comments) */}
+        <View style={styles.countGroup}>
+          <Text style={styles.countText}>👍 {count}</Text>
+          <Pressable onPress={() => setShowComments((v) => !v)} hitSlop={8} accessibilityLabel="Comments">
+            <Text style={styles.countText}>💬 {comments.length}</Text>
+          </Pressable>
+        </View>
       </View>
-      <View style={styles.rule} />
 
       <View style={styles.actions}>
         <Pressable style={styles.action} onPress={() => wall.toggleLike(post.id)} accessibilityLabel="Like post">
@@ -139,6 +163,9 @@ const PostCard: React.FC<{ post: FeedPost; now: number }> = ({ post, now }) => {
         </Pressable>
         <Pressable style={styles.action} onPress={() => setShowComments((s) => !s)} accessibilityLabel="Comment on post">
           <ActionIcon name="comment" color={showComments ? Colors.primary : Colors.textMuted} />
+        </Pressable>
+        <Pressable style={styles.action} onPress={sharePost} accessibilityLabel="Share post">
+          <ActionIcon name="share" color={Colors.textMuted} />
         </Pressable>
         {post.mine ? (
           post.details ? (
@@ -148,9 +175,24 @@ const PostCard: React.FC<{ post: FeedPost; now: number }> = ({ post, now }) => {
           ) : null
         ) : (
           <Pressable style={styles.action} onPress={() => setReplying((r) => !r)} accessibilityLabel="I have this part">
-            <ActionIcon name="send" color={sent ? Colors.success : replying ? Colors.primary : Colors.textMuted} filled={!!sent} />
+            {/* The direct message to the poster is named for where it goes: OnChat, in the same type as the icons beside it. */}
+            {/* A chat icon (a speech bubble with its tail) with the word ONCHAT written inside it. */}
+            <OnChatIcon width={44} color={sent ? Colors.success : replying ? Colors.primary : Colors.textMuted} />
           </Pressable>
         )}
+        {/* the bookmark: at the right end of the same line as the other icons */}
+        <View style={styles.flex1} />
+        <Pressable
+          style={styles.action}
+          onPress={() => {
+            wall.toggleSave(post.id);
+            notify({ icon: wall.isSaved(post.id) ? '🔖' : '🗑️', title: wall.isSaved(post.id) ? 'පෝස්ට් එක ඉවත් කළා' : 'පෝස්ට් එක සුරැකුවා', body: post.part, tone: 'primary' });
+          }}
+          hitSlop={8}
+          accessibilityLabel={wall.isSaved(post.id) ? 'Remove saved post' : 'Save post'}
+        >
+          <ActionIcon name="bookmark" color={wall.isSaved(post.id) ? Colors.primary : Colors.textMuted} filled={wall.isSaved(post.id)} />
+        </Pressable>
       </View>
 
       {!!sent && (
@@ -187,7 +229,7 @@ const PostCard: React.FC<{ post: FeedPost; now: number }> = ({ post, now }) => {
             </View>
           ))}
           <View style={styles.commentInputRow}>
-            <TextInput style={[styles.input, styles.flex1]} value={comment} onChangeText={setComment} onSubmitEditing={submitComment} accessibilityLabel="Write a comment" placeholder="අදහසක් දක්වන්න…" placeholderTextColor={Colors.textMuted} />
+            <TextInput style={[styles.input, styles.flex1]} value={comment} onChangeText={setComment} onSubmitEditing={submitComment} accessibilityLabel="Write a comment" placeholder="Comment" placeholderTextColor={Colors.textMuted} />
             <Pressable style={styles.commentSend} onPress={submitComment} accessibilityLabel="Post comment">
               <Text style={styles.sendText}>➤</Text>
             </Pressable>
@@ -244,6 +286,15 @@ export const WallFeed: React.FC<{ myPosts: FeedPost[]; category: string; now: nu
           );
         })}
       </View>
+      {/* On my posts: a question that offers to add another rare part (it opens the same form as the box above). */}
+      {scope === 'mine' && (
+        <Pressable style={styles.addChip} onPress={onCompose} accessibilityLabel="Add a new rare part">
+          <Text style={styles.addChipPlus}>＋</Text>
+          <Text style={styles.addChipText} numberOfLines={1}>
+            අලුතින් දුර්ලභ කොටසක් එකතු කරන්නද?
+          </Text>
+        </Pressable>
+      )}
       {shown.length === 0 ? (
         <EmptyState icon={scope === 'mine' ? '📭' : '🔍'} title={scope === 'mine' ? 'ඔබගේ පෝස්ට් නැත' : 'පෝස්ට් හමු නොවීය'} text={category ? 'වෙනත් අංශයක් තෝරන්න, නැතහොත් ඔබම පෝස්ට් එකක් දමන්න.' : scope === 'mine' ? 'ඔබ වෝල් එකට දමන කොටස් මෙහි පෙන්වයි.' : 'තවම පෝස්ට් නැත.'} />
       ) : (
@@ -257,6 +308,9 @@ const styles = themedStyles(() =>
   StyleSheet.create({
     flex1: { flex: 1 },
     compose: { flexDirection: 'row', alignItems: 'center' },
+    addChip: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, height: 38, borderRadius: 19, backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe', borderWidth: 1, borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#d2e3fc' },
+    addChipPlus: { fontSize: 16, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
+    addChipText: { fontSize: 13, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
     scope: { flexDirection: 'row', borderRadius: 8, overflow: 'hidden', backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline() },
     scopeTab: { flex: 1, height: 40, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },
     scopeTabOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe' },
@@ -296,10 +350,15 @@ const styles = themedStyles(() =>
     body: { fontSize: 14, lineHeight: 21, fontFamily: FONTS.bodyRegular, color: Colors.textSoft },
     vehicleText: { fontSize: 12.5, fontFamily: FONTS.bodyMedium, color: Colors.textMuted },
     photo: { width: '100%', height: 280, backgroundColor: softFill() },
-    counts: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 10 },
+    countGroup: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+    counts: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 16, paddingHorizontal: 16, paddingVertical: 10 },
     countText: { fontSize: 12, fontFamily: FONTS.bodyMedium, color: Colors.textMuted },
-    actions: { flexDirection: 'row', alignItems: 'center', gap: 0, paddingHorizontal: 8, paddingVertical: 2, borderTopWidth: 1, borderTopColor: getThemeMode() === 'dark' ? Colors.borderColor : '#e8eaed' },
-    action: { flex: 1, alignItems: 'center', justifyContent: 'center', height: 44, borderRadius: 8 },
+    actions: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start', gap: 2, paddingHorizontal: 6, paddingVertical: 2 },
+    // The icons sit together at the left (no longer spread over the whole width), with a small space between them.
+    // The word sits in the middle of the bubble's body (the part above its tail).
+    onChatIcon: { width: 44, height: 26, alignItems: 'center', justifyContent: 'flex-start', paddingTop: 5.5 },
+    onChatWord: { fontSize: 7, lineHeight: 9, fontFamily: FONTS.bodyBold, letterSpacing: 0.1 },
+    action: { alignItems: 'center', justifyContent: 'center', height: 44, paddingHorizontal: 10, borderRadius: 8 },
     actionText: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
     actionOn: { color: Colors.primary },
     actionHave: { color: Colors.success },

@@ -60,6 +60,7 @@ import { useMart, type MartEnquiry } from '../context/MartContext';
 import { EnquiryCard } from '../components/mart/EnquiryCard';
 import { RequestCard } from '../components/mart/RequestCard';
 import { EditPostSheet } from '../components/mart/EditPostSheet';
+import { FeedRecordSheet } from '../components/mart/FeedRecordSheet';
 import { groupByBatch, splitRequests } from '@ongarage/shared';
 import { OnMartAsk } from '@ongarage/shared';
 import { EnquirySheet, type EnquiryPrefill } from '../components/mart/EnquirySheet';
@@ -681,7 +682,7 @@ export const MartScreen: React.FC<MartScreenProps> = ({ activeVehicle, segment, 
                       </Pressable>
                     ))}
                   </View>
-                  {sec[reqTab].length === 0 ? <Text style={styles.pastEmpty}>{empty[reqTab]}</Text> : render(sec[reqTab])}
+                  {sec[reqTab].length === 0 ? <EmptyState icon={reqTab === 'successful' ? '🛍️' : reqTab === 'closed' ? '✕' : '📨'} title="ඉල්ලීම් නැත" text={empty[reqTab]} /> : render(sec[reqTab])}
                 </>
               );
             })()
@@ -748,6 +749,7 @@ export const MartScreen: React.FC<MartScreenProps> = ({ activeVehicle, segment, 
       </Modal>
       <ReserveSheet offer={reserving?.offer ?? null} brief={reserving?.brief ?? null} jobRef={reserving?.jobRef} onClose={() => setReserving(null)} onReserved={() => setSegment('orders')} />
       <ThreadSheet target={thread} onClose={() => setThread(null)} />
+      <FeedRecordSheet />
       <KitSheet kit={kit} vehicleId={activeVehicle} onClose={() => setKit(null)} onSent={() => setSegment('mine')} />
       <EnquirySheet
         visible={composer.open}

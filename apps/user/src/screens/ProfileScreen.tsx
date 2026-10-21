@@ -1,8 +1,9 @@
-import { LkPlate, vehicleIcon } from '@ongarage/shared';
+import { LkPlate, VehicleIcon3D } from '@ongarage/shared';
 import { elevation1, outline, pageBg } from '../utils/material';
 import React, { useRef, useState } from 'react';
 import { Image, ImageBackground, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Colors, FONTS, getThemeMode, Gradient, ThemeToggle, themedStyles, useTheme } from '@ongarage/shared';
+import { useLang } from '../context/LanguageContext';
 import { useVehicles } from '../context/VehiclesContext';
 import { useProfile } from '../context/ProfileContext';
 import { AddVehicleSheet } from '../components/AddVehicleSheet';
@@ -36,6 +37,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ activeVehicle, onV
   const lastY = useRef(0);
   const hidden = useRef(false);
   const { isDark, toggle } = useTheme();
+  const { lang, setLang } = useLang();
   const { profile, fullName, initials } = useProfile();
   const { vehicles, findVehicle } = useVehicles();
   const vehicle = findVehicle(activeVehicle);
@@ -122,7 +124,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ activeVehicle, onV
               const active = v.id === vehicle.id;
               return (
                 <Pressable key={v.id} style={[styles.vehicleChip, active && styles.vehicleChipOn]} onPress={() => onVehicleChange(v.id)} accessibilityLabel={`Vehicle ${v.name}`}>
-                  <Text style={styles.vehicleChipEmoji}>{vehicleIcon(v.type)}</Text>
+                  <VehicleIcon3D type={v.type} size={24} />
                   <Text style={[styles.vehicleChipText, active && styles.vehicleChipTextOn]} numberOfLines={1}>
                     {v.name}
                   </Text>
@@ -132,7 +134,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ activeVehicle, onV
           </ScrollView>
           <View style={styles.vehicleTitle}>
             <View style={styles.vehicleEmojiTile}>
-              <Text style={styles.vehicleEmoji}>{vehicleIcon(vehicle.type)}</Text>
+              <VehicleIcon3D type={vehicle.type} size={36} />
             </View>
             <View style={styles.flex1}>
               <Text style={styles.vehicleName} numberOfLines={2}>{vehicle.name}</Text>
@@ -203,6 +205,19 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ activeVehicle, onV
         {/* Settings and help: one card of list rows */}
         <View style={styles.gCard}>
           {row(isDark ? '🌙' : '☀️', isDark ? 'අඳුරු මාදිලිය' : 'ආලෝක මාදිලිය', toggle, 'Toggle theme', <ThemeToggle isDark={isDark} onToggle={toggle} />, true)}
+          {row(
+            '🌐',
+            'භාෂාව / Language',
+            () => setLang(lang === 'si' ? 'en' : 'si'),
+            'Change language',
+            <View style={styles.langSwitch}>
+              {(['si', 'en'] as const).map((l) => (
+                <Pressable key={l} style={[styles.langChip, lang === l && styles.langChipOn]} onPress={() => setLang(l)} accessibilityLabel={l === 'si' ? 'Sinhala' : 'English'}>
+                  <Text style={[styles.langText, lang === l && styles.langTextOn]}>{l === 'si' ? 'සිං' : 'EN'}</Text>
+                </Pressable>
+              ))}
+            </View>
+          )}
           {row('⚙️', 'යෙදුම් සැකසුම්', () => setSheet('settings'), 'Open app settings')}
           {row('❓', 'උදව් සහ සහාය', () => setSheet('help'), 'Open help')}
           {row('ℹ️', 'OnGarage ගැන', () => setSheet('about'), 'Open about')}
@@ -292,7 +307,7 @@ const styles = themedStyles(() =>
     menuIconTile: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe' },
     menuRowLine: { borderTopWidth: 1, borderTopColor: getThemeMode() === 'dark' ? Colors.borderColor : '#e8eaed' },
     container: { flex: 1, backgroundColor: pageBg() },
-    body: { paddingHorizontal: 6, paddingTop: 16, gap: 14, paddingBottom: 100 },
+    body: { paddingHorizontal: 6, paddingTop: 8, gap: 12, paddingBottom: 100 },
     top: { alignItems: 'center', gap: 6, paddingTop: 8, paddingBottom: 6 },
     avatar: { width: 96, height: 96, borderRadius: 48 },
     avatarEmpty: { backgroundColor: Colors.subtleFill, alignItems: 'center', justifyContent: 'center' },
@@ -345,7 +360,12 @@ const styles = themedStyles(() =>
     menuRow: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 16, paddingVertical: 12 },
     pressed: { backgroundColor: Colors.bgCardHover },
     menuIcon: { fontSize: 18, textAlign: 'center' },
-    menuLabel: { flex: 1, fontSize: 15, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
+    langSwitch: { flexDirection: 'row', gap: 4, padding: 3, borderRadius: 16, backgroundColor: Colors.subtleFill },
+  langChip: { minWidth: 38, height: 26, paddingHorizontal: 8, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
+  langChipOn: { backgroundColor: '#1a73e8' },
+  langText: { fontSize: 12, fontFamily: FONTS.bodyBold, color: Colors.textMuted },
+  langTextOn: { color: '#ffffff' },
+  menuLabel: { flex: 1, fontSize: 15, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
     chevron: { fontSize: 22, color: Colors.textMuted },
     helpRow: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, backgroundColor: Colors.bgCard, borderRadius: 12, borderWidth: 1, borderColor: outline(), ...elevation1() },
     helpSub: { fontSize: 12.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 2 },

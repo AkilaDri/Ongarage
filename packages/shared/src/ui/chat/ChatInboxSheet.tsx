@@ -1,3 +1,5 @@
+import { OnChatIcon } from '../OnChatIcon';
+import { VehicleLabel } from '../VehicleIcon3D';
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Colors, getThemeMode, themedStyles } from '../../theme/colors';
@@ -82,7 +84,7 @@ export function ChatInboxSheet<T extends InboxThread>({ visible, onClose, overla
   const q = query.trim().toLowerCase();
   const threads = all.filter((t) => (filter === 'all' || t.kind === filter) && (!q || t.title.toLowerCase().includes(q) || (t.last?.text ?? '').toLowerCase().includes(q)));
   return (
-    <Sheet visible={visible} title="OnChat" titleIcon={<View style={styles.mark}><Icon name="message-circle" size={19} color="#ffffff" /></View>} onClose={onClose} overlay={overlay} fullScreen>
+    <Sheet visible={visible} title="OnChat" titleIcon={<View style={styles.mark}><OnChatIcon width={28} color="#ffffff" /></View>} onClose={onClose} overlay={overlay} fullScreen>
       <View style={styles.search}>
         <Icon name="search" size={17} color={Colors.textMuted} />
         <TextInput style={styles.searchInput} value={query} onChangeText={setQuery} placeholder="සොයන්න" placeholderTextColor={Colors.textMuted} accessibilityLabel="Search chats" />
@@ -123,9 +125,9 @@ export function ChatInboxSheet<T extends InboxThread>({ visible, onClose, overla
                   {!!t.last && <Text style={[styles.time, t.unread > 0 && styles.timeUnread]}>{formatTime(t.last.at)}</Text>}
                 </View>
                 {!!t.vehicle && (
-                  <Text style={styles.vehicle} numberOfLines={1}>
-                    {vehicleIcon(t.vehicle.type)} {t.vehicle.name} · {t.vehicle.registrationNo || t.vehicle.plate}
-                  </Text>
+                  <VehicleLabel type={t.vehicle.type} style={styles.vehicle} numberOfLines={1}>
+                    {t.vehicle.name} · {t.vehicle.registrationNo || t.vehicle.plate}
+                  </VehicleLabel>
                 )}
                 <View style={styles.line}>
                   <View style={styles.previewRow}>

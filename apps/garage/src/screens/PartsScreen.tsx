@@ -1,3 +1,6 @@
+import { CustomerHistoryTag } from '../components/CustomerHistory';
+import { CategoryArt } from '../components/CategoryArt';
+import { VehicleLabel } from '@ongarage/shared';
 import { elevation1 } from '../utils/material';
 import { outline } from '../utils/material';
 import { VehicleLine } from '@ongarage/shared';
@@ -187,12 +190,11 @@ export const PartsScreen: React.FC<{ focusId?: string | null; onFocusHandled?: (
                 setNewFor(b);
               }}
             >
-              <GlassIcon emoji={b.icon} small />
+              <CategoryArt emoji={b.icon} size={40} />
               <View style={styles.flex1}>
                 <Text style={styles.title}>{b.title}</Text>
-                <Text style={styles.sub}>
-                  {vehicleIcon(b.vehicle.type)} {b.vehicle.name} · {b.customer.name} · {formatDate(b.scheduledAt)} {formatTime(b.scheduledAt)}
-                </Text>
+                <VehicleLabel type={b.vehicle.type} style={styles.sub} tail={<CustomerHistoryTag customer={b.customer} />}>{b.vehicle.name} · {b.customer.name} · {formatDate(b.scheduledAt)} {formatTime(b.scheduledAt)}
+                </VehicleLabel>
               </View>
               <Text style={styles.chevron}>›</Text>
             </Pressable>

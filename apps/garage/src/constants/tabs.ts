@@ -1,4 +1,4 @@
-import { JobsLineIcon, ProfileLineIcon, ScheduleLineIcon, ShopLineIcon, SosLineIcon, type NavItem } from '@ongarage/shared';
+import { GarageLineIcon, JobsLineIcon, ProfileLineIcon, ShopLineIcon, SosLineIcon, type NavItem } from '@ongarage/shared';
 
 export type TabId = 'sos' | 'jobs' | 'schedule' | 'parts' | 'garage';
 
@@ -9,6 +9,6 @@ export const GARAGE_TABS: NavItem<TabId>[] = [
   { id: 'sos', label: 'SOS', icon: SosLineIcon },
   // OnMart (formerly Parts) sits in the middle: parts are ordered for a booked job and the whole marketplace is here.
   { id: 'parts', label: 'OnMart', icon: ShopLineIcon },
-  { id: 'schedule', label: 'Schedule', icon: ScheduleLineIcon },
+  { id: 'schedule', label: 'Garage', icon: GarageLineIcon },
   { id: 'garage', label: 'Profile', icon: ProfileLineIcon },
 ];

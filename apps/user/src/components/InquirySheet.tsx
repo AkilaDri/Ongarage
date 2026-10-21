@@ -1,3 +1,4 @@
+import { VehicleLabel } from '@ongarage/shared';
 import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { ActionButton, Colors, FONTS, getThemeMode, PhotoStrip, pickPhotos, SERVICE_CATEGORIES, themedStyles, vehicleIcon } from '@ongarage/shared';
@@ -67,7 +68,7 @@ export const InquirySheet: React.FC<{ visible: boolean; garageName: string; cate
       <View style={styles.chips}>
         {vehicles.map((v) => (
           <Pressable key={v.id} style={[styles.chip, vehicleId === v.id && styles.chipOn]} onPress={() => setVehicleId(v.id)} accessibilityLabel={`Vehicle ${v.name}`} accessibilityState={{ selected: vehicleId === v.id }}>
-            <Text style={[styles.chipText, vehicleId === v.id && styles.chipTextOn]}>{vehicleIcon(v.type)} {v.name}</Text>
+            <VehicleLabel type={v.type} style={[styles.chipText, vehicleId === v.id && styles.chipTextOn]}>{v.name}</VehicleLabel>
           </Pressable>
         ))}
       </View>

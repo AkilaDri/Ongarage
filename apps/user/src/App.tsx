@@ -1,6 +1,6 @@
 import { pageBg } from './utils/material';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Animated, Easing, View, StyleSheet, Modal, Text, Pressable } from 'react-native';
+import { Animated, Easing, Platform, View, StyleSheet, Modal, Text, Pressable } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
@@ -11,7 +11,8 @@ import {
   NotoSansSinhala_600SemiBold,
   NotoSansSinhala_700Bold,
 } from '@expo-google-fonts/noto-sans-sinhala';
-import { Colors, DialogButton, FONTS, getThemeMode, Gradient, ModalCard, Pulse, themedStyles } from '@ongarage/shared';
+import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
+import { Icon, Colors, DialogButton, FONTS, getThemeMode, Gradient, ModalCard, Pulse, themedStyles } from '@ongarage/shared';
 import { ThemeProvider, useTheme, setAppShape } from '@ongarage/shared';
 
 // This app has PickMe's shapes too (big rounded cards, pill buttons and chips, light edges, soft shadows), like the garage app. Set before the first screen is drawn.
@@ -21,6 +22,8 @@ import { OwnerMartNav, OwnerNav } from './components/OwnerNav';
 import { setMartOpener, setShopOpener } from './utils/martBridge';
 import { setFittingOpener } from './utils/fittingBridge';
 import { LocationProvider } from './context/LocationContext';
+import { LanguageProvider } from './context/LanguageContext';
+import { periodOf, SkyBar, SkyShade, useHour } from './components/WeatherAnimation';
 import { MartProvider } from './context/MartContext';
 import { WallProvider } from './context/WallContext';
 import { BidsProvider } from './context/BidsContext';
@@ -39,7 +42,11 @@ import { PayFirstSheet, PayStandingBanner } from './components/PayStandingViews'
 import { setBookingOpener } from './utils/bookingBridge';
 import { MOCK_GARAGES } from './constants/mockData';
 import { usePayStanding } from './context/PayStanding';
-import { chatDockDrop, chatDockOffset } from './utils/chatDock';
+import { chatDockDrop, chatDockOffset, chatHide } from './utils/chatDock';
+import { openActivityCalendar } from './utils/activityCalendar';
+import { openFeedRecord } from './utils/feedRecord';
+import { focusActivity } from './utils/activityFocus';
+import { PAGE_TITLE_H } from './constants/layout';
 import { Toast } from './components/Toast';
 import { DirectBookingSheet } from './components/DirectBookingSheet';
 import { HomeScreen } from './screens/HomeScreen';
@@ -51,13 +58,12 @@ import { BidsScreen, type BidsTab } from './screens/BidsScreen';
 import { ActivityScreen } from './screens/ActivityScreen';
 import { ProfileScreen } from './screens/ProfileScreen';
 import { MartScreen } from './screens/MartScreen';
-import { type MartSegment, type TabId } from './constants/tabs';
+import { USER_TABS, type MartSegment, type TabId } from './constants/tabs';
 import { categoryInfo, type Garage, type JobDraft, type PickedLocation, type ServiceCategory } from '@ongarage/shared';
 
 // The title band other tabs show instead of the greeting header (Home has the header; Account has nothing and uses the full screen).
-const TAB_TITLES: Partial<Record<TabId, string>> = { bids: 'ඔබගේ ලංසු වල තත්ත්වය', activity: 'ඔබේ ක්‍රියාකාරකම්', mart: 'OnMart', profile: 'ඔබගේ ගිණුම' };
+const TAB_TITLES: Partial<Record<TabId, string>> = { bids: 'Your Bids', activity: 'Activity', mart: 'OnMart', profile: 'ඔබගේ ගිණුම' };
 /** The title bar of every tab but Home: a plain line of text at the top of the screen. */
-const PAGE_TITLE_H = 52;
 
 // Banner sizes: stacked cards at the top of Home, one compact row once the page is scrolled.
 const SOS_H = 108;
@@ -83,6 +89,7 @@ SplashScreen.preventAutoHideAsync();
 
 export default function App() {
   return (
+    <LanguageProvider>
     <ThemeProvider>
       <NoticeProvider>
         <WorkshopProvider>
@@ -98,6 +105,7 @@ export default function App() {
         </WorkshopProvider>
       </NoticeProvider>
     </ThemeProvider>
+    </LanguageProvider>
   );
 }
 
@@ -134,6 +142,11 @@ function AppShell() {
     NotoSansSinhala_500Medium,
     NotoSansSinhala_600SemiBold,
     NotoSansSinhala_700Bold,
+    // The Latin face for machines that do not have Apple's own (see FONTS in the shared theme)
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
+    Inter_700Bold,
   });
 
   const [activeTab, setActiveTab] = useState<TabId>('home');
@@ -145,7 +158,14 @@ function AppShell() {
   const [martAllowed, setMartAllowed] = useState(false);
   const [askMart, setAskMart] = useState(false);
   const foldableBar = activeTab === 'activity' || activeTab === 'bids' || activeTab === 'profile';
+  const skyPeriod = periodOf(useHour());
   const [sosStage, setSOSStage] = useState<SOSStage>('closed');
+  // The chat icon can be hidden by a screen while it scrolls (Bids): then it must not catch taps either.
+  const [chatBlocked, setChatBlocked] = useState(false);
+  useEffect(() => {
+    const id = chatHide.addListener(({ value }) => setChatBlocked(value > 0.5));
+    return () => chatHide.removeListener(id);
+  }, []);
   // The owner can leave a running SOS job for OnMart (to buy a part the technician needs) and come back to it.
   const [sosHidden, setSosHidden] = useState(false);
   const [martSeed, setMartSeed] = useState('');
@@ -232,6 +252,16 @@ function AppShell() {
   }, [sheetScroll]);
 
   React.useEffect(() => {
+    if (Platform.OS === 'web' && typeof document !== 'undefined') {
+      // Each Sinhala weight is its own font file: stop the browser from smearing a second, synthetic bold over it.
+      const el = document.createElement('style');
+      el.textContent = 'html, body, #root { font-synthesis: none; -webkit-font-smoothing: antialiased; }';
+      document.head.appendChild(el);
+      return () => el.remove();
+    }
+  }, []);
+
+  React.useEffect(() => {
     if (fontsLoaded) {
       SplashScreen.hideAsync();
     }
@@ -260,7 +290,7 @@ function AppShell() {
     <ChatProvider inboxReturn={activeTab === 'home'}>
     <SafeAreaProvider>
       <StatusBar style={isDark ? "light" : "dark"} />
-      <SafeAreaView style={[styles.container, activeTab !== 'home' && styles.containerFull]} edges={['top']}>
+      <SafeAreaView style={[styles.container, styles.containerFull]} edges={['top']}>
         {/* The header band (greeting, sky, active vehicle) is Home's alone: the other tabs start at the top of the screen. */}
         {activeTab === 'home' && (
           <View onLayout={(e) => setHeaderH(Math.round(e.nativeEvent.layout.height))}>
@@ -271,13 +301,31 @@ function AppShell() {
         {activeTab !== 'home' && !!TAB_TITLES[activeTab] && (
           <Animated.View style={{ height: martHeaderCollapse.interpolate({ inputRange: [0, 1], outputRange: [PAGE_TITLE_H, 0] }), overflow: 'hidden' }}>
             <View style={styles.pageTitleBar}>
+              {(() => {
+                // The icon of the tab that was chosen in the bottom bar, in its open (dark navy) colours.
+                const TabIcon = USER_TABS.find((t) => t.id === activeTab)?.icon;
+                return TabIcon ? <TabIcon active size={36} /> : null;
+              })()}
               <Text style={styles.pageTitle} numberOfLines={1}>
                 {TAB_TITLES[activeTab]}
               </Text>
-              {activeTab === 'bids' && (
-                <Pressable style={styles.pageTitleAction} onPress={() => openPost(null)} accessibilityLabel="New bid request">
-                  <Text style={styles.pageTitleActionText}>＋ නව ලංසුවක්</Text>
-                </Pressable>
+              {activeTab === 'mart' && martSegment === 'wall' && (
+                <>
+                  <View style={styles.flex1} />
+                  {/* The hamburger menu: the record of what I liked, commented on, shared and messaged on the On Feed. */}
+                  <Pressable style={styles.calendarBtn} onPress={openFeedRecord} accessibilityLabel="Open my On Feed record">
+                    <Text style={styles.hamburger}>☰</Text>
+                  </Pressable>
+                </>
+              )}
+              {activeTab === 'activity' && (
+                <>
+                  <View style={styles.flex1} />
+                  {/* The calendar: pick a day to see the repairs done on it. */}
+                  <Pressable style={styles.calendarBtn} onPress={openActivityCalendar} accessibilityLabel="Open calendar">
+                    <Icon name="calendar" size={26} color="#1a73e8" />
+                  </Pressable>
+                </>
               )}
             </View>
           </Animated.View>
@@ -286,6 +334,16 @@ function AppShell() {
         {/* Sticky banners on Home with animated rounded bottom corners */}
         {activeTab === 'home' && (
           <Animated.View style={[styles.stickyBannersContainer, { marginTop: sheetScroll.interpolate({ inputRange: [0, 1], outputRange: [-18, -headerH] }), borderTopLeftRadius: lerp(24, 0), borderTopRightRadius: lerp(24, 0) }]}>
+            {/* The sheet's top takes the colour the header's sky ends in and shades down into the page colour. */}
+            {/* Once the page has scrolled and the header has folded away, the page colour fills right up to the top and the sky's shade fades out, so no coloured band with an edge is left at the top of the screen. */}
+            <View style={styles.sheetBack} pointerEvents="none" />
+            <Animated.View style={[styles.skyShade, { opacity: sheetScroll.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }) }]} pointerEvents="none">
+              <SkyShade period={skyPeriod} />
+            </Animated.View>
+            {/* Scrolled: the bar the SOS and Quotes chips stick to takes the animation's own sky colours. */}
+            <Animated.View style={[StyleSheet.absoluteFill, { opacity: sheetScroll }]} pointerEvents="none">
+              <SkyBar period={skyPeriod} />
+            </Animated.View>
             <View onLayout={(e) => setBannerW(Math.round(e.nativeEvent.layout.width))}>
               <Animated.View style={{ height: lerp(SOS_H + BANNER_GAP + JOB_H, COMPACT_H) }}>
                 {/* SOS: full card at the top of the page, the left half of a single row once scrolled */}
@@ -369,8 +427,12 @@ function AppShell() {
               tab={bidsTab}
               onTabChange={setBidsTab}
               onRepublish={(draft) => openPost(draft)}
+              onNewBid={() => openPost(null)}
               onPayFirst={() => setPayFirst(true)}
-              onViewActivity={() => setActiveTab('activity')}
+              onViewActivity={() => {
+                focusActivity({ kind: 'current', current: 'bids' });
+                setActiveTab('activity');
+              }}
               onHeaderVisibilityChange={setMartHeaderVisible}
             />
           ) : activeTab === 'activity' ? (
@@ -391,7 +453,12 @@ function AppShell() {
 
         <View style={styles.bottomNavContainer}>
           {/* A balance is due or late (and new work limited when it is long late): tap to see what is owed. */}
-          <PayStandingBanner onPress={() => setActiveTab('activity')} />
+          <PayStandingBanner
+            onPress={() => {
+              focusActivity({ kind: 'done' });
+              setActiveTab('activity');
+            }}
+          />
           {activeTab === 'mart' ? (
             <OwnerMartNav
               activeTab={martSegment}
@@ -438,7 +505,10 @@ function AppShell() {
         <ServiceReminders />
         <PaymentReminders />
         {/* The chat icon stays put at the top right however the header folds away while the page scrolls. */}
-        <Animated.View style={[styles.floatChat, { transform: [{ translateY: Animated.multiply(activeTab === 'home' ? sheetScroll : martHeaderCollapse, chatDockDrop) }] }]} pointerEvents="box-none">
+        <Animated.View
+          style={[styles.floatChat, { opacity: chatHide.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }), transform: [{ translateY: Animated.multiply(activeTab === 'home' ? sheetScroll : martHeaderCollapse, chatDockDrop) }, { translateY: chatHide.interpolate({ inputRange: [0, 1], outputRange: [0, -24] }) }] }]}
+          pointerEvents={chatBlocked ? 'none' : 'box-none'}
+        >
           <ChatHeaderButton />
         </Animated.View>
       </SafeAreaView>
@@ -514,7 +584,10 @@ function AppShell() {
         )}
         <Toast topOffset={84} />
       </Modal>
-      <PayFirstSheet visible={payFirst} onClose={() => setPayFirst(false)} onViewOwed={() => setActiveTab('activity')} />
+      <PayFirstSheet visible={payFirst} onClose={() => setPayFirst(false)} onViewOwed={() => {
+          focusActivity({ kind: 'done' });
+          setActiveTab('activity');
+        }} />
       <DirectBookingSheet
         garage={booking?.garage ?? null}
         categoryId={booking?.categoryId}
@@ -523,6 +596,7 @@ function AppShell() {
         onClose={() => setBooking(null)}
         onBooked={() => {
           setSelectedService(null);
+          focusActivity({ kind: 'current', current: 'direct' });
           setActiveTab('activity');
         }}
       />
@@ -541,11 +615,15 @@ const styles = themedStyles(() => StyleSheet.create({
   // Account: no header band, the page fills the screen.
   containerFull: { backgroundColor: pageBg() },
   // Room on the right for the chat bubble that floats over the top right corner.
-  pageTitleBar: { height: PAGE_TITLE_H, flexDirection: 'row', alignItems: 'center', gap: 10, paddingLeft: 12, paddingRight: 76 },
+  flex1: { flex: 1 },
+  hamburger: { fontSize: 24, lineHeight: 26, color: '#1a73e8' },
+  // Just a plain line icon on a round tint, no words.
+  calendarBtn: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center', backgroundColor: '#e8f0fe' },
+  pageTitleBar: { height: PAGE_TITLE_H, flexDirection: 'row', alignItems: 'center', gap: 10, paddingLeft: 12, paddingRight: 90 },
   pageTitle: { flexShrink: 1, fontSize: 18, fontFamily: FONTS.titleBold, color: Colors.textMain },
   pageTitleAction: { paddingHorizontal: 12, height: 32, borderRadius: 16, justifyContent: 'center', backgroundColor: '#e8f0fe', borderWidth: 1, borderColor: '#d2e3fc' },
   pageTitleActionText: { fontSize: 12, fontFamily: FONTS.bodyBold, color: '#1a73e8' },
-  floatChat: { position: 'absolute', top: 10, right: 14, zIndex: 50, elevation: 50 },
+  floatChat: { position: 'absolute', top: 10, right: 14, zIndex: 50, width: 66, height: 66, backgroundColor: 'transparent' },
   // The tab's screen overlaps the header band with rounded top corners.
   sheet: { flex: 1, backgroundColor: pageBg() },
   sosLayer: { zIndex: 50, backgroundColor: Colors.bgBody },
@@ -554,10 +632,16 @@ const styles = themedStyles(() => StyleSheet.create({
   sosReturnText: { fontSize: 14, fontFamily: FONTS.titleBold, color: '#ffffff' },
   sheetOverlap: { marginTop: -18, borderTopLeftRadius: 24, borderTopRightRadius: 24, overflow: 'hidden' },
   // Home: the list sits in its own rounded, shadowed sheet that slides up over the padding under the banners.
-  sheetHome: { marginTop: -16, zIndex: 2, borderTopWidth: 1, borderTopColor: Colors.borderColor, shadowColor: '#000', shadowOffset: { width: 0, height: -6 }, shadowOpacity: 0.14, shadowRadius: 14, elevation: 12 },
+  // No border or shadow where the sheet meets the banners: the header's sky shades into the same page colour.
+  // Solid: the page colour behind the lists.
+  sheetHome: { marginTop: -16, zIndex: 2, backgroundColor: pageBg() },
   bottomNavContainer: { position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 20 },
   // Sticky banners on Home (outside the sheet so they don't move when sheet expands)
-  stickyBannersContainer: { marginTop: -18, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 6, paddingTop: 16, paddingBottom: 26, zIndex: 1, backgroundColor: pageBg() },
+  // Starts 4px above the container (over only the last strip of the header, so the buildings stay visible) and runs down over the sheet's top; a plain rectangle, no corners.
+    // The page colour behind the banners, from exactly where the header ends (the container itself overlaps the header by 18).
+  sheetBack: { position: 'absolute', left: 0, right: 0, top: 16, bottom: 0, backgroundColor: pageBg() },
+  skyShade: { position: 'absolute', left: 0, right: 0, top: 16, height: 262, overflow: 'hidden' },
+  stickyBannersContainer: { marginTop: -18, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 6, paddingTop: 16, paddingBottom: 26, zIndex: 1, backgroundColor: 'transparent' },
   pressed: { opacity: 0.9, transform: [{ scale: 0.99 }] },
   sosBanner: { borderRadius: 22, overflow: 'hidden', backgroundColor: '#c81e2b', borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.2)', shadowColor: '#c81e2b', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.35, shadowRadius: 20, elevation: 7 },
   // A soft light disc in the corner: depth without clutter.

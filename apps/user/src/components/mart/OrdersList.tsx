@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { TxnTag } from '../TxnTag';
 import { openFittingJob } from '../../utils/fittingBridge';
-import { ActionButton, ago, getThemeMode, ChatIconButton, Colors, countdown, directionsUrl, EmptyState, FONTS, formatDate, martShop, money, PurchaseCode, purchaseGroupProgress, themedStyles, softEdge, softFill, softShadow } from '@ongarage/shared';
+import { ActionButton, SwipeCard, ago, getThemeMode, ChatIconButton, Colors, countdown, directionsUrl, EmptyState, FONTS, formatDate, martShop, money, PurchaseCode, purchaseGroupProgress, themedStyles, softEdge, softFill, softShadow } from '@ongarage/shared';
 import { ACTIVE_STAGES, useMart, type MartPurchase, type PurchaseStage } from '../../context/MartContext';
 import { useUserLocation } from '../../context/LocationContext';
 import { CounterSheet } from './CounterSheet';
@@ -55,7 +55,8 @@ export const OrdersList: React.FC<{ compact?: boolean }> = ({ compact }) => {
     const canReturn = p.stage === 'bought' && (p.purchase.returnBy ?? 0) > now;
 
     return (
-      <Pressable key={p.purchase.id} style={[styles.card, failed && styles.dim]} onPress={() => setOpen(p.purchase.id)} accessibilityLabel={`Order ${p.brief.name}`}>
+      <SwipeCard key={p.purchase.id} style={[styles.card, failed && styles.dim]} onOpen={() => setOpen(p.purchase.id)}>
+      <Pressable style={styles.cardInner} onPress={() => setOpen(p.purchase.id)} accessibilityLabel={`Order ${p.brief.name}`}>
         {/* The chat button sits in the very top right corner of the card: it opens the shop's conversation. */}
         <View style={styles.chatCorner}>
           <ChatIconButton size={40} onPress={() => setThread({ enquiryId: p.purchase.enquiryId ?? o.enquiryId, shop: o.shop })} label={`Chat with ${o.shop.name}`} />
@@ -102,6 +103,7 @@ export const OrdersList: React.FC<{ compact?: boolean }> = ({ compact }) => {
           </>
         )}
       </Pressable>
+      </SwipeCard>
     );
   };
 
@@ -268,10 +270,10 @@ const styles = themedStyles(() =>
     // The same modern card as OnMart's "My requests": big round corners, no hard outline, a soft wide shadow.
     card: { backgroundColor: Colors.bgCard, borderWidth: getThemeMode() === 'dark' ? 1 : 0, borderColor: Colors.borderColor, borderRadius: 24, padding: 16, gap: 12, shadowColor: '#0f172a', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.08, shadowRadius: 18, elevation: 3 },
     dim: { opacity: 0.6 },
-    title: { fontSize: 14, fontFamily: FONTS.titleBold, color: Colors.textMain },
-    sub: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 16 },
+    title: { fontSize: 15, fontFamily: FONTS.titleBold, color: Colors.textSoft, lineHeight: 22 },
+    sub: { fontSize: 12.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 19 },
     chatCorner: { position: 'absolute', top: 6, right: 8, zIndex: 2 },
-    price: { fontSize: 15, fontFamily: FONTS.titleBold, color: Colors.successText },
+    price: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textSoft },
     fitRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', height: 36, paddingHorizontal: 14, borderRadius: 18, backgroundColor: softFill() },
     fitText: { fontSize: 12.5, fontFamily: FONTS.bodyBold, color: Colors.primary },
     link: { fontSize: 12, fontFamily: FONTS.bodyBold, color: Colors.primary },
@@ -281,6 +283,7 @@ const styles = themedStyles(() =>
     dot: { width: 12, height: 12, borderRadius: 6, backgroundColor: Colors.subtleBorder },
     dotDone: { backgroundColor: Colors.success },
     stepText: { fontSize: 9.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, textAlign: 'center' },
+    cardInner: { gap: 12 },
     headRow: { minHeight: 40, justifyContent: 'center', paddingRight: 56 },
     divider: { height: 1, backgroundColor: getThemeMode() === 'dark' ? Colors.borderColor : '#dadce0' },
     right: { alignItems: 'flex-end', gap: 5 },

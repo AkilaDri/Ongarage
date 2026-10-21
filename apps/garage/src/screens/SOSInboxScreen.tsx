@@ -1,3 +1,6 @@
+import { CustomerHistoryTag } from '../components/CustomerHistory';
+import { BreakdownArt } from '../components/BreakdownArt';
+import { VehicleLabel } from '@ongarage/shared';
 import { VehicleLine } from '@ongarage/shared';
 import { elevation1, outline, pageBg } from '../utils/material';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
@@ -28,7 +31,6 @@ import {
   softFill,
 } from '@ongarage/shared';
 import { useGarage } from '../context/GarageContext';
-import { AttendanceSheet } from '../components/AttendanceSheet';
 import { STAGE_LABEL } from './SOSDispatchScreen';
 import { ago, money } from '../utils/format';
 import type { SOSRequest } from '../types';
@@ -43,7 +45,6 @@ type SheetState = 'peek' | 'expanded';
 
 export const SOSInboxScreen: React.FC = () => {
   const { profile, isOpen, setOpen, requests, activeJobs, crew, sosBlocked, declineRequest, openDispatch, resumeDispatch } = useGarage();
-  const [attendanceOpen, setAttendanceOpen] = useState(false);
   const [stackH, setStackH] = useState(0);
   const [now, setNow] = useState(Date.now());
   const [areaH, setAreaH] = useState(0);
@@ -179,8 +180,6 @@ export const SOSInboxScreen: React.FC = () => {
   // Always frame the whole coverage ring so the owner sees how far their SOS perimeter reaches.
   // Fit tightly to the shorter side so the ring fills as much of the map as a whole zoom level allows.
   const zoom = zoomToFit(profile.coverageKm * 1.7, lat, Math.max(200, Math.min(screenW, mapH - PEEK_H - (showBanner ? bannerOffset : 0))));
-  // Until today's attendance is confirmed, a prompt replaces capacity.
-  const needsAttendance = isOpen && !crew.confirmed;
   // The active-job card sits just below the floating banner so it is never covered.
   const activeTop = (showBanner ? bannerOffset : 0) + 8;
 
@@ -221,14 +220,13 @@ export const SOSInboxScreen: React.FC = () => {
       >
         <View style={[styles.caret, above ? styles.caretDown : styles.caretUp, { left: caretX }]} />
         <View style={styles.row}>
-          <GlassIcon emoji={info.icon} small />
+          <BreakdownArt id={r.breakdownId} size={44} />
           <View style={styles.flex1}>
             <Text style={styles.cardTitle} numberOfLines={1}>
               {info.label}
             </Text>
-            <Text style={styles.sub} numberOfLines={1}>
-              {vehicleIcon(r.vehicle.type)} {r.vehicle.name} · {r.customer.name}
-            </Text>
+            <VehicleLabel type={r.vehicle.type} style={styles.sub} numberOfLines={1} tail={<CustomerHistoryTag customer={r.customer} />}>{r.vehicle.name} · {r.customer.name}
+            </VehicleLabel>
           </View>
           <Pressable style={styles.calloutClose} onPress={() => setSelectedId(null)} hitSlop={8} accessibilityLabel="Close">
             <Icon name="x" size={12} strokeWidth={2.5} color={Colors.textMuted} />
@@ -266,11 +264,6 @@ export const SOSInboxScreen: React.FC = () => {
           <Text style={styles.liveText}>Live · {profile.coverageKm}Km Range</Text>
         </View>
         <Text style={styles.bannerTitle}>ඔබට OnGarage SOS ඉල්ලීම් ලැබෙමින් පවතී</Text>
-        <View style={styles.crewBadge}>
-          <Text style={styles.crewText}>
-            👨‍🔧 {crew.confirmed ? `නිදහස් කාර්මිකයන් ${crew.free}/${crew.presentIds.length}` : 'අද පැමිණීම තහවුරු කර නැත'}
-          </Text>
-        </View>
       </View>
       <View style={styles.countTile}>
         <Text style={styles.countNum}>{requests.length}</Text>
@@ -295,7 +288,7 @@ export const SOSInboxScreen: React.FC = () => {
     return (
       <View key={r.id} style={styles.card}>
         <View style={styles.row}>
-          <GlassIcon emoji={info.icon} />
+          <BreakdownArt id={r.breakdownId} size={56} />
           <View style={styles.flex1}>
             <Text style={styles.cardTitle}>{info.label}</Text>
             <VehicleLine vehicle={r.vehicle} textStyle={styles.sub} />
@@ -319,11 +312,7 @@ export const SOSInboxScreen: React.FC = () => {
         </View>
         {!!sosBlocked && isOpen && (
           <Text style={styles.hint}>
-            {!crew.confirmed
-              ? 'අද පැමිණ සිටින කාර්මිකයන් තහවුරු කළ පසු SOS භාර ගත හැක.'
-              : crew.presentIds.length === 0
-                ? 'අද කාර්මිකයන් පැමිණ නැති බැවින් SOS භාර ගත නොහැක.'
-                : `අද පැමිණ සිටින කාර්මිකයන් ${crew.presentIds.length} දෙනාම SOS රැකියාවල — එකක් අවසන් වූ පසු නව ඉල්ලීමක් භාර ගත හැක.`}
+            සියලු කාර්මිකයන් SOS රැකියාවල — එකක් අවසන් වූ පසු නව ඉල්ලීමක් භාර ගත හැක.
           </Text>
         )}
       </View>
@@ -379,7 +368,7 @@ export const SOSInboxScreen: React.FC = () => {
                         onPress={() => setSelectedId(r.id === selectedId ? null : r.id)}
                       >
                         <View style={[styles.requestPin, r.id === selectedId && styles.requestPinSelected]}>
-                          <Text style={styles.pinEmoji}>{breakdownInfo(r.breakdownId).icon}</Text>
+                          <BreakdownArt id={r.breakdownId} size={24} />
                         </View>
                       </Pressable>
                     ) : null;
@@ -401,21 +390,9 @@ export const SOSInboxScreen: React.FC = () => {
 
         {/* Below the banner: today's attendance prompt and every job in progress. */}
         <View style={[styles.topStack, { top: activeTop }]} onLayout={(e) => setStackH(e.nativeEvent.layout.height)} pointerEvents="box-none">
-          {needsAttendance && (
-            <Pressable style={({ pressed }) => [styles.attendCard, pressed && styles.pressed]} onPress={() => setAttendanceOpen(true)}>
-              <GlassIcon emoji="👨‍🔧" small />
-              <View style={styles.flex1}>
-                <Text style={styles.attendTitle}>අද පැමිණ සිටින කාර්මිකයන් තහවුරු කරන්න</Text>
-                <Text style={styles.sub}>තහවුරු කරන තුරු SOS භාර ගත නොහැක</Text>
-              </View>
-              <View style={styles.attendPill}>
-                <Text style={styles.resumeText}>තහවුරු කරන්න</Text>
-              </View>
-            </Pressable>
-          )}
           {activeJobs.map((job) => (
             <Pressable key={job.id} style={({ pressed }) => [styles.activeCard, pressed && styles.pressed]} onPress={() => resumeDispatch(job.id)}>
-              <GlassIcon emoji={breakdownInfo(job.request.breakdownId).icon} small />
+              <BreakdownArt id={job.request.breakdownId} size={44} />
               <View style={styles.flex1}>
                 <Text style={styles.activeLabel} numberOfLines={1}>
                   ● {STAGE_LABEL[job.stage]}
@@ -432,7 +409,6 @@ export const SOSInboxScreen: React.FC = () => {
         </View>
         <Animated.View pointerEvents="none" style={[styles.mapDim, { opacity: mapDim }]} />
       </Animated.View>
-      <AttendanceSheet visible={attendanceOpen} onClose={() => setAttendanceOpen(false)} />
 
       {/* Banner slides in from above. */}
       <Animated.View
@@ -538,7 +514,7 @@ const CategoryIcon: React.FC<{ id: BreakdownId; count: number; onPress: () => vo
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [styles.catItem, pressed && { transform: [{ scale: 0.94 }] }]}>
       <Animated.View style={[styles.catTile, { transform: [{ scale: pop }] }]}>
-        <Text style={styles.catEmoji}>{info.icon}</Text>
+        <BreakdownArt id={id} size={46} />
         <View style={styles.catBadge}>
           <Text style={styles.catBadgeText}>{count}</Text>
         </View>
@@ -585,11 +561,6 @@ const styles = themedStyles(() =>
     goOnline: { paddingHorizontal: 14, paddingVertical: 9, borderRadius: 20, backgroundColor: Colors.success },
     goOnlineText: { fontSize: 11.5, fontFamily: FONTS.bodyBold, color: '#fff' },
     topStack: { position: 'absolute', left: 16, right: 16, zIndex: 6, gap: 8 },
-    crewBadge: { alignSelf: 'flex-start', marginTop: 6, paddingHorizontal: 9, paddingVertical: 3, borderRadius: 10, backgroundColor: 'rgba(255, 255, 255, 0.18)' },
-    crewText: { fontSize: 10, fontWeight: '800', color: '#fff' },
-    attendCard: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, paddingLeft: 14, borderRadius: 12, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: getThemeMode() === 'dark' ? 'rgba(245, 158, 11, 0.5)' : '#f5d68a', ...elevation1() },
-    attendTitle: { fontSize: 12.5, fontFamily: FONTS.titleBold, color: Colors.textMain },
-    attendPill: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 18, backgroundColor: Colors.warning },
     activeCard: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, paddingLeft: 14, borderRadius: 12, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: getThemeMode() === 'dark' ? 'rgba(16, 185, 129, 0.5)' : '#a8dab5', ...elevation1() },
     activeLabel: { fontSize: 10, fontFamily: FONTS.bodySemiBold, color: Colors.success },
     resumePill: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 18, backgroundColor: Colors.success },

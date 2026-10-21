@@ -47,7 +47,7 @@ import {
   type WorkshopProgress,
 } from '@ongarage/shared';
 import { useNotice } from './NoticeContext';
-import { SPEED_WORKS, SAMPLE_UPLOAD_PHOTOS } from '../constants/mockData';
+import { MOCK_GARAGES, SPEED_WORKS, SAMPLE_UPLOAD_PHOTOS } from '../constants/mockData';
 
 const MIN = 60 * 1000;
 const HOUR = 60 * MIN;
@@ -102,6 +102,8 @@ export const overallFrom = (d: DimensionRating) => Math.round(RATING_DIMENSIONS.
 export type OwnerWorkshop = {
   /** The direct booking's or posted job's id. */
   id: string;
+  /** The garage's own id (the owner's record with a garage is kept by it; the name is only for showing). */
+  garageId?: string;
   garageName: string;
   categoryId: string;
   /** The agreed price: the bid, or the garage's estimate for a direct booking. */
@@ -272,6 +274,7 @@ const pastJob = (o: {
     id: o.id,
     title: o.title,
     icon: o.icon,
+    garageId: MOCK_GARAGES.find((g) => g.name === o.garageName)?.id,
     garageName: o.garageName,
     categoryId: o.categoryId,
     vehicleId: o.vehicleId,
@@ -317,6 +320,7 @@ export const SEED_WORKSHOP_ID = 'db-seed';
 const seedWorkshop = (): OwnerWorkshop => {
   const base: OwnerWorkshop = {
     id: SEED_WORKSHOP_ID,
+    garageId: MOCK_GARAGES.find((g) => g.name === SPEED_WORKS.name)?.id,
     garageName: SPEED_WORKS.name,
     categoryId: '7',
     vehicleId: 'premio',

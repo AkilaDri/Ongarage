@@ -1,3 +1,4 @@
+import { fontWeightOf } from './fonts';
 export type ThemeMode = 'dark' | 'light';
 
 const dark = {
@@ -106,7 +107,10 @@ export const facebookSize = (n: number): number => {
 
 const scaleFonts = <T extends object>(sheet: T): T => {
   const out: Record<string, unknown> = {};
-  for (const [name, style] of Object.entries(sheet)) {
+  for (const [name, rawStyle] of Object.entries(sheet)) {
+    // A text style written with one of the FONTS families also gets that family's weight (the system font takes its weight from fontWeight).
+    const wt = rawStyle && typeof rawStyle === 'object' && !Array.isArray(rawStyle) ? fontWeightOf((rawStyle as { fontFamily?: unknown }).fontFamily) : undefined;
+    const style = wt && !('fontWeight' in (rawStyle as object)) ? { ...(rawStyle as object), fontWeight: wt } : rawStyle;
     if (style && typeof style === 'object' && !Array.isArray(style) && ('fontSize' in style || 'lineHeight' in style)) {
       const st = style as { fontSize?: number; lineHeight?: number };
       const k = typeof st.fontSize === 'number' && st.fontSize > 0 ? facebookSize(st.fontSize) / st.fontSize : 1.1;

@@ -27,6 +27,8 @@ export const chatKey = (id: string) => id.replace(/^b-/, '');
 type ChatApi = {
   /** Opens the chat of a job with its customer. */
   open: (target: ChatTarget) => void;
+  /** Opens a chat and sends a first message in it (a direct reply to a post on the On Feed). */
+  openWith: (target: ChatTarget, text: string) => void;
   /** Messages from the customer the garage has not read yet. */
   unread: (id: string) => number;
   /** On the Jobs tab, backing out of a conversation opened from the inbox returns to the inbox (set by the app shell per tab). */
@@ -235,6 +237,14 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     [store.markRead, store.note, store.seenAt, threads]
   );
 
+  const openWith = useCallback(
+    (t: ChatTarget, text: string) => {
+      open(t);
+      void store.send(chatKey(t.id), { text });
+    },
+    [open, store.send]
+  );
+
   const openShop = useCallback((t: ThreadTarget) => {
     setMartTarget(t);
     setMartSeen((m) => ({ ...m, [`${t.enquiryId}:${t.shop.id}`]: Date.now() }));
@@ -276,7 +286,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [count, target, store.markRead]);
 
   return (
-    <ChatContext.Provider value={{ open, unread: (id) => store.unread(chatKey(id)), editReq, clearEditReq, rewriteReport, rewriteCheckIn, openInbox: () => setInbox(true), setInboxReturn: (on: boolean) => { inboxReturn.current = on; }, totalUnread, logCall }}>
+    <ChatContext.Provider value={{ open, openWith, unread: (id) => store.unread(chatKey(id)), editReq, clearEditReq, rewriteReport, rewriteCheckIn, openInbox: () => setInbox(true), setInboxReturn: (on: boolean) => { inboxReturn.current = on; }, totalUnread, logCall }}>
       {children}
       <ChatInboxSheet visible={inbox} onClose={() => setInbox(false)} threads={threads} onOpen={(t) => {
           fromInbox.current = true;

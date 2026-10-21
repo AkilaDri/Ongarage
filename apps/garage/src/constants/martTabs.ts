@@ -5,9 +5,9 @@ import { OnGarageIcon } from '../components/OnGarageIcon';
 export type MartNavId = 'shops' | 'mine' | 'ongarage' | 'wall' | 'orders';
 
 export const MART_TABS: NavItem<MartNavId>[] = [
-  { id: 'shops', label: 'වෙළඳසැල්', accessibilityLabel: 'OnMart shops', icon: ShopLineIcon },
-  { id: 'mine', label: 'මගේ ඉල්ලීම්', accessibilityLabel: 'OnMart mine', icon: RequestLineIcon },
+  { id: 'shops', label: 'Shops', accessibilityLabel: 'OnMart shops', icon: ShopLineIcon },
+  { id: 'mine', label: 'Requests', accessibilityLabel: 'OnMart mine', icon: RequestLineIcon },
   { id: 'ongarage', label: 'OnGarage', accessibilityLabel: 'Back to OnGarage', icon: OnGarageIcon },
-  { id: 'wall', label: 'විවෘත', accessibilityLabel: 'OnMart wall', icon: WallLineIcon },
-  { id: 'orders', label: 'ඇණවුම්', accessibilityLabel: 'OnMart orders', icon: OrdersLineIcon },
+  { id: 'wall', label: 'On Feed', accessibilityLabel: 'OnMart wall', icon: WallLineIcon },
+  { id: 'orders', label: 'Orders', accessibilityLabel: 'OnMart orders', icon: OrdersLineIcon },
 ];

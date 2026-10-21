@@ -1,3 +1,9 @@
+import { CustomerHistoryTag } from '../components/CustomerHistory';
+import { onOpenBookingDetail } from '../utils/scheduleSignal';
+import { VehicleSearchSheet } from '../components/VehicleSearchSheet';
+import { CategoryArt } from '../components/CategoryArt';
+import { SosLineIcon, ScheduleLineIcon, ReceiptLineIcon } from '@ongarage/shared';
+import { VehicleLabel } from '@ongarage/shared';
 import { chatDockOffset } from '../utils/chatDock';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Animated, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -49,6 +55,10 @@ export const ScheduleScreen: React.FC<{ onOpenParts: (requestId: string) => void
   // Which kind of job: all, won bids, direct bookings or SOS.
   const [source, setSource] = useState<Booking['source'] | 'all'>('all');
   const [detailId, setDetailId] = useState<string | null>(null);
+  // The Search chip opens a window that looks a vehicle up by its registration number and shows every job done on it.
+  const [searchOpen, setSearchOpen] = useState(false);
+  // The calendar in the title bar opens a booking's details here.
+  useEffect(() => onOpenBookingDetail((id) => setDetailId(id)), []);
   const [partsFor, setPartsFor] = useState<Booking | null>(null);
   // Follows the live booking, so starting or finishing work updates the open details.
   const detail: DetailTarget | null = useMemo(() => {
@@ -69,44 +79,60 @@ export const ScheduleScreen: React.FC<{ onOpenParts: (requestId: string) => void
 
   const card = (b: Booking) => {
     const when = b.status === 'completed' ? (b.completedAt ?? b.scheduledAt) : b.scheduledAt;
-    const media = [b.job?.photos?.length && `📷 ${b.job.photos.length}`, b.job?.voiceNotes?.length && `🎙️ ${b.job.voiceNotes.length}`].filter(Boolean).join('  ');
+    // The voice notes sit on the vehicle line (model, number plate, job type, voice); the chips keep the photos.
+    const media = b.job?.photos?.length ? `📷 ${b.job.photos.length}` : '';
     return (
       <SwipeCard key={b.id} style={[styles.card, b.status === 'inProgress' && styles.cardActive]} onOpen={() => setDetailId(b.id)}>
-        {/* A finished job keeps its chat: the OnChat button sits in the card's top right corner. */}
-        {(b.status === 'completed' || b.status === 'cancelled') && (
+        {/* A cancelled job keeps its chat (the OnChat button in the card's top right corner); a completed one has none. */}
+        {b.status === 'cancelled' && (
           <View style={styles.chatCorner}>
             <ChatButton booking={b} size={44} />
           </View>
         )}
         <Pressable onPress={() => setDetailId(b.id)} accessibilityLabel={`${b.title} details`}>
+        {/* Laid out like a Facebook post: a round picture, the customer's name in bold, and the time and the job in grey under it; then the body. */}
         <View style={styles.cardHeader}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarEmoji}>{b.icon}</Text>
-          </View>
+          <CategoryArt emoji={b.icon} size={48} />
           <View style={styles.flex1}>
-            <View style={styles.row}>
-              <Text style={styles.cardTitle}>{b.title}</Text>
-              <View style={[styles.source, b.source === 'sos' ? styles.sourceSos : b.source === 'direct' ? styles.sourceDirect : styles.sourceBid]}>
-                <Text style={[styles.sourceText, { color: b.source === 'sos' ? Colors.errorText : b.source === 'direct' ? Colors.success : Colors.primary }]}>
-                  {b.source === 'sos' ? 'SOS' : b.source === 'direct' ? 'ඍජු' : 'ලංසු'}
-                </Text>
-              </View>
+            <View style={styles.nameRow}>
+              <Text style={[styles.postName, styles.nameShrink]} numberOfLines={1}>
+                {b.customer.name}
+              </Text>
+              <CustomerHistoryTag customer={b.customer} />
             </View>
-            <Text style={styles.sub}>
-              {vehicleIcon(b.vehicle.type)} {b.vehicle.name} · {b.customer.name}
+            <Text style={styles.postMeta} numberOfLines={1}>
+              {dayLabel(when)} · {formatTime(when)}
             </Text>
-            <View style={styles.plateRow}>
-              <LkPlate plate={b.vehicle.plate} stacked={b.vehicle.type === 'Motorbike'} small />
-            </View>
           </View>
-          <View style={[styles.priceCol, (b.status === 'completed' || b.status === 'cancelled') && { paddingTop: 44 }]}>
+          <View style={[styles.priceCol, b.status === 'cancelled' && { paddingTop: 44 }]}>
+            {/* Three dots in place of the words "විස්තර ›": touching them opens the job's details (so does the card). */}
+            <Pressable style={styles.dotsBtn} onPress={() => setDetailId(b.id)} hitSlop={10} accessibilityLabel={`${b.title} details`}>
+              <View style={styles.dot} />
+              <View style={styles.dot} />
+              <View style={styles.dot} />
+            </Pressable>
             <Text style={styles.price}>{money(b.price)}</Text>
-            <Text style={styles.detailsLink}>විස්තර ›</Text>
           </View>
         </View>
 
+        <View style={styles.postBody}>
+          <View style={[styles.row, styles.oneLine]}>
+            <LkPlate plate={b.vehicle.plate} stacked={b.vehicle.type === 'Motorbike'} small fontSize={11.5} />
+            <VehicleLabel type={b.vehicle.type} style={styles.postText} numberOfLines={1}>
+              {b.vehicle.name}
+            </VehicleLabel>
+            <View style={[styles.source, b.source === 'sos' ? styles.sourceSos : b.source === 'direct' ? styles.sourceDirect : styles.sourceBid]}>
+              <Text style={[styles.sourceText, { color: b.source === 'sos' ? Colors.errorText : b.source === 'direct' ? Colors.success : Colors.primary }]}>
+                {b.source === 'sos' ? 'SOS' : b.source === 'direct' ? 'ඍජු' : 'ලංසු'}
+              </Text>
+            </View>
+            {!!b.job?.voiceNotes?.length && <Text style={styles.voiceMark}>🎙️ {b.job.voiceNotes.length}</Text>}
+          </View>
+          {/* The subject of the job (its category and what it is) comes under the vehicle line, as the post's own text does. */}
+          <Text style={styles.postSubject}>{b.title}</Text>
+        </View>
+
         <View style={[styles.chips, styles.cardBody]}>
-          <Chip text={`📅 ${dayLabel(when)} · ${formatTime(when)}`} />
           {!!b.job?.fitting && <Chip text={fittingLabel(b.job.fitting)} />}
           {!!b.travelFee && <Chip text={`🚗 ගමන් ගාස්තුව ඇතුළුව ${money(b.travelFee)}`} />}
           {!!(b.progress?.diagnosis || b.progress?.extras?.length || b.progress?.handover) && (
@@ -156,12 +182,12 @@ export const ScheduleScreen: React.FC<{ onOpenParts: (requestId: string) => void
   };
 
   const shown = segment === 'upcoming' ? upcoming : segment === 'cancelled' ? cancelledList : completed;
-  const list = source !== 'all' ? shown.filter((b) => b.source === source) : shown;
-  const sources: { id: Booking['source'] | 'all'; label: string; icon: string; count: number }[] = [
-    { id: 'all', label: 'සියල්ල', icon: '📋', count: shown.length },
-    { id: 'sos', label: 'SOS', icon: '🚨', count: shown.filter((b) => b.source === 'sos').length },
-    { id: 'direct', label: 'ඍජු', icon: '📅', count: shown.filter((b) => b.source === 'direct').length },
-    { id: 'bid', label: 'ලංසු', icon: '🤝', count: shown.filter((b) => b.source === 'bid').length },
+  const bySource = source !== 'all' ? shown.filter((b) => b.source === source) : shown;
+  const list = bySource;
+  const sources: { id: Booking['source'] | 'all'; label: string; icon: React.ComponentType<{ active: boolean; size?: number }>; count: number }[] = [
+    { id: 'sos', label: 'SOS', icon: SosLineIcon, count: shown.filter((b) => b.source === 'sos').length },
+    { id: 'direct', label: 'Booking', icon: ScheduleLineIcon, count: shown.filter((b) => b.source === 'direct').length },
+    { id: 'bid', label: 'ලංසු', icon: ReceiptLineIcon, count: shown.filter((b) => b.source === 'bid').length },
   ];
 
   return (
@@ -175,7 +201,7 @@ export const ScheduleScreen: React.FC<{ onOpenParts: (requestId: string) => void
               <Pressable key={t.id} style={[styles.segChip, active && styles.segChipOn]} onPress={() => setSegment(t.id)} accessibilityRole="tab" accessibilityState={{ selected: active }} accessibilityLabel={t.label}>
                 <Icon name={t.icon} size={16} color={active ? (getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8') : Colors.textMuted} />
                 <Text style={[styles.segChipText, active && styles.segChipTextOn]}>{t.label}</Text>
-                {t.count > 0 && (
+                {t.id === 'upcoming' && t.count > 0 && (
                   <View style={styles.tabCount}>
                     <Text style={styles.tabCountText}>{t.count}</Text>
                   </View>
@@ -190,16 +216,21 @@ export const ScheduleScreen: React.FC<{ onOpenParts: (requestId: string) => void
             {sources.map((c) => {
               const on = source === c.id;
               return (
-                <Pressable key={c.id} style={[styles.sourceChip, on && styles.sourceChipOn]} onPress={() => setSource(c.id)} accessibilityLabel={`Show ${c.label} jobs`} accessibilityState={{ selected: on }}>
-                  {on && <Text style={styles.sourceChipTextOn}>✓</Text>}
-                  <Text style={styles.sourceChipIcon}>{c.icon}</Text>
+                <Pressable key={c.id} style={[styles.sourceChip, on && styles.sourceChipOn]} onPress={() => setSource(on ? 'all' : c.id)} accessibilityLabel={`Show ${c.label} jobs`} accessibilityState={{ selected: on }}>
+                  <c.icon active={on} size={18} />
                   <Text style={[styles.sourceChipText, on && styles.sourceChipTextOn]}>{c.label}</Text>
-                  <View style={[styles.sourceCount, on && styles.sourceCountOn, c.count === 0 && styles.sourceCountZero]}>
-                    <Text style={[styles.sourceCountText, on && styles.sourceCountTextOn]}>{c.count}</Text>
-                  </View>
+                  {segment === 'upcoming' && c.count > 0 && (
+                    <View style={[styles.sourceCount, on && styles.sourceCountOn]}>
+                      <Text style={[styles.sourceCountText, on && styles.sourceCountTextOn]}>{c.count}</Text>
+                    </View>
+                  )}
                 </Pressable>
               );
             })}
+            <Pressable style={styles.sourceChip} onPress={() => setSearchOpen(true)} accessibilityLabel="Search a vehicle">
+              <Text style={styles.searchChipIcon}>🔎</Text>
+              <Text style={styles.sourceChipText}>Search</Text>
+            </Pressable>
           </View>
         )}
       </Animated.View>
@@ -215,7 +246,6 @@ export const ScheduleScreen: React.FC<{ onOpenParts: (requestId: string) => void
         showsVerticalScrollIndicator={false}
       >
 
-      {list.length > 0 && <Text style={styles.hint}>⇆ කාඩ්පතක් තට්ටු කරන්න හෝ පැත්තට ස්වයිප් කරන්න — රැකියාවේ සම්පූර්ණ විස්තර සහ පාරිභෝගිකයා</Text>}
       {list.length === 0 ? (
         source !== 'all' && shown.length > 0 ? (
           <EmptyState icon="🔎" title="මෙම වර්ගයේ රැකියා නැත" text="වෙනත් වර්ගයක් තෝරන්න, නැත්නම් සියල්ල බලන්න." />
@@ -229,6 +259,7 @@ export const ScheduleScreen: React.FC<{ onOpenParts: (requestId: string) => void
       ) : (
         list.map(card)
       )}
+      <VehicleSearchSheet visible={searchOpen} onClose={() => setSearchOpen(false)} bookings={bookings} onOpen={setDetailId} />
       <PartsRequestSheet booking={partsFor} onClose={() => setPartsFor(null)} />
       <JobReportSheet visible={!!reportFor} onClose={() => setReportFor(null)} subject={{ title: reportFor?.title ?? '', vehicle: reportFor ? `${reportFor.vehicle.name} · ${reportFor.vehicle.plate}` : undefined }} progress={reportFor?.progress} />
       <JobDetailView target={detail} onClose={() => setDetailId(null)} renderActions={(t) => (t.kind === 'booking' ? <BookingActions booking={t.booking} /> : null)} />
@@ -243,6 +274,7 @@ const Chip: React.FC<{ text: string }> = ({ text }) => <InfoChip text={text} />;
 const styles = themedStyles(() =>
   StyleSheet.create({
     flex1: { flex: 1 },
+    searchChipIcon: { fontSize: 13 },
     row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     chatCorner: { position: 'absolute', top: 6, right: 8, zIndex: 2 },
     rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
@@ -250,36 +282,45 @@ const styles = themedStyles(() =>
     // One soft track with a raised active segment, a red count on its corner (same as the Jobs tab).
     // The bar sits on top of the list layer, which starts under it and reaches one bar-height past the bottom.
     listLayer: { position: 'absolute', left: 0, right: 0 },
-    tabBar: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 5, paddingHorizontal: 6, paddingTop: 12, paddingBottom: 6, backgroundColor: pageBg() },
+    tabBar: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 5, paddingHorizontal: 6, paddingTop: 22, paddingBottom: 6, backgroundColor: pageBg() },
     // The two views are two separate chips, bigger than the filter chips under them: each its own outlined chip, the selected one tonal blue.
     segRow: { flexDirection: 'row', gap: 8 },
     segChip: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, height: 44, paddingHorizontal: 10, borderRadius: 12, borderWidth: 1, borderColor: outline(), backgroundColor: Colors.bgCard, ...elevation1() },
     segChipOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe', borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#d2e3fc' },
     segChipText: { fontSize: 13.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
     segChipTextOn: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
-    sourceRow: { flexDirection: 'row', gap: 10, paddingTop: 6, paddingRight: 8 },
-    sourceChip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingLeft: 14, paddingRight: 6, height: 32, borderRadius: 8, borderWidth: 1, borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#dadce0', backgroundColor: Colors.bgCard },
+    sourceRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingTop: 14, paddingRight: 8 },
+    sourceChip: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingLeft: 12, paddingRight: 12, height: 32, borderRadius: 8, borderWidth: 1, borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#dadce0', backgroundColor: Colors.bgCard },
     sourceChipOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe', borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#d2e3fc' },
     sourceChipIcon: { fontSize: 14 },
     sourceChipText: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
     sourceChipTextOn: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
-    sourceCount: { marginLeft: 'auto', minWidth: 19, height: 19, paddingHorizontal: 5, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.34)' : '#d2e3fc' },
-    sourceCountOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.5)' : '#aecbfa' },
+    sourceCount: { position: 'absolute', top: -8, right: -2, minWidth: 19, height: 19, paddingHorizontal: 5, borderRadius: 10, borderWidth: 2, borderColor: pageBg(), alignItems: 'center', justifyContent: 'center', backgroundColor: '#1a73e8' },
+    sourceCountOn: { backgroundColor: '#1a73e8' },
     sourceCountZero: { opacity: 0.55 },
-    sourceCountText: { fontSize: 10, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
+    sourceCountText: { fontSize: 10, fontFamily: FONTS.bodyBold, color: '#ffffff' },
     sourceCountTextOn: {},
-    tabCount: { marginLeft: 'auto', minWidth: 20, height: 20, paddingHorizontal: 6, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.24)' : '#d2e3fc' },
-    tabCountText: { fontSize: 10.5, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
+    tabCount: { position: 'absolute', top: -9, right: 6, minWidth: 20, height: 20, paddingHorizontal: 5, borderRadius: 10, borderWidth: 2, borderColor: pageBg(), alignItems: 'center', justifyContent: 'center', backgroundColor: '#1a73e8' },
+    tabCountText: { fontSize: 10.5, fontFamily: FONTS.bodyBold, color: '#ffffff' },
     // Material cards: 12px corners, a thin outline, light elevation; a header, a body of chips and an action area.
     card: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#dadce0', borderRadius: 12, shadowColor: '#3c4043', shadowOffset: { width: 0, height: 1 }, shadowOpacity: getThemeMode() === 'dark' ? 0.4 : 0.15, shadowRadius: 3, elevation: 1 },
     cardActive: { borderColor: Colors.primary },
-    cardHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8 },
+    cardHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingTop: 16, paddingBottom: 10 },
     cardBody: { paddingHorizontal: 16, paddingBottom: 14 },
     cardActions: { paddingHorizontal: 16, paddingVertical: 12, borderTopWidth: 1, borderTopColor: getThemeMode() === 'dark' ? Colors.borderColor : '#e8eaed' },
     plateRow: { marginTop: 6 },
     stack: { gap: 10 },
     avatar: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? Colors.subtleFill : '#e8f0fe' },
     avatarEmoji: { fontSize: 20 },
+    oneLine: { flexWrap: 'nowrap', gap: 8 },
+    voiceMark: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
+    nameRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
+    nameShrink: { flexShrink: 1 },
+    postName: { fontSize: 13, fontFamily: FONTS.bodyBold, color: Colors.textMain },
+    postMeta: { fontSize: 12, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 1 },
+    postBody: { paddingHorizontal: 16, paddingBottom: 12, gap: 10 },
+    postSubject: { fontSize: 15, fontFamily: FONTS.titleBold, color: Colors.textMain, lineHeight: 22 },
+    postText: { fontSize: 15, fontFamily: FONTS.bodyRegular, color: Colors.textMain, lineHeight: 22 },
     cardTitle: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textMain },
     sub: { fontSize: 12.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 2 },
     source: { paddingHorizontal: 8, height: 20, justifyContent: 'center', borderRadius: 6 },
@@ -289,6 +330,8 @@ const styles = themedStyles(() =>
     sourceText: { fontSize: 10.5, fontWeight: '800' },
     price: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textMain },
     priceCol: { alignItems: 'flex-end', gap: 2 },
+    dotsBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 6, paddingLeft: 6 },
+    dot: { width: 5, height: 5, borderRadius: 3, backgroundColor: Colors.textMuted },
     detailsLink: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
     hint: { fontSize: 11, fontFamily: FONTS.bodyMedium, color: Colors.textMuted, textAlign: 'center' },
     chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },

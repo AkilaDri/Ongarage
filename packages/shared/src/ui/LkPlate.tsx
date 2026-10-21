@@ -1,3 +1,4 @@
+import { VehicleLabel } from './VehicleIcon3D';
 import React from 'react';
 import { StyleSheet, Text, View, type StyleProp, type TextStyle } from 'react-native';
 import { vehicleIcon } from '../constants/vehicles';
@@ -67,10 +68,10 @@ export const VehicleLine: React.FC<{
   extra?: string;
 }> = ({ vehicle: v, textStyle, extra }) => (
   <View style={vehicleLineStyle}>
-    <Text style={textStyle}>
-      {vehicleIcon(v.type)} {v.name}
+    <VehicleLabel type={v.type} style={textStyle}>
+      {v.name}
       {extra ? ' · ' + extra : ''}
-    </Text>
+    </VehicleLabel>
     <LkPlate plate={v.registrationNo || v.plate} stacked={v.type === 'Motorbike'} small />
   </View>
 );

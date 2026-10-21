@@ -4,13 +4,15 @@ import { Colors, getThemeMode, themedStyles } from '@ongarage/shared';
 import { FONTS } from '@ongarage/shared';
 import { useProfile } from '../context/ProfileContext';
 import { useVehicles } from '../context/VehiclesContext';
-import { vehicleIcon } from '@ongarage/shared';
+import { VehicleIcon3D } from '@ongarage/shared';
 import { Gradient, GRADIENTS } from '@ongarage/shared';
 import WeatherAnimation, { periodOf, skyInk, useHour } from './WeatherAnimation';
 import { MOCK_USER } from '../constants/mockData';
 
 /** Every page's top band is this tall - the height of Home's greeting band. */
 export const HEADER_BAND_H = 100;
+// The top bar keeps its emoji as they are (the line-icon patch skips a Text marked this way).
+const KEEP_EMOJI = { keepEmoji: true } as object;
 const POPOVER_WIDTH = 264;
 const EDGE_GAP = 12;
 
@@ -120,7 +122,7 @@ export const VehiclePicker: React.FC<VehiclePickerProps> = ({ visible, activeVeh
                 >
                   <View style={[styles.iconTile, active && styles.iconTileActive]}>
                     {active && <Gradient stops={GRADIENTS.issue} />}
-                    <Text style={styles.iconText}>{vehicleIcon(vehicle.type)}</Text>
+                    <VehicleIcon3D type={vehicle.type} size={30} />
                   </View>
                   <View style={styles.rowText}>
                     <Text style={[styles.name, active && styles.nameActive]}>{vehicle.name}</Text>
@@ -181,7 +183,7 @@ export const Header: React.FC = () => {
       <WeatherAnimation hour={hour} />
       <View style={styles.greetingRow}>
         <View style={styles.greetingText}>
-          <Text style={[styles.city, night ? styles.cityNight : styles.cityDay]}>📍 {MOCK_USER.city}</Text>
+          <Text {...KEEP_EMOJI} style={[styles.city, night ? styles.cityNight : styles.cityDay]}>📍 {MOCK_USER.city}</Text>
           <Text style={[styles.hi, night ? styles.hiNight : styles.hiDay]} numberOfLines={1}>
             Hi {fullName},
           </Text>
@@ -191,7 +193,7 @@ export const Header: React.FC = () => {
         </View>
       </View>
 
-      <View style={{ width: 52 }} />
+      <View style={{ width: 66 }} />
     </View>
   );
 };
@@ -226,7 +228,7 @@ const styles = themedStyles(() => StyleSheet.create({
   titleBandText: { fontSize: 20, fontFamily: FONTS.titleBold, color: getThemeMode() === 'dark' ? '#d6eefc' : '#0f2a3d' },
   city: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: getThemeMode() === 'dark' ? '#8fc3e3' : '#2b4a63', marginBottom: 2 },
   // Above the sky: the sun, clouds and birds drift behind the greeting, never over it.
-  greetingRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 6, zIndex: 2, elevation: 2 },
+  greetingRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 6, position: 'relative' },
   greetingText: { gap: 1, flex: 1 },
   hi: { fontSize: 15, fontFamily: FONTS.titleBold, color: getThemeMode() === 'dark' ? '#d6eefc' : '#0f2a3d' },
   greeting: { fontSize: 12.5, fontFamily: FONTS.bodyMedium, color: getThemeMode() === 'dark' ? '#8fc3e3' : '#2b4a63' },

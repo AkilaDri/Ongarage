@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, Defs, Ellipse, Line, LinearGradient, Path, RadialGradient, Rect, Stop } from 'react-native-svg';
 import { themedStyles } from '@ongarage/shared';
+import { pageBg } from '../utils/material';
 
 /** The four parts of the day, each with its own sky, light and skyline: morning (ude), daytime (dahawala), evening (hendewa), night (rathriya). */
 export type Period = 'morning' | 'day' | 'evening' | 'night';
@@ -9,12 +10,58 @@ export const periodOf = (hour: number): Period => (hour >= 5 && hour < 11 ? 'mor
 export const SKY: Record<Period, string> = { morning: '#ffd8b4', day: '#a9dcf7', evening: '#f8b878', night: '#10213f' };
 
 /** Top-to-bottom colours of the sky in each part of the day: a pink-gold dawn, a bright blue noon, a fiery dusk and a deep starry night. */
-const SKY_STOPS: Record<Period, [string, string, string]> = {
+export const SKY_STOPS: Record<Period, [string, string, string]> = {
   morning: ['#8fb8e8', '#ffd2c0', '#ffe9b8'],
   day: ['#4fa8ec', '#a9dcf7', '#e4f5ff'],
   evening: ['#5a4a9a', '#f08a6a', '#ffc878'],
   night: ['#050b1f', '#10213f', '#25386a'],
 };
+/**
+ * The top of the page sheet under the header. The header (the animation) is left exactly as it is; the sheet takes the colour the animation
+ * ends in (the sky's bottom colour: it changes with dawn, noon, dusk and night) along its top edge, so the two meet without a line,
+ * and shades that colour down into the page colour.
+ */
+/** How strongly the sky's colour lies on the sheet in each part of the day: the pale sky of morning and noon needs less than dusk or the dark of night. */
+const SHADE_MID: Record<Period, number> = { morning: 0.5, day: 0.42, evening: 0.62, night: 0.7 };
+
+export const SkyShade: React.FC<{ period: Period; height?: number }> = ({ period, height = 262 }) => {
+  const bg = pageBg();
+  const edge = SKY_STOPS[period][2];
+  return (
+    <Svg style={{ position: 'absolute', left: 0, right: 0, top: 0, height }} width="100%" height={height} preserveAspectRatio="none" pointerEvents="none">
+      <Defs>
+        <LinearGradient id={`sheetShade${period}`} x1="0" y1="0" x2="0" y2="1">
+          <Stop offset="0" stopColor={edge} stopOpacity={1} />
+          <Stop offset="0.4" stopColor={edge} stopOpacity={SHADE_MID[period]} />
+          <Stop offset="1" stopColor={bg} stopOpacity={0} />
+        </LinearGradient>
+      </Defs>
+      <Rect x="0" y="0" width="100%" height={height} fill={`url(#sheetShade${period})`} />
+    </Svg>
+  );
+};
+
+/**
+ * The bar the SOS and Quotes chips stick to once the page has scrolled: it is filled with the animation's own sky colours (dawn, noon, dusk or
+ * night), shading out into the page colour along its bottom edge.
+ */
+export const SkyBar: React.FC<{ period: Period }> = ({ period }) => {
+  const [top, mid, low] = SKY_STOPS[period];
+  return (
+    <Svg style={StyleSheet.absoluteFill} width="100%" height="100%" preserveAspectRatio="none" pointerEvents="none">
+      <Defs>
+        <LinearGradient id={`skyBar${period}`} x1="0" y1="0" x2="0" y2="1">
+          <Stop offset="0" stopColor={top} stopOpacity={1} />
+          <Stop offset="0.55" stopColor={mid} stopOpacity={1} />
+          <Stop offset="0.85" stopColor={low} stopOpacity={0.85} />
+          <Stop offset="1" stopColor={low} stopOpacity={0} />
+        </LinearGradient>
+      </Defs>
+      <Rect x="0" y="0" width="100%" height="100%" fill={`url(#skyBar${period})`} />
+    </Svg>
+  );
+};
+
 const SkyGradient: React.FC<{ period: Period }> = ({ period }) => {
   const [a, b, c] = SKY_STOPS[period];
   return (
@@ -205,7 +252,7 @@ const LUMINARY: Record<Period, { emoji: string; bottom: number; stops: [string, 
   morning: { emoji: '☀️', bottom: 42, stops: ['#fff6da', '#ffe0a8', '#ffc08a'], fade: '#ffa96b', strength: 1 },
   day: { emoji: '☀️', bottom: 42, stops: ['#ffffff', '#fff7cc', '#cfeaff'], fade: '#a9dcf7', strength: 1 },
   evening: { emoji: '☀️', bottom: 42, stops: ['#fffbe0', '#ffe9a0', '#ffc46b'], fade: '#ff9a52', strength: 1 },
-  night: { emoji: '🌙', bottom: 42, stops: ['#f6f8ff', '#c4d4ff', '#7d97e0'], fade: '#4a62b0', strength: 0.75 },
+  night: { emoji: '🌙', bottom: 42, stops: ['#f6f8ff', '#c4d4ff', '#7d97e0'], fade: '#4a62b0', strength: 0.35 },
 };
 /** Night stars, spread evenly in two staggered rows (big and small alternating) and kept clear of the moon (middle-right) and the skyline. */
 const STARS: { x: number; y: number; size: number; lo: number; hi: number }[] = [
@@ -223,27 +270,80 @@ const STARS: { x: number; y: number; size: number; lo: number; hi: number }[] = 
 ];
 /** Side of the square the sun / moon glyph is centred in (its centre is the point everything else is measured from). */
 const SUN_BOX = 40;
+/** Side of the drawn sun / moon (its rays reach the edge). */
+const SUN_ART = 44;
+
+/** The sun: a small plain flat yellow disc, no rays, with a soft white shade round it. */
+const SunArt: React.FC<{ size: number }> = ({ size }) => (
+  <View style={{ width: size, height: size }}>
+    <Svg width={size} height={size} viewBox="0 0 100 100" style={{ position: 'absolute', left: 0, top: 0 }}>
+      <Defs>
+        <RadialGradient id="sunGlow" cx="50%" cy="50%" rx="50%" ry="50%" fx="50%" fy="50%">
+          <Stop offset="0.45" stopColor="#ffffff" stopOpacity={0.85} />
+          <Stop offset="0.75" stopColor="#ffffff" stopOpacity={0.35} />
+          <Stop offset="1" stopColor="#ffffff" stopOpacity={0} />
+        </RadialGradient>
+      </Defs>
+      <Circle cx={50} cy={50} r={50} fill="url(#sunGlow)" />
+      {/* a plain flat disc, with the soft shade (the glow above) round it */}
+      <Circle cx={50} cy={50} r={30} fill="#ffc72c" />
+    </Svg>
+  </View>
+);
+
+/** The moon: a pale crescent with a soft shade on its edge. */
+const MoonArt: React.FC<{ size: number }> = ({ size }) => (
+  <Svg width={size} height={size} viewBox="0 0 100 100">
+    <Defs>
+      <RadialGradient id="moonDisc" cx="35%" cy="30%" rx="75%" ry="75%" fx="35%" fy="30%">
+        <Stop offset="0" stopColor="#ffffff" />
+        <Stop offset="0.6" stopColor="#e9eeff" />
+        <Stop offset="1" stopColor="#b9c7f2" />
+      </RadialGradient>
+    </Defs>
+    <Path d="M64 12a38 38 0 1 0 24 62A32 32 0 0 1 64 12z" fill="url(#moonDisc)" />
+  </Svg>
+);
+
+/** A soft, puffy cloud: white on top shading to a pale blue underneath. */
+const CloudArt: React.FC<{ width: number }> = ({ width }) => (
+  <Svg width={width} height={width * 0.62} viewBox="0 0 64 40">
+    <Defs>
+      <LinearGradient id="cloudFill" x1="0" y1="0" x2="0" y2="1">
+        <Stop offset="0" stopColor="#ffffff" />
+        <Stop offset="1" stopColor="#dbe9f8" />
+      </LinearGradient>
+    </Defs>
+    <Path d="M15 35 C6 35 3 24 11 21 C10 12 22 8 27 15 C31 6 46 8 47 19 C56 18 61 30 52 35 Z" fill="url(#cloudFill)" />
+  </Svg>
+);
 const Luminary: React.FC<{ period: Period; width: number }> = ({ period, width }) => {
   const l = LUMINARY[period];
   // The sun / moon sits a little right of the middle of the band, in every period.
   const cx = width / 2 + 50;
-  const id = `light-${period}`;
   return (
     <>
-      {/* the light spreads out from it into the sky and fades into the sky's own colour */}
-      <Svg width={230} height={150} style={{ position: 'absolute', left: cx - 115, bottom: l.bottom - 75 + SUN_BOX / 2 }} pointerEvents="none">
-        <Defs>
-          <RadialGradient id={id} cx="50%" cy="50%" rx="50%" ry="50%" fx="50%" fy="50%">
-            <Stop offset="0" stopColor={l.stops[0]} stopOpacity={0.95 * l.strength} />
-            <Stop offset="0.25" stopColor={l.stops[1]} stopOpacity={0.7 * l.strength} />
-            <Stop offset="0.6" stopColor={l.stops[2]} stopOpacity={0.3 * l.strength} />
-            <Stop offset="1" stopColor={l.fade} stopOpacity={0} />
-          </RadialGradient>
-        </Defs>
-        <Rect x={0} y={0} width={230} height={150} fill={`url(#${id})`} />
-      </Svg>
-      {/* a fixed square box with the glyph centred in it, so the sun and the moon (whose glyphs differ in width) sit on exactly the same spot */}
-      <Text style={{ position: 'absolute', left: cx - SUN_BOX / 2, bottom: l.bottom, width: SUN_BOX, height: SUN_BOX, lineHeight: SUN_BOX, textAlign: 'center', fontSize: 32 }}>{l.emoji}</Text>
+      {/* the moon's own light: a soft halo round it (night only) */}
+      {period === 'night' && (
+        <Svg width={170} height={170} style={{ position: 'absolute', left: cx - 85, bottom: l.bottom + SUN_BOX / 2 - 85 }} pointerEvents="none">
+          <Defs>
+            <RadialGradient id="moonHalo" cx="50%" cy="50%" rx="50%" ry="50%" fx="50%" fy="50%">
+              <Stop offset="0" stopColor="#dbe6ff" stopOpacity={0.4} />
+              <Stop offset="0.4" stopColor="#aebfff" stopOpacity={0.16} />
+              <Stop offset="1" stopColor="#8ea4f0" stopOpacity={0} />
+            </RadialGradient>
+          </Defs>
+          <Circle cx={85} cy={85} r={85} fill="url(#moonHalo)" />
+        </Svg>
+      )}
+      {/* drawn, not an emoji: the sun with its rays turning slowly, the moon as a crescent; both centred on the same spot */}
+      <View style={{ position: 'absolute', left: cx - SUN_ART / 2, bottom: l.bottom + SUN_BOX / 2 - SUN_ART / 2, width: SUN_ART, height: SUN_ART }}>
+        {period === 'night' ? <MoonArt size={SUN_ART} /> : <SunArt size={SUN_ART} />}
+      </View>
+      {/* a small see-through cloud in front of the sun, a little up and to the right, so the sun shows through it */}
+      <View style={{ position: 'absolute', left: cx - 4, bottom: l.bottom + 4, opacity: period === 'night' ? 0.2 : 0.55 }}>
+        <CloudArt width={40} />
+      </View>
     </>
   );
 };
@@ -302,6 +402,7 @@ const sky = {
   twinkleA: new Animated.Value(0),
   twinkleB: new Animated.Value(0),
   bob: new Animated.Value(0),
+  spin: new Animated.Value(0),
 };
 /**
  * Every layer is a pure function of the clock: one ticker works out where each cycle is from the time of day and sets the
@@ -321,6 +422,7 @@ const LAYERS: { key: keyof typeof sky; period: number; wave: Wave; offset: numbe
   { key: 'twinkleA', period: 2200, wave: 'sine', offset: 0 },
   { key: 'twinkleB', period: 3400, wave: 'sine', offset: 0 },
   { key: 'bob', period: 5200, wave: 'sine', offset: 0 },
+  { key: 'spin', period: 60000, wave: 'saw', offset: 0 },
 ];
 const waveAt = (wave: Wave, phase: number) =>
   wave === 'sine' ? 0.5 - 0.5 * Math.cos(phase * Math.PI * 2) : wave === 'ease' ? (phase < 0.5 ? 2 * phase * phase : 1 - Math.pow(-2 * phase + 2, 2) / 2) : phase;
@@ -406,10 +508,15 @@ const WeatherAnimation: React.FC<{ hour: number }> = ({ hour }) => {
         </>
       )}
       <Luminary period={period} width={width} />
-      <TreeLine width={width} period={period} />
-      <Animated.Text style={[styles.cloud, { top: 34, opacity: cloudOpacity }, drift(cloudA)]}>☁️</Animated.Text>
-      <Animated.Text style={[styles.cloud, styles.cloudSmall, { top: 8, opacity: cloudOpacity }, drift(cloudB)]}>☁️</Animated.Text>
-      <Animated.Text style={[styles.cloud, styles.cloudSmall, { top: 62, opacity: cloudOpacity * 0.8 }, drift(cloudC)]}>☁️</Animated.Text>
+      <Animated.View style={[styles.cloud, { top: 34, opacity: cloudOpacity }, drift(cloudA)]}>
+        <CloudArt width={58} />
+      </Animated.View>
+      <Animated.View style={[styles.cloud, { top: 8, opacity: cloudOpacity }, drift(cloudB)]}>
+        <CloudArt width={40} />
+      </Animated.View>
+      <Animated.View style={[styles.cloud, { top: 62, opacity: cloudOpacity * 0.8 }, drift(cloudC)]}>
+        <CloudArt width={44} />
+      </Animated.View>
     </Animated.View>
   );
 };
@@ -423,8 +530,7 @@ const styles = themedStyles(() =>
     sun: { position: 'absolute', left: '50%', marginLeft: -28, top: 14, width: 56, height: 56 },
     moon: { position: 'absolute', left: '50%', marginLeft: -20, top: 16, fontSize: 36 },
     star: { position: 'absolute', fontSize: 12, color: '#ffffff' },
-    cloud: { position: 'absolute', left: 0, fontSize: 34 },
-    cloudSmall: { fontSize: 24 },
+    cloud: { position: 'absolute', left: 0 },
     horizon: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 26, backgroundColor: '#7a3b2e' },
   })
 );

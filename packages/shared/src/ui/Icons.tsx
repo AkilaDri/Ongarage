@@ -8,7 +8,7 @@ export const Icon: React.FC<{ name: IconName; size?: number; color: string; stro
   name,
   size = 16,
   color,
-  strokeWidth = 2,
+  strokeWidth = 1.8,
 }) => (
   <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
     {name === 'check-circle' && (

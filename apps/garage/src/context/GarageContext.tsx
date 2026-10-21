@@ -195,12 +195,13 @@ export type Crew = {
   free: number;
 };
 
-const computeCrew = (team: TeamMember[], attendance: Attendance, dispatches: Dispatch[]): Crew => {
-  const confirmed = attendance.date === today();
-  const presentIds = confirmed ? attendance.presentIds.filter((id) => team.some((m) => m.id === id)) : [];
+// Attendance is not tracked in the app any more: every mechanic on the team counts as present and nobody is on a break.
+const computeCrew = (team: TeamMember[], _attendance: Attendance, dispatches: Dispatch[]): Crew => {
+  const confirmed = true;
+  const presentIds = team.map((m) => m.id);
   const committed = dispatches.filter(isCommitted);
   const onJobIds = committed.map((d) => d.mechanicId).filter((id): id is string => !!id);
-  const breakIds = confirmed ? attendance.breakIds.filter((id) => presentIds.includes(id) && !onJobIds.includes(id)) : [];
+  const breakIds: string[] = [];
   return {
     total: team.length,
     confirmed,
@@ -215,8 +216,6 @@ const computeCrew = (team: TeamMember[], attendance: Attendance, dispatches: Dis
 /** Why a new SOS cannot be taken right now (null = it can). */
 export const sosBlockReason = (isOpen: boolean, crew: Crew): string | null => {
   if (!isOpen) return 'ඔබ නොබැඳියි';
-  if (!crew.confirmed) return 'අද පැමිණීම තහවුරු කර නැත';
-  if (crew.presentIds.length === 0) return 'අද කාර්මිකයන් පැමිණ නැත';
   if (crew.free === 0) return crew.breakIds.length ? 'නිදහස් කාර්මිකයන් නැත (විවේකයේ / රැකියාවල)' : 'සියලු කාර්මිකයන් රැකියාවල';
   return null;
 };
@@ -470,12 +469,18 @@ export const GarageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   // A direct booking arrives a little later; unanswered ones lapse so the owner can go elsewhere.
   useEffect(() => {
-    const t = setTimeout(() => {
-      const d = makeDirect(2, live.current.profile, Date.now());
-      if (live.current.directs.some((x) => x.id === d.id)) return;
-      setDirects((prev) => (prev.some((x) => x.id === d.id) ? prev : [d, ...prev]));
-      notify({ icon: '📅', title: 'ඍජු වෙන්කිරීම් ඉල්ලීමක්', body: `${d.customer.name} ඔබව තෝරා ගත්තා · ${categoryInfo(d.categoryId).name}`, tone: 'primary' });
-    }, DIRECT_ARRIVAL_MS);
+    // Two arrive: a customer this garage has served before (a regular one) after a minute, another it has served three times (see EARLIER_JOBS) after two and a half.
+    const timers = [
+      [2, DIRECT_ARRIVAL_MS],
+      [4, DIRECT_ARRIVAL_MS * 2.5],
+    ].map(([index, at]) =>
+      setTimeout(() => {
+        const d = makeDirect(index, live.current.profile, Date.now());
+        if (live.current.directs.some((x) => x.id === d.id)) return;
+        setDirects((prev) => (prev.some((x) => x.id === d.id) ? prev : [d, ...prev]));
+        notify({ icon: '📅', title: 'ඍජු වෙන්කිරීම් ඉල්ලීමක්', body: `${d.customer.name} ඔබව තෝරා ගත්තා · ${categoryInfo(d.categoryId).name}`, tone: 'primary' });
+      }, at)
+    );
     const sweep = setInterval(() => {
       const now = Date.now();
       const lapsed = live.current.directs.filter((d) => d.status === 'new' && d.respondBy <= now);
@@ -484,7 +489,7 @@ export const GarageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       notify({ icon: '⌛', title: 'ඍජු ඉල්ලීමක් කල් ඉකුත් විය', body: `${lapsed[0].customer.name} හට දැන් වෙනත් ගරාජයක් තෝරා ගත හැක.`, tone: 'danger' });
     }, 5000);
     return () => {
-      clearTimeout(t);
+      timers.forEach(clearTimeout);
       clearInterval(sweep);
     };
   }, [notify]);

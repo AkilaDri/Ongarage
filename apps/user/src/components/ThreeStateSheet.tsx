@@ -28,13 +28,19 @@ export const ThreeStateSheet: React.FC<{
   collapsedRatio?: number;
   /** Space to leave at the bottom (the tab bar floats over the screen). */
   bottomInset?: number;
+  /**
+   * Room that the area is about to gain (a title bar that folds away as the sheet opens): the expanded height already counts it, so when the bar
+   * has folded and the area really is taller the sheet is already that tall and does not spring a second time.
+   */
+  expandedExtra?: number;
   /** Shown while minimised (fades out as the sheet opens). */
   peek: React.ReactNode;
   /** Called whenever the sheet settles on a new height. */
   onStateChange?: (state: SheetState) => void;
   children: (api: SheetApi) => React.ReactNode;
-}> = ({ areaHeight, peekHeight, collapsedRatio = 0.55, bottomInset = 0, peek, onStateChange, children }) => {
-  const full = Math.max(areaHeight - bottomInset, peekHeight + 120);
+}> = ({ areaHeight, peekHeight, collapsedRatio = 0.55, bottomInset = 0, expandedExtra = 0, peek, onStateChange, children }) => {
+  // The top height is the same before and after the bar folds: (smaller area + its extra) = (bigger area + nothing).
+  const full = Math.max(areaHeight - bottomInset + expandedExtra, peekHeight + 120);
   const collapsed = Math.max(peekHeight + 60, Math.round(full * collapsedRatio));
   const [state, setState] = useState<SheetState>('collapsed');
   const stateRef = useRef(state);
@@ -175,6 +181,7 @@ const styles = themedStyles(() =>
   StyleSheet.create({
     flex1: { flex: 1 },
     sheet: {
+      ...(Platform.OS === 'web' ? ({ willChange: 'height' } as object) : null),
       position: 'absolute',
       left: 0,
       right: 0,

@@ -3,7 +3,12 @@ import type { BreakdownId, LatLng, PartsFitting, PickedLocation, Vehicle, VoiceN
 // Garage-side views of the records the owner app creates. When a backend exists
 // these are what the garage receives for each owner action.
 
-export type Customer = { name: string; phone: string };
+export type Customer = {
+  /** The customer's own id, when the booking carries one: the record is kept by it. Without one the phone number (its last nine digits) tells the customer. */
+  id?: string;
+  name: string;
+  phone: string;
+};
 
 /** A customer's inquiry to this garage before booking it (from the garage's card in the owner app): it arrives as a chat the garage answers. */
 export type GarageInquiry = { id: string; customer: Customer; vehicle: CustomerVehicle; categoryId: string; service?: string; text: string; at: number };

@@ -1,13 +1,19 @@
+import { onActivityFocus, takeActivityFocus, type ActivityFocus } from '../utils/activityFocus';
 import { elevation1, outline, pageBg } from '../utils/material';
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Colors, getThemeMode, themedStyles } from '@ongarage/shared';
+import { Animated, Image, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Colors, getThemeMode, Gradient, themedStyles, ReceiptLineIcon, ScheduleLineIcon, SosLineIcon } from '@ongarage/shared';
 import { FONTS } from '@ongarage/shared';
 import { categoryInfo, SERVICE_CATEGORIES } from '@ongarage/shared';
 import { useVehicles } from '../context/VehiclesContext';
 import { EmptyState, SwipeCard } from '@ongarage/shared';
 import { PinnedEdge } from '../components/PinnedEdge';
 import { CategoryPhoto } from '../components/home/CategoryPhoto';
+import { ChatButton } from '../components/ChatButton';
+import { PopCount } from '../components/PopCount';
+import { ActivityCalendar, type CalendarItem } from '../components/ActivityCalendar';
+import { onOpenActivityCalendar } from '../utils/activityCalendar';
+import { BREAKDOWN_IMAGES } from '../constants/home';
 import { OwnerDetailView, type OwnerDetailTarget } from '../components/OwnerDetailView';
 import { useBids } from '../context/BidsContext';
 import { useUserLocation } from '../context/LocationContext';
@@ -25,13 +31,40 @@ import { PayablesCard } from '../components/PayablesCard';
 import { JobPartsToBuy } from '../components/mart/JobPartsToBuy';
 import { RecordDetailView, type RecordTarget } from '../components/RecordDetailView';
 import { WorkshopTracker } from '../components/workshop/WorkshopTracker';
-import { useWorkshops } from '../context/WorkshopContext';
+import { RatingSheet } from '../components/workshop/RatingSheet';
+import { useWorkshops, type OwnerWorkshop } from '../context/WorkshopContext';
 import { money } from '../utils/format';
 import type { DirectBooking } from '../types';
 
 const MONTHS = ['ජන.', 'පෙබ.', 'මාර්තු', 'අප්‍රේල්', 'මැයි', 'ජූනි', 'ජූලි', 'අගෝ.', 'සැප්.', 'ඔක්.', 'නොවැ.', 'දෙසැ.'];
 
+/** The rating the owner gave a finished job, as stars under its heading; a small "Rate" chip when none was given yet. */
+const RatingLine: React.FC<{ rating?: number; onRate?: () => void }> = ({ rating, onRate }) =>
+  rating ? (
+    <Text style={ratingStyles.on}>
+      {'★'.repeat(Math.round(rating))}
+      {'☆'.repeat(5 - Math.round(rating))} {rating.toFixed(1)}
+    </Text>
+  ) : onRate ? (
+    <Pressable style={ratingStyles.chip} onPress={onRate} hitSlop={6} accessibilityLabel="Rate this job">
+      <Text style={ratingStyles.chipText}>☆ Rate</Text>
+    </Pressable>
+  ) : null;
+
+// The main summary card's colour: blue through indigo to violet, with a soft light disc in its corner.
+const SPEND_GRADIENT = [
+  { offset: '0', color: '#2f7bf6' },
+  { offset: '0.55', color: '#5b5ff0' },
+  { offset: '1', color: '#8a4de8' },
+];
+
 const formatDate = (d: Date) => `${d.getFullYear()} ${MONTHS[d.getMonth()]} ${d.getDate()}`;
+
+/** The sub chips' icons: the same line icons as the bottom navigation bar. */
+const SubChipIcon: React.FC<{ id: string; active: boolean }> = ({ id, active }) => {
+  const Ico = id === 'bids' ? ReceiptLineIcon : id === 'direct' ? ScheduleLineIcon : SosLineIcon;
+  return <Ico active={active} size={18} />;
+};
 
 export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b: DirectBooking) => void; onOpenMart?: () => void; onHeaderProgress?: (progress: number) => void }> = ({ onOpenBids, onBookAgain, onOpenMart, onHeaderProgress }) => {
   const { jobs } = useBids();
@@ -47,6 +80,8 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
   // A job the owner cancelled with the garage moves to the "ended" list.
   const cancelled = (id: string) => !!workshops[id]?.progress.cancelled;
   const liveBookings = bookings.filter((b) => (b.status === 'requested' || b.status === 'proposed' || b.status === 'confirmed') && !finished(b.id) && !cancelled(b.id));
+  const pendingBookings = liveBookings.filter((b) => b.status === 'requested' || b.status === 'proposed');
+  const activeBookings = liveBookings.filter((b) => b.status === 'confirmed');
   const doneBookings = bookings.filter((b) => b.status === 'confirmed' && finished(b.id) && !cancelled(b.id));
   const endedBookings = bookings.filter((b) => !liveBookings.includes(b) && !doneBookings.includes(b));
   // Swipe a booking for everything about it (follows the live record).
@@ -62,6 +97,8 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
   })();
   // A finished SOS service or past workshop job opens its full record.
   const [record, setRecord] = useState<RecordTarget | null>(null);
+  // The finished job being rated from its card's "Rate" chip.
+  const [rating, setRating] = useState<OwnerWorkshop | null>(null);
   const bookingCard = (b: (typeof bookings)[number]) => (
     <SwipeCard key={b.id} style={styles.swipeWrap} onOpen={() => setDetail({ kind: 'booking', id: b.id })}>
       <DirectBookingCard booking={b} onBookAgain={onBookAgain} onOpen={() => setDetail({ kind: 'booking', id: b.id })} />
@@ -84,9 +121,24 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
   // Inside "ongoing": which kind of running work to look at.
   const [currentKind, setCurrentKind] = useState<'bids' | 'direct' | 'sos'>('bids');
   const showCurrent = (k: typeof currentKind) => currentKind === k;
+  // After a booking is sent, Activity opens on Ongoing → Booking (whether this screen was already open or is only just opening).
+  useEffect(() => {
+    const apply = (f: ActivityFocus) => {
+      setKind(f.kind);
+      if (f.current) setCurrentKind(f.current);
+    };
+    const waiting = takeActivityFocus();
+    if (waiting) apply(waiting);
+    return onActivityFocus((f) => {
+      takeActivityFocus();
+      apply(f);
+    });
+  }, []);
   // Inside "completed": which kind of finished work to look at.
   const [doneKind, setDoneKind] = useState<'bids' | 'direct' | 'sos'>('bids');
   const showDone = (k: typeof doneKind) => kind === 'done' && doneKind === k;
+  // Inside "cancelled": which kind of cancelled work to look at.
+  const [endedKind, setEndedKind] = useState<'bids' | 'direct' | 'sos'>('bids');
   const vehicleName = (id: string) => findVehicle(id).name;
   const user = useUserLocation();
 
@@ -104,14 +156,17 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
       <SwipeCard key={job.id} style={[styles.card, !finished(job.id) && styles.cardOngoing, finished(job.id) && !cancelled(job.id) && styles.cardDone]} onOpen={() => setDetail({ kind: 'job', id: job.id })}>
         {/* The chat button sits in the very top right corner of the card. */}
         {(
+          <>
           <View style={styles.iconRow}>
-            <CategoryPhoto categoryId={job.categoryId} size={40} />
+            <CategoryPhoto categoryId={job.categoryId} size={52} />
           </View>
+          </>
         )}
         {finished(job.id) && !cancelled(job.id) && (
           <>
             <View style={styles.headRow}>
               <Text style={styles.title}>{cat?.name ?? 'Service'}</Text>
+              <RatingLine rating={workshops[job.id]?.review?.rating} onRate={workshops[job.id] ? () => setRating(workshops[job.id]) : undefined} />
             </View>
             <View style={styles.divider} />
           </>
@@ -143,9 +198,12 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
             <Text style={[styles.sub, styles.flex1]} numberOfLines={1}>
               🛡️ මාස {bid.warrantyMonths} වගකීම
             </Text>
-            <Pressable onPress={() => setDetail({ kind: 'job', id: job.id })} hitSlop={8}>
-              <Text style={styles.link}>විස්තර ›</Text>
-            </Pressable>
+            <View style={styles.linkRow}>
+              <ChatButton plain size={36} target={{ id: job.id, title: bid.garageName, subtitle: cat?.name, phone: MOCK_GARAGES.find((g) => g.name === bid.garageName)?.phone, vehicle: findVehicle(job.vehicleId) }} />
+              <Pressable onPress={() => setDetail({ kind: 'job', id: job.id })} hitSlop={8}>
+                <Text style={styles.link}>විස්තර ›</Text>
+              </Pressable>
+            </View>
           </View>
         ) : (
           <>
@@ -176,10 +234,32 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
   const boughtParts = purchases.filter((m) => m.stage === 'bought');
   const partsSpent = boughtParts.reduce((sum, m) => sum + m.offer.total + (m.delivery?.fee ?? 0), 0);
   const totalSpent = jobsSpent + sosSpent + partsSpent;
+  // The calendar (opened from the title bar): every repair and service that was finished, on the day it was done.
+  const [calOpen, setCalOpen] = useState(false);
+  useEffect(() => onOpenActivityCalendar(() => setCalOpen(true)), []);
+  const calendarItems: CalendarItem[] = [
+    ...Object.values(workshops)
+      .filter((w) => w.progress.stage === 'closed' && !!w.progress.closedAt)
+      .map((w): CalendarItem => {
+        const isJob = jobs.some((j) => j.id === w.id);
+        const isBooking = bookings.some((b) => b.id === w.id);
+        return {
+          id: w.id,
+          at: w.progress.closedAt!,
+          icon: w.icon ?? categoryInfo(w.categoryId).icon,
+          title: w.title ?? categoryInfo(w.categoryId).name,
+          sub: w.garageName,
+          amount: w.progress.handover?.bill.total,
+          open: () => (isJob ? setDetail({ kind: 'job', id: w.id }) : isBooking ? setDetail({ kind: 'booking', id: w.id }) : setRecord({ kind: 'history', workshop: w })),
+        };
+      }),
+    ...sosRecords.map((r): CalendarItem => ({ id: r.id, at: r.completedAt, icon: r.breakdown.icon, title: `SOS · ${r.breakdown.label}`, sub: r.responder.name, amount: r.total, open: () => setRecord({ kind: 'sos', record: r }) })),
+  ];
+
   const spendRows = [
-    { icon: '🛠️', label: 'ගරාජ රැකියා', count: closedJobs.length, amount: jobsSpent, color: Colors.primary },
-    { icon: '🚨', label: 'SOS සේවා', count: sosRecords.length, amount: sosSpent, color: '#ef4444' },
-    { icon: '🛍️', label: 'OnMart කොටස්', count: boughtParts.length, amount: partsSpent, color: '#f59e0b' },
+    { icon: '🛠️', label: 'ගරාජ රැකියා', count: closedJobs.length, amount: jobsSpent, color: '#8fd3ff' },
+    { icon: '🚨', label: 'SOS සේවා', count: sosRecords.length, amount: sosSpent, color: '#ffa8b4' },
+    { icon: '🛍️', label: 'OnMart කොටස්', count: boughtParts.length, amount: partsSpent, color: '#ffe08a' },
   ];
 
   return (
@@ -217,7 +297,7 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
             [
               { id: 'current', label: 'පවතින', count: ongoing.length + liveBookings.length },
               { id: 'done', label: 'සම්පූර්ණ', count: history.length + doneBookings.length + doneJobs.length + sosRecords.length },
-              { id: 'ended', label: 'අවසන්', count: endedBookings.length + cancelledJobs.length },
+              { id: 'ended', label: 'අවලංගු', count: endedBookings.length + cancelledJobs.length },
               { id: 'mart', label: 'OnMart', count: 0 },
             ] as { id: typeof kind; label: string; count: number }[]
           ).map((c) => {
@@ -227,10 +307,8 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
                 <Text style={[styles.segText, on && styles.segTextOn]} numberOfLines={1}>
                   {c.label}
                 </Text>
-                {c.count > 0 && (
-                  <View style={[styles.badge, c.id === 'done' && styles.badgeGood]}>
-                    <Text style={styles.badgeText}>{c.count}</Text>
-                  </View>
+                {c.id === 'current' && c.count > 0 && (
+                  <PopCount value={c.count} style={styles.badge} textStyle={styles.badgeText} />
                 )}
               </Pressable>
             );
@@ -240,20 +318,18 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.kindChips}>
             {(
               [
-                { id: 'bids', label: '🤝 ලංසු', count: ongoing.length },
-                { id: 'direct', label: '📅 සෘජු වෙන් කිරීම්', count: liveBookings.length },
-                { id: 'sos', label: '🚨 SOS', count: 0 },
+                { id: 'bids', label: 'ලංසු', count: ongoing.length },
+                { id: 'direct', label: 'Booking', count: liveBookings.length },
+                { id: 'sos', label: 'SOS', count: 0 },
               ] as { id: typeof currentKind; label: string; count: number }[]
             ).map((c) => {
               const on = currentKind === c.id;
               return (
                 <Pressable key={c.id} style={[styles.subChip, on && styles.kindChipOn]} onPress={() => setCurrentKind(c.id)} accessibilityLabel={`Ongoing ${c.id}`}>
-                  {on && <Text style={styles.kindChipTextOn}>✓</Text>}
+                  <SubChipIcon id={c.id} active={on} />
                   <Text style={[styles.kindChipText, on && styles.kindChipTextOn]}>{c.label}</Text>
                   {c.count > 0 && (
-                    <View style={styles.subBadge}>
-                      <Text style={styles.subBadgeText}>{c.count}</Text>
-                    </View>
+                    <PopCount value={c.count} style={styles.subBadge} textStyle={styles.subBadgeText} />
                   )}
                 </Pressable>
               );
@@ -264,21 +340,35 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.kindChips}>
             {(
               [
-                { id: 'bids', label: '🤝 ලංසු', count: doneJobs.length },
-                { id: 'direct', label: '📅 සෘජු වෙන් කිරීම්', count: doneBookings.length },
-                { id: 'sos', label: '🚨 SOS', count: sosRecords.length },
+                { id: 'bids', label: 'ලංසු', count: doneJobs.length },
+                { id: 'direct', label: 'Booking', count: doneBookings.length },
+                { id: 'sos', label: 'SOS', count: sosRecords.length },
               ] as { id: typeof doneKind; label: string; count: number }[]
             ).map((c) => {
               const on = doneKind === c.id;
               return (
                 <Pressable key={c.id} style={[styles.subChip, on && styles.kindChipOn]} onPress={() => setDoneKind(c.id)} accessibilityLabel={`Completed ${c.id}`}>
-                  {on && <Text style={styles.kindChipTextOn}>✓</Text>}
+                  <SubChipIcon id={c.id} active={on} />
                   <Text style={[styles.kindChipText, on && styles.kindChipTextOn]}>{c.label}</Text>
-                  {c.count > 0 && (
-                    <View style={styles.subBadge}>
-                      <Text style={styles.subBadgeText}>{c.count}</Text>
-                    </View>
-                  )}
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        )}
+        {kind === 'ended' && (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.kindChips}>
+            {(
+              [
+                { id: 'bids', label: 'ලංසු' },
+                { id: 'direct', label: 'Booking' },
+                { id: 'sos', label: 'SOS' },
+              ] as { id: typeof endedKind; label: string }[]
+            ).map((c) => {
+              const on = endedKind === c.id;
+              return (
+                <Pressable key={c.id} style={[styles.subChip, on && styles.kindChipOn]} onPress={() => setEndedKind(c.id)} accessibilityLabel={`Cancelled ${c.id}`}>
+                  <SubChipIcon id={c.id} active={on} />
+                  <Text style={[styles.kindChipText, on && styles.kindChipTextOn]}>{c.label}</Text>
                 </Pressable>
               );
             })}
@@ -287,8 +377,11 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
           <PinnedEdge progress={edge} />
         </View>
 
+
         {kind === 'done' && (
-          <View style={styles.spendCard} accessibilityLabel="Total spending">
+          <View style={styles.spendCard} accessibilityLabel="Total spending detail">
+            <Gradient stops={SPEND_GRADIENT} />
+            <View style={styles.spendGlow} pointerEvents="none" />
             <Text style={styles.spendCaption}>මුළු වියදම</Text>
             <Text style={styles.spendTotal}>{money(totalSpent)}</Text>
             <View style={styles.spendBar}>
@@ -329,44 +422,37 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
         {show('current') && (
           <>
 
-        {showCurrent('direct') && liveBookings.map(bookingCard)}
-        {kind === 'current' && currentKind === 'sos' ? (
-          <View style={styles.card}>
-            <EmptyState icon="🚨" title="සක්‍රීය SOS නැත" text="SOS ඉල්ලීමක් පිළිගත් විට එය මෙහි පෙන්වනු ඇත; අවසන් වූ විට ‘සම්පූර්ණ’ යටතට යයි." />
-          </View>
-        ) : ongoing.length === 0 && liveBookings.length === 0 ? (
-          <View style={styles.card}>
-            <EmptyState icon="📅" title="සක්‍රීය වෙන් කිරීම් නැත" text="ලංසුවක් පිළිගත් විට ඔබගේ වෙන් කිරීම මෙහි පෙන්වනු ඇත." />
-            <Pressable onPress={onOpenBids} style={styles.selfCenter}>
-              <Text style={styles.link}>මගේ ලංසු බලන්න →</Text>
-            </Pressable>
-          </View>
-        ) : (
-          showCurrent('bids') && ongoing.map(({ job, bid }) => bidCard(job, bid))
+        {/* Every booking that is on, together: the ones waiting for the garage first, then the confirmed ones. */}
+        {/* Each kind of ongoing work has its own empty message: a card saying what shows here and when. */}
+        {showCurrent('direct') && (liveBookings.length > 0 ? [...pendingBookings, ...activeBookings].map(bookingCard) : <EmptyState icon="📅" title="සක්‍රීය වෙන් කිරීම් නැත" text="ඔබ ගරාජයකට වෙන්කිරීමක් යැවූ විට එය මෙහි පෙන්වනු ඇත." />)}
+        {showCurrent('bids') && (ongoing.length > 0 ? ongoing.map(({ job, bid }) => bidCard(job, bid)) : <EmptyState icon="🤝" title="සක්‍රීය ලංසු නැත" text="ඔබ ලංසුවක් පිළිගත් විට එම රැකියාව මෙහි පෙන්වනු ඇත." />)}
+        {showCurrent('sos') && (
+          <EmptyState icon="🚨" title="සක්‍රීය SOS නැත" text="SOS ඉල්ලීමක් පිළිගත් විට එය මෙහි පෙන්වනු ඇත; අවසන් වූ විට ‘සම්පූර්ණ’ යටතට යයි." />
         )}
 
           </>
         )}
 
-        {show('ended') && endedBookings.map(bookingCard)}
-        {show('ended') && cancelledJobs.map(({ job, bid }) => bidCard(job, bid))}
+        {show('ended') && endedKind === 'direct' && (endedBookings.length > 0 ? endedBookings.map(bookingCard) : <EmptyState icon="📅" title="අවලංගු වෙන්කිරීම් නැත" text="අවලංගු වූ හෝ ප්‍රතික්ෂේප වූ වෙන්කිරීම් මෙහි පෙන්වනු ඇත." />)}
+        {show('ended') && endedKind === 'bids' && (cancelledJobs.length > 0 ? cancelledJobs.map(({ job, bid }) => bidCard(job, bid)) : <EmptyState icon="🤝" title="අවලංගු ලංසු නැත" text="අවලංගු වූ ලංසු රැකියා මෙහි පෙන්වනු ඇත." />)}
+        {show('ended') && endedKind === 'sos' && <EmptyState icon="🚨" title="අවලංගු SOS නැත" text="අවලංගු වූ SOS ඉල්ලීම් මෙහි පෙන්වනු ඇත." />}
 
         {kind === 'done' && doneKind === 'sos' && sosRecords.length === 0 && (
-          <View style={styles.card}>
-            <EmptyState icon="🚨" title="SOS සේවා නැත" text="සම්පූර්ණ කළ SOS සේවා මෙහි වාර්තා වේ." />
-          </View>
+          <EmptyState icon="🚨" title="SOS සේවා නැත" text="සම්පූර්ණ කළ SOS සේවා මෙහි වාර්තා වේ." />
         )}
         {showDone('sos') && sosRecords.length > 0 && (
           <>
             {sosRecords.map((r) => (
-              <Pressable key={r.id} style={[styles.card, styles.cardDone]} onPress={() => setRecord({ kind: 'sos', record: r })} accessibilityLabel={`SOS record ${r.breakdown.label}`}>
+              <SwipeCard key={r.id} style={[styles.card, styles.cardDone]} onOpen={() => setRecord({ kind: 'sos', record: r })}>
+              <Pressable style={styles.cardInner} onPress={() => setRecord({ kind: 'sos', record: r })} accessibilityLabel={`SOS record ${r.breakdown.label}`}>
                 <View style={styles.iconRow}>
                   <View style={styles.sosIcon}>
-                    <Text style={styles.sosIconText}>{r.breakdown.icon}</Text>
+                    {r.breakdown.id && BREAKDOWN_IMAGES[r.breakdown.id] ? <Image source={BREAKDOWN_IMAGES[r.breakdown.id]} style={styles.sosImage} resizeMode="contain" /> : <Text style={styles.sosIconText}>{r.breakdown.icon}</Text>}
                   </View>
                 </View>
                 <View style={styles.headRow}>
                   <Text style={styles.title}>SOS · {r.breakdown.label}</Text>
+                  <RatingLine rating={r.rating} />
                 </View>
                 <View style={styles.divider} />
                 <View style={styles.row}>
@@ -399,6 +485,7 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
                   <Text style={[styles.sub, { color: Colors.warning }]}>{'★'.repeat(r.rating)}{'☆'.repeat(5 - r.rating)}</Text>
                 </View>
               </Pressable>
+              </SwipeCard>
             ))}
           </>
         )}
@@ -408,12 +495,14 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
         {showDone('direct') && doneBookings.map(bookingCard)}
         {showDone('bids') && doneJobs.map(({ job, bid }) => bidCard(job, bid))}
         {showDone('bids') && history.map((w) => (
-          <Pressable key={w.id} style={[styles.card, styles.cardDone]} onPress={() => setRecord({ kind: 'history', workshop: w })} accessibilityLabel={`Past job ${w.title ?? categoryInfo(w.categoryId).name}`}>
+          <SwipeCard key={w.id} style={[styles.card, styles.cardDone]} onOpen={() => setRecord({ kind: 'history', workshop: w })}>
+          <Pressable style={styles.cardInner} onPress={() => setRecord({ kind: 'history', workshop: w })} accessibilityLabel={`Past job ${w.title ?? categoryInfo(w.categoryId).name}`}>
             <View style={styles.iconRow}>
-              <CategoryPhoto categoryId={w.categoryId} size={40} />
+              <CategoryPhoto categoryId={w.categoryId} size={52} />
             </View>
             <View style={styles.headRow}>
               <Text style={styles.title}>{w.title ?? categoryInfo(w.categoryId).name}</Text>
+              <RatingLine rating={w.review?.rating} onRate={() => setRating(w)} />
             </View>
             <View style={styles.divider} />
             <View style={styles.row}>
@@ -435,15 +524,21 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
               <Text style={[styles.sub, styles.flex1]} numberOfLines={1}>
                 🛡️ මාස {w.warrantyMonths} වගකීම
               </Text>
-              <Text style={styles.link}>විස්තර ›</Text>
+              <View style={styles.linkRow}>
+                <ChatButton plain size={36} target={{ id: w.id, title: w.garageName, subtitle: w.title ?? categoryInfo(w.categoryId).name, vehicle: w.vehicleId ? findVehicle(w.vehicleId) : undefined }} />
+                <Text style={styles.link}>විස්තර ›</Text>
+              </View>
             </View>
           </Pressable>
+          </SwipeCard>
         ))}
           </>
         )}
       </ScrollView>
       <OwnerDetailView target={detailTarget} onClose={() => setDetail(null)} />
       <RecordDetailView target={record} onClose={() => setRecord(null)} />
+      <RatingSheet workshop={rating} onClose={() => setRating(null)} />
+      <ActivityCalendar visible={calOpen} onClose={() => setCalOpen(false)} items={calendarItems} />
     </View>
   );
 };
@@ -490,22 +585,25 @@ const styles = themedStyles(() => StyleSheet.create({
   sectionLabel: { fontSize: 14, fontFamily: FONTS.bodyBold, color: Colors.primary, letterSpacing: 0.2, marginTop: 10 },
   // Soft shadow instead of an outline (an outline only on dark, where a shadow would not show), like Home and Bids.
   // PickMe look: a roomy white card with big round corners, no hard outline and a soft wide shadow.
-  card: { backgroundColor: Colors.bgCard, borderWidth: getThemeMode() === 'dark' ? 1 : 0, borderColor: Colors.borderColor, borderRadius: 24, padding: 18, gap: 16, shadowColor: '#0f172a', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.08, shadowRadius: 18, elevation: 3 },
+  card: { backgroundColor: Colors.bgCard, borderWidth: getThemeMode() === 'dark' ? 1 : 0, borderColor: Colors.borderColor, borderRadius: 24, padding: 16, gap: 12, shadowColor: '#0f172a', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.08, shadowRadius: 18, elevation: 3 },
   cardOngoing: {},
   // A finished job: a little tighter, and the price in green.
   cardDone: { padding: 16, gap: 12 },
-  priceDone: { color: Colors.successText },
-  spendCard: { padding: 18, borderRadius: 24, gap: 6, backgroundColor: Colors.bgCard, borderWidth: getThemeMode() === 'dark' ? 1 : 0, borderColor: Colors.borderColor, shadowColor: '#0f172a', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.08, shadowRadius: 18, elevation: 3 },
-  spendCaption: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
-  spendTotal: { fontSize: 28, fontFamily: FONTS.titleBold, color: Colors.textMain },
+  priceDone: { color: Colors.textSoft },
+  // Simple and modern: a flat card in a soft tint of the app's blue, no shadow, dark-blue figures.
+  // The detailed summary: a flat card in a soft tint of the app's blue with a thin border, dark-blue figures.
+  spendCard: { padding: 18, borderRadius: 24, gap: 6, overflow: 'hidden', backgroundColor: '#5b5ff0', shadowColor: '#5b5ff0', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.35, shadowRadius: 20, elevation: 8 },
+  spendGlow: { position: 'absolute', top: -60, right: -40, width: 170, height: 170, borderRadius: 85, backgroundColor: 'rgba(255, 255, 255, 0.12)' },
+  spendCaption: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: 'rgba(255, 255, 255, 0.85)' },
+  spendTotal: { fontSize: 30, fontFamily: FONTS.titleBold, color: '#ffffff' },
   spendBar: { flexDirection: 'row', height: 6, borderRadius: 3, overflow: 'hidden', gap: 2, marginTop: 4, marginBottom: 6 },
   spendCols: { flexDirection: 'row', gap: 12 },
   spendCol: { flex: 1, gap: 2 },
   spendLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   spendDot: { width: 7, height: 7, borderRadius: 4 },
-  spendLabel: { flex: 1, fontSize: 10.5, fontFamily: FONTS.bodyMedium, color: Colors.textMuted },
-  spendAmount: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.textMain },
-  spendCount: { fontSize: 10, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
+  spendLabel: { flex: 1, fontSize: 10.5, fontFamily: FONTS.bodyMedium, color: 'rgba(255, 255, 255, 0.85)' },
+  spendAmount: { fontSize: 13, fontFamily: FONTS.titleBold, color: '#ffffff' },
+  spendCount: { fontSize: 10, fontFamily: FONTS.bodyRegular, color: 'rgba(255, 255, 255, 0.75)' },
   segment: { flexDirection: 'row', gap: 6, marginTop: 14 },
   segItem: { flex: 1, height: 40, borderRadius: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4, overflow: 'visible', borderWidth: 1, borderColor: outline(), backgroundColor: Colors.bgCard },
   segItemOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe', borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#d2e3fc' },
@@ -522,21 +620,25 @@ const styles = themedStyles(() => StyleSheet.create({
   kindChipText: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textSoft },
   kindChipTextOn: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
   // Keeps the heading clear of the icons in the card's top right corner.
-  textClear: { paddingRight: 56 },
-  sosIcon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(239, 68, 68, 0.14)' },
+  // The tappable body of a swipeable card: it lays its rows out the way the card itself does.
+  cardInner: { gap: 12 },
+  textClear: { paddingRight: 112 },
+  sosIcon: { width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(239, 68, 68, 0.14)' },
   sosIconText: { fontSize: 22 },
+  sosImage: { width: 46, height: 46 },
   // A finished job's heading row (beside the icon in the corner), with a full-width line under it.
-  headRow: { minHeight: 40, justifyContent: 'center', paddingRight: 56 },
+  headRow: { minHeight: 52, justifyContent: 'center', paddingRight: 68 },
   divider: { height: 1, backgroundColor: getThemeMode() === 'dark' ? Colors.borderColor : '#dadce0' },
-  title: { fontSize: 14, fontFamily: FONTS.titleBold, color: Colors.textMain },
-  sub: { fontSize: 12.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 2 },
+  title: { fontSize: 15, fontFamily: FONTS.titleBold, color: Colors.textSoft, lineHeight: 22 },
+  sub: { fontSize: 12.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 2, lineHeight: 19 },
   link: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
   right: { alignItems: 'flex-end', gap: 5 },
   garageLine: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  linkRow: { flexDirection: 'row', alignItems: 'center', gap: 22 },
   iconRow: { position: 'absolute', top: 6, right: 8, zIndex: 2, flexDirection: 'row', alignItems: 'center', gap: 8 },
   // Room under the icons that sit in the card's corner.
-  rightIcons: { paddingTop: 44 },
-  price: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textMain },
+  rightIcons: { paddingTop: 56 },
+  price: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textSoft },
   kindTag: { paddingHorizontal: 10, height: 24, justifyContent: 'center', borderRadius: 12, backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe' },
   kindTagText: { fontSize: 11, fontWeight: '700', color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
   status: { paddingHorizontal: 10, height: 24, justifyContent: 'center', borderRadius: 12 },
@@ -544,3 +646,11 @@ const styles = themedStyles(() => StyleSheet.create({
   statusDone: { backgroundColor: 'rgba(16, 185, 129, 0.16)', borderWidth: 1, borderColor: 'rgba(16, 185, 129, 0.35)' },
   statusText: { fontSize: 11, fontFamily: FONTS.bodySemiBold },
 }));
+
+const ratingStyles = themedStyles(() =>
+  StyleSheet.create({
+    on: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.warning, lineHeight: 18 },
+    chip: { alignSelf: 'flex-start', marginTop: 3, paddingHorizontal: 8, height: 20, borderRadius: 10, justifyContent: 'center', backgroundColor: Colors.subtleFill },
+    chipText: { fontSize: 11, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
+  })
+);

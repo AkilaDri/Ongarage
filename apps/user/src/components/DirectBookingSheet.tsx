@@ -1,3 +1,4 @@
+import { GarageHistoryTag } from './GarageHistory';
 import React, { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import {
@@ -128,6 +129,8 @@ export const DirectBookingSheet: React.FC<{ garage: Garage | null; categoryId?: 
           </Text>
         </View>
       </View>
+      {/* Whether the owner has had work done by this garage before, and their record with it. */}
+      <GarageHistoryTag garage={shown} />
 
       <Text style={styles.label}>සේවාව</Text>
       <View style={styles.chips}>
@@ -152,7 +155,7 @@ export const DirectBookingSheet: React.FC<{ garage: Garage | null; categoryId?: 
       <Text style={styles.label}>වාහනය</Text>
       <View style={styles.chips}>
         {vehicles.map((v) => (
-          <Chip key={v.id} label={`${vehicleIcon(v.type)} ${v.name} · ${v.plate}`} on={vehicleId === v.id} onPress={() => setVehicleId(v.id)} />
+          <Chip key={v.id} label={`${v.name} · ${v.plate}`} on={vehicleId === v.id} onPress={() => setVehicleId(v.id)} />
         ))}
       </View>
 

@@ -63,6 +63,8 @@ export type ServiceCategory = {
 
 export type Bid = {
   id: string;
+  /** The bidding garage's own id: the owner's record with a garage is kept by this, not by its name. */
+  garageId?: string;
   garageName: string;
   rating: number;
   reviews: number;

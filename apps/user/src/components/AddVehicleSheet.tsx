@@ -18,7 +18,7 @@ import { Colors, themedStyles } from '@ongarage/shared';
 import { FONTS } from '@ongarage/shared';
 import { ActionButton, glassStyle } from '@ongarage/shared';
 import { useVehicles } from '../context/VehiclesContext';
-import { normalisePlate, VEHICLE_TYPES } from '@ongarage/shared';
+import { normalisePlate, VEHICLE_TYPES, VehicleIcon3D } from '@ongarage/shared';
 import type { Vehicle } from '@ongarage/shared';
 
 // Sri Lankan plates: optional province letters, 2–3 letters (or digits), dash, 4 digits.
@@ -127,7 +127,7 @@ export const AddVehicleSheet: React.FC<AddVehicleSheetProps> = ({ visible, onClo
           <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={styles.body}>
             <View style={styles.preview}>
               <Animated.View style={[styles.previewIcon, { transform: [{ scale: iconPop }] }]}>
-                <Text style={styles.previewEmoji}>{typeInfo.icon}</Text>
+                <VehicleIcon3D type={typeInfo.id} size={50} />
               </Animated.View>
               <View style={styles.flex1}>
                 <Text style={styles.previewName} numberOfLines={1}>
@@ -145,7 +145,7 @@ export const AddVehicleSheet: React.FC<AddVehicleSheetProps> = ({ visible, onClo
                 return (
                   <Pressable key={t.id} style={styles.typeItem} onPress={() => pickType(t.id)}>
                     <View style={[styles.typeTile, active && styles.typeTileActive]}>
-                      <Text style={styles.typeEmoji}>{t.icon}</Text>
+                      <VehicleIcon3D type={t.id} size={40} />
                     </View>
                     <Text style={[styles.typeLabel, active && { color: Colors.primary }]} numberOfLines={1}>
                       {t.label}
