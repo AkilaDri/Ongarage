@@ -1,16 +1,18 @@
 import React, { useEffect, useState } from 'react';
+import { pickPhotos } from '../../utils/photos';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Colors, themedStyles } from '../../theme/colors';
 import { FONTS } from '../../theme/fonts';
 import { ActionButton, softEdge, softFill, softShadow } from '../Glass';
 import { Sheet } from '../Sheet';
 import { PhotoStrip } from '../PhotoStrip';
+import { VoiceNoteField } from '../VoiceNoteField';
 import { ShopRecommender } from './ShopRecommender';
 import { suggestShops } from '../../constants/martShops';
 import { getAi } from '../../ai';
 import { linesTotal } from '../../marketplace/workshop';
 import { formatDate, formatTime, money } from '../../utils/format';
-import type { DiagnosisLine, DiagnosisReport, LatLng, PartType } from '../../types';
+import type { DiagnosisLine, DiagnosisReport, LatLng, PartType, VoiceNote } from '../../types';
 
 const HOUR = 60 * 60 * 1000;
 const PART_TYPES: PartType[] = ['Genuine', 'OEM', 'Recon'];
@@ -39,20 +41,22 @@ export const DiagnosisSheet: React.FC<{
   /** Typical price for a part (for AI-suggested and typed lines). */
   priceFor?: (name: string, type: PartType) => number;
   /** Stand-in photos until camera access in the native build. */
-  samplePhotos: string[];
   onSend: (report: DiagnosisReport) => void;
   /**
    * Extra work found during the repair: same lines and approval, but agreedPrice is the
    * current total and at least one line is needed.
    */
   extra?: boolean;
+  /** A report already sent, opened to change it: the form starts from its description, photos, voice notes and lines. */
+  initial?: DiagnosisReport;
   /** Where the garage is: shops recommended for owner-bought parts are measured from here. */
   viewerCoords?: LatLng;
   /** Garages see the referral fee shops pay; technicians do not. */
   showCommission?: boolean;
-}> = ({ visible, onClose, overlay, subject, agreedPrice, ownerPartType = 'GarageChoice', priceFor, samplePhotos, onSend, extra, viewerCoords, showCommission }) => {
+}> = ({ visible, onClose, overlay, subject, agreedPrice, ownerPartType = 'GarageChoice', priceFor, onSend, extra, initial, viewerCoords, showCommission }) => {
   const [findings, setFindings] = useState('');
   const [photos, setPhotos] = useState<string[]>([]);
+  const [voiceNotes, setVoiceNotes] = useState<VoiceNote[]>([]);
   const [lines, setLines] = useState<DiagnosisLine[]>([]);
   const [partName, setPartName] = useState('');
   const [labourName, setLabourName] = useState('');
@@ -62,14 +66,16 @@ export const DiagnosisSheet: React.FC<{
 
   useEffect(() => {
     if (!visible) return;
-    setFindings('');
-    setPhotos([]);
-    setLines([]);
+    setFindings(initial?.findings ?? '');
+    setPhotos(initial?.photos ?? []);
+    setVoiceNotes(initial?.voiceNotes ?? []);
+    setLines(initial?.lines ?? []);
     setPartName('');
     setLabourName('');
     setLabourPrice('');
-    setFinishBy(Date.now() < at(0, 15) ? at(0, 17) : at(1, 12));
+    setFinishBy(initial?.finishBy && initial.finishBy > Date.now() ? initial.finishBy : Date.now() < at(0, 15) ? at(0, 17) : at(1, 12));
     setAiNote(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);
 
   const lockedType = ownerPartType !== 'GarageChoice';
@@ -101,7 +107,8 @@ export const DiagnosisSheet: React.FC<{
   const billable = lines.filter((l) => l.source !== 'owner');
   const ownerLines = lines.filter((l) => l.kind === 'part' && l.source === 'owner');
   const total = agreedPrice + linesTotal(billable);
-  const valid = findings.trim().length >= 5 && (!extra || lines.length > 0);
+  // A voice note can stand in for the typed description: the garage records what it found instead of writing it.
+  const valid = (findings.trim().length >= 5 || voiceNotes.length > 0) && (!extra || lines.length > 0);
   const finishOptions = [
     { t: at(0, 17), label: 'අද ප.ව. 5ට' },
     { t: at(1, 12), label: 'හෙට දහවල් 12ට' },
@@ -110,18 +117,80 @@ export const DiagnosisSheet: React.FC<{
   ].filter((o) => o.t > Date.now() + HOUR);
 
   const send = () => {
-    onSend({ findings: findings.trim(), photos, lines, revisedTotal: total, finishBy, sentAt: Date.now() });
+    onSend({ findings: findings.trim(), photos, voiceNotes: voiceNotes.length ? voiceNotes : undefined, lines, revisedTotal: total, finishBy, sentAt: Date.now() });
     onClose();
   };
+
+  const renderLine = (l: DiagnosisLine) => (
+    <View key={l.id} style={styles.line}>
+      <View style={styles.rowBetween}>
+        <Text style={styles.lineName} numberOfLines={1}>
+          {l.kind === 'part' ? '🔩' : '🔧'} {l.name}
+          {l.kind === 'part' && l.qty > 1 ? ` ×${l.qty}` : ''}
+        </Text>
+        <Pressable onPress={() => setLines((prev) => prev.filter((x) => x.id !== l.id))} hitSlop={6} accessibilityLabel={`Remove ${l.name}`}>
+          <Text style={styles.remove}>✕</Text>
+        </Pressable>
+      </View>
+      <View style={styles.lineRow}>
+        {l.kind === 'part' && (
+          <>
+            <Chip label="තොගයේ" on={l.source === 'stock'} onPress={() => patch(l.id, { source: 'stock' })} />
+            <Chip label="ඇණවුම් කළ යුතුයි" on={l.source === 'order'} onPress={() => patch(l.id, { source: 'order' })} />
+            <Chip
+              label="පාරිභෝගිකයා මිලදී ගනී"
+              on={l.source === 'owner'}
+              onPress={() => patch(l.id, { source: 'owner', recommendedShopIds: l.recommendedShopIds?.length ? l.recommendedShopIds : suggestShops(l.name, l.partType ?? 'GarageChoice', viewerCoords) })}
+            />
+          </>
+        )}
+        <View style={styles.priceBox}>
+          <Text style={styles.currency}>රු.</Text>
+          <TextInput
+            style={styles.priceInput}
+            keyboardType="number-pad"
+            value={String(l.price || '')}
+            onChangeText={(t) => patch(l.id, { price: Number(t.replace(/[^0-9]/g, '')) || 0 })}
+            maxLength={7}
+            accessibilityLabel={`Price ${l.name}`}
+          />
+        </View>
+      </View>
+      {l.kind === 'part' && (
+        <View style={styles.lineRow}>
+          {lockedType ? (
+            <Text style={styles.hint}>🔒 අයිතිකරු තෝරා ඇත: {TYPE_LABEL[ownerPartType]}</Text>
+          ) : (
+            PART_TYPES.map((t) => <Chip key={t} label={t} on={l.partType === t} onPress={() => patch(l.id, { partType: t, price: price(l.name, t) * l.qty || l.price })} small />)
+          )}
+        </View>
+      )}
+      {l.kind === 'part' && (
+        <PhotoStrip
+          photos={l.photos ?? []}
+          height={44}
+          onAdd={(l.photos?.length ?? 0) < 4 ? () => void pickPhotos(4 - (l.photos?.length ?? 0)).then((ph) => ph.length && patch(l.id, { photos: [...(l.photos ?? []), ...ph] })) : undefined}
+          addLabel="📷 කොටසේ ඡායාරූපය"
+        />
+      )}
+      {l.kind === 'part' && l.source === 'owner' && (
+        <View style={styles.ownerBox}>
+          <TextInput style={styles.input} value={l.partNo ?? ''} onChangeText={(t) => patch(l.id, { partNo: t || undefined })} placeholder="කොටස් අංකය (ඇත්නම්)" placeholderTextColor={Colors.textMuted} autoCapitalize="characters" accessibilityLabel={`Part number ${l.name}`} />
+          <Text style={styles.hint}>ගනුදෙනුකරු මෙය OnMart හි මිලදී ගනී — ඔබගේ බිලට එක් නොවේ; මිල වෙළඳසැලට ගෙවයි. ඔබ නිර්දේශ කරන වෙළඳසැල්:</Text>
+          <ShopRecommender name={l.name} partType={l.partType ?? 'GarageChoice'} coords={viewerCoords} value={l.recommendedShopIds ?? []} onChange={(ids) => patch(l.id, { recommendedShopIds: ids })} showCommission={showCommission} />
+        </View>
+      )}
+    </View>
+  );
 
   return (
     <Sheet
       visible={visible}
-      title={extra ? 'අමතර වැඩ — අයිතිකරුගේ අනුමැතියට' : 'පරීක්ෂා වාර්තාව'}
+      title={`${extra ? 'අමතර වැඩ — අයිතිකරුගේ අනුමැතියට' : 'පරීක්ෂා වාර්තාව'}${initial ? ' · සංස්කරණය' : ''}`}
       subtitle={`${subject.title} · ${subject.vehicle}`}
       onClose={onClose}
       overlay={overlay}
-      footer={<ActionButton label={`අයිතිකරුගේ අනුමැතියට යවන්න · ${money(total)}`} icon="📨" variant="primary" disabled={!valid} onPress={send} />}
+      footer={<ActionButton label={`${initial ? 'වෙනස්කම් සුරකින්න' : 'අයිතිකරුගේ අනුමැතියට යවන්න'} · ${money(total)}`} icon="📨" variant="primary" disabled={!valid} onPress={send} />}
     >
       {extra && <Text style={styles.hint}>අලුත්වැඩියාව අතරතුර හමු වූ දෙයක්: අයිතිකරු අනුමත කරන තුරු මෙම කොටස් ඇණවුම් කරන්න හෝ වැඩ කරන්න එපා. පිළිතුර ලැබෙන තුරු භාරදීම නතර වේ.</Text>}
       <Text style={styles.label}>{extra ? 'හමු වූ දේ සහ හේතුව' : 'සොයා ගත් දේ'}</Text>
@@ -134,7 +203,9 @@ export const DiagnosisSheet: React.FC<{
         multiline
         accessibilityLabel="Diagnosis findings"
       />
-      <PhotoStrip photos={photos} height={76} onAdd={photos.length < 6 ? () => setPhotos((p) => [...p, samplePhotos[p.length % samplePhotos.length]]) : undefined} addLabel="ඡායාරූපයක්" />
+      <PhotoStrip photos={photos} height={76} onAdd={photos.length < 6 ? () => void pickPhotos(6 - photos.length).then((ph) => ph.length && setPhotos((p) => [...p, ...ph])) : undefined} addLabel="ඡායාරූපයක්" />
+
+      <VoiceNoteField notes={voiceNotes} onChange={setVoiceNotes} />
 
       <View style={styles.rowBetween}>
         <Text style={styles.label}>කොටස් සහ වැඩ</Text>
@@ -144,59 +215,10 @@ export const DiagnosisSheet: React.FC<{
       </View>
       {!!aiNote && <Text style={styles.hint}>{aiNote}</Text>}
 
-      {lines.map((l) => (
-        <View key={l.id} style={styles.line}>
-          <View style={styles.rowBetween}>
-            <Text style={styles.lineName} numberOfLines={1}>
-              {l.kind === 'part' ? '🔩' : '🔧'} {l.name}
-              {l.kind === 'part' && l.qty > 1 ? ` ×${l.qty}` : ''}
-            </Text>
-            <Pressable onPress={() => setLines((prev) => prev.filter((x) => x.id !== l.id))} hitSlop={6} accessibilityLabel={`Remove ${l.name}`}>
-              <Text style={styles.remove}>✕</Text>
-            </Pressable>
-          </View>
-          <View style={styles.lineRow}>
-            {l.kind === 'part' && (
-              <>
-                <Chip label="තොගයේ" on={l.source === 'stock'} onPress={() => patch(l.id, { source: 'stock' })} />
-                <Chip label="ඇණවුම් කළ යුතුයි" on={l.source === 'order'} onPress={() => patch(l.id, { source: 'order' })} />
-                <Chip
-                  label="පාරිභෝගිකයා මිලදී ගනී"
-                  on={l.source === 'owner'}
-                  onPress={() => patch(l.id, { source: 'owner', recommendedShopIds: l.recommendedShopIds?.length ? l.recommendedShopIds : suggestShops(l.name, l.partType ?? 'GarageChoice', viewerCoords) })}
-                />
-              </>
-            )}
-            <View style={styles.priceBox}>
-              <Text style={styles.currency}>රු.</Text>
-              <TextInput
-                style={styles.priceInput}
-                keyboardType="number-pad"
-                value={String(l.price || '')}
-                onChangeText={(t) => patch(l.id, { price: Number(t.replace(/[^0-9]/g, '')) || 0 })}
-                maxLength={7}
-                accessibilityLabel={`Price ${l.name}`}
-              />
-            </View>
-          </View>
-          {l.kind === 'part' && (
-            <View style={styles.lineRow}>
-              {lockedType ? (
-                <Text style={styles.hint}>🔒 අයිතිකරු තෝරා ඇත: {TYPE_LABEL[ownerPartType]}</Text>
-              ) : (
-                PART_TYPES.map((t) => <Chip key={t} label={t} on={l.partType === t} onPress={() => patch(l.id, { partType: t, price: price(l.name, t) * l.qty || l.price })} small />)
-              )}
-            </View>
-          )}
-          {l.kind === 'part' && l.source === 'owner' && (
-            <View style={styles.ownerBox}>
-              <TextInput style={styles.input} value={l.partNo ?? ''} onChangeText={(t) => patch(l.id, { partNo: t || undefined })} placeholder="කොටස් අංකය (ඇත්නම්)" placeholderTextColor={Colors.textMuted} autoCapitalize="characters" accessibilityLabel={`Part number ${l.name}`} />
-              <Text style={styles.hint}>ගනුදෙනුකරු මෙය OnMart හි මිලදී ගනී — ඔබගේ බිලට එක් නොවේ; මිල වෙළඳසැලට ගෙවයි. ඔබ නිර්දේශ කරන වෙළඳසැල්:</Text>
-              <ShopRecommender name={l.name} partType={l.partType ?? 'GarageChoice'} coords={viewerCoords} value={l.recommendedShopIds ?? []} onChange={(ids) => patch(l.id, { recommendedShopIds: ids })} showCommission={showCommission} />
-            </View>
-          )}
-        </View>
-      ))}
+      {lines.some((l) => l.kind === 'part') && <Text style={styles.groupHead}>{extra ? '🔩 අමතර කොටස්' : '🔩 කොටස්'}</Text>}
+      {lines.filter((l) => l.kind === 'part').map(renderLine)}
+      {lines.some((l) => l.kind === 'labour') && <Text style={styles.groupHead}>{extra ? '🔧 අමතර වැඩ' : '🔧 වැඩ'}</Text>}
+      {lines.filter((l) => l.kind === 'labour').map(renderLine)}
 
       <View style={styles.addRow}>
         <TextInput style={[styles.input, styles.flex1]} value={partName} onChangeText={setPartName} placeholder="කොටසක් (උදා: Brake pads (front))" placeholderTextColor={Colors.textMuted} accessibilityLabel="New part name" />
@@ -265,6 +287,7 @@ const styles = themedStyles(() =>
     flex1: { flex: 1, minWidth: 0 },
     ownerBox: { gap: 8 },
     rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+    groupHead: { fontSize: 13.5, fontFamily: FONTS.titleBold, color: Colors.textMain, marginTop: 6 },
     label: { fontSize: 13.5, fontFamily: FONTS.titleBold, color: Colors.textMain, marginTop: 6 },
     hint: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 16 },
     link: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: Colors.primary },

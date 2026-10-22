@@ -1,3 +1,4 @@
+import { outline } from '../utils/material';
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Colors, FONTS, themedStyles, softEdge, softShadow } from '@ongarage/shared';
@@ -6,7 +7,7 @@ import { useGarage } from '../context/GarageContext';
 // A small dashboard for the Garage tab: the numbers a garage owner glances at to see how the garage is doing.
 export const DashboardTiles: React.FC<{ onReviews: () => void; onLevel: () => void }> = ({ onReviews, onLevel }) => {
   const { rating, trust, level, bookings, directs, activeJobs, reviews } = useGarage();
-  const upcoming = bookings.filter((b) => b.status !== 'completed').length;
+  const upcoming = bookings.filter((b) => b.status !== 'completed' && b.status !== 'cancelled').length;
   const waiting = directs.filter((d) => d.status === 'new').length;
   const unanswered = reviews.filter((r) => !r.reply).length;
   return (
@@ -39,7 +40,7 @@ const Tile: React.FC<{ icon: string; iconColor?: string; value: string; label: s
 const styles = themedStyles(() =>
   StyleSheet.create({
     grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-    tile: { width: '48.5%', flexGrow: 1, borderRadius: 20, padding: 14, gap: 2, borderWidth: 1, borderColor: softEdge(), backgroundColor: Colors.bgCard, ...softShadow() },
+    tile: { width: '48.5%', flexGrow: 1, borderRadius: 20, padding: 14, gap: 2, borderWidth: 1, borderColor: outline(), backgroundColor: Colors.bgCard, ...softShadow() },
     valueRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     icon: { fontSize: 18 },
     value: { fontSize: 22, fontFamily: FONTS.titleBold, color: Colors.textMain },

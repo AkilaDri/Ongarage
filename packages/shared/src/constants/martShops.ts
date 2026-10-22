@@ -2,6 +2,8 @@ import type { LatLng, PartType, ShopListing, ShopStats } from '../types';
 import { partMarketPrice } from '../marketplace/partPrices';
 import { PART_CATEGORY } from '../marketplace/partsMart';
 import { distanceKm } from '../utils/geo';
+import { fitmentFor, type Fit } from './martFitment';
+import { catalogueFromTemplates } from '../marketplace/partsCatalogue';
 
 // The OnMart shop directory every app agrees on (a backend will serve it). Shops are shared by
 // id and name: ps1 is the parts app's own shop ("Galle Auto Parts"); ps1–ps5 are the shops the
@@ -80,7 +82,9 @@ const shops: ShopInput[] = [
 const round1 = (n: number) => Math.round(n * 10) / 10;
 
 /** Every shop, with distances from the middle of Galle. */
-export const MART_SHOPS: ShopListing[] = shops.map((s) => ({ ...s, distanceKm: round1(distanceKm(GALLE, s.coords)) }));
+// The directory shops have a catalogue too (ps1 is the parts app's own shop, which builds its catalogue when it sets up).
+const catalogueFor = (s: { id: string }) => (s.id === 'ps1' ? undefined : catalogueFromTemplates(s.id === 'ps8' ? ['japanese', 'european'] : ['japanese']));
+export const MART_SHOPS: ShopListing[] = shops.map((s) => ({ ...s, distanceKm: round1(distanceKm(GALLE, s.coords)), catalogue: s.catalogue ?? catalogueFor(s) }));
 
 /** The shops as seen from `coords` (nearest first). */
 export const shopsNear = (coords: LatLng, list: ShopListing[] = MART_SHOPS): ShopListing[] =>
@@ -92,7 +96,7 @@ export const martShop = (id: string) => MART_SHOPS.find((s) => s.id === id);
 // What each shop shows buyers as in stock. A shop with liveStock keeps this current from its
 // own app; the rest answer "do you have it?" when asked.
 
-export type ShopStockLine = { name: string; partType: Kind; price: number; qty: number; brand?: string };
+export type ShopStockLine = { name: string; partType: Kind; price: number; qty: number; brand?: string; partNo?: string; fits?: Fit[] };
 
 const round50 = (n: number) => Math.round(n / 50) * 50;
 
@@ -153,6 +157,9 @@ export const MART_STOCK: Record<string, ShopStockLine[]> = {
     ['Alternator', 'Recon', 5], ['Starter motor', 'Recon', 4], ['Brake disc', 'Recon', 6], ['Radiator', 'Recon', 3], ['Headlight', 'Recon', 5], ['Fuel pump', 'Recon', 2],
   ]),
 };
+
+// Every line carries its part number and the vehicles it fits.
+for (const lines of Object.values(MART_STOCK)) for (const l of lines) Object.assign(l, fitmentFor(l.name, l.partType, l.brand));
 
 /**
  * The cheapest in-stock line a shop shows for a part (any type when GarageChoice), or undefined

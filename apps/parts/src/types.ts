@@ -1,4 +1,4 @@
-import type { LatLng, PartBrief, PartEnquiry, PartPurchase, PartQuote, PartsGarage, PartsRequest, PartsShop, PartType, ShopOffer } from '@ongarage/shared';
+import type { LatLng, ShopCatalogue, PartBrief, PartEnquiry, PartPurchase, PartQuote, PartsGarage, PartsRequest, PartsShop, PartType, ShopOffer } from '@ongarage/shared';
 
 // Shop-side views of the parts records the garage app creates (see the shared
 // PartsRequest / PartQuote / PartsOrder contract). When a backend exists these are
@@ -83,7 +83,9 @@ export type ShopProfile = PartsShop & {
   staff: DeliveryStaff[];
   /** % of parts value paid to a garage that sent a customer here (0–5); owners are told before they choose. */
   referralPercent: number;
-  /** Stock is published live to buyers in OnMart. */
+  /** What the shop sells and for which vehicles: buyers' searches are matched against it (set up on first launch). */
+  catalogue?: ShopCatalogue;
+  /** An optional price list is published live to buyers in OnMart. */
   liveStock: boolean;
 };
 

@@ -63,12 +63,17 @@ export type ServiceCategory = {
 
 export type Bid = {
   id: string;
+  /** The bidding garage's own id: the owner's record with a garage is kept by this, not by its name. */
+  garageId?: string;
   garageName: string;
   rating: number;
   reviews: number;
   distanceKm: number;
   coords: LatLng;
+  /** What the owner pays in total: the work, plus `travelFee` when the garage is far away. */
   price: number;
+  /** A far garage's travel compensation, already included in `price` (see marketplace/travel.ts); the owner sees such a bid marked. */
+  travelFee?: number;
   warrantyMonths: number;
   estHours: number;
   submittedAt: number;
@@ -77,6 +82,9 @@ export type Bid = {
 
 /** A voice note the owner recorded for a job; uri is set once real recording exists. */
 export type VoiceNote = { id: string; durationSec: number; uri?: string };
+
+/** A parts-fitting job: the part to fit, and whether the owner brings it or the garage supplies it. */
+export type PartsFitting = { partName: string; supply: 'owner' | 'garage' };
 
 export type RepairJob = {
   id: string;
@@ -93,9 +101,11 @@ export type RepairJob = {
   coords: LatLng;
   bids: Bid[];
   acceptedBidId?: string;
+  /** Parts Fitting jobs (category 15): the part to fit and who supplies it. */
+  fitting?: PartsFitting;
 };
 
-export type JobDraft = Pick<RepairJob, 'categoryId' | 'description' | 'vehicleId'> & { replacesJobId?: string };
+export type JobDraft = Pick<RepairJob, 'categoryId' | 'description' | 'vehicleId'> & { replacesJobId?: string; fitting?: PartsFitting };
 
 export type BreakdownType =
   | 'Tyre Puncture'
@@ -160,6 +170,8 @@ export type PartsRequest = {
   forLineIds?: string[];
   /** A photo of the old part is attached (shops identify parts far better with it). */
   oldPartPhoto?: boolean;
+  /** Photos of the part wanted (the worn part, the damage, a part number plate). */
+  photos?: string[];
   createdAt: number;
   /** Shops can quote until this time. */
   quoteUntil: number;
@@ -362,6 +374,8 @@ export type DiagnosisLine = {
   recommendedShopIds?: string[];
   /** Estimated price for the whole line (LKR). */
   price: number;
+  /** Parts: photos of this part (the worn one, the damage), so the owner sees what is meant. */
+  photos?: string[];
 };
 
 export type DiagnosisReport = {
@@ -376,12 +390,48 @@ export type DiagnosisReport = {
 };
 
 /** The owner's answer: approve all, some lines, or decline. */
-export type OwnerDecision = { approvedLineIds: string[]; declinedLineIds: string[]; decidedAt: number };
+export type OwnerDecision = {
+  approvedLineIds: string[];
+  declinedLineIds: string[];
+  decidedAt: number;
+  /** In the owner's app (default), told by phone to the garage / technician (no code), or left for later because the owner couldn't be reached. */
+  via?: 'app' | 'phone' | 'deferred';
+};
 
 /** Work found mid-repair; same approval rule as the diagnosis. */
-export type ExtraWorkRequest = { id: string; reason: string; photos?: string[]; lines: DiagnosisLine[]; sentAt: number; decision?: OwnerDecision };
+export type ExtraWorkRequest = {
+  id: string;
+  reason: string;
+  photos?: string[];
+  voiceNotes?: VoiceNote[];
+  lines: DiagnosisLine[];
+  sentAt: number;
+  decision?: OwnerDecision;
+  /** The owner couldn't be reached: the job waits (free for the garage) until they answer or the garage picks another way. */
+  waitingSince?: number;
+};
+
+/** What kind of routine service was done. */
+export type ServiceKind = 'full' | 'oil' | 'fluids';
+export type ServiceFluid = 'engineOil' | 'transmission' | 'brakeFluid' | 'powerSteering';
+
+/** The record of a routine service, written by the garage at handover: what was done, the mileage and the next service. */
+export type ServiceDetails = {
+  kind: ServiceKind;
+  /** The fluids that were changed. */
+  fluids: ServiceFluid[];
+  /** The odometer reading when the vehicle came in. */
+  mileageKm: number;
+  nextServiceKm?: number;
+  /** When the next service is due (the owner is reminded before it). */
+  nextServiceAt?: number;
+  /** Anything else worth keeping (filters changed, tyre pressures, advice). */
+  notes?: string;
+};
 
 export type HandoverReport = {
+  /** Routine service only: what was done, the mileage and the next service (the garage fills this in). */
+  service?: ServiceDetails;
   checklist: { label: string; done: boolean }[];
   beforePhotos?: string[];
   afterPhotos?: string[];
@@ -422,10 +472,104 @@ export type ReconRequest = {
 };
 
 /** Everything that happened on one workshop job; the garage, owner and technician apps all read it. */
+/** The owner cancelled a job with the garage they chose: why, an optional note, and how they rated the garage so far (1-5). */
+/**
+ * What was paid for a closed job. Closing with the owner's code says the work was handed over, not that it was paid: when the garage closes the job it records what it
+ * actually received; if that is less than the bill, the rest is a balance the owner promised to pay by a date. The owner confirms the record (or disputes it).
+ * The money itself never moves through the app.
+ */
+export type JobPayment = {
+  /** The bill (labour and parts). */
+  total: number;
+  received: number;
+  balance: number;
+  status: 'paid' | 'partial';
+  /** When the owner promised to pay the balance. */
+  promisedAt?: number;
+  note?: string;
+  recordedAt: number;
+  /** The owner's answer to the garage's record: a full payment needs none (confirmed from the start). */
+  confirm: 'pending' | 'confirmed' | 'disputed';
+  disputeNote?: string;
+  decidedAt?: number;
+  /** How many times the garage said the promised payment did not arrive. */
+  missedCount?: number;
+  /** Set when the garage said it did not arrive, until the customer names a new day. */
+  missedAt?: number;
+  /** The customer says they paid; the garage confirms (the money is then received) or denies it. */
+  claim?: { amount: number; at: number; status: 'pending' | 'confirmed' | 'denied' };
+  /** Payments received after the first record. */
+  installments?: { amount: number; at: number }[];
+};
+
+/** What a garage says about a customer after a closed job: stars and fixed reasons (not free-form accusations), an optional short note. */
+export type CustomerTag = 'paidOnTime' | 'polite' | 'onTime' | 'clearBrief' | 'paidLate' | 'unpaid' | 'noShow' | 'rude';
+
+export type CustomerRating = {
+  id: string;
+  jobId: string;
+  /** The garage that rated (the customer sees it; other garages do not). */
+  garage: string;
+  stars: number;
+  tags: CustomerTag[];
+  note?: string;
+  at: number;
+  /** The customer's answer, shown with the rating. */
+  reply?: { text: string; at: number };
+  /** The customer disputes it: until it is settled the rating does not count in the public record. */
+  dispute?: { note: string; at: number; status: 'open' | 'upheld' | 'withdrawn' };
+};
+
+/** The record other garages see for a customer: made from their payments and the ratings garages gave. */
+export type CustomerRecord = {
+  level: 'new' | 'good' | 'fair' | 'poor';
+  jobs: number;
+  paidInFull: number;
+  paidLate: number;
+  unpaid: number;
+  owed: number;
+  rated: number;
+  avgStars?: number;
+  topTags: { tag: CustomerTag; count: number }[];
+  /** Ratings left out while the customer's dispute is open. */
+  disputed: number;
+};
+
+/** The owner asks the garage to fit another part to the vehicle while a job runs; the garage accepts it (and quotes it as extra work) or declines with a reason. */
+export type PartFitRequest = {
+  id: string;
+  partName: string;
+  supply: 'owner' | 'garage';
+  note?: string;
+  status: 'requested' | 'accepted' | 'declined';
+  requestedAt: number;
+  decidedAt?: number;
+  declineReason?: string;
+  /** A part the customer brings (supply "owner"): when the garage confirmed it received it (handed over with the vehicle). */
+  partReceivedAt?: number;
+};
+
+/** The owner's request to cancel a job in progress: the garage answers it with its compensation for the work done so far, then the owner decides. */
+export type CancelRequest = {
+  status: 'requested' | 'quoted';
+  requestedAt: number;
+  reason: string;
+  note?: string;
+  /** The garage's answer: what it charges (LKR) for the work done so far, and what that covers. */
+  compensation?: number;
+  workDone?: string;
+  quotedAt?: number;
+};
+
+/** A job the owner cancelled (the garage approved and the owner accepted its compensation): why, a note, how they rated the garage, and what they owe it. */
+export type JobCancellation = { at: number; by: 'owner'; reason: string; note?: string; rating?: number; compensation?: number; workDone?: string; /** What it cost, as the owner was told. */ feeNote?: string };
+
 export type WorkshopProgress = {
   stage: WorkshopStage;
   checkInPhotos?: string[];
   receivedAt?: number;
+  /** The owner confirmed (in their app) that they really handed the vehicle over, after the garage said it had received it. */
+  handoverConfirmedAt?: number;
   diagnosis?: DiagnosisReport;
   decision?: OwnerDecision;
   extras?: ExtraWorkRequest[];
@@ -445,6 +589,16 @@ export type WorkshopProgress = {
   protected?: boolean;
   /** The owner's OnGarage Guarantee claim, if any. */
   guaranteeClaim?: GuaranteeClaim;
+  /** Requests to fit another part (the owner's "fit a new part"), answered by the garage. */
+  fitRequests?: PartFitRequest[];
+  /** What was paid once the job closed (see JobPayment); missing until the garage records it. */
+  payment?: JobPayment;
+  /** The garage's rating of the customer (see marketplace/customerRating.ts); one per closed job. */
+  customerRating?: CustomerRating;
+  /** The owner asked to cancel the job and waits for the garage's compensation (see marketplace/cancel.ts); the work is on hold. */
+  cancelRequest?: CancelRequest;
+  /** The owner cancelled the job before handover: the work stops (see marketplace/cancel.ts). */
+  cancelled?: JobCancellation;
 };
 
 // ---------- Trust, levels and fair share ----------
@@ -551,6 +705,10 @@ export type ShopStats = {
   ordersDone: number;
   /** Price against the market reference (1 = list price; lower is cheaper). */
   priceLevel: number;
+  /** Share of its "have it" answers the buyer confirmed (0–1): the catalogue-era counterpart of stockAccuracy. */
+  answerAccuracy?: number;
+  /** How many "have it" answers that share is measured over. */
+  answersDone?: number;
 };
 
 /** A shop as buyers see it in OnMart. */
@@ -570,6 +728,8 @@ export type ShopListing = PartsShop & {
   stats: ShopStats;
   /** Referral commission the shop offers garages, % of parts value (never shown in rankings). */
   referralPercent?: number;
+  /** The kinds of part it sells and for which vehicles (no live stock needed): what searches are matched against. */
+  catalogue?: ShopCatalogue;
 };
 
 /** The job a part is bought for, and who recommended where to buy it. */
@@ -589,8 +749,16 @@ export type PartEnquiry = {
   briefs: PartBrief[];
   audience: MartAudience;
   ring: SearchRing;
+  /** The exact search radius the owner chose on the map (km); without it the ring decides (past 50 km: every shop in the country). */
+  radiusKm?: number;
   coords: LatLng;
   jobRef?: JobPartsRef;
+  /** Requests asked together (a job's parts, a service kit) share a batch: they are read as one group (marketplace/partsBatch.ts); each part is still answered on its own. */
+  batchId?: string;
+  batchTitle?: string;
+  /** This part's place in its basket (0-based) and how many parts the basket has. */
+  batchIndex?: number;
+  batchSize?: number;
   createdAt: number;
   /** Shops can answer until this time. */
   quoteUntil: number;
@@ -603,6 +771,10 @@ export type ShopOffer = {
   enquiryId: string;
   briefId: string;
   shop: PartsShop;
+  /** What the shop answered: have it, don't, or will check (older offers carry only `available`). */
+  reply?: ShopReplyKind;
+  /** The neighbour shops it points the buyer to (PartsShop ids), when it does not have the part. */
+  suggestedShopIds?: string[];
   available: boolean;
   partType: Exclude<PartType, 'GarageChoice'>;
   brand?: string;
@@ -622,6 +794,8 @@ export type ShopOffer = {
   dealPercent?: number;
   wasUnitPrice?: number;
   at: number;
+  /** "Will check": the time the shop promised to answer by (finding a part takes time, and that is the shop's to ask for, not the buyer's to wait out). */
+  checkUntil?: number;
 };
 
 export type PartPurchaseStatus = 'reserved' | 'bought' | 'rejected' | 'released' | 'returned';
@@ -646,6 +820,8 @@ export type PartPurchase = {
   /** Last day the part can be brought back. */
   returnBy?: number;
   jobRef?: JobPartsRef;
+  /** Parts of one basket reserved together at one shop share a group, and so one purchase code; each part is still inspected and paid on its own. */
+  groupId?: string;
 };
 
 export type ReferralStatus = 'recommended' | 'viewed' | 'reserved' | 'purchased' | 'fitted' | 'returned' | 'lapsed';
@@ -685,15 +861,28 @@ export type ReferralStatement = {
 
 export type PartsQuickAsk = 'available' | 'price' | 'fits' | 'holdIt' | 'photo' | 'delivery';
 
+/** The chat between a vehicle owner and a garage about one job. */
+export type ChatSide = 'owner' | 'garage' | 'shop' | 'tech';
+/** A parts shop tagged in a chat message ("@Galle Auto Parts"): tapping it goes to that shop in OnMart. */
+export type ChatShopTag = { id: string; name: string };
+
+export type ChatMessage = { id: string; from: ChatSide; /** Parts shops tagged in the text (each appears in the text as "@name"). */ shops?: ChatShopTag[]; text?: string; photos?: string[]; /** Voice notes (a recorded description instead of typing). */ voiceNotes?: VoiceNote[]; at: number; /** The sender changed the text after sending it. */ edited?: boolean; /** The sender took it back: its text and photos are gone. */ deleted?: boolean; /** A note the app puts in the chat (the job's record), shown in the middle, not as a bubble. */ record?: boolean; /** A line the app writes into the chat as the job goes on (a step done, a part, a call): shown in the middle, not as a bubble. */ update?: boolean; /** The message carries a report (the diagnosis, extra work, the handover): a chip under it opens that report. */ report?: { kind: 'diagnosis' | 'extra' | 'handover'; id?: string } };
+
 export type PartsMessage = {
   id: string;
   from: 'buyer' | 'shop';
   quick?: PartsQuickAsk;
   text?: string;
   photos?: string[];
+  /** A recorded description instead of typing (the same voice notes as in OnChat). */
+  voiceNotes?: VoiceNote[];
   at: number;
   /** The off-platform check flagged a phone number or payment move. */
   flagged?: boolean;
+  /** The sender changed the text after sending it. */
+  edited?: boolean;
+  /** The sender took it back: its text and photos are gone. */
+  deleted?: boolean;
 };
 
 /** A conversation between a buyer and one shop about one enquiry. */
@@ -720,3 +909,51 @@ export type ShopDeal = { id: string; shopId: string; partName: string; partType:
 
 /** A round icon on the landing page's part strip (the service-category photo, and the search it opens). */
 export type PartGroup = { id: string; name: string; emoji: string; serviceCategoryId: string; query: string };
+
+
+// ---------- OnMart catalogue (a shop says what it sells, not what it has) ----------
+
+export type VehicleKind = 'car' | 'commercial' | 'bike' | 'threewheeler';
+
+/** A group of part kinds (Brakes, Lights…); `serviceCategoryId` is the SERVICE_CATEGORIES id it belongs to. */
+export type PartTaxonomyGroup = { id: string; name: string; si: string; icon: string; serviceCategoryId: string };
+
+/** One kind of part a shop can say it sells, with the words a buyer may type for it and its variants (Halogen / LED…). */
+export type PartTaxonomyPart = { id: string; groupId: string; name: string; si: string; words: string[]; variants?: string[] };
+
+/** A vehicle a part is sold for: a make, optionally narrowed to models and to chassis / model codes (NZE141). */
+export type CatalogueVehicleTag = { make: string; models?: string[]; codes?: string[] };
+
+/**
+ * One line of a shop's catalogue: a part kind (or, with no `partId`, every part of the group), the vehicles it sells it for
+ * (empty = any vehicle), the brands and part types it deals in.
+ */
+export type ShopCatalogueEntry = {
+  id: string;
+  groupId: string;
+  partId?: string;
+  vehicles: CatalogueVehicleTag[];
+  brands: string[];
+  partTypes: Exclude<PartType, 'GarageChoice'>[];
+  /** Variants it deals in (e.g. LED headlights), when the part kind has variants. */
+  variants?: string[];
+  note?: string;
+  addedAt: number;
+};
+
+export type ShopCatalogue = ShopCatalogueEntry[];
+
+/** What a buyer is looking for, to be matched against shops' catalogues. */
+export type CatalogueQuery = {
+  partId?: string;
+  groupId?: string;
+  vehicle?: { make?: string; model?: string; code?: string; year?: number };
+  partType?: PartType;
+  brand?: string;
+};
+
+/** How a catalogue covers a query: how close the vehicle fit is, whether it was the part or its whole group, and the entry. */
+export type CatalogueMatch = { tier: 'exact' | 'model' | 'make' | 'any'; scope: 'part' | 'group'; entry: ShopCatalogueEntry };
+
+/** A shop's answer to a request: it has the part, it has not, or it will check and say. */
+export type ShopReplyKind = 'have' | 'none' | 'check';

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { pickPhotos } from '../../utils/photos';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Colors, themedStyles } from '../../theme/colors';
 import { FONTS } from '../../theme/fonts';
@@ -6,6 +7,8 @@ import { ActionButton, softEdge, softFill, softShadow } from '../Glass';
 import { Sheet } from '../Sheet';
 import { PhotoStrip } from '../PhotoStrip';
 import { STANDARD_HANDOVER_CHECKS } from '../../marketplace/workshop';
+import { fluidFromSub, kindFromSub } from '../../marketplace/service';
+import { ServiceRecordFields, emptyServiceForm, toServiceDetails, type ServiceFormValue } from './ServiceRecordFields';
 import { money } from '../../utils/format';
 import type { DiagnosisLine, HandoverReport } from '../../types';
 
@@ -21,32 +24,39 @@ export const HandoverSheet: React.FC<{
   bill: { labour: number; parts: number; total: number };
   /** Check-in photos, shown as "before". */
   beforePhotos?: string[];
-  samplePhotos: string[];
   /** Ordered parts haven't been checked in yet. */
   partsPending?: boolean;
   /** Anything else that must happen first (e.g. the owner still deciding on extra work). */
   blockedReason?: string;
   onSubmit: (report: HandoverReport) => void;
-}> = ({ visible, onClose, overlay, lines, bill, beforePhotos = [], samplePhotos, partsPending, blockedReason, onSubmit }) => {
+  /**
+   * A routine service (the Service category): the form also asks for what was done, the mileage and the next service. The
+   * booked sub-service picks the starting answers; the last mileage on record is the starting reading.
+   */
+  serviceForm?: { subService?: string; lastMileageKm?: number };
+}> = ({ visible, onClose, overlay, lines, bill, beforePhotos = [], partsPending, blockedReason, onSubmit, serviceForm }) => {
   const checks = [...lines.map((l) => (l.kind === 'part' ? `${l.name}${l.qty > 1 ? ` ×${l.qty}` : ''} සවි කළා` : `${l.name} කළා`)), ...STANDARD_HANDOVER_CHECKS];
   const [done, setDone] = useState<boolean[]>([]);
   const [after, setAfter] = useState<string[]>([]);
   const [oldParts, setOldParts] = useState(true);
   const hasParts = lines.some((l) => l.kind === 'part');
+  const [svc, setSvc] = useState<ServiceFormValue>(() => emptyServiceForm());
 
   useEffect(() => {
     if (!visible) return;
     setDone(checks.map(() => false));
     setAfter([]);
     setOldParts(true);
+    if (serviceForm) setSvc(emptyServiceForm(kindFromSub(serviceForm.subService), fluidFromSub(serviceForm.subService), serviceForm.lastMileageKm));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);
 
   const allDone = done.length === checks.length && done.every(Boolean);
-  const valid = allDone && after.length > 0 && !partsPending && !blockedReason;
+  const serviceDone = !serviceForm || !!toServiceDetails(svc);
+  const valid = allDone && after.length > 0 && !partsPending && !blockedReason && serviceDone;
 
   const submit = () => {
-    onSubmit({ checklist: checks.map((label, i) => ({ label, done: !!done[i] })), beforePhotos, afterPhotos: after, oldPartsKept: hasParts && oldParts, bill, readyAt: Date.now() });
+    onSubmit({ service: serviceForm ? toServiceDetails(svc) : undefined, checklist: checks.map((label, i) => ({ label, done: !!done[i] })), beforePhotos, afterPhotos: after, oldPartsKept: hasParts && oldParts, bill, readyAt: Date.now() });
     onClose();
   };
 
@@ -60,6 +70,8 @@ export const HandoverSheet: React.FC<{
       footer={<ActionButton label={`භාරදීමට සූදානම් ලෙස දන්වන්න · ${money(bill.total)}`} icon="✓" variant="success" disabled={!valid} onPress={submit} />}
     >
       {!!blockedReason && <Text style={styles.warn}>⚠️ {blockedReason}</Text>}
+      {serviceForm && <ServiceRecordFields value={svc} onChange={setSvc} />}
+      {serviceForm && !serviceDone && <Text style={styles.warn}>⚠️ සේවා වාර්තාව සඳහා වාහනයේ මීටර් කියවීම (km) ඇතුළත් කරන්න.</Text>}
       {partsPending && <Text style={styles.warn}>⚠️ ඇණවුම් කළ කොටස් තවම ලැබී නැත — “Parts” ටැබයෙන් ලැබුණු බව සලකුණු කළ පසු භාර දිය හැක.</Text>}
       <Text style={styles.label}>
         කළ වැඩ ({done.filter(Boolean).length}/{checks.length})
@@ -78,7 +90,7 @@ export const HandoverSheet: React.FC<{
         </>
       )}
       <Text style={styles.label}>පසු (අවසන් කළ පසු) — අවම 1ක්</Text>
-      <PhotoStrip photos={after} height={70} onAdd={after.length < 6 ? () => setAfter((p) => [...p, samplePhotos[(p.length + 1) % samplePhotos.length]]) : undefined} addLabel="ඡායාරූපයක්" />
+      <PhotoStrip photos={after} height={70} onAdd={after.length < 6 ? () => void pickPhotos(6 - after.length).then((ph) => ph.length && setAfter((p) => [...p, ...ph])) : undefined} addLabel="ඡායාරූපයක්" />
 
       {hasParts && (
         <Pressable style={[styles.toggle, oldParts && styles.toggleOn]} onPress={() => setOldParts((v) => !v)} accessibilityLabel="Old parts kept">

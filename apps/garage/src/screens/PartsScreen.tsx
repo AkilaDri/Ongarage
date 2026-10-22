@@ -1,3 +1,9 @@
+import { CustomerHistoryTag } from '../components/CustomerHistory';
+import { CategoryArt } from '../components/CategoryArt';
+import { VehicleLabel } from '@ongarage/shared';
+import { elevation1 } from '../utils/material';
+import { outline } from '../utils/material';
+import { VehicleLine } from '@ongarage/shared';
 import React, { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Colors, EmptyState, FONTS, GlassIcon, Icon, themedStyles, vehicleIcon, type IconName, type PartsRequest, softEdge, softShadow, NAVY, softFill, getThemeMode, PinnedEdge, usePinnedEdge } from '@ongarage/shared';
@@ -15,7 +21,7 @@ import type { Booking } from '../types';
 // the part type the owner chose).
 type Segment = 'quotes' | 'orders' | 'received';
 
-export const PartsScreen: React.FC<{ focusId?: string | null; onFocusHandled?: () => void }> = ({ focusId, onFocusHandled }) => {
+export const PartsScreen: React.FC<{ focusId?: string | null; onFocusHandled?: () => void; onScrollY?: (y: number) => void }> = ({ focusId, onFocusHandled, onScrollY }) => {
   const { progress: edge, scrollProps } = usePinnedEdge();
   const { bookings } = useGarage();
   const { requests, quotes, orders, requestFor, toOrderFor } = useParts();
@@ -51,7 +57,7 @@ export const PartsScreen: React.FC<{ focusId?: string | null; onFocusHandled?: (
 
   // Bookings that can still get a parts request.
   // Workshop jobs: only approved (or owner-named) parts; other bookings: one free-form request.
-  const eligible = bookings.filter((b) => b.status !== 'completed' && b.source !== 'sos' && (b.progress ? toOrderFor(b).length > 0 : !requestFor(b.id)));
+  const eligible = bookings.filter((b) => b.status !== 'completed' && b.status !== 'cancelled' && !b.progress?.cancelRequest && b.source !== 'sos' && (b.progress ? toOrderFor(b).length > 0 : !requestFor(b.id)));
 
   const segments: { id: Segment; label: string; icon: IconName; count: number; alert?: boolean }[] = [
     { id: 'quotes', label: 'මිල ගණන්', icon: 'tag', count: open.length, alert: open.some((r) => quoteCount(r) > 0) },
@@ -98,23 +104,24 @@ export const PartsScreen: React.FC<{ focusId?: string | null; onFocusHandled?: (
             <Text style={styles.title} numberOfLines={1}>
               {b?.title ?? 'කොටස්'} · {r.vehicle.name}
             </Text>
-            <Text style={styles.sub} numberOfLines={1}>
-              {vehicleIcon(r.vehicle.type)} {r.vehicle.plate} · {b?.customer.name}
-            </Text>
+            <VehicleLine vehicle={r.vehicle} textStyle={styles.sub} extra={b?.customer.name} />
           </View>
           <View style={[styles.type, r.partType === 'Genuine' && styles.typeGenuine]}>
             <Text style={styles.typeText}>{PART_TYPE_LABEL[r.partType]}</Text>
           </View>
         </View>
+        <View style={styles.sep} />
         <Text style={styles.lines} numberOfLines={2}>
           🔩 {linesSummary(r.lines)}
         </Text>
+        <View style={styles.sep} />
         <View style={styles.rowBetween}>
           <Text style={[styles.status, { color }]} numberOfLines={1}>
             {status}
           </Text>
           {r.status === 'open' && r.quoteUntil > now && <Text style={styles.sub}>{countdown(r.quoteUntil - now)}</Text>}
         </View>
+        {r.status !== 'received' && r.status !== 'cancelled' && <View style={styles.sep} />}
         {r.status !== 'received' && r.status !== 'cancelled' && (
           <Text style={styles.sub}>
             ලැබිය යුත්තේ {formatDate(r.needBy)} · {formatTime(r.needBy)}
@@ -144,7 +151,16 @@ export const PartsScreen: React.FC<{ focusId?: string | null; onFocusHandled?: (
         })}
       </View>
 
-      <ScrollView style={styles.flex1} {...scrollProps} contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.flex1}
+        {...scrollProps}
+        onScroll={(e) => {
+          scrollProps.onScroll(e);
+          onScrollY?.(e.nativeEvent.contentOffset.y);
+        }}
+        contentContainerStyle={styles.body}
+        showsVerticalScrollIndicator={false}
+      >
         <Pressable style={({ pressed }) => [styles.newBtn, pressed && styles.pressed]} onPress={() => setPickerOpen(true)}>
           <Text style={styles.newText}>＋ නව කොටස් ඉල්ලීමක්</Text>
         </Pressable>
@@ -174,12 +190,11 @@ export const PartsScreen: React.FC<{ focusId?: string | null; onFocusHandled?: (
                 setNewFor(b);
               }}
             >
-              <GlassIcon emoji={b.icon} small />
+              <CategoryArt emoji={b.icon} size={40} />
               <View style={styles.flex1}>
                 <Text style={styles.title}>{b.title}</Text>
-                <Text style={styles.sub}>
-                  {vehicleIcon(b.vehicle.type)} {b.vehicle.name} · {b.customer.name} · {formatDate(b.scheduledAt)} {formatTime(b.scheduledAt)}
-                </Text>
+                <VehicleLabel type={b.vehicle.type} style={styles.sub} tail={<CustomerHistoryTag customer={b.customer} />}>{b.vehicle.name} · {b.customer.name} · {formatDate(b.scheduledAt)} {formatTime(b.scheduledAt)}
+                </VehicleLabel>
               </View>
               <Text style={styles.chevron}>›</Text>
             </Pressable>
@@ -194,14 +209,15 @@ export const PartsScreen: React.FC<{ focusId?: string | null; onFocusHandled?: (
 
 const styles = themedStyles(() =>
   StyleSheet.create({
+    sep: { height: 1, backgroundColor: getThemeMode() === 'dark' ? Colors.borderColor : '#dadce0' },
     flex1: { flex: 1 },
     row: { flexDirection: 'row', alignItems: 'center', gap: 10 },
     rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
-    tabBar: { zIndex: 5, flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 6 },
-    tab: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10, paddingHorizontal: 8, borderRadius: 22, backgroundColor: softFill() },
-    tabActive: { backgroundColor: NAVY, shadowColor: NAVY, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.28, shadowRadius: 8, elevation: 4 },
-    tabText: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
-    tabTextActive: { color: '#ffffff' },
+    tabBar: { zIndex: 5, flexDirection: 'row', gap: 8, paddingHorizontal: 6, paddingTop: 12, paddingBottom: 6 },
+    tab: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, height: 40, paddingHorizontal: 8, borderRadius: 8, borderWidth: 1, borderColor: outline(), backgroundColor: Colors.bgCard },
+    tabActive: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe', borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#d2e3fc' },
+    tabText: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textSoft },
+    tabTextActive: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
     tabCount: {
       position: 'absolute',
       top: -7,
@@ -219,17 +235,18 @@ const styles = themedStyles(() =>
     tabCountActive: { backgroundColor: '#4ca1d1' },
     tabCountAlert: { backgroundColor: '#ef4444' },
     tabCountText: { fontSize: 9.5, fontWeight: '800', color: Colors.textMuted },
-    body: { padding: 16, paddingTop: 8, gap: 12, paddingBottom: 100 },
-    newBtn: { alignItems: 'center', paddingVertical: 12, borderRadius: 14, borderWidth: 1, borderStyle: 'dashed', borderColor: Colors.primary, backgroundColor: 'rgba(56, 189, 248, 0.08)' },
-    newText: { fontSize: 12.5, fontFamily: FONTS.bodyBold, color: Colors.primary },
-    card: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), borderRadius: 20, padding: 14, gap: 8, ...softShadow() },
+    body: { paddingVertical: 16, paddingHorizontal: 6, paddingTop: 8, gap: 12, paddingBottom: 180 },
+    newBtn: { alignItems: 'center', paddingVertical: 12, borderRadius: 12, borderWidth: 1, borderStyle: 'dashed', borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#d2e3fc', backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe' },
+    newText: { fontSize: 13.5, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
+    // The same modern card as OnMart's "My requests": big round corners, no hard outline, a soft wide shadow.
+    card: { backgroundColor: Colors.bgCard, borderRadius: 24, borderWidth: getThemeMode() === 'dark' ? 1 : 0, borderColor: Colors.borderColor, padding: 12, gap: 8, shadowColor: '#0f172a', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.08, shadowRadius: 18, elevation: 3 },
     dim: { opacity: 0.55 },
     pressed: { opacity: 0.75 },
-    title: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.textMain },
-    sub: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 1 },
-    lines: { fontSize: 11.5, fontFamily: FONTS.bodyMedium, color: Colors.textSoft, lineHeight: 17 },
-    status: { flex: 1, fontSize: 11.5, fontFamily: FONTS.bodySemiBold },
-    type: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, backgroundColor: Colors.subtleFill },
+    title: { fontSize: 15, fontFamily: FONTS.titleBold, color: Colors.textMain },
+    sub: { fontSize: 12.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 2 },
+    lines: { fontSize: 13, fontFamily: FONTS.bodyMedium, color: Colors.textSoft, lineHeight: 19 },
+    status: { flex: 1, fontSize: 12.5, fontFamily: FONTS.bodySemiBold },
+    type: { paddingHorizontal: 8, height: 22, justifyContent: 'center', borderRadius: 6, backgroundColor: Colors.subtleFill },
     typeGenuine: { backgroundColor: 'rgba(56, 189, 248, 0.12)' },
     typeText: { fontSize: 10, fontWeight: '800', color: Colors.primary },
     chevron: { fontSize: 20, color: Colors.textMuted },

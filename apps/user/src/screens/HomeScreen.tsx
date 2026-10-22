@@ -1,3 +1,4 @@
+import { pageBg } from '../utils/material';
 import React, { useMemo, useRef, useState } from 'react';
 import { Animated, View, ScrollView, Text, Pressable, StyleSheet, Linking } from 'react-native';
 import {
@@ -70,23 +71,17 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onSOSPress, onPostJob, o
 
   return (
     <View style={styles.container}>
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} stickyHeaderIndices={[1]} scrollEventThrottle={16} onScroll={(e) => {
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} scrollEventThrottle={16} onScroll={(e) => {
           const y = e.nativeEvent.contentOffset.y;
           edge.setValue(Math.min(1, Math.max(0, (y - adsY.current) / 30)));
           onScrollChange?.(y);
         }}>
         {/* Categories: cut-out icons, two rows, slide sideways. They scroll away with the page. */}
         <View style={styles.categoriesBlock}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>සේවා අංශ</Text>
-          <Pressable onPress={() => setAllServices(true)} hitSlop={6}>
-            <Text style={styles.viewAllLink}>සියල්ල බලන්න</Text>
-          </Pressable>
-        </View>
         <CategoryStrip onSelect={onServicePress} />
         </View>
 
-        {/* Ads: the first thing to pin under the banners; everything after them scrolls beneath */}
+        {/* Ads: they scroll with the page and fold away with the sheet, like everything else; nothing but the banners stays pinned */}
         <View style={styles.adsPinned} onLayout={(e) => (adsY.current = e.nativeEvent.layout.y)}>
           <PromoCarousel
             banners={PROMO_BANNERS}
@@ -95,7 +90,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onSOSPress, onPostJob, o
               if (g) setOpen(g);
             }}
             />
-          <PinnedEdge progress={edge} />
         </View>
 
         {/* Deals */}
@@ -140,11 +134,13 @@ const styles = themedStyles(() => StyleSheet.create({
   // Transparent: the rounded sheet in App.tsx supplies the background.
   container: { flex: 1 },
   scroll: { flex: 1 },
-  content: { paddingTop: 16, paddingHorizontal: 16, paddingBottom: 90, gap: 16 },
-  categoriesBlock: { gap: 10 },
+  content: { paddingTop: 8, paddingHorizontal: 6, paddingBottom: 90, gap: 20 },
+  // The categories sit in their own soft rounded panel, header and four-column grid together.
+  // The categories have no fill or side padding of their own: the icon boxes start at the same edge as the cards below (the page's 6px).
+  categoriesBlock: { gap: 14, paddingHorizontal: 0, paddingBottom: 14, paddingTop: 8, borderRadius: 24, backgroundColor: 'transparent' },
   // Opaque and full width (the negative margin cancels the content padding), so the lists scroll underneath it.
-  adsPinned: { marginHorizontal: -16, paddingHorizontal: 16, paddingVertical: 6, backgroundColor: getThemeMode() === 'dark' ? Colors.bgBody : '#ffffff' },
+  adsPinned: { marginHorizontal: -6, paddingHorizontal: 6, paddingVertical: 6, backgroundColor: pageBg() },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 },
-  viewAllLink: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
-  sectionTitle: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textMain },
+  seeAll: { fontSize: 10.5, fontFamily: FONTS.bodyBold, color: '#1877f2' },
+  sectionTitle: { fontSize: 15, fontFamily: FONTS.bodyBold, color: Colors.primary },
 }));

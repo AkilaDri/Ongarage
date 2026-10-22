@@ -1,3 +1,4 @@
+import { outline } from '../utils/material';
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { ActionButton, ago, Colors, FONTS, martShop, money, themedStyles, softEdge, softFill } from '@ongarage/shared';
@@ -14,6 +15,9 @@ export const OwnerPartsSheet: React.FC<{ booking: Booking; visible: boolean; onC
   const items = ownerParts(booking);
   return (
     <Sheet visible={visible} title="පාරිභෝගිකයා මිලදී ගන්නා කොටස්" subtitle={`${booking.customer.name} · ${booking.vehicle.name} · ${booking.vehicle.plate}`} onClose={onClose}>
+      {items.length > 1 && (
+        <Text style={styles.progress}>📦 කොටස් {items.length} න් {items.filter((i) => i.buy).length} ක් මිලදී ගත්තා{items.filter((i) => i.buy?.checked).length ? ` · ${items.filter((i) => i.buy?.checked).length} ක් පරීක්ෂා කළා` : ''}</Text>
+      )}
       <Text style={styles.sub}>මෙම කොටස් පාරිභෝගිකයා OnMart හි මිලදී ගනී. මිලදී ගත් බව වෙළඳසැල තහවුරු කළ පසු දැනුම් දෙනු ඇත; භාරදීම ඊට පසුවයි.</Text>
       {items.map(({ line, buy }) => (
         <View key={line.id} style={styles.card}>
@@ -55,12 +59,13 @@ export const OwnerPartsSheet: React.FC<{ booking: Booking; visible: boolean; onC
 const styles = themedStyles(() =>
   StyleSheet.create({
     rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
-    card: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), borderRadius: 18, padding: 14, gap: 8 },
+    card: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), borderRadius: 18, padding: 14, gap: 8 },
     title: { flex: 1, fontSize: 13.5, fontFamily: FONTS.titleBold, color: Colors.textMain },
     price: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.textMuted },
     sub: { fontSize: 11, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 17 },
     bought: { padding: 10, borderRadius: 12, backgroundColor: 'rgba(16, 185, 129, 0.12)' },
     boughtText: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: Colors.successText, lineHeight: 17 },
+    progress: { fontSize: 12.5, fontFamily: FONTS.bodyBold, color: Colors.primary },
     ok: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: Colors.successText },
     wait: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: Colors.warning, padding: 10, borderRadius: 12, backgroundColor: softFill() },
   })

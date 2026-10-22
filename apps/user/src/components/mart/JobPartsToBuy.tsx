@@ -1,7 +1,9 @@
+import { elevation1, outline } from '../../utils/material';
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { ActionButton, availabilityAt, Colors, FONTS, linesOwnerBuys, martShop, money, themedStyles, softEdge, softFill, softShadow, type DiagnosisLine } from '@ongarage/shared';
 import { useWorkshops } from '../../context/WorkshopContext';
+import { useChat } from '../../context/ChatContext';
 
 export type JobPartItem = {
   workshopId: string;
@@ -15,7 +17,7 @@ export type JobPartItem = {
 export const useJobPartsToBuy = (): JobPartItem[] => {
   const { workshops } = useWorkshops();
   return Object.values(workshops)
-    .filter((w) => w.progress.stage !== 'closed' && w.progress.stage !== 'declined')
+    .filter((w) => w.progress.stage !== 'closed' && w.progress.stage !== 'declined' && !w.progress.cancelled && !w.progress.cancelRequest)
     .flatMap((w) => linesOwnerBuys(w.progress).map((line) => ({ workshopId: w.id, garageName: w.garageName, vehicleId: w.vehicleId, line, bought: w.partsBought?.[line.id] })));
 };
 
@@ -25,22 +27,28 @@ export const useJobPartsToBuy = (): JobPartItem[] => {
  */
 export const JobPartsToBuy: React.FC<{ onBuy?: (item: JobPartItem) => void; onOpenMart?: () => void; compact?: boolean }> = ({ onBuy, onOpenMart, compact }) => {
   const items = useJobPartsToBuy();
+  const { openBasket } = useChat();
   if (items.length === 0) return null;
   const todo = items.filter((i) => !i.bought);
+  // A job with several parts still to buy: one button asks them all of OnMart together.
+  const jobsWithMany = [...new Set(todo.map((i) => i.workshopId))].filter((wid) => todo.filter((i) => i.workshopId === wid).length > 1);
 
   if (compact) {
     if (todo.length === 0) return null;
     return (
       <Pressable style={styles.prompt} onPress={onOpenMart} accessibilityLabel="Parts to buy for your job">
-        <Text style={styles.promptText}>🛍️ ඔබගේ රැකියාවට OnMart හි මිලදී ගත යුතු කොටස් {todo.length} ක් ඇත ›</Text>
+        <Text style={styles.promptText}>⚠️ ඔබ OnMart හි මිලදී ගත යුතුය - {todo.map((i) => i.line.name).join(', ')} ›</Text>
       </Pressable>
     );
   }
 
   return (
     <View style={styles.card}>
-      <Text style={styles.title}>🛍️ ඔබගේ රැකියාවට මිලදී ගත යුතු කොටස්</Text>
-      <Text style={styles.sub}>ගරාජය මෙම කොටස් ඔබ මිලදී ගන්න කියා ඇත. ඔවුන් නිර්දේශ කළ වෙළඳසැල්වලින් හෝ වෙනත් වෙළඳසැලකින් මිලදී ගන්න; මුදල වෙළඳසැලට ගෙවන්න — ගරාජයේ බිලට නොවේ. භාරදීම ඔබ මිලදී ගන්නා තුරු නතර වේ.</Text>
+      <Text style={styles.title}>⚠️ ඔබ OnMart හි මිලදී ගත යුතුය{todo.length ? ` - ${todo.map((i) => i.line.name).join(', ')}` : ''}</Text>
+      <Text style={styles.sub}>ගරාජය මෙම කොටස් ඔබම මිලදී ගන්න කියා ඇත — නැත්නම් අලුත්වැඩියාව ප්‍රමාද වේ. ඔවුන් නිර්දේශ කළ වෙළඳසැල් පහත තියෙනවා.</Text>
+      {!!onBuy && jobsWithMany.map((wid) => (
+        <ActionButton key={wid} label={`${todo.find((i) => i.workshopId === wid)!.garageName} · කොටස් ${todo.filter((i) => i.workshopId === wid).length} ම මිලදී ගන්න`} icon="🛍️" variant="primary" compact onPress={() => openBasket(wid)} />
+      ))}
       {items.map((i) => (
         <View key={`${i.workshopId}:${i.line.id}`} style={styles.item}>
           <View style={styles.rowBetween}>
@@ -67,7 +75,7 @@ export const JobPartsToBuy: React.FC<{ onBuy?: (item: JobPartItem) => void; onOp
                   </Text>
                 );
               })}
-              {!!onBuy && <ActionButton label="OnMart හි ඉල්ලන්න" icon="📨" variant="primary" compact onPress={() => onBuy(i)} />}
+              {!!onBuy && <ActionButton label="OnMart හි මිලදී ගන්න" icon="🛍️" variant="primary" compact onPress={() => onBuy(i)} />}
             </>
           )}
         </View>
@@ -78,8 +86,9 @@ export const JobPartsToBuy: React.FC<{ onBuy?: (item: JobPartItem) => void; onOp
 
 const styles = themedStyles(() =>
   StyleSheet.create({
-    card: { gap: 10, padding: 14, borderRadius: 20, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: 'rgba(245, 158, 11, 0.5)', ...softShadow() },
-    title: { fontSize: 14, fontFamily: FONTS.titleBold, color: Colors.textMain },
+    // The same modern card as OnMart's "My requests" (the amber outline stays: it is a must-buy warning).
+    card: { gap: 8, padding: 12, borderRadius: 24, backgroundColor: Colors.bgCard, borderWidth: 1.5, borderColor: 'rgba(245, 158, 11, 0.7)', shadowColor: '#0f172a', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.08, shadowRadius: 18, elevation: 3 },
+    title: { fontSize: 14, fontFamily: FONTS.titleBold, color: Colors.warning, lineHeight: 20 },
     sub: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 16 },
     item: { gap: 6, padding: 12, borderRadius: 16, backgroundColor: softFill(), borderWidth: 1, borderColor: softEdge() },
     rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },

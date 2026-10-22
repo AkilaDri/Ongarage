@@ -1,3 +1,4 @@
+import { outline } from '../utils/material';
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import {
@@ -131,7 +132,7 @@ const styles = themedStyles(() =>
   StyleSheet.create({
     flex1: { flex: 1 },
     rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
-    box: { padding: 12, borderRadius: 18, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), gap: 8, ...softShadow() },
+    box: { padding: 12, borderRadius: 18, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), gap: 8, ...softShadow() },
     boxTitle: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.textMain },
     sub: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 16 },
     section: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textMain, marginTop: 4 },
@@ -152,7 +153,7 @@ const styles = themedStyles(() =>
     rateLabel: { fontSize: 10, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
     tip: { padding: 10, borderRadius: 12, backgroundColor: 'rgba(56, 189, 248, 0.08)', gap: 2 },
     tipTitle: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
-    level: { padding: 12, borderRadius: 18, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), gap: 8, ...softShadow() },
+    level: { padding: 12, borderRadius: 18, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), gap: 8, ...softShadow() },
     levelCurrent: { borderColor: 'rgba(16, 185, 129, 0.55)', backgroundColor: 'rgba(16, 185, 129, 0.06)' },
     levelFar: { opacity: 0.75 },
     state: { fontSize: 11, fontFamily: FONTS.bodyBold },

@@ -1,3 +1,4 @@
+import { outline } from '../utils/material';
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { ActionButton, Colors, dayStart, FONTS, GUARANTEE, GUARANTEE_MULTIPLE, INTAKE, PLANS, RISING_HEAD_START_MIN, themedStyles, softEdge, softShadow } from '@ongarage/shared';
@@ -124,7 +125,7 @@ const styles = themedStyles(() =>
   StyleSheet.create({
     flex1: { flex: 1 },
     rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
-    box: { padding: 12, borderRadius: 18, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), gap: 6, ...softShadow() },
+    box: { padding: 12, borderRadius: 18, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), gap: 6, ...softShadow() },
     boxWarn: { borderColor: 'rgba(245, 158, 11, 0.5)', backgroundColor: 'rgba(245, 158, 11, 0.07)' },
     boxOk: { borderColor: 'rgba(16, 185, 129, 0.5)' },
     boxTitle: { fontSize: 12.5, fontFamily: FONTS.bodyBold, color: Colors.textMain },
@@ -137,7 +138,7 @@ const styles = themedStyles(() =>
     track: { flex: 1, height: 6, borderRadius: 3, backgroundColor: Colors.subtleFill, overflow: 'hidden' },
     fill: { height: 6, borderRadius: 3, backgroundColor: Colors.primary },
     fillFull: { backgroundColor: Colors.warning },
-    plan: { padding: 12, borderRadius: 18, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), gap: 4, opacity: 0.8, ...softShadow() },
+    plan: { padding: 12, borderRadius: 18, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), gap: 4, opacity: 0.8, ...softShadow() },
     planMine: { borderColor: 'rgba(56, 189, 248, 0.6)', opacity: 1 },
     cancel: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.errorText },
   })

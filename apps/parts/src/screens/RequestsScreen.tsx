@@ -1,6 +1,7 @@
+import { VehicleLine } from '@ongarage/shared';
 import React, { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { ActionButton, categoryInfo, Colors, EmptyState, FONTS, GlassIcon, Icon, SwipeCard, themedStyles, vehicleIcon, type IconName, softEdge, softShadow, NAVY, softFill, getThemeMode, PinnedEdge, usePinnedEdge, ReferralBadge } from '@ongarage/shared';
+import { ActionButton, categoryInfo, Colors, EmptyState, FONTS, GlassIcon, Icon, SwipeCard, themedStyles, vehicleIcon, type IconName, softEdge, softShadow, NAVY, softFill, getThemeMode, PinnedEdge, usePinnedEdge, ReferralBadge, InfoChip, CountdownPill } from '@ongarage/shared';
 import { allowedTypes, buyerLabel, useShop, variantFor } from '../context/ShopContext';
 import { PART_TYPE_LABEL } from '../constants/mockData';
 import { QuoteSheet } from '../components/QuoteSheet';
@@ -59,61 +60,67 @@ export const RequestsScreen: React.FC = () => {
     passRequest(r.id);
   };
 
+  // A garage's request is laid out like a job post in the garage app's Jobs feed: avatar, name and meta line with the time left, the body (vehicle, the parts asked for, info chips),
+  // a stats line and the actions under a thin rule.
   const requestCard = (r: IncomingRequest) => {
     const types = allowedTypes(r, profile.types);
     const cat = r.categoryId ? categoryInfo(r.categoryId) : undefined;
     const left = r.quoteUntil - now;
-    const urgent = left < 15 * 60 * 1000;
     return (
-      <SwipeCard key={r.id} style={styles.card} onOpen={() => setDetail(r)}>
-        <Pressable style={styles.row} onPress={() => setDetail(r)} accessibilityLabel={`${r.garage.name} request`}>
-          <GlassIcon emoji={cat?.icon ?? '🔩'} />
-          <View style={styles.flex1}>
-            <Text style={styles.title} numberOfLines={1}>
-              {r.garage.name}
-            </Text>
-            <Text style={styles.sub}>
-              ★ {r.garage.rating} · කි.මී. {r.distanceKm} · {ago(now - r.receivedAt)}
-            </Text>
+      <SwipeCard key={r.id} style={styles.postCard} onOpen={() => setDetail(r)}>
+        <Pressable onPress={() => setDetail(r)} accessibilityLabel={`${r.garage.name} request`}>
+          <View style={styles.postHeader}>
+            <GlassIcon emoji={cat?.icon ?? '🔩'} small />
+            <View style={styles.flex1}>
+              <View style={styles.nameRow}>
+                <Text style={[styles.postName, styles.nameShrink]} numberOfLines={1}>
+                  {r.garage.name}
+                </Text>
+              </View>
+              <Text style={styles.postMeta} numberOfLines={1}>
+                {ago(now - r.receivedAt)} · ★ {r.garage.rating} · කි.මී. {r.distanceKm}
+              </Text>
+            </View>
+            <CountdownPill ms={left} urgent={left < 30 * 60 * 1000} />
           </View>
-          <View style={[styles.badge, urgent && styles.badgeUrgent]}>
-            <Icon name="clock" size={12} color={urgent ? Colors.errorText : Colors.primary} />
-            <Text style={[styles.badgeText, { color: urgent ? Colors.errorText : Colors.primary }]}>{countdown(left)}</Text>
+          <View style={styles.postBody}>
+            <VehicleLine vehicle={r.vehicle} textStyle={styles.postSubjectHead} extra={r.vehicle.chassis || undefined} />
+            <View style={styles.lines}>
+              {r.lines.map((l) => (
+                <StockLine key={l.id} line={l} types={types} />
+              ))}
+            </View>
+            <View style={styles.chipRow}>
+              <InfoChip text={`🔩 ${PART_TYPE_LABEL[r.partType]}`} />
+              {r.reconApproval === 'approved' && <InfoChip text="♻️ Recon අනුමත" />}
+              <InfoChip text={`⏱️ ලැබිය යුත්තේ ${formatTime(r.needBy)}`} />
+              {r.oldPartPhoto && <InfoChip text="📷 ඡායාරූපය" />}
+            </View>
+          </View>
+          <View style={styles.postStats}>
+            <Text style={styles.postStat}>🏷️ {r.otherQuotes ? `මිල ගණන් ${r.otherQuotes}` : 'පළමු මිල ගණන ඔබගේ විය හැක'}</Text>
+            <Text style={styles.postStat}>{r.oldPartPhoto ? '📷 1' : ''}</Text>
           </View>
         </Pressable>
-        <Text style={styles.vehicle}>
-          {vehicleIcon(r.vehicle.type)} {r.vehicle.name} · {r.vehicle.plate}
-          {r.vehicle.chassis ? ` · ${r.vehicle.chassis}` : ''}
-        </Text>
-        <View style={styles.lines}>
-          {r.lines.map((l) => (
-            <StockLine key={l.id} line={l} types={types} />
-          ))}
-        </View>
-        <View style={styles.chips}>
-          <Chip text={PART_TYPE_LABEL[r.partType]} accent />
-          {r.reconApproval === 'approved' && <Chip text="Recon අනුමත" warn />}
-          <Chip text={`⏱️ ලැබිය යුත්තේ ${formatTime(r.needBy)}`} />
-          {r.oldPartPhoto && <Chip text="📷 ඡායාරූපය" />}
-          <Chip text={r.otherQuotes ? `🏷️ තවත් ${r.otherQuotes}` : '🏷️ පළමුවැන්නා විය හැක'} />
-        </View>
-        {types.length ? (
-          <View style={styles.actions}>
-            <View style={styles.flex1}>
-              <ActionButton label="මඟ හරින්න" icon="✕" variant="ghost" compact onPress={() => pass(r)} />
+        <View style={styles.postActions}>
+          {types.length ? (
+            <View style={styles.actions}>
+              <View style={styles.flex1}>
+                <ActionButton label="මඟ හරින්න" icon="✕" variant="ghost" compact onPress={() => pass(r)} />
+              </View>
+              <View style={styles.flex2}>
+                <ActionButton label="මිල ගණන් යවන්න" icon="📨" variant="primary" compact onPress={() => quote(r)} />
+              </View>
             </View>
-            <View style={styles.flex2}>
-              <ActionButton label="මිල ගණන් යවන්න" icon="📨" variant="primary" compact onPress={() => quote(r)} />
+          ) : (
+            <View style={styles.rowBetween}>
+              <Text style={[styles.sub, styles.flex1]}>ඔබ {PART_TYPE_LABEL[r.partType]} කොටස් අලෙවි නොකරයි.</Text>
+              <Pressable onPress={() => pass(r)} hitSlop={6}>
+                <Text style={styles.link}>මඟ හරින්න</Text>
+              </Pressable>
             </View>
-          </View>
-        ) : (
-          <View style={styles.rowBetween}>
-            <Text style={[styles.sub, styles.flex1]}>ඔබ {PART_TYPE_LABEL[r.partType]} කොටස් අලෙවි නොකරයි.</Text>
-            <Pressable onPress={() => pass(r)} hitSlop={6}>
-              <Text style={styles.link}>මඟ හරින්න</Text>
-            </Pressable>
-          </View>
-        )}
+          )}
+        </View>
       </SwipeCard>
     );
   };
@@ -178,10 +185,7 @@ export const RequestsScreen: React.FC = () => {
             <Text style={[styles.badgeText, { color: urgent ? Colors.errorText : Colors.primary }]}>{countdown(left)}</Text>
           </View>
         </Pressable>
-        <Text style={styles.vehicle}>
-          {vehicleIcon(v.type)} {v.name} · {v.plate}
-          {v.chassisNo ? ` · ${v.chassisNo}` : ''}
-        </Text>
+        <VehicleLine vehicle={v} textStyle={styles.vehicle} extra={v.chassisNo || undefined} />
         <View style={styles.lines}>
           {e.briefs.map((b) => {
             const have = (['Genuine', 'OEM', 'Recon'] as const).reduce((sum, t) => sum + (variantFor(stock, b.name, t)?.qty ?? 0), 0);
@@ -197,6 +201,7 @@ export const RequestsScreen: React.FC = () => {
         </View>
         <View style={styles.chips}>
           <Chip text={r.via === 'wall' ? '📣 විවෘත පෝස්ට් එක' : '🛍️ සෘජු ඉල්ලීම'} accent />
+          {e.briefs.length > 1 && <Chip text={`📦 කොටස් ${e.briefs.length} ක ඉල්ලීම — එකවර පිළිතුරු දෙන්න`} accent />}
           {e.briefs.some((b) => b.photos?.length) && <Chip text="📷 ඡායාරූප" />}
           {e.briefs.some((b) => b.partNo) && <Chip text={`# ${e.briefs.find((b) => b.partNo)!.partNo}`} />}
           {v.chassisNo && <Chip text="චැසි අංකය ඇත" />}
@@ -378,7 +383,21 @@ const styles = themedStyles(() =>
     tabCountText: { fontSize: 9.5, fontWeight: '800', color: Colors.textMuted },
     body: { padding: 16, paddingTop: 8, gap: 12, paddingBottom: 100 },
     hint: { fontSize: 10.5, fontFamily: FONTS.bodyMedium, color: Colors.textMuted, textAlign: 'center' },
-    card: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), borderRadius: 20, padding: 14, gap: 10, ...softShadow() },
+    // The same modern card as OnMart's "My requests": big round corners, no hard outline, a soft wide shadow.
+    card: { backgroundColor: Colors.bgCard, borderWidth: getThemeMode() === 'dark' ? 1 : 0, borderColor: Colors.borderColor, borderRadius: 24, padding: 12, gap: 8, shadowColor: '#0f172a', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.08, shadowRadius: 18, elevation: 3 },
+    // The garage Jobs feed's post card: a thin outline, soft corners, the header / body / stats / actions with the same paddings.
+    postCard: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#dadce0', borderRadius: 12, shadowColor: '#3c4043', shadowOffset: { width: 0, height: 1 }, shadowOpacity: getThemeMode() === 'dark' ? 0.4 : 0.15, shadowRadius: 3, elevation: 1 },
+    nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    nameShrink: { flexShrink: 1 },
+    postHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: 8, paddingRight: 16, paddingTop: 14, paddingBottom: 10 },
+    postName: { fontSize: 13, fontFamily: FONTS.bodyBold, color: Colors.textMain },
+    postMeta: { fontSize: 12, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 1 },
+    postBody: { paddingHorizontal: 16, paddingBottom: 14, gap: 10 },
+    postSubjectHead: { fontSize: 13, fontFamily: FONTS.bodyRegular, color: Colors.textSoft },
+    postStats: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12 },
+    postStat: { fontSize: 12.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
+    postActions: { paddingHorizontal: 16, paddingVertical: 12, borderTopWidth: 1, borderTopColor: getThemeMode() === 'dark' ? Colors.borderColor : '#dadce0' },
+    chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
     dim: { opacity: 0.55 },
     title: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.textMain },
     sub: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 1, lineHeight: 16 },
@@ -388,10 +407,10 @@ const styles = themedStyles(() =>
     badgeUrgent: { borderColor: 'rgba(239, 68, 68, 0.45)', backgroundColor: 'rgba(239, 68, 68, 0.12)' },
     badgeText: { fontSize: 10, fontFamily: FONTS.bodySemiBold },
     chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-    chip: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: 10, backgroundColor: Colors.subtleFill },
+    chip: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 9, backgroundColor: Colors.subtleFill },
     chipAccent: { backgroundColor: 'rgba(56, 189, 248, 0.12)' },
     chipWarn: { backgroundColor: 'rgba(245, 158, 11, 0.14)' },
-    chipText: { fontSize: 10.5, fontFamily: FONTS.bodyMedium, color: Colors.textMuted },
+    chipText: { fontSize: 11, fontFamily: FONTS.bodyMedium, color: Colors.textMuted },
     price: { fontSize: 14, fontFamily: FONTS.titleBold, color: Colors.success },
     status: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: 10 },
     statusText: { fontSize: 10.5, fontFamily: FONTS.bodySemiBold },

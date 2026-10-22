@@ -1,6 +1,8 @@
+import { elevation1 } from '../utils/material';
+import { outline } from '../utils/material';
 import React, { useMemo, useState } from 'react';
 import { Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
-import { Colors, COMMISSION_CAP_PERCENT, FONTS, garageStatement, monthKey, statementText, statementTotals, themedStyles, softEdge, softFill, softShadow, type ReferralStatus } from '@ongarage/shared';
+import { Colors, COMMISSION_CAP_PERCENT, FONTS, garageStatement, monthKey, statementText, statementTotals, getThemeMode, themedStyles, softFill, type ReferralStatus } from '@ongarage/shared';
 import { useGarage } from '../context/GarageContext';
 import { useParts } from '../context/PartsContext';
 import { money } from '../utils/format';
@@ -22,7 +24,7 @@ const STATUS: Record<ReferralStatus, string> = {
  * commission the shops owe (earned once the part was fitted and the job closed with the owner's code; a part
  * brought back cancels it). Payments happen outside the app, so a shop's month can be marked received and shared.
  */
-export const GarageReferralsView: React.FC = () => {
+export const GarageReferralsView: React.FC<{ onScrollY?: (y: number) => void }> = ({ onScrollY }) => {
   const { profile } = useGarage();
   const { referrals, settled, settleReferrals } = useParts();
   const now = Date.now();
@@ -39,7 +41,7 @@ export const GarageReferralsView: React.FC = () => {
   const share = () => Share.share({ message: statementText(`${profile.name} · OnMart නිර්දේශ · ${monthName(month)}`, rows.map((row) => ({ name: nameOf(row.shopId), row }))) });
 
   return (
-    <ScrollView style={styles.flex1} contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
+    <ScrollView style={styles.flex1} onScroll={(e) => onScrollY?.(e.nativeEvent.contentOffset.y)} scrollEventThrottle={16} contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
       <View style={styles.months}>
         {[thisMonth, lastMonth].map((m) => (
           <Pressable key={m} style={[styles.month, month === m && styles.monthOn]} onPress={() => setMonth(m)} accessibilityLabel={`Month ${m}`}>
@@ -129,31 +131,31 @@ const Tile: React.FC<{ value: string; label: string; color: string }> = ({ value
 const styles = themedStyles(() =>
   StyleSheet.create({
     flex1: { flex: 1 },
-    body: { padding: 16, gap: 12, paddingBottom: 110 },
+    body: { paddingVertical: 16, paddingHorizontal: 6, gap: 12, paddingBottom: 190 },
     rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
     months: { flexDirection: 'row', gap: 8 },
-    month: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 18, backgroundColor: softFill() },
-    monthOn: { backgroundColor: Colors.primary },
-    monthText: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
-    monthTextOn: { color: '#ffffff' },
+    month: { paddingHorizontal: 14, height: 32, justifyContent: 'center', borderRadius: 8, borderWidth: 1, borderColor: outline(), backgroundColor: Colors.bgCard },
+    monthOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe', borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#d2e3fc' },
+    monthText: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textSoft },
+    monthTextOn: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
     tiles: { flexDirection: 'row', gap: 8 },
-    tile: { flex: 1, alignItems: 'center', paddingVertical: 12, paddingHorizontal: 6, borderRadius: 18, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), ...softShadow() },
-    tileValue: { fontSize: 15, fontFamily: FONTS.titleBold },
-    tileLabel: { fontSize: 9.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 2, textAlign: 'center' },
-    card: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), borderRadius: 18, padding: 14, gap: 6, ...softShadow() },
-    title: { flex: 1, fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.textMain },
-    value: { fontSize: 14, fontFamily: FONTS.titleBold, color: Colors.success },
-    sub: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 16 },
-    settle: { alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12, backgroundColor: softFill() },
-    settleOn: { backgroundColor: 'rgba(16, 185, 129, 0.12)' },
-    settleText: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
-    section: { fontSize: 14, fontFamily: FONTS.titleBold, color: Colors.textMain, marginTop: 4 },
+    tile: { flex: 1, alignItems: 'center', paddingVertical: 14, paddingHorizontal: 6, backgroundColor: Colors.bgCard, borderRadius: 12, borderWidth: 1, borderColor: outline(), ...elevation1() },
+    tileValue: { fontSize: 16, fontFamily: FONTS.titleBold },
+    tileLabel: { fontSize: 11, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 2, textAlign: 'center' },
+    card: { backgroundColor: Colors.bgCard, borderRadius: 12, borderWidth: 1, borderColor: outline(), ...elevation1(), padding: 16, gap: 6 },
+    title: { flex: 1, fontSize: 15, fontFamily: FONTS.titleBold, color: Colors.textMain },
+    value: { fontSize: 15, fontFamily: FONTS.titleBold, color: Colors.success },
+    sub: { fontSize: 12.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 18 },
+    settle: { alignSelf: 'flex-start', paddingHorizontal: 12, height: 30, justifyContent: 'center', borderRadius: 8, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline() },
+    settleOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(16, 185, 129, 0.12)' : '#e6f4ea', borderColor: 'transparent' },
+    settleText: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
+    section: { fontSize: 14, fontFamily: FONTS.bodyBold, color: Colors.primary, letterSpacing: 0.2, marginTop: 4 },
     empty: { fontSize: 12, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, textAlign: 'center', paddingVertical: 12 },
-    lead: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: 16, backgroundColor: softFill() },
+    lead: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: 12, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline() },
     dim: { opacity: 0.55 },
-    leadTitle: { fontSize: 12.5, fontFamily: FONTS.bodyBold, color: Colors.textMain },
+    leadTitle: { fontSize: 13.5, fontFamily: FONTS.bodyBold, color: Colors.textMain },
     pct: { fontSize: 11, fontFamily: FONTS.bodyBold, color: Colors.primary },
-    share: { alignSelf: 'center', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 16, backgroundColor: 'rgba(2, 132, 199, 0.12)' },
-    shareText: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
+    share: { alignSelf: 'center', paddingHorizontal: 16, height: 36, justifyContent: 'center', borderRadius: 8, backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe' },
+    shareText: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
   })
 );

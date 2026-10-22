@@ -1,3 +1,4 @@
+import { elevation1, outline } from '../../utils/material';
 import React from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Colors, FONTS, Gradient, money, themedStyles, softEdge, softShadow, type ShopListing } from '@ongarage/shared';
@@ -81,8 +82,10 @@ export const ShopRow: React.FC<{
           </View>
         )}
         {!!onSeeAll && (
-          <Pressable style={styles.seeAll} onPress={onSeeAll} accessibilityLabel={`See all ${title}`}>
-            <Text style={styles.seeAllText}>සියල්ල ›</Text>
+          <Pressable style={styles.seeAll} onPress={onSeeAll} accessibilityLabel={`See all ${title}`} hitSlop={8}>
+            <View style={styles.seeAllArrow}>
+              <Text style={styles.seeAllArrowText}>›</Text>
+            </View>
           </Pressable>
         )}
       </View>
@@ -104,9 +107,10 @@ const styles = themedStyles(() =>
     rowAd: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6, backgroundColor: 'rgba(245, 158, 11, 0.18)' },
     rowAdText: { fontSize: 9.5, fontWeight: '800', color: Colors.warning },
     seeAll: { paddingVertical: 2, paddingHorizontal: 4 },
-    seeAllText: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
+    seeAllArrow: { width: 34, height: 34, borderRadius: 17, backgroundColor: Colors.primary, alignItems: 'center', justifyContent: 'center', shadowColor: Colors.primary, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.35, shadowRadius: 6, elevation: 3 },
+    seeAllArrowText: { fontSize: 22, fontWeight: '800', color: '#ffffff', marginTop: -2 },
     scroll: { gap: 10, paddingRight: 8, paddingBottom: 4 },
-    tile: { width: 196, borderRadius: 18, overflow: 'hidden', backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), ...softShadow() },
+    tile: { width: 196, borderRadius: 12, overflow: 'hidden', backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), ...elevation1() },
     pressed: { opacity: 0.88, transform: [{ scale: 0.99 }] },
     cover: { height: 92, justifyContent: 'flex-end', padding: 10 },
     watermark: { position: 'absolute', right: -6, top: -4, fontSize: 70, opacity: 0.22 },

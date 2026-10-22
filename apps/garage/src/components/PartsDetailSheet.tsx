@@ -1,3 +1,4 @@
+import { outline } from '../utils/material';
 import React, { useEffect, useState } from 'react';
 import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { ActionButton, CloseCode, Colors, FONTS, pickupCodePayload, themedStyles, type PartQuote, type PartsOrder, softEdge, softShadow } from '@ongarage/shared';
@@ -77,7 +78,7 @@ export const PartsDetailSheet: React.FC<{ requestId: string | null; onClose: () 
         <Row label="ලැබිය යුත්තේ" value={`${formatDate(r.needBy)} · ${formatTime(r.needBy)}`} />
         {!!r.vehicle.chassis && <Row label="චැසි අංකය" value={r.vehicle.chassis} />}
         {!!r.note && <Row label="සටහන" value={r.note} />}
-        {r.oldPartPhoto && <Row label="ඡායාරූපය" value="📷 පැරණි කොටස අමුණා ඇත" />}
+        {r.oldPartPhoto && <Row label="ඡායාරූපය" value={r.photos?.length ? `📷 ඡායාරූප ${r.photos.length} ක් අමුණා ඇත` : '📷 පැරණි කොටස අමුණා ඇත'} />}
       </View>
 
       {r.status === 'open' && (
@@ -161,7 +162,6 @@ const QuoteCard: React.FC<{
   onPickup: (collector?: Member) => void;
 }> = ({ quote: q, lines, late, cheapest, team, onChoose, onPickup }) => {
   const [picking, setPicking] = useState(false);
-  const [who, setWho] = useState<string>('garage');
   return (
   <View style={[styles.card, cheapest && styles.cardBest]}>
     <View style={styles.rowBetween}>
@@ -204,23 +204,12 @@ const QuoteCard: React.FC<{
         <Text style={styles.sub}>
           🏪 {q.shop.address} · මිනි. ~{q.pickup.readyInMin}කින් සූදානම් · {money(q.pickup.total)} (බෙදාහැරීම් ගාස්තුවක් නැත)
         </Text>
-        <Text style={styles.rowLabel}>එකතු කරන්නේ කවුද?</Text>
-        <View style={styles.chips}>
-          {[{ id: 'garage', name: 'ගරාජයෙන් (මම)' } as Member, ...team].map((m) => (
-            <Pressable key={m.id} style={[styles.chip, who === m.id && styles.chipOn]} onPress={() => setWho(m.id)} accessibilityLabel={`Collector ${m.id}`}>
-              <Text style={[styles.chipText, who === m.id && styles.chipTextOn]}>
-                {m.name}
-                {m.hasApp ? ' · ඇප්' : ''}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
         <View style={styles.actions}>
           <View style={styles.flex1}>
             <ActionButton label="ආපසු" variant="ghost" compact onPress={() => setPicking(false)} />
           </View>
           <View style={styles.flex2}>
-            <ActionButton label={`එකතු කරන්න · ${money(q.pickup.total)}`} icon="🏪" variant="success" compact onPress={() => onPickup(team.find((m) => m.id === who))} />
+            <ActionButton label={`එකතු කරන්න · ${money(q.pickup.total)}`} icon="🏪" variant="success" compact onPress={() => onPickup(undefined)} />
           </View>
         </View>
       </View>
@@ -347,7 +336,7 @@ const styles = themedStyles(() =>
     rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
     rowLabel: { width: 84, fontSize: 11, fontFamily: FONTS.bodyMedium, color: Colors.textMuted },
     rowValue: { flex: 1, fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
-    summary: { padding: 12, borderRadius: 18, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), gap: 6, ...softShadow() },
+    summary: { padding: 12, borderRadius: 18, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), gap: 6, ...softShadow() },
     statusRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     statusText: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
     title: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.textMain },
@@ -357,12 +346,12 @@ const styles = themedStyles(() =>
     infoBox: { padding: 10, borderRadius: 12, backgroundColor: 'rgba(56, 189, 248, 0.1)' },
     infoText: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
     chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-    chip: { paddingHorizontal: 11, paddingVertical: 6, borderRadius: 16, borderWidth: 1, borderColor: softEdge(), backgroundColor: Colors.bgCard, ...softShadow() },
+    chip: { paddingHorizontal: 11, paddingVertical: 6, borderRadius: 16, borderWidth: 1, borderColor: outline(), backgroundColor: Colors.bgCard, ...softShadow() },
     chipOn: { backgroundColor: Colors.primary, borderColor: Colors.primary },
     chipDanger: { borderColor: 'rgba(239, 68, 68, 0.45)' },
     chipText: { fontSize: 10.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
     chipTextOn: { color: '#fff' },
-    card: { padding: 12, borderRadius: 20, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), gap: 6, ...softShadow() },
+    card: { padding: 12, borderRadius: 20, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), gap: 6, ...softShadow() },
     cardBest: { borderColor: 'rgba(16, 185, 129, 0.55)' },
     cardFailed: { borderColor: 'rgba(239, 68, 68, 0.4)', opacity: 0.85 },
     typeBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, backgroundColor: 'rgba(56, 189, 248, 0.12)' },

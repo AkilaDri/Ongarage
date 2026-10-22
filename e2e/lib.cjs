@@ -31,7 +31,7 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
  * collected (not thrown) so one run reports every failure; page errors and native
  * alerts count as failures too.
  */
-const open = async (app, ready) => {
+const open = async (app, ready, opts = {}) => {
   const browser = await puppeteer.launch({ executablePath: browserPath(), headless: true });
   const page = await browser.newPage();
   await page.setViewport({ width: 390, height: 844 });
@@ -42,10 +42,14 @@ const open = async (app, ready) => {
     errors.push(`native dialog: ${d.message()}`);
     await d.dismiss();
   });
+  // Headless browsers have no camera or file dialog: the photo picker returns these images instead (see pickPhotos).
+  const swatch = (c) => `data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='120'><rect width='160' height='120' fill='${c}'/></svg>`;
+  await page.evaluateOnNewDocument((photos) => { globalThis.__ONGARAGE_TEST_PHOTOS__ = photos; }, ['%23475569', '%23b45309', '%230f766e', '%236d28d9'].map(swatch));
   // Wait for the app's own seed text, not network quiet (Metro's live-reload socket can keep it busy).
   await page.goto(`http://localhost:${PORTS[app]}/`, { waitUntil: 'domcontentloaded', timeout: 180000 });
   await page.waitForFunction((t) => document.body.innerText.includes(t), { timeout: 180000 }, ready);
   await wait(1500);
+  const pendingOnboarding = app === 'parts' && opts.onboarding !== false;
 
   // Clicks the element marked by `finder` (a function run in the page), in the middle,
   // after scrolling it into view — like a finger would.
@@ -117,23 +121,35 @@ const open = async (app, ready) => {
     },
     /** Records a check; `detail` is printed when it fails. */
     check: (name, ok, detail) => results.push({ name, ok: !!ok, detail }),
+    /** The parts app's first-launch set-up: ready-made Japanese-car template, all steps, finish. */
+    completeOnboarding: async () => {
+      await t.clickText('ජපන් කාර් කොටස්');
+      await t.clickText('ඊළඟ');
+      await t.clickText('ඊළඟ');
+      await t.clickText('ඊළඟ');
+      await t.clickText('අවසන් කරන්න');
+    },
     close: async () => {
       if (errors.length) results.push({ name: 'no page errors or native alerts', ok: false, detail: errors });
       await browser.close();
       return results;
     },
   };
+  // The parts app asks what the shop sells on first launch: most specs start after that.
+  if (pendingOnboarding) await t.completeOnboarding();
+  // The owner app asks for location access on first launch.
+  if (app === 'user' && (await t.has('අවසර දෙන්න'))) await t.clickText('අවසර දෙන්න');
   return t;
 };
 
 /** What the page shows once each app has loaded its seed data. */
-const READY = { user: 'Akila Drishan', garage: 'ලැබුණු ඉල්ලීම්', parts: 'ගනුදෙනුකරු', tech: 'රාජකාරියට පැමිණෙන්න' };
+const READY = { user: 'Akila Drishan', garage: 'ලංසු රැකියා', parts: 'ගනුදෙනුකරු', tech: 'රාජකාරියට පැමිණෙන්න' };
 
 /** A spec: a named flow in one app. A step that fails stops the flow but keeps the results. */
-const spec = (name, app, flow) => ({
+const spec = (name, app, flow, opts) => ({
   name,
   run: async () => {
-    const t = await open(app, READY[app]);
+    const t = await open(app, READY[app], opts);
     try {
       await flow(t);
     } catch (e) {

@@ -1,3 +1,5 @@
+import { LkPlate } from '@ongarage/shared';
+import { elevation1, outline } from '../utils/material';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Animated,
@@ -16,7 +18,7 @@ import { Colors, themedStyles } from '@ongarage/shared';
 import { FONTS } from '@ongarage/shared';
 import { ActionButton, glassStyle } from '@ongarage/shared';
 import { useVehicles } from '../context/VehiclesContext';
-import { normalisePlate, VEHICLE_TYPES } from '@ongarage/shared';
+import { normalisePlate, VEHICLE_TYPES, VehicleIcon3D } from '@ongarage/shared';
 import type { Vehicle } from '@ongarage/shared';
 
 // Sri Lankan plates: optional province letters, 2–3 letters (or digits), dash, 4 digits.
@@ -125,16 +127,14 @@ export const AddVehicleSheet: React.FC<AddVehicleSheetProps> = ({ visible, onClo
           <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={styles.body}>
             <View style={styles.preview}>
               <Animated.View style={[styles.previewIcon, { transform: [{ scale: iconPop }] }]}>
-                <Text style={styles.previewEmoji}>{typeInfo.icon}</Text>
+                <VehicleIcon3D type={typeInfo.id} size={50} />
               </Animated.View>
               <View style={styles.flex1}>
                 <Text style={styles.previewName} numberOfLines={1}>
                   {name.trim() || 'වාහනයේ නම'}
                 </Text>
                 <Text style={styles.sub}>{typeInfo.label}</Text>
-                <View style={styles.plate}>
-                  <Text style={styles.plateText}>{cleanPlate || 'XXX-0000'}</Text>
-                </View>
+                <LkPlate plate={cleanPlate || 'XXX-0000'} stacked={type === 'Motorbike'} small />
               </View>
             </View>
 
@@ -145,7 +145,7 @@ export const AddVehicleSheet: React.FC<AddVehicleSheetProps> = ({ visible, onClo
                 return (
                   <Pressable key={t.id} style={styles.typeItem} onPress={() => pickType(t.id)}>
                     <View style={[styles.typeTile, active && styles.typeTileActive]}>
-                      <Text style={styles.typeEmoji}>{t.icon}</Text>
+                      <VehicleIcon3D type={t.id} size={40} />
                     </View>
                     <Text style={[styles.typeLabel, active && { color: Colors.primary }]} numberOfLines={1}>
                       {t.label}
@@ -215,20 +215,10 @@ const styles = themedStyles(() =>
     flex1: { flex: 1 },
     backdrop: { ...StyleSheet.absoluteFill, backgroundColor: Colors.overlay },
     anchor: { flex: 1, justifyContent: 'flex-end' },
-    sheet: {
-      maxHeight: '88%',
-      backgroundColor: Colors.sheetBg,
-      borderTopLeftRadius: 26,
-      borderTopRightRadius: 26,
-      borderWidth: 1,
-      borderBottomWidth: 0,
-      borderColor: Colors.borderColor,
-      paddingTop: 10,
-      overflow: 'hidden',
-    },
+    sheet: { maxHeight: '88%', backgroundColor: Colors.sheetBg, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 10, overflow: 'hidden' },
     handle: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: Colors.subtleBorder },
     headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, paddingTop: 12 },
-    title: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textMain },
+    title: { fontSize: 20, lineHeight: 28, fontFamily: FONTS.titleBold, color: Colors.textMain },
     closeBtn: {
       width: 30,
       height: 30,
@@ -240,19 +230,9 @@ const styles = themedStyles(() =>
       alignItems: 'center',
     },
     closeText: { fontSize: 12, color: Colors.textMain },
-    body: { padding: 18, gap: 10 },
-    preview: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 14,
-      padding: 14,
-      borderRadius: 20,
-      backgroundColor: Colors.bgCard,
-      borderWidth: 1,
-      borderColor: 'rgba(56, 189, 248, 0.35)',
-      marginBottom: 4,
-    },
-    previewIcon: { width: 72, height: 72, borderRadius: 22, ...glassStyle(), justifyContent: 'center', alignItems: 'center' },
+    body: { paddingHorizontal: 6, paddingVertical: 18, gap: 10 },
+    preview: { flexDirection: 'row', alignItems: 'center', gap: 16, padding: 16, backgroundColor: Colors.bgCard, borderRadius: 12, borderWidth: 1, borderColor: outline(), ...elevation1(), marginBottom: 4 },
+    previewIcon: { width: 72, height: 72, borderRadius: 12, ...glassStyle(), justifyContent: 'center', alignItems: 'center' },
     previewEmoji: { fontSize: 38 },
     previewName: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.primary },
     sub: { fontSize: 11, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 1 },

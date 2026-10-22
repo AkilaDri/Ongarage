@@ -10,11 +10,18 @@ import {
   NotoSansSinhala_600SemiBold,
   NotoSansSinhala_700Bold,
 } from '@expo-google-fonts/noto-sans-sinhala';
-import { BottomNav, TitleBand, Colors, ThemeProvider, themedStyles, useTheme, headerBand, getThemeMode } from '@ongarage/shared';
+import { BottomNav, type NavAlert, TitleBand, Colors, ThemeProvider, themedStyles, useTheme, headerBand, getThemeMode, setAppShape } from '@ongarage/shared';
+
+// This app has PickMe's shapes too (big rounded cards, pill buttons and chips, light edges, soft shadows), like the garage app. Set before the first screen is drawn.
+setAppShape('pickme');
 import { isActiveSOS, TechProvider, useTech } from './context/TechContext';
 import { TECH_TABS, type TabId } from './constants/tabs';
+import { ApprovalWaitingBar } from './components/ApprovalWaitingBar';
+import { PaymentPrompt } from './components/PaymentPrompt';
 import { TechHeader } from './components/TechHeader';
 import { Toast } from './components/Toast';
+import { ChatProvider } from './context/ChatContext';
+import { ChatHeaderButton } from './components/ChatHeaderButton';
 import { JobsScreen } from './screens/JobsScreen';
 import { GaragesScreen } from './screens/GaragesScreen';
 import { EarningsScreen } from './screens/EarningsScreen';
@@ -27,7 +34,9 @@ export default function App() {
   return (
     <ThemeProvider>
       <TechProvider>
-        <AppShell />
+        <ChatProvider>
+          <AppShell />
+        </ChatProvider>
       </TechProvider>
     </ThemeProvider>
   );
@@ -40,8 +49,12 @@ function AppShell() {
   const { offers, jobs, invites, earnings, openJob, closeSOS } = useTech();
   // Badges: jobs waiting for an answer, invitations, garages with an open account.
   const unsettled = new Set(earnings.filter((e) => !e.settled).map((e) => e.garageId)).size;
+  // What the Jobs tab says without being opened: an offer waits for an answer (red strobe), the garage has not yet approved the repair charge (amber), on the way
+  // to the site (blue radar), a job running (calm green).
+  const sosJob = jobs.find(isActiveSOS);
+  const jobsAlert: NavAlert | undefined = offers.length ? 'incoming' : sosJob?.stage === 'approval' ? 'waiting' : sosJob?.stage === 'enroute' ? 'enroute' : sosJob ? 'active' : undefined;
   const badges: Partial<Record<TabId, number>> = { jobs: offers.length + (jobs.some(isActiveSOS) ? 1 : 0), garages: invites.length, earnings: unsettled };
-  const tabs = TECH_TABS.map((t) => ({ ...t, badge: badges[t.id] }));
+  const tabs = TECH_TABS.map((t) => ({ ...t, badge: badges[t.id], alert: t.id === 'jobs' ? jobsAlert : undefined }));
   const [tab, setTab] = useState<TabId>('jobs');
   const fade = useRef(new Animated.Value(0)).current;
   const [fadeColor, setFadeColor] = useState(Colors.bgBody);
@@ -84,8 +97,17 @@ function AppShell() {
         <View style={styles.nav}>
           <BottomNav items={tabs} activeTab={tab} onTabChange={setTab} />
         </View>
+        {/* OnChat: the icon stays at the top right on every tab */}
+        <View style={styles.floatChat} pointerEvents="box-none">
+          <ChatHeaderButton />
+        </View>
+        {/* Waiting for the garage to approve a repair charge: stays on every tab with a call button. */}
+        <ApprovalWaitingBar />
         <Toast />
       </SafeAreaView>
+
+      {/* The job just closed with the owner's code: what did the customer actually pay? */}
+      <PaymentPrompt />
 
       {/* The SOS job in progress, full screen; minimising keeps it running. */}
       <Modal visible={!!openJob} animationType="slide" statusBarTranslucent onRequestClose={closeSOS}>
@@ -106,5 +128,6 @@ const styles = themedStyles(() =>
     flex1: { flex: 1 },
     sheet: { flex: 1, marginTop: -18, borderTopLeftRadius: 24, borderTopRightRadius: 24, overflow: 'hidden', backgroundColor: getThemeMode() === 'dark' ? Colors.bgBody : '#ffffff' },
     nav: { position: 'absolute', left: 0, right: 0, bottom: 0 },
+    floatChat: { position: 'absolute', top: 10, right: 14, zIndex: 50 },
   })
 );

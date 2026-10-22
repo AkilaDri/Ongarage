@@ -1,3 +1,9 @@
+import { CustomerHistoryLink, CustomerHistoryList, CustomerHistoryTag, CustomerRecordTabs } from './CustomerHistory';
+import { CategoryArt } from './CategoryArt';
+import { ClipboardLineIcon } from '@ongarage/shared';
+import { VehicleIcon3D, VehicleLabel } from '@ongarage/shared';
+import { CustomerBadge } from './CustomerBadge';
+import { VehicleLine } from '@ongarage/shared';
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -17,18 +23,25 @@ import {
   softFill,
   softEdge,
   softShadow,
+  getThemeMode,
 } from '@ongarage/shared';
+import { pageBg } from '../utils/pageBg';
 import { bidDeadline, useGarage } from '../context/GarageContext';
-import { ServiceModeNote } from './BookingActions';
-import { callCustomer, serviceMode } from '../utils/contact';
 import { Toast } from './Toast';
-import { WorkshopPanel } from './WorkshopPanel';
+import { BookingJobCard } from './BookingJobCard';
+import { AddJobDetailSheet } from './JobCardUpdates';
+import { NoPhotoAnimation } from './NoPhotoAnimation';
 import { ago, countdown, formatDate, formatTime, money } from '../utils/format';
-import type { Booking, DirectRequest, FeedJob, JobDetails } from '../types';
+import type { BidStatus, Booking, DirectRequest, FeedJob, JobDetails, MyBid } from '../types';
 
-export type DetailTarget = { kind: 'bid'; job: FeedJob } | { kind: 'direct'; job: DirectRequest } | { kind: 'booking'; booking: Booking };
+export type DetailTarget = { kind: 'bid'; job: FeedJob } | { kind: 'myBid'; bid: MyBid } | { kind: 'direct'; job: DirectRequest } | { kind: 'booking'; booking: Booking };
 
-const BOOKING_STATUS: Record<Booking['status'], string> = { scheduled: 'නියමිතයි', inProgress: 'වැඩ කරමින්', completed: 'සම්පූර්ණයි' };
+const BID_STATUS: Record<BidStatus, { label: string; color: () => string }> = {
+  pending: { label: 'සලකා බලමින්', color: () => Colors.warning },
+  won: { label: 'දිනුවා · කාලසටහනට එක් විය', color: () => Colors.successText },
+  lost: { label: 'අහිමි විය', color: () => Colors.errorText },
+  withdrawn: { label: 'ඉවත් කළා', color: () => Colors.textMuted },
+};
 
 export const SPARE_LABEL: Record<FeedJob['sparePart'], string> = {
   Genuine: 'ජෙනුයින් කොටස්',
@@ -37,7 +50,7 @@ export const SPARE_LABEL: Record<FeedJob['sparePart'], string> = {
   GarageChoice: 'ගරාජයේ තේරීම',
 };
 
-const MAP_H = 170;
+const MAP_H = 110;
 
 // Contact details are released once a booking exists, so deals stay on the platform.
 const maskPhone = (p: string) => `${p.slice(0, 3)} *** **${p.slice(-2)}`;
@@ -58,6 +71,11 @@ export const JobDetailView: React.FC<{
   const [page, setPage] = useState(0);
   const [galleryW, setGalleryW] = useState(0);
   const [lightbox, setLightbox] = useState<number | null>(null);
+  const [addOpen, setAddOpen] = useState(false);
+  // A finished job touched in the record tab opens its own details window, on top of this one.
+  const [nested, setNested] = useState<Booking | null>(null);
+  // A returning customer's job has two tabs: the job's details and the record of earlier work for them.
+  const [view, setView] = useState<'details' | 'records'>('details');
   const [now, setNow] = useState(Date.now());
   const fade = useRef(new Animated.Value(0)).current;
 
@@ -66,6 +84,7 @@ export const JobDetailView: React.FC<{
       setShown(target);
       setMounted(true);
       setPage(0);
+      setView('details');
       fade.setValue(0);
       Animated.timing(fade, { toValue: 1, duration: 340, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
     } else if (mounted) {
@@ -85,6 +104,7 @@ export const JobDetailView: React.FC<{
   const booking = shown.kind === 'booking' ? shown.booking : null;
   const direct = shown.kind === 'direct' ? shown.job : null;
   const bidJob = shown.kind === 'bid' ? shown.job : null;
+  const myBid = shown.kind === 'myBid' ? shown.bid : null;
   // Older bookings (and SOS jobs) may not carry the owner's original post.
   const job: JobDetails =
     shown.kind === 'booking'
@@ -99,9 +119,12 @@ export const JobDetailView: React.FC<{
           location: { address: shown.booking.address, coords: shown.booking.coords },
           distanceKm: Number(distanceKm(profile.coords, shown.booking.coords).toFixed(1)),
         })
-      : shown.job;
+      : shown.kind === 'myBid'
+        ? shown.bid.job
+        : shown.job;
+  // How the job came: a direct booking, a bid (posted or won), or an SOS call.
+  const kind: 'Booking' | 'Bid' | 'SOS' = booking ? (booking.source === 'sos' ? 'SOS' : booking.source === 'direct' ? 'Booking' : 'Bid') : direct ? 'Booking' : 'Bid';
   const cat = booking ? { name: booking.title, icon: booking.icon } : categoryInfo(job.categoryId);
-  const walkIn = !!booking && serviceMode(booking) === 'walkin';
   const photos = job.photos ?? [];
   const voices = job.voiceNotes ?? [];
   const mid = {
@@ -118,25 +141,45 @@ export const JobDetailView: React.FC<{
         ]}
       >
         <SafeAreaView style={styles.flex1} edges={['top', 'bottom']}>
-          <View style={styles.header}>
-            <Pressable style={styles.iconBtn} onPress={onClose} hitSlop={8} accessibilityLabel="Close details">
-              <Icon name="x" size={16} color={Colors.textMain} />
-            </Pressable>
-            <Text style={styles.headerTitle}>රැකියා විස්තර</Text>
-            {booking ? (
-              <View style={[styles.kindPill, styles.kindDirect]}>
-                <Icon name="check-circle" size={12} color={Colors.success} />
-                <Text style={[styles.kindText, { color: Colors.success }]}>තහවුරු වූ වෙන්කිරීම</Text>
+          {/* No top bar: only the close button, floating at the top left over the page. */}
+          <Pressable style={styles.floatClose} onPress={onClose} hitSlop={8} accessibilityLabel="Close details">
+            <Icon name="x" size={16} color={Colors.textMain} />
+          </Pressable>
+          {/* The title at the very top of the window, beside the close button. */}
+          <View style={styles.floatTitle} accessibilityRole="header">
+            <View style={styles.floatTitleIcon}>
+              <ClipboardLineIcon active size={26} />
+            </View>
+            <View style={styles.flex1}>
+              <View style={styles.headTitleRow}>
+                <Text style={styles.floatTitleText}>රැකියා තොරතුරු</Text>
+                {/* At the right end, the customer's New / Old tag, then how the job came (a booking, a bid, or an SOS). */}
+                <View style={styles.headTags}>
+                  {(!!booking || !!direct) && <CustomerHistoryTag customer={job.customer} />}
+                <View style={[styles.headKind, kind === 'Booking' ? styles.headKindBooking : kind === 'SOS' ? styles.headKindSos : styles.headKindBid]}>
+                  <Text style={[styles.headKindText, { color: kind === 'Booking' ? Colors.success : kind === 'SOS' ? Colors.errorText : Colors.primary }]}>{kind}</Text>
+                </View>
+                </View>
               </View>
-            ) : (
-              <View style={[styles.kindPill, direct ? styles.kindDirect : styles.kindBid]}>
-                <Icon name={direct ? 'calendar' : 'tag'} size={12} color={direct ? Colors.success : Colors.primary} />
-                <Text style={[styles.kindText, { color: direct ? Colors.success : Colors.primary }]}>{direct ? 'ඍජු වෙන්කිරීම' : 'ලංසු සඳහා'}</Text>
-              </View>
-            )}
+              <Text style={styles.floatTitleSub} numberOfLines={1}>
+                {cat.name} · {job.vehicle.registrationNo || job.vehicle.plate}
+              </Text>
+            </View>
           </View>
 
-          <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
+          <View style={[styles.flex1, { paddingTop: 52 }]}>
+          {/* Private while the job is only open for bids: the tabs exist once the garage has been chosen (a booking, or a won bid). */}
+          {(!!booking || !!direct) && <CustomerRecordTabs customer={job.customer} view={view} onChange={setView} />}
+          {view === 'records' && (!!booking || !!direct) ? (
+            <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
+              <CustomerHistoryList customer={job.customer} onOpenJob={(b) => setNested(b)} />
+            </ScrollView>
+          ) : (
+          <ScrollView contentContainerStyle={booking ? styles.bodyWithFab : styles.body} showsVerticalScrollIndicator={false}>
+            {booking ? (
+              <BookingJobCard booking={booking} />
+            ) : (
+              <>
             {/* Photos */}
             {photos.length ? (
               <View style={styles.gallery} onLayout={(e) => setGalleryW(e.nativeEvent.layout.width)}>
@@ -167,68 +210,24 @@ export const JobDetailView: React.FC<{
                 )}
               </View>
             ) : (
-              <View style={styles.noPhotos}>
-                <Text style={styles.noPhotosEmoji}>📷</Text>
-                <Text style={styles.sub}>හිමිකරු ඡායාරූප එවා නැත</Text>
-              </View>
+              <NoPhotoAnimation emoji={cat.icon} height={150} />
             )}
 
             {/* Title */}
             <View style={styles.row}>
-              <GlassIcon emoji={cat.icon} />
+              <CategoryArt emoji={cat.icon} size={52} />
               <View style={styles.flex1}>
                 <Text style={styles.title}>
                   {cat.name}
                   {direct?.service ? ` · ${direct.service}` : ''}
                 </Text>
-                <Text style={styles.sub}>
-                  {vehicleIcon(job.vehicle.type)} {job.vehicle.name} · {job.customer.name} · {booking ? booking.vehicle.plate : ago(now - (direct ? direct.requestedAt : bidJob!.postedAt))}
-                </Text>
+                <VehicleLabel type={job.vehicle.type} style={styles.sub} >{job.vehicle.name} · {job.customer.name} · {ago(now - (direct ? direct.requestedAt : myBid ? myBid.submittedAt : bidJob!.postedAt))}
+                </VehicleLabel>
               </View>
             </View>
 
             {/* Timing */}
-            {booking ? (
-              <>
-                <View style={styles.timing}>
-                  <View style={styles.timingCell}>
-                    <Text style={styles.timingLabel}>වෙන් කළ වේලාව</Text>
-                    <Text style={styles.timingValue}>
-                      {formatDate(booking.scheduledAt)} · {formatTime(booking.scheduledAt)}
-                    </Text>
-                  </View>
-                  <View style={styles.timingDivider} />
-                  <View style={styles.timingCell}>
-                    <Text style={styles.timingLabel}>මිල</Text>
-                    <Text style={[styles.timingValue, { color: Colors.success }]}>{money(booking.price)}</Text>
-                  </View>
-                  <View style={styles.timingDivider} />
-                  <View style={styles.timingCell}>
-                    <Text style={styles.timingLabel}>තත්ත්වය</Text>
-                    <Text style={styles.timingValue}>{BOOKING_STATUS[booking.status]}</Text>
-                  </View>
-                </View>
-                <ServiceModeNote booking={booking} />
-                {booking.progress && <WorkshopPanel booking={booking} />}
-                {!booking.progress && !!booking.partsCost && (
-                  <View style={styles.bill}>
-                    <View style={styles.billRow}>
-                      <Text style={styles.sub}>🔧 වැඩ ගාස්තුව</Text>
-                      <Text style={styles.billValue}>{money(booking.price)}</Text>
-                    </View>
-                    <View style={styles.billRow}>
-                      <Text style={styles.sub}>🔩 කොටස් (වෙනම බිල්පත)</Text>
-                      <Text style={styles.billValue}>{money(booking.partsCost)}</Text>
-                    </View>
-                    <View style={styles.billRow}>
-                      <Text style={styles.billTotalLabel}>හිමිකරු ගෙවන මුළු මුදල</Text>
-                      <Text style={styles.billTotal}>{money(booking.price + booking.partsCost)}</Text>
-                    </View>
-                  </View>
-                )}
-                {!!booking.note && <Text style={styles.sub}>📝 ඔබගේ සටහන: {booking.note}</Text>}
-              </>
-            ) : direct ? (
+            {direct ? (
               <View style={styles.timing}>
                 <View style={styles.timingCell}>
                   <Text style={styles.timingLabel}>ඉල්ලූ වේලාව</Text>
@@ -244,6 +243,37 @@ export const JobDetailView: React.FC<{
                   </Text>
                 </View>
               </View>
+            ) : myBid ? (
+              <>
+                <View style={styles.timing}>
+                  <View style={styles.timingCell}>
+                    <Text style={styles.timingLabel}>ඔබගේ ලංසුව</Text>
+                    <Text style={[styles.timingValue, { color: Colors.success }]}>{money(myBid.price)}</Text>
+                  </View>
+                  <View style={styles.timingDivider} />
+                  <View style={styles.timingCell}>
+                    <Text style={styles.timingLabel}>වගකීම</Text>
+                    <Text style={styles.timingValue}>{myBid.warrantyMonths ? `මාස ${myBid.warrantyMonths}` : 'නැත'}</Text>
+                  </View>
+                  <View style={styles.timingDivider} />
+                  <View style={styles.timingCell}>
+                    <Text style={styles.timingLabel}>ඇස්තමේන්තු කාලය</Text>
+                    <Text style={styles.timingValue}>පැය {myBid.estHours}</Text>
+                  </View>
+                </View>
+                <Text style={styles.section}>ලංසුවේ වාර්තාව</Text>
+                <View style={styles.card}>
+                  <View style={styles.fact}>
+                    <Text style={styles.factIcon}>●</Text>
+                    <Text style={styles.factLabel}>තත්ත්වය</Text>
+                    <Text style={[styles.factValue, { color: BID_STATUS[myBid.status].color() }]}>{BID_STATUS[myBid.status].label}</Text>
+                  </View>
+                  <Fact icon="🕒" label="ලංසු තැබූ වේලාව" value={`${formatDate(myBid.submittedAt)} · ${formatTime(myBid.submittedAt)} (${ago(now - myBid.submittedAt)})`} />
+                  <Fact icon="🏷️" label="වෙළඳපොළ මිල" value={`${money(marketPrice(job.categoryId))} · ඔබගේ ලංසුව ${myBid.price <= marketPrice(job.categoryId) ? 'ඊට වඩා අඩුයි' : 'ඊට වඩා වැඩියි'}`} />
+                  <Fact icon="📝" label="ඔබගේ සටහන" value={myBid.note || 'සටහනක් නැත'} />
+                  <Fact icon="👥" label="වෙනත් ලංසු" value={`${myBid.job.otherBids}`} />
+                </View>
+              </>
             ) : (
               <View style={styles.timing}>
                 <View style={styles.timingCell}>
@@ -272,26 +302,30 @@ export const JobDetailView: React.FC<{
                   <Text style={styles.buddyText}>🤖 Buddy: {job.buddySummary}</Text>
                 </View>
               )}
+              {voices.length > 0 && (
+                <View style={styles.voices}>
+                  <Text style={styles.voiceLabel}>🎙️ Voice note ({voices.length})</Text>
+                  {voices.map((n, i) => (
+                    <VoiceNotePlayer key={n.id} note={n} index={i} compact />
+                  ))}
+                </View>
+              )}
             </View>
-
-            {/* Voice notes */}
-            <Text style={styles.section}>හඬ සටහන් {voices.length ? `(${voices.length})` : ''}</Text>
-            {voices.length ? (
-              voices.map((n, i) => <VoiceNotePlayer key={n.id} note={n} index={i} />)
-            ) : (
-              <Text style={styles.empty}>හඬ සටහන් එවා නැත</Text>
-            )}
 
             {/* Requirements */}
             <Text style={styles.section}>අවශ්‍යතා</Text>
             <View style={styles.card}>
-              {(!booking || !!booking.job) && <Fact icon="🔩" label="අමතර කොටස්" value={SPARE_LABEL[job.sparePart]} />}
+              <Fact icon="🔩" label="අමතර කොටස්" value={SPARE_LABEL[job.sparePart]} />
               <Fact
                 icon="🚛"
                 label="සේවා ස්ථානය"
-                value={booking?.source === 'sos' ? 'මාර්ගයේදී (SOS)' : job.doorstep ? 'නිවසටම පැමිණීම (ඔබ යයි)' : 'පාරිභෝගිකයා ගරාජයට ගෙන එයි'}
+                value={job.doorstep ? 'නිවසටම පැමිණීම (ඔබ යයි)' : 'පාරිභෝගිකයා ගරාජයට ගෙන එයි'}
               />
-              <Fact icon={vehicleIcon(job.vehicle.type)} label="වාහනය" value={`${job.vehicle.name} · ${job.vehicle.type} · ${job.vehicle.plate}`} />
+              <View style={styles.fact}>
+                <VehicleIcon3D type={job.vehicle.type} size={22} />
+                <Text style={styles.factLabel}>වාහනය</Text>
+                <VehicleLine vehicle={job.vehicle} textStyle={styles.factValue} />
+              </View>
             </View>
 
             {/* Location */}
@@ -316,7 +350,7 @@ export const JobDetailView: React.FC<{
                     {c && (
                       <View style={[styles.pinAnchor, { left: c.x, top: c.y }]} pointerEvents="none">
                         <View style={styles.customerPin}>
-                          <Text style={styles.pinEmoji}>{vehicleIcon(job.vehicle.type)}</Text>
+                          <VehicleIcon3D type={job.vehicle.type} size={26} />
                         </View>
                       </View>
                     )}
@@ -327,42 +361,32 @@ export const JobDetailView: React.FC<{
             <Text style={styles.sub}>
               📍 {job.location.address} · ගරාජයේ සිට කි.මී. {job.distanceKm}
             </Text>
-            {walkIn && <Text style={styles.sub}>🏠 පාරිභෝගිකයා පැමිණෙන්නේ: {profile.address}</Text>}
 
             {/* Customer */}
             <Text style={styles.section}>පාරිභෝගිකයා</Text>
             <View style={styles.card}>
               <Fact icon="👤" label="නම" value={job.customer.name} />
-              {booking ? (
-                <>
-                  <View style={styles.fact}>
-                    <Text style={styles.factIcon}>📞</Text>
-                    <Text style={styles.factLabel}>දුරකථනය</Text>
-                    <Text style={styles.factValue}>{job.customer.phone}</Text>
-                    <Pressable style={styles.callBtn} onPress={() => callCustomer(job.customer.phone)} accessibilityLabel="Call customer">
-                      <Text style={styles.callText}>📞 අමතන්න</Text>
-                    </Pressable>
-                  </View>
-                  <Text style={styles.empty}>
-                    {walkIn
-                      ? 'පාරිභෝගිකයාට ඔබගේ ස්ථානය සහ දුරකථන අංකය ලැබී ඇත — මගදී උපදෙස් සඳහා ඔවුන්ට ඔබව ඇමතිය හැක.'
-                      : 'රැකියාව ගැන වැඩි විස්තර සඳහා පාරිභෝගිකයා අමතන්න.'}
-                  </Text>
-                </>
-              ) : (
-                <>
-                  <Fact icon="📞" label="දුරකථනය" value={maskPhone(job.customer.phone)} />
-                  <Text style={styles.empty}>
-                    {direct ? 'වෙන්කිරීම තහවුරු කළ පසු' : 'ලංසුව දිනූ පසු'} සම්පූර්ණ අංකය මෙහි සහ “Schedule” ටැබයේ පෙනේ.
-                  </Text>
-                </>
-              )}
+              <CustomerBadge customer={job.customer} />
+              {/* Private while the job is only open for bids: shown once the garage has been chosen (a booking, or a won bid). */}
+              {(!!booking || !!direct) && <CustomerHistoryLink customer={job.customer} />}
+              {!booking && !direct && <Text style={styles.empty}>🔒 පාරිභෝගිකයාගේ කලින් වාර්තාව රැකියාව දිනූ පසු පෙනේ.</Text>}
+              <Fact icon="📞" label="දුරකථනය" value={maskPhone(job.customer.phone)} />
+              <Text style={styles.empty}>
+                {direct ? 'වෙන්කිරීම තහවුරු කළ පසු' : 'ලංසුව දිනූ පසු'} සම්පූර්ණ අංකය මෙහි සහ “Schedule” ටැබයේ පෙනේ.
+              </Text>
             </View>
+              </>
+            )}
           </ScrollView>
+          )}
+          </View>
 
           <View style={styles.footer}>{renderActions(shown)}</View>
         </SafeAreaView>
       </Animated.View>
+
+      {!!nested && <JobDetailView target={{ kind: 'booking', booking: nested }} onClose={() => setNested(null)} renderActions={renderActions} />}
+      {booking && <AddJobDetailSheet booking={booking} visible={addOpen} onClose={() => setAddOpen(false)} />}
 
       {/* Full-screen photo viewer */}
       <Modal visible={lightbox !== null} transparent animationType="fade" onRequestClose={() => setLightbox(null)}>
@@ -399,58 +423,76 @@ const Fact: React.FC<{ icon: string; label: string; value: string }> = ({ icon, 
   </View>
 );
 
+// Google Material look: 12px corners, a thin outline and a light elevation on every surface, a plain top app bar and a sticky action bar.
+const outline = () => (getThemeMode() === 'dark' ? Colors.borderColor : '#dadce0');
+const elevation1 = () => ({ shadowColor: '#3c4043', shadowOffset: { width: 0, height: 1 }, shadowOpacity: getThemeMode() === 'dark' ? 0.4 : 0.15, shadowRadius: 3, elevation: 1 }) as const;
+
 const styles = themedStyles(() =>
   StyleSheet.create({
     flex1: { flex: 1 },
-    root: { flex: 1, backgroundColor: Colors.bgBody },
+    root: { flex: 1, backgroundColor: pageBg() },
     row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-    header: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: Colors.borderColor },
-    iconBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: softFill(), borderWidth: 1, borderColor: 'transparent', justifyContent: 'center', alignItems: 'center' },
-    headerTitle: { flex: 1, fontSize: 15, fontFamily: FONTS.titleBold, color: Colors.textMain },
-    kindPill: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 9, paddingVertical: 5, borderRadius: 10, borderWidth: 1 },
+    floatClose: { position: 'absolute', top: 10, left: 10, zIndex: 20, width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#dadce0' },
+    floatTitle: { position: 'absolute', top: 6, left: 54, right: 16, zIndex: 20, height: 44, flexDirection: 'row', alignItems: 'center', gap: 10 },
+    floatTitleIcon: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe' },
+    headTags: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    headTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+    headKind: { paddingHorizontal: 7, height: 18, justifyContent: 'center', borderRadius: 9 },
+    headKindBooking: { backgroundColor: 'rgba(16, 185, 129, 0.14)' },
+    headKindBid: { backgroundColor: 'rgba(56, 189, 248, 0.16)' },
+    headKindSos: { backgroundColor: 'rgba(239, 68, 68, 0.12)' },
+    headKindText: { fontSize: 10, lineHeight: 12, fontFamily: FONTS.bodyBold },
+    floatTitleText: { fontSize: 14, fontFamily: FONTS.titleBold, color: Colors.textMain, lineHeight: 18 },
+    floatTitleSub: { fontSize: 11, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 15 },
+    header: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 6, minHeight: 56, backgroundColor: Colors.bgCard, borderBottomWidth: 1, borderBottomColor: outline(), ...elevation1() },
+    iconBtn: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
+    headerTitle: { flex: 1, fontSize: 18, fontFamily: FONTS.titleBold, color: Colors.textMain },
+    kindPill: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, height: 28, borderRadius: 8, borderWidth: 1 },
     kindBid: { backgroundColor: 'rgba(56, 189, 248, 0.12)', borderColor: 'rgba(56, 189, 248, 0.45)' },
     kindDirect: { backgroundColor: 'rgba(16, 185, 129, 0.12)', borderColor: 'rgba(16, 185, 129, 0.45)' },
     kindText: { fontSize: 10.5, fontFamily: FONTS.bodySemiBold },
-    body: { padding: 16, gap: 12, paddingBottom: 28 },
-    gallery: { height: 220, borderRadius: 18, overflow: 'hidden', backgroundColor: Colors.bgCard },
+    bodyWithFab: { paddingVertical: 16, paddingHorizontal: 6, gap: 12, paddingBottom: 96 },
+    body: { paddingVertical: 16, paddingHorizontal: 6, gap: 12, paddingBottom: 28 },
+    gallery: { height: 220, borderRadius: 12, overflow: 'hidden', backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline() },
     photo: { height: 220 },
     photoCount: { position: 'absolute', top: 10, right: 10, paddingHorizontal: 9, paddingVertical: 3, borderRadius: 10, backgroundColor: 'rgba(0, 0, 0, 0.55)' },
     photoCountText: { fontSize: 10.5, fontWeight: '800', color: '#fff' },
     dots: { position: 'absolute', bottom: 10, left: 0, right: 0, flexDirection: 'row', justifyContent: 'center', gap: 6 },
     dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: 'rgba(255, 255, 255, 0.5)' },
     dotOn: { width: 16, backgroundColor: '#fff' },
-    noPhotos: { height: 110, borderRadius: 18, borderWidth: 1, borderStyle: 'dashed', borderColor: Colors.subtleBorder, justifyContent: 'center', alignItems: 'center', gap: 4 },
-    noPhotosEmoji: { fontSize: 24, opacity: 0.6 },
-    title: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textMain },
-    sub: { fontSize: 11, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 1 },
-    timing: { flexDirection: 'row', alignItems: 'center', padding: 12, borderRadius: 20, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), ...softShadow() },
+    noPhotos: { height: 110, borderRadius: 12, borderWidth: 1, borderColor: outline(), backgroundColor: Colors.bgCard, justifyContent: 'center', alignItems: 'center', gap: 4 },
+    voices: { gap: 8 },
+    voiceLabel: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
+    title: { fontSize: 20, fontFamily: FONTS.titleBold, color: Colors.textMain },
+    sub: { fontSize: 13, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 2 },
+    timing: { flexDirection: 'row', alignItems: 'center', padding: 16, borderRadius: 12, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), ...elevation1() },
     timingCell: { flex: 1, alignItems: 'center', gap: 3 },
-    timingDivider: { width: 1, alignSelf: 'stretch', backgroundColor: Colors.borderColor },
-    timingLabel: { fontSize: 10, fontFamily: FONTS.bodyMedium, color: Colors.textMuted },
-    timingValue: { fontSize: 12.5, fontFamily: FONTS.titleBold, color: Colors.textMain, textAlign: 'center' },
-    section: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textMain, marginTop: 6 },
-    card: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), borderRadius: 20, padding: 14, gap: 10, ...softShadow() },
-    desc: { fontSize: 13, fontFamily: FONTS.bodyRegular, color: Colors.textSoft, lineHeight: 21 },
-    buddy: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10, backgroundColor: 'rgba(56, 189, 248, 0.08)', borderLeftWidth: 3, borderLeftColor: Colors.primary },
-    buddyText: { fontSize: 11.5, fontFamily: FONTS.bodyMedium, color: Colors.textSoft },
-    empty: { fontSize: 11, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
+    timingDivider: { width: 1, alignSelf: 'stretch', backgroundColor: outline() },
+    timingLabel: { fontSize: 12, fontFamily: FONTS.bodyMedium, color: Colors.textMuted },
+    timingValue: { fontSize: 14, fontFamily: FONTS.titleBold, color: Colors.textMain, textAlign: 'center' },
+    section: { fontSize: 14, fontFamily: FONTS.bodyBold, color: Colors.primary, marginTop: 8, letterSpacing: 0.2 },
+    card: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), borderRadius: 12, padding: 16, gap: 12, ...elevation1() },
+    desc: { fontSize: 14, fontFamily: FONTS.bodyRegular, color: Colors.textSoft, lineHeight: 22 },
+    buddy: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, backgroundColor: getThemeMode() === 'dark' ? Colors.subtleFill : '#e8f0fe', borderLeftWidth: 3, borderLeftColor: Colors.primary },
+    buddyText: { fontSize: 12.5, fontFamily: FONTS.bodyMedium, color: Colors.textSoft },
+    empty: { fontSize: 12.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
     fact: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     factIcon: { fontSize: 14, width: 20, textAlign: 'center' },
-    factLabel: { fontSize: 11.5, fontFamily: FONTS.bodyMedium, color: Colors.textMuted, width: 92 },
-    factValue: { flex: 1, fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
-    bill: { padding: 12, borderRadius: 18, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), gap: 6, ...softShadow() },
+    factLabel: { fontSize: 13, fontFamily: FONTS.bodyMedium, color: Colors.textMuted, width: 104 },
+    factValue: { flex: 1, fontSize: 14, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
+    bill: { padding: 16, borderRadius: 12, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), gap: 8, ...elevation1() },
     billRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     billValue: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
     billTotalLabel: { fontSize: 12, fontFamily: FONTS.bodyBold, color: Colors.textMain },
     billTotal: { fontSize: 14, fontFamily: FONTS.titleBold, color: Colors.success },
-    callBtn: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10, backgroundColor: 'rgba(16, 185, 129, 0.12)', borderWidth: 1, borderColor: 'rgba(16, 185, 129, 0.4)' },
-    callText: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.success },
-    map: { borderRadius: 20, overflow: 'hidden', borderWidth: 1, borderColor: softEdge(), ...softShadow() },
+    callBtn: { paddingHorizontal: 12, height: 32, justifyContent: 'center', borderRadius: 16, backgroundColor: getThemeMode() === 'dark' ? 'rgba(16, 185, 129, 0.12)' : '#e6f4ea' },
+    callText: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.success },
+    map: { borderRadius: 12, overflow: 'hidden', borderWidth: 1, borderColor: outline() },
     pinAnchor: { position: 'absolute', transform: [{ translateX: '-50%' }, { translateY: '-50%' }] },
     garagePin: { width: 36, height: 36, borderRadius: 18, backgroundColor: Colors.success, borderWidth: 3, borderColor: '#fff', justifyContent: 'center', alignItems: 'center', shadowColor: '#059669', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 10, elevation: 5 },
     customerPin: { width: 36, height: 36, borderRadius: 18, backgroundColor: Colors.primary, borderWidth: 3, borderColor: '#fff', justifyContent: 'center', alignItems: 'center', shadowColor: '#0284c7', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 10, elevation: 5 },
     pinEmoji: { fontSize: 14 },
-    footer: { padding: 16, paddingTop: 10, gap: 8, borderTopWidth: 1, borderTopColor: Colors.borderColor, backgroundColor: Colors.barBg },
+    footer: { padding: 16, paddingTop: 12, gap: 8, borderTopWidth: 1, borderTopColor: outline(), backgroundColor: Colors.bgCard, shadowColor: '#3c4043', shadowOffset: { width: 0, height: -1 }, shadowOpacity: getThemeMode() === 'dark' ? 0.4 : 0.12, shadowRadius: 3, elevation: 4 },
     lightbox: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.94)', justifyContent: 'center' },
     lightboxImg: { width: '100%', height: '80%' },
     lightboxClose: { position: 'absolute', top: 48, right: 18, width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(255, 255, 255, 0.15)', justifyContent: 'center', alignItems: 'center' },

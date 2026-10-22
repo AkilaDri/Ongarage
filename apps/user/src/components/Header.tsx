@@ -4,11 +4,15 @@ import { Colors, getThemeMode, themedStyles } from '@ongarage/shared';
 import { FONTS } from '@ongarage/shared';
 import { useProfile } from '../context/ProfileContext';
 import { useVehicles } from '../context/VehiclesContext';
-import { vehicleIcon } from '@ongarage/shared';
+import { VehicleIcon3D } from '@ongarage/shared';
 import { Gradient, GRADIENTS } from '@ongarage/shared';
-import WeatherAnimation from './WeatherAnimation';
+import WeatherAnimation, { periodOf, skyInk, useHour } from './WeatherAnimation';
 import { MOCK_USER } from '../constants/mockData';
 
+/** Every page's top band is this tall - the height of Home's greeting band. */
+export const HEADER_BAND_H = 100;
+// The top bar keeps its emoji as they are (the line-icon patch skips a Text marked this way).
+const KEEP_EMOJI = { keepEmoji: true } as object;
 const POPOVER_WIDTH = 264;
 const EDGE_GAP = 12;
 
@@ -118,7 +122,7 @@ export const VehiclePicker: React.FC<VehiclePickerProps> = ({ visible, activeVeh
                 >
                   <View style={[styles.iconTile, active && styles.iconTileActive]}>
                     {active && <Gradient stops={GRADIENTS.issue} />}
-                    <Text style={styles.iconText}>{vehicleIcon(vehicle.type)}</Text>
+                    <VehicleIcon3D type={vehicle.type} size={30} />
                   </View>
                   <View style={styles.rowText}>
                     <Text style={[styles.name, active && styles.nameActive]}>{vehicle.name}</Text>
@@ -151,57 +155,45 @@ const greetingFor = (hour: number) => {
 };
 
 /** The band other tabs show instead of the greeting: just the tab's title, same colour as Home's. */
-export const TitleBand: React.FC<{ title: string }> = ({ title }) => (
-  <View style={styles.titleBand}>
-    <Text style={styles.titleBandText} accessibilityRole="header">
-      {title}
-    </Text>
-  </View>
-);
+export const TitleBand: React.FC<{ title: string; action?: { label: string; onPress: () => void } }> = ({ title, action }) => {
+  const hour = useHour();
+  return (
+    <View style={styles.titleBand}>
+      <WeatherAnimation hour={hour} />
+      <Text style={[styles.titleBandText, { color: skyInk(periodOf(hour)).main }, action && styles.titleWithAction]} accessibilityRole="header">
+        {title}
+      </Text>
+      {action && (
+        <Pressable style={styles.titleBandAction} onPress={action.onPress} accessibilityLabel={action.label}>
+          <Text style={styles.titleBandActionText}>{action.label}</Text>
+        </Pressable>
+      )}
+    </View>
+  );
+};
 
-interface HeaderProps {
-  activeVehicle: string;
-  onVehicleChange: (vehicleId: string) => void;
-}
+export const Header: React.FC = () => {
+  const { fullName } = useProfile();
 
-export const Header: React.FC<HeaderProps> = ({ activeVehicle, onVehicleChange }) => {
-  const [showDropdown, setShowDropdown] = useState(false);
-  const triggerRef = useRef<View>(null);
-  const activeCar = useVehicles().findVehicle(activeVehicle);
-  const { fullName, profile } = useProfile();
+  const hour = useHour();
+  const night = periodOf(hour) === 'night';
 
   return (
     <View style={styles.header}>
+      <WeatherAnimation hour={hour} />
       <View style={styles.greetingRow}>
         <View style={styles.greetingText}>
-          <Text style={styles.city}>📍 {MOCK_USER.city}</Text>
-          <Text style={styles.hi} numberOfLines={1}>
+          <Text {...KEEP_EMOJI} style={[styles.city, night ? styles.cityNight : styles.cityDay]}>📍 {MOCK_USER.city}</Text>
+          <Text style={[styles.hi, night ? styles.hiNight : styles.hiDay]} numberOfLines={1}>
             Hi {fullName},
           </Text>
-          <Text style={styles.greeting} numberOfLines={1}>
-            {greetingFor(new Date().getHours())}
+          <Text style={[styles.greeting, night ? styles.greetingNight : styles.greetingDay]} numberOfLines={1}>
+            {greetingFor(hour)}
           </Text>
         </View>
-        <WeatherAnimation hour={new Date().getHours()} />
       </View>
 
-      <Pressable ref={triggerRef} style={[styles.vehiclePill, showDropdown && styles.vehiclePillOpen]} onPress={() => setShowDropdown(true)} accessibilityLabel="Change vehicle">
-        <View style={styles.pillCar}>
-          <Text style={styles.pillCarIcon}>{vehicleIcon(activeCar.type)}</Text>
-        </View>
-        <Text style={styles.pillLabel} numberOfLines={1}>
-          {activeCar.plate}
-        </Text>
-        <Text style={styles.pillArrow}>▾</Text>
-      </Pressable>
-
-      <VehiclePicker
-        visible={showDropdown}
-        activeVehicle={activeVehicle}
-        anchorRef={triggerRef}
-        onSelect={onVehicleChange}
-        onClose={() => setShowDropdown(false)}
-      />
+      <View style={{ width: 66 }} />
     </View>
   );
 };
@@ -216,12 +208,27 @@ const styles = themedStyles(() => StyleSheet.create({
     paddingHorizontal: 18,
     paddingTop: 12,
     paddingBottom: 34,
+    minHeight: HEADER_BAND_H,
+    overflow: 'hidden',
     backgroundColor: getThemeMode() === 'dark' ? '#0e2a3f' : '#bfe4fa',
   },
-  titleBand: { paddingHorizontal: 18, paddingTop: 14, paddingBottom: 34, backgroundColor: getThemeMode() === 'dark' ? '#0e2a3f' : '#bfe4fa' },
+  // The sky behind the greeting is light by day and dark at night in either theme, so the text colour follows it.
+  cityDay: { color: '#2b4a63' },
+  hiDay: { color: '#0f2a3d' },
+  greetingDay: { color: '#2b4a63' },
+  cityNight: { color: '#a9cbe6' },
+  hiNight: { color: '#e6f3fc' },
+  greetingNight: { color: '#a9cbe6' },
+  // Leaves room at the right for the floating chat icon (52px + its 14px margin), so the button never sits under it.
+  titleBandAction: { marginRight: 66, paddingHorizontal: 14, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? '#16415f' : '#0f2f4a' },
+  titleBandActionText: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: '#ffffff' },
+  // Leaves room for the sun / moon between the title and the action button.
+  titleWithAction: { flexShrink: 1, maxWidth: '44%' },
+  titleBand: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, paddingHorizontal: 18, paddingTop: 14, paddingBottom: 34, minHeight: HEADER_BAND_H, overflow: 'hidden', backgroundColor: getThemeMode() === 'dark' ? '#0e2a3f' : '#bfe4fa' },
   titleBandText: { fontSize: 20, fontFamily: FONTS.titleBold, color: getThemeMode() === 'dark' ? '#d6eefc' : '#0f2a3d' },
   city: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: getThemeMode() === 'dark' ? '#8fc3e3' : '#2b4a63', marginBottom: 2 },
-  greetingRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 6 },
+  // Above the sky: the sun, clouds and birds drift behind the greeting, never over it.
+  greetingRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 6, position: 'relative' },
   greetingText: { gap: 1, flex: 1 },
   hi: { fontSize: 15, fontFamily: FONTS.titleBold, color: getThemeMode() === 'dark' ? '#d6eefc' : '#0f2a3d' },
   greeting: { fontSize: 12.5, fontFamily: FONTS.bodyMedium, color: getThemeMode() === 'dark' ? '#8fc3e3' : '#2b4a63' },
@@ -233,6 +240,9 @@ const styles = themedStyles(() => StyleSheet.create({
     paddingLeft: 5,
     paddingRight: 12,
     borderRadius: 22,
+    // In front of the sky, so the sun / moon never covers the vehicle button.
+    zIndex: 3,
+    elevation: 3,
     backgroundColor: getThemeMode() === 'dark' ? '#16415f' : '#0f2f4a',
   },
   vehiclePillOpen: { opacity: 0.85 },

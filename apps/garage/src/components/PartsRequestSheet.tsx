@@ -1,6 +1,10 @@
+import { CategoryArt } from './CategoryArt';
+import { outline } from '../utils/material';
+import { pickPhotos } from '@ongarage/shared';
+import { VehicleLine } from '@ongarage/shared';
 import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { ActionButton, Colors, FONTS, GlassIcon, SERVICE_CATEGORIES, themedStyles, vehicleIcon, type DiagnosisLine, type PartLine, type PartType, softEdge, softShadow, softFill } from '@ongarage/shared';
+import { ActionButton, Colors, FONTS, GlassIcon, PhotoStrip, SERVICE_CATEGORIES, themedStyles, vehicleIcon, type DiagnosisLine, type PartLine, type PartType, softEdge, softShadow, softFill } from '@ongarage/shared';
 import { isNamedLine, useParts } from '../context/PartsContext';
 import { DEFAULT_SUGGESTIONS, PART_SUGGESTIONS, PART_TYPE_LABEL } from '../constants/parts';
 import { formatDate, formatTime } from '../utils/format';
@@ -36,6 +40,7 @@ export const PartsRequestSheet: React.FC<{ booking: Booking | null; onClose: () 
   const [chassis, setChassis] = useState('');
   const [note, setNote] = useState('');
   const [photo, setPhoto] = useState(false);
+  const [partPhotos, setPartPhotos] = useState<string[]>([]);
   const [partType, setPartType] = useState<PartType>('GarageChoice');
   const [needBy, setNeedBy] = useState(0);
   const [windowMin, setWindowMin] = useState(60);
@@ -83,7 +88,8 @@ export const PartsRequestSheet: React.FC<{ booking: Booking | null; onClose: () 
       lines,
       forLineIds: locked ? fixed.map((l) => l.id) : undefined,
       note: note.trim() || undefined,
-      oldPartPhoto: photo,
+      oldPartPhoto: photo || partPhotos.length > 0,
+      photos: partPhotos.length ? partPhotos : undefined,
       needBy,
       radiusKm,
       windowMin,
@@ -101,12 +107,10 @@ export const PartsRequestSheet: React.FC<{ booking: Booking | null; onClose: () 
       footer={<ActionButton label={lines.length ? `වෙළඳසැල් වෙත යවන්න (${lines.length})` : 'කොටසක් එක් කරන්න'} icon="📨" variant="primary" disabled={!lines.length} onPress={send} />}
     >
       <View style={styles.booking}>
-        <GlassIcon emoji={shown.icon} small />
+        <CategoryArt emoji={shown.icon} size={40} />
         <View style={styles.flex1}>
           <Text style={styles.title}>{shown.title}</Text>
-          <Text style={styles.sub}>
-            {vehicleIcon(shown.vehicle.type)} {shown.vehicle.name} · {shown.vehicle.plate} · වැඩ {formatDate(shown.scheduledAt)} {formatTime(shown.scheduledAt)}
-          </Text>
+          <VehicleLine vehicle={shown.vehicle} textStyle={styles.sub} extra={'වැඩ ' + formatDate(shown.scheduledAt) + ' ' + formatTime(shown.scheduledAt)} />
         </View>
       </View>
 
@@ -202,6 +206,9 @@ export const PartsRequestSheet: React.FC<{ booking: Booking | null; onClose: () 
         <Text style={[styles.sub, styles.flex1]}>📷 පැරණි කොටසේ ඡායාරූපයක් අමුණන්න — නිවැරදි කොටස හඳුනා ගැනීමට උදව් වේ</Text>
       </Pressable>
 
+      <Text style={styles.label}>කොටසේ ඡායාරූප</Text>
+      <PhotoStrip photos={partPhotos} height={56} onAdd={partPhotos.length < 5 ? () => void pickPhotos(5 - partPhotos.length).then((ph) => ph.length && setPartPhotos((p) => [...p, ...ph])) : undefined} addLabel="📷 ඡායාරූපයක්" />
+
       <Text style={styles.label}>ගරාජයට ලැබිය යුත්තේ</Text>
       <View style={styles.chips}>
         {needByOptions(shown).map((o) => (
@@ -241,7 +248,7 @@ export const PartsRequestSheet: React.FC<{ booking: Booking | null; onClose: () 
 const styles = themedStyles(() =>
   StyleSheet.create({
     flex1: { flex: 1 },
-    booking: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: 20, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), ...softShadow() },
+    booking: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: 20, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), ...softShadow() },
     title: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.textMain },
     sub: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 1, lineHeight: 16 },
     label: { fontSize: 13.5, fontFamily: FONTS.titleBold, color: Colors.textMain, marginTop: 6 },
@@ -249,13 +256,13 @@ const styles = themedStyles(() =>
     locked: { padding: 12, borderRadius: 14, backgroundColor: 'rgba(56, 189, 248, 0.08)', borderWidth: 1, borderColor: 'rgba(56, 189, 248, 0.35)', gap: 2 },
     lockedTitle: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
     chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-    chip: { paddingHorizontal: 11, paddingVertical: 7, borderRadius: 16, borderWidth: 1, borderColor: softEdge(), backgroundColor: Colors.bgCard, ...softShadow() },
+    chip: { paddingHorizontal: 11, paddingVertical: 7, borderRadius: 16, borderWidth: 1, borderColor: outline(), backgroundColor: Colors.bgCard, ...softShadow() },
     chipOn: { backgroundColor: Colors.primary, borderColor: Colors.primary },
     chipText: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
     chipTextOn: { color: '#fff' },
     suggest: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, borderWidth: 1, borderStyle: 'dashed', borderColor: Colors.subtleBorder },
     suggestText: { fontSize: 11, fontFamily: FONTS.bodyMedium, color: Colors.primary },
-    line: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 16, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), ...softShadow() },
+    line: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 16, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), ...softShadow() },
     qty: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     qtyBtn: { width: 28, height: 28, borderRadius: 16, backgroundColor: softFill(), borderWidth: 1, borderColor: 'transparent', justifyContent: 'center', alignItems: 'center' },
     qtyText: { fontSize: 14, fontWeight: '700', color: Colors.textMain },
@@ -267,7 +274,7 @@ const styles = themedStyles(() =>
       borderRadius: 16,
       backgroundColor: Colors.bgCard,
       borderWidth: 1,
-      borderColor: softEdge(),
+      borderColor: outline(),
       color: Colors.textMain,
       fontSize: 12.5,
       fontFamily: FONTS.bodyMedium,
@@ -276,7 +283,7 @@ const styles = themedStyles(() =>
     addBtn: { paddingHorizontal: 12, height: 44, borderRadius: 12, backgroundColor: Colors.primary, justifyContent: 'center' },
     addText: { fontSize: 11.5, fontFamily: FONTS.bodyBold, color: '#fff' },
     off: { opacity: 0.4 },
-    toggle: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: 18, borderWidth: 1, borderColor: softEdge(), backgroundColor: Colors.bgCard, ...softShadow() },
+    toggle: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: 18, borderWidth: 1, borderColor: outline(), backgroundColor: Colors.bgCard, ...softShadow() },
     toggleOn: { borderColor: 'rgba(16, 185, 129, 0.45)' },
     check: { width: 22, height: 22, borderRadius: 7, borderWidth: 1, borderColor: 'transparent', backgroundColor: softFill(), justifyContent: 'center', alignItems: 'center' },
     checkOn: { backgroundColor: Colors.success, borderColor: Colors.success },

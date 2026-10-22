@@ -1,5 +1,7 @@
+import { DrivingToGarage } from './DrivingToGarage';
 import React, { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { OnChatIcon } from '@ongarage/shared';
 import {
   ActionButton,
   approvedLines,
@@ -9,6 +11,7 @@ import {
   DiagnosisSheet,
   FONTS,
   HandoverSheet,
+  isServiceCategory,
   StepProgress,
   themedStyles,
   WORKSHOP_STAGE_TEXT,
@@ -17,11 +20,17 @@ import {
   workshopStepIndex,
   partMarketPrice,
   pendingExtra,
+  ExtraByPhoneSheet,
+  getThemeMode,
 } from '@ongarage/shared';
 import { useGarage } from '../context/GarageContext';
 import { useParts } from '../context/PartsContext';
-import { JOB_PHOTOS } from '../constants/mockData';
 import { Toast } from './Toast';
+import { FitRequestNote } from './FitRequestNote';
+import { PaymentNote } from './PaymentNote';
+import { CustomerRatingNote } from './CustomerRatingNote';
+import { chatTargetOf } from './ChatButton';
+import { chatKey, useChat } from '../context/ChatContext';
 import { callCustomer, openDirections, sendGarageLocation, serviceMode } from '../utils/contact';
 import { ago, formatDate, formatTime, money } from '../utils/format';
 import type { Booking } from '../types';
@@ -38,19 +47,25 @@ export const ServiceModeNote: React.FC<{ booking: Booking }> = ({ booking: b }) 
   if (mode === 'doorstep') {
     return (
       <View style={[styles.note, styles.noteDoorstep]}>
-        <Text style={styles.noteTitle}>🚛 නිවසටම පැමිණීම — ඔබ පාරිභෝගිකයා වෙත යා යුතුයි</Text>
+        <Text style={styles.noteTitle}>🚛 ඔබ පාරිභෝගිකයා වෙත යා යුතුයි</Text>
         <Text style={styles.noteSub}>📍 {b.address}</Text>
       </View>
     );
   }
+  // The garage has said it received the vehicle: now it waits for the customer to confirm, in their own app, that they handed it over (the report can be written meanwhile).
+  if (b.progress && b.progress.stage !== 'booked') {
+    const confirmed = !!b.progress.handoverConfirmedAt;
+    return (
+      <View style={[styles.note, styles.noteWalkin, { flexDirection: 'row', alignItems: 'center', gap: 10 }]}>
+        <Text style={[styles.noteTitle, { flex: 1 }]}>{confirmed ? '✓ පාරිභෝගිකයා වාහනය ලබා දුන් බව සනාථ කළා' : 'පාරිභෝගිකයා වාහනය ලබා දුන් බව සනාථ කරන තෙක් රැඳී සිටී'}</Text>
+        {!confirmed && <DrivingToGarage />}
+      </View>
+    );
+  }
   return (
-    <View style={[styles.note, styles.noteWalkin]}>
-      <Text style={styles.noteTitle}>🏠 පාරිභෝගිකයා වාහනය ගරාජයට ගෙන එයි</Text>
-      <Text style={styles.noteSub}>
-        {b.locationSharedAt
-          ? `✓ ඔබගේ ස්ථානය සහ දුරකථන අංකය යවා ඇත · ${ago(Date.now() - b.locationSharedAt)} — මගදී ඔවුන්ට ඔබව ඇමතිය හැක.`
-          : 'ඔබගේ ස්ථානය තවම යවා නැත.'}
-      </Text>
+    <View style={[styles.note, styles.noteWalkin, { flexDirection: 'row', alignItems: 'center', gap: 10 }]}>
+      <Text style={[styles.noteTitle, { flex: 1 }]}>පාරිභෝගිකයා වාහනය ගරාජයට ගෙන එයි</Text>
+      <DrivingToGarage />
     </View>
   );
 };
@@ -63,12 +78,11 @@ export const WorkshopStatus: React.FC<{ booking: Booking }> = ({ booking: b }) =
   return (
     <View style={styles.status}>
       <StepProgress steps={WORKSHOP_STEP_LABELS} current={workshopStepIndex(p.stage)} alert={alert} />
-      <Text style={[styles.statusText, alert && { color: Colors.warning }]}>{WORKSHOP_STAGE_TEXT[p.stage]}</Text>
     </View>
   );
 };
 
-type SheetId = 'checkIn' | 'diagnosis' | 'extra' | 'handover' | 'close' | null;
+type SheetId = 'checkIn' | 'diagnosis' | 'extra' | 'extraPhone' | 'handover' | 'close' | null;
 
 /**
  * The same controls on every upcoming booking: call the customer, then either
@@ -76,18 +90,31 @@ type SheetId = 'checkIn' | 'diagnosis' | 'extra' | 'handover' | 'close' | null;
  * then the next workshop step — receive, diagnose, hand over, close with the owner's code.
  */
 export const BookingActions: React.FC<{ booking: Booking }> = ({ booking: b }) => {
-  const { profile, shareLocation, receiveVehicle, sendDiagnosis, requestExtraWork, markReadyForHandover, startRework, closeWorkshopJob } = useGarage();
+  const { profile, shareLocation, receiveVehicle, sendDiagnosis, requestExtraWork, approveExtraByPhone, holdExtraForOwner, deferExtraWork, markReadyForHandover, startRework, closeWorkshopJob } = useGarage();
   const { requestFor, requestsFor, toOrderFor, ownerPending } = useParts();
   const mode = serviceMode(b);
   const [sheet, setSheet] = useState<SheetId>(null);
   const close = () => setSheet(null);
+  const { open: openChat, unread, logCall } = useChat();
+  // A call to the customer is written into the job's chat.
+  const placeCall = () => {
+    callCustomer(b.customer.phone);
+    logCall(b.id);
+  };
+  const unreadChat = unread(chatKey(b.id));
   const p = b.progress;
   const subject = { title: b.title, vehicle: `${b.vehicle.name} · ${b.vehicle.plate}` };
   const parts = requestFor(b.id);
   const partsPending = requestsFor(b.id).some((r) => r.status !== 'received');
 
-  if (b.status === 'completed') {
-    return <ActionButton label="පාරිභෝගිකයා අමතන්න" icon="📞" variant="ghost" compact onPress={() => callCustomer(b.customer.phone)} />;
+  if (b.status === 'completed' || b.status === 'cancelled') {
+    return (
+      <View style={styles.wrap}>
+        {b.status === 'completed' && <PaymentNote booking={b} />}
+        {b.status === 'completed' && <CustomerRatingNote booking={b} />}
+        <ActionButton label="පාරිභෝගිකයා අමතන්න" icon="📞" variant="ghost" compact onPress={placeCall} />
+      </View>
+    );
   }
 
   const lines = p ? approvedLines(p) : [];
@@ -105,6 +132,8 @@ export const BookingActions: React.FC<{ booking: Booking }> = ({ booking: b }) =
 
   const step = () => {
     if (!p) return null;
+    // The owner asked to cancel: the work is on hold until the request is settled (answer it above).
+    if (p.cancelRequest) return <Text style={styles.waiting}>⏸ අයිතිකරුගේ අවලංගු කිරීමේ ඉල්ලීම සමථයකට පත් වන තුරු වැඩ නවතා ඇත.</Text>;
     switch (p.stage) {
       case 'booked':
         return <ActionButton label={mode === 'doorstep' ? 'අයිතිකරු වෙත පැමිණියා' : 'වාහනය ලැබුණා'} icon="🚗" variant="primary" compact onPress={() => setSheet('checkIn')} />;
@@ -116,7 +145,15 @@ export const BookingActions: React.FC<{ booking: Booking }> = ({ booking: b }) =
       case 'repairing':
         return (
           <>
-            {extraWaiting && <Text style={styles.waiting}>⏳ අමතර වැඩ ({money(extraWaiting.lines.reduce((s, l) => s + l.price, 0))}) අයිතිකරුගේ අනුමැතියට — එතෙක් එම කොටස් ඇණවුම් කරන්න එපා.</Text>}
+            {extraWaiting && (
+              <>
+                <Text style={styles.waiting}>
+                  ⏳ අමතර වැඩ ({money(extraWaiting.lines.reduce((s, l) => s + l.price, 0))}) අයිතිකරුගේ අනුමැතියට — එතෙක් එම කොටස් ඇණවුම් කරන්න එපා.
+                  {extraWaiting.waitingSince ? ' අයිතිකරු සම්බන්ධ කර ගත නොහැකි නිසා රැඳී සිටී (නොමිලේ).' : ''}
+                </Text>
+                <ActionButton label="දුරකථනයෙන් අයිතිකරු සමඟ" icon="📞" variant="ghost" compact onPress={() => setSheet('extraPhone')} />
+              </>
+            )}
             <View style={styles.row}>
               <View style={styles.flex1}>
                 <ActionButton label="අමතර වැඩක්" icon="➕" variant="ghost" compact disabled={!!extraWaiting} onPress={() => setSheet('extra')} />
@@ -143,33 +180,34 @@ export const BookingActions: React.FC<{ booking: Booking }> = ({ booking: b }) =
 
   return (
     <View style={styles.wrap}>
-      <View style={styles.row}>
-        <View style={styles.flex1}>
-          <ActionButton label="අමතන්න" icon="📞" variant="ghost" compact onPress={() => callCustomer(b.customer.phone)} />
+      <FitRequestNote booking={b} />
+      {/* Sending the location (or the directions) is only needed before the vehicle is received. */}
+      {(!p || p.stage === 'booked') && (
+        <View style={styles.row}>
+          <View style={styles.flex1}>
+            {mode === 'walkin' ? (
+              <ActionButton
+                label="ස්ථානය යවන්න"
+                icon="📍"
+                variant="ghost"
+                compact
+                onPress={() => {
+                  sendGarageLocation(profile, b, `${formatDate(b.scheduledAt)} · ${formatTime(b.scheduledAt)}`);
+                  shareLocation(b.id);
+                }}
+              />
+            ) : (
+              <ActionButton label="දිශාවන්" icon="🗺️" variant="ghost" compact onPress={() => openDirections(b, profile)} />
+            )}
+          </View>
         </View>
-        <View style={styles.flex1}>
-          {mode === 'walkin' ? (
-            <ActionButton
-              label="ස්ථානය යවන්න"
-              icon="📍"
-              variant="ghost"
-              compact
-              onPress={() => {
-                sendGarageLocation(profile, b, `${formatDate(b.scheduledAt)} · ${formatTime(b.scheduledAt)}`);
-                shareLocation(b.id);
-              }}
-            />
-          ) : (
-            <ActionButton label="දිශාවන්" icon="🗺️" variant="ghost" compact onPress={() => openDirections(b, profile)} />
-          )}
-        </View>
-      </View>
+      )}
       {p?.dispute?.status === 'rework' && p.stage === 'repairing' && <Text style={styles.waiting}>🔧 නැවත හදමින්: “{p.dispute.text}”</Text>}
       {step()}
 
       {p && (
         <>
-          <CheckInSheet visible={sheet === 'checkIn'} onClose={close} overlay={<Toast topOffset={40} />} subject={subject} doorstep={b.doorstep} samplePhotos={JOB_PHOTOS} onConfirm={(photos) => receiveVehicle(b.id, photos)} />
+          <CheckInSheet visible={sheet === 'checkIn'} onClose={close} overlay={<Toast topOffset={40} />} subject={subject} doorstep={b.doorstep} onConfirm={(photos) => receiveVehicle(b.id, photos)} />
           <DiagnosisSheet
             visible={sheet === 'diagnosis'}
             onClose={close}
@@ -180,7 +218,6 @@ export const BookingActions: React.FC<{ booking: Booking }> = ({ booking: b }) =
             priceFor={partMarketPrice}
             viewerCoords={profile.coords}
             showCommission
-            samplePhotos={JOB_PHOTOS}
             onSend={(r) => sendDiagnosis(b.id, r)}
           />
           <DiagnosisSheet
@@ -194,8 +231,18 @@ export const BookingActions: React.FC<{ booking: Booking }> = ({ booking: b }) =
             priceFor={partMarketPrice}
             viewerCoords={profile.coords}
             showCommission
-            samplePhotos={JOB_PHOTOS}
-            onSend={(r) => requestExtraWork(b.id, { id: `x-${Date.now()}`, reason: r.findings, photos: r.photos, lines: r.lines, sentAt: Date.now() })}
+            onSend={(r) => requestExtraWork(b.id, { id: `x-${Date.now()}`, reason: r.findings, photos: r.photos, voiceNotes: r.voiceNotes, lines: r.lines, sentAt: Date.now() })}
+          />
+          <ExtraByPhoneSheet
+            visible={sheet === 'extraPhone'}
+            onClose={close}
+            overlay={<Toast topOffset={40} />}
+            extra={extraWaiting}
+            customerName={b.customer.name}
+            onCall={placeCall}
+            onApproveByPhone={(ids) => extraWaiting && approveExtraByPhone(b.id, extraWaiting.id, ids)}
+            onWait={() => extraWaiting && holdExtraForOwner(b.id, extraWaiting.id)}
+            onDefer={() => extraWaiting && deferExtraWork(b.id, extraWaiting.id)}
           />
           <HandoverSheet
             visible={sheet === 'handover'}
@@ -204,9 +251,10 @@ export const BookingActions: React.FC<{ booking: Booking }> = ({ booking: b }) =
             lines={lines}
             bill={bill}
             beforePhotos={p.checkInPhotos}
-            samplePhotos={JOB_PHOTOS}
             partsPending={partsPending}
             blockedReason={blockedReason}
+            // A routine service asks for what was done, the mileage and the next service.
+            serviceForm={isServiceCategory(b.job?.categoryId) ? { subService: b.job?.service } : undefined}
             onSubmit={(r) => markReadyForHandover(b.id, r)}
           />
           <CloseJobSheet
@@ -227,20 +275,21 @@ export const BookingActions: React.FC<{ booking: Booking }> = ({ booking: b }) =
 const styles = themedStyles(() =>
   StyleSheet.create({
     flex1: { flex: 1 },
+    // The OnChat button: just the icon on a tonal pill (same height as the buttons beside it), the unread count on its corner.
     flex2: { flex: 2 },
     wrap: { gap: 8 },
     row: { flexDirection: 'row', gap: 8 },
-    note: { paddingHorizontal: 10, paddingVertical: 8, borderRadius: 12, borderWidth: 1, gap: 2 },
-    noteDoorstep: { backgroundColor: 'rgba(245, 158, 11, 0.1)', borderColor: 'rgba(245, 158, 11, 0.4)' },
-    noteWalkin: { backgroundColor: 'rgba(16, 185, 129, 0.08)', borderColor: 'rgba(16, 185, 129, 0.35)' },
-    noteRoadside: { backgroundColor: 'rgba(239, 68, 68, 0.08)', borderColor: 'rgba(239, 68, 68, 0.35)' },
-    noteTitle: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
+    note: { paddingHorizontal: 12, paddingVertical: 10, borderRadius: 8, borderWidth: 1, gap: 2 },
+    noteDoorstep: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(245, 158, 11, 0.1)' : '#fef7e0', borderColor: 'rgba(245, 158, 11, 0.4)' },
+    noteWalkin: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(16, 185, 129, 0.08)' : '#e6f4ea', borderColor: 'rgba(16, 185, 129, 0.35)' },
+    noteRoadside: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(239, 68, 68, 0.08)' : '#fce8e6', borderColor: 'rgba(239, 68, 68, 0.35)' },
+    noteTitle: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
     warn: { fontSize: 10.5, fontFamily: FONTS.bodySemiBold, color: Colors.warning, lineHeight: 16 },
     status: { gap: 4 },
-    statusText: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
-    waiting: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.warning, lineHeight: 17 },
-    dispute: { gap: 8, padding: 10, borderRadius: 12, backgroundColor: 'rgba(245, 158, 11, 0.1)', borderWidth: 1, borderColor: 'rgba(245, 158, 11, 0.45)' },
-    disputeTitle: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain, lineHeight: 17 },
-    noteSub: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 16 },
+    statusText: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
+    waiting: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.warning, lineHeight: 19 },
+    dispute: { gap: 8, padding: 12, borderRadius: 8, backgroundColor: getThemeMode() === 'dark' ? 'rgba(245, 158, 11, 0.1)' : '#fef7e0', borderWidth: 1, borderColor: 'rgba(245, 158, 11, 0.45)' },
+    disputeTitle: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textMain, lineHeight: 19 },
+    noteSub: { fontSize: 12, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 18 },
   })
 );

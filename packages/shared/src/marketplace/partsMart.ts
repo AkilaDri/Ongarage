@@ -1,6 +1,7 @@
-import type { MartAudience, PartBrief, PartType, SearchRing, ShopListing, ShopStats } from '../types';
+import type { CatalogueQuery, MartAudience, PartBrief, PartType, SearchRing, ShopCatalogue, ShopListing, ShopOffer, ShopReplyKind, ShopStats } from '../types';
 import { PART_WORDS } from '../ai/vocabulary';
 import { partMarketPrice } from './partPrices';
+import { BROADCAST_LIMIT, ANSWER_WINDOW_MIN, broadcastTargets, matchScore, queryFromBrief, shopCovers, suggestNeighbours } from './partsCatalogue';
 
 // OnMart's shared rules: how shops are ranked, how far a search reaches, who sees a wall
 // post, how sure we are a part fits, and how a price compares with the market. Referral
@@ -38,16 +39,25 @@ const typeOk = (shop: Pick<ShopListing, 'types'>, t: PartType) => t === 'GarageC
  * Whether a wall post is shown to a shop. The wall reaches every shop in the country, but
  * only those that sell that kind of part, so shops are not flooded.
  */
-export const wallVisibleTo = (shop: Pick<ShopListing, 'types' | 'categories'>, brief: Pick<PartBrief, 'partType' | 'categoryId'>) =>
-  typeOk(shop, brief.partType) && (!brief.categoryId || shop.categories.includes(brief.categoryId));
+export const wallVisibleTo = (shop: Pick<ShopListing, 'types' | 'categories'> & { catalogue?: ShopCatalogue }, brief: Pick<PartBrief, 'partType' | 'categoryId'> & Partial<Pick<PartBrief, 'name' | 'vehicle'>>) => {
+  // A shop with a catalogue sees the wall posts for what it sells (and for the vehicles it sells it for).
+  if (shop.catalogue?.length && brief.name) {
+    const q = queryFromBrief({ name: brief.name, partType: brief.partType, categoryId: brief.categoryId, vehicle: brief.vehicle as PartBrief['vehicle'] });
+    if (q.partId) return !!shopCovers(shop.catalogue, q);
+  }
+  return typeOk(shop, brief.partType) && (!brief.categoryId || shop.categories.includes(brief.categoryId));
+};
 
 // ---------- Ranking ----------
 
-export type MartSort = 'rating' | 'price' | 'response' | 'service' | 'distance';
+export type MartSort = 'match' | 'rating' | 'price' | 'response' | 'service' | 'distance';
+
+/** How often a shop's "I have it" proved true: the buyers' confirmations for a catalogue shop, the stock accuracy for one with live stock. */
+export const accuracyOf = (s: ShopStats) => s.answerAccuracy ?? s.stockAccuracy;
 
 /** 0–5 from how reliably a shop delivers; few orders pull the score toward a neutral 3.5. */
 export const shopServiceScore = (s: ShopStats) => {
-  const raw = 5 * (0.4 * s.fulfilmentRate + 0.3 * s.stockAccuracy + 0.2 * (1 - s.wrongPartRate) + 0.1 * (1 - s.cancelRate));
+  const raw = 5 * (0.4 * s.fulfilmentRate + 0.3 * accuracyOf(s) + 0.2 * (1 - s.wrongPartRate) + 0.1 * (1 - s.cancelRate));
   const weight = Math.min(1, s.ordersDone / 20);
   return Number((raw * weight + 3.5 * (1 - weight)).toFixed(1));
 };
@@ -57,12 +67,19 @@ export type RankOptions = {
   priceOf?: (shop: ShopListing) => number | undefined;
   /** Availability searches show shops with live stock first. */
   liveStockFirst?: boolean;
+  /** What is being looked for: the "match" sort puts the shops whose catalogue fits it best first. */
+  query?: CatalogueQuery;
 };
 
 /** Shops in the order a buyer asked for; never reads referral fees. Ties go to the nearer shop. */
 export const rankShops = (shops: ShopListing[], sort: MartSort, opts: RankOptions = {}): ShopListing[] => {
   const key = (s: ShopListing): number => {
     switch (sort) {
+      case 'match': {
+        // The closer the catalogue fits the vehicle the better; a shop that does not match at all comes last. Ties: the quicker answerer.
+        const m = opts.query ? shopCovers(s.catalogue, opts.query) : null;
+        return (m ? -matchScore(m) : 1e3) * 1e3 + s.stats.avgResponseMin;
+      }
       case 'rating':
         return -(s.rating + Math.min(s.ratingCount, 500) / 5000);
       case 'price':
@@ -80,6 +97,7 @@ export const rankShops = (shops: ShopListing[], sort: MartSort, opts: RankOption
 };
 
 export const SORT_LABELS: Record<MartSort, string> = {
+  match: 'වඩාත් ගැළපෙන',
   rating: 'හොඳම ශ්‍රේණිගත',
   price: 'අඩුම මිල',
   response: 'ඉක්මන් පිළිතුර',
@@ -93,6 +111,7 @@ export const shopBadges = (s: ShopListing): string[] => {
   if (s.stats.avgResponseMin <= 10 && s.stats.ordersDone >= 10) out.push('ඉක්මන් පිළිතුරු');
   if (s.liveStock) out.push('සජීවී තොගය');
   if (s.stats.ordersDone >= 20 && s.stats.stockAccuracy >= 0.95) out.push('නිවැරදි තොග');
+  if ((s.stats.answersDone ?? 0) >= 20 && (s.stats.answerAccuracy ?? 0) >= 0.9) out.push('නිවැරදි පිළිතුරු');
   if (s.stats.ordersDone >= 20 && s.stats.wrongPartRate <= 0.02) out.push('නිවැරදි කොටස්');
   return out;
 };
@@ -108,9 +127,114 @@ export const recordOutcome = (s: ShopStats, outcome: OrderOutcome): ShopStats =>
     ordersDone: n + 1,
     fulfilmentRate: avg(s.fulfilmentRate, outcome === 'fulfilled'),
     stockAccuracy: avg(s.stockAccuracy, outcome !== 'noStock'),
+    // A "have it" that turned out not to be there costs the answer accuracy too.
+    answerAccuracy: s.answerAccuracy === undefined ? undefined : Number(((s.answerAccuracy * (s.answersDone ?? n) + (outcome === 'noStock' ? 0 : 1)) / ((s.answersDone ?? n) + 1)).toFixed(4)),
+    answersDone: s.answerAccuracy === undefined ? s.answersDone : (s.answersDone ?? n) + 1,
     wrongPartRate: avg(s.wrongPartRate, outcome === 'wrongPart'),
     cancelRate: avg(s.cancelRate, outcome === 'cancelled'),
   };
+};
+
+// ---------- Requests and replies (the catalogue way) ----------
+
+/** What a shop answered: older offers carry only `available`. */
+export const offerReply = (o: Pick<ShopOffer, 'reply' | 'available'>): ShopReplyKind => o.reply ?? (o.available ? 'have' : 'none');
+
+/** Only a "have it" can be reserved, and the price is optional: a "have it" with no price is reserved at the shop's counter price. */
+export const offerCanReserve = (o: Pick<ShopOffer, 'reply' | 'available'>) => offerReply(o) === 'have';
+
+/** Whether the shop gave a price (a reply may leave it out: the buyer then asks at the counter or in the chat). */
+export const offerHasPrice = (o: Pick<ShopOffer, 'unitPrice'>) => o.unitPrice > 0;
+
+/** The shops a request goes to: those whose catalogue covers it, closest fit first, at most `limit`, skipping the ones already asked. */
+export type RequestReach = { ring: SearchRing; targets: { shop: ShopListing; tier: ReturnType<typeof shopCovers> }[]; /** How many shops cover it in that ring (more than were asked when the limit cut it short). */ covering: number; /** No shop with a catalogue covers it: the shops that sell its category are asked instead (older shops). */ fallback: boolean };
+
+/**
+ * Where a request for a part goes: the shops within the ring whose catalogue covers it (the closest fits, at most BROADCAST_LIMIT).
+ * When the nearby ring has none, the search widens ring by ring (nearby, wider, nationwide). A shop that has no catalogue yet is
+ * asked by the categories it sells (the older way), only when no shop with a catalogue covers the request.
+ */
+export const requestReach = (shops: ShopListing[], brief: Parameters<typeof queryFromBrief>[0], start: SearchRing = 'nearby', skip: Set<ShopListing> = new Set()): RequestReach => {
+  const q = queryFromBrief(brief);
+  let ring: SearchRing | null = start;
+  let last: SearchRing = start;
+  while (ring) {
+    last = ring;
+    const inRing = shopsInRing(shops, ring);
+    const covering = inRing
+      .map((shop) => ({ shop, match: shopCovers(shop.catalogue, q) }))
+      .filter((x): x is { shop: ShopListing; match: NonNullable<ReturnType<typeof shopCovers>> } => !!x.match)
+      .sort((a, b) => matchScore(b.match) - matchScore(a.match) || a.shop.distanceKm - b.shop.distanceKm);
+    if (covering.length) {
+      const picked = broadcastTargets(covering.map((c) => ({ shop: c.shop, match: c.match })), skip);
+      return { ring, targets: picked.map((p) => ({ shop: p.shop, tier: p.match })), covering: covering.length, fallback: false };
+    }
+    ring = nextRing(ring);
+  }
+  // Nobody with a catalogue sells it: ask the shops (without a catalogue) that sell this kind of part, nearest first.
+  const older = shopsInRing(shops, start === 'nationwide' ? 'nationwide' : 'wider')
+    .filter((s) => !s.catalogue?.length && wallVisibleTo(s, brief) && !skip.has(s))
+    .sort((a, b) => a.distanceKm - b.distanceKm)
+    .slice(0, BROADCAST_LIMIT);
+  return { ring: last, targets: older.map((shop) => ({ shop, tier: null })), covering: older.length, fallback: true };
+};
+
+/** When a request must be answered by (a shop that has not answered by then counts as having no answer). */
+export const answerDeadline = (sentAt: number) => sentAt + ANSWER_WINDOW_MIN * 60 * 1000;
+export const answerOverdue = (sentAt: number, now: number) => now > answerDeadline(sentAt);
+
+/**
+ * The neighbour shops a reply may point to: shops that cover the same request, never the replying shop and not those already
+ * asked; at most three. A shop's own picks are checked against this so a suggestion is always worth trying.
+ */
+export const validSuggestions = (shops: ShopListing[], brief: Parameters<typeof queryFromBrief>[0], picked: string[], excludeIds: string[]): string[] => {
+  const q = queryFromBrief(brief);
+  const ok = new Set(suggestNeighbours(shops, q, excludeIds, shops.length).map((s) => s.id));
+  return picked.filter((id) => ok.has(id)).slice(0, 3);
+};
+
+/**
+ * The buyer's word on a "have it" answer: the part was there, or not. Counts towards the shop's answer accuracy (and the stock
+ * accuracy too, as before, when it was not there).
+ */
+export const recordAnswerFeedback = (s: ShopStats, found: boolean): ShopStats => {
+  const n = s.answersDone ?? s.ordersDone;
+  const acc = ((s.answerAccuracy ?? s.stockAccuracy) * n + (found ? 1 : 0)) / (n + 1);
+  return { ...s, answerAccuracy: Number(acc.toFixed(4)), answersDone: n + 1 };
+};
+
+// ---------- How a catalogue shop answers (simulation, shared by the owner and garage apps) ----------
+
+export type ReplyPlan = { kind: ShopReplyKind; /** The reply carries a price. */ priced: boolean; /** A "will check" settles to this a little later. */ settles?: 'have' | 'none' };
+
+const hashOf = (text: string) => [...text].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7);
+
+/**
+ * What a shop whose catalogue covers a request answers when it keeps no live stock. Always the same for the same shop and part, so a
+ * demo can be repeated: about half say they have it (one in five of those without a price), some check first, the rest do not have it.
+ */
+export const planReply = (shopId: string, partName: string, hasStock: boolean): ReplyPlan => {
+  if (hasStock) return { kind: 'have', priced: true };
+  const h = hashOf(`${shopId}:${partName.toLowerCase()}`) % 10;
+  if (h < 5) return { kind: 'have', priced: h !== 0 };
+  if (h === 5) return { kind: 'check', priced: true, settles: 'have' };
+  if (h === 6) return { kind: 'check', priced: false, settles: 'none' };
+  return { kind: 'none', priced: false };
+};
+
+/**
+ * The line a shop's answer becomes in the chat between the buyer and the shop (the same words on both sides): a "have it" with or
+ * without a price, "will check", or "don't have it" with the neighbour shops it points to.
+ */
+export const replyMessage = (o: Pick<ShopOffer, 'reply' | 'available' | 'unitPrice' | 'total'>, neighbourNames: string[] = []): string => {
+  switch (offerReply(o)) {
+    case 'have':
+      return o.unitPrice > 0 ? `✅ තියෙනවා — ඒකකයක් රු. ${o.unitPrice.toLocaleString('en-US')} (මුළු රු. ${o.total.toLocaleString('en-US')}). වෙන් කර ගන්න, නැත්නම් මෙතැනින් අසන්න.` : '✅ තියෙනවා — මිල කවුන්ටරයේදී කියමි (අවශ්‍ය නම් මෙතැනින් අසන්න). වෙන් කර ගන්න.';
+    case 'check':
+      return '⏳ පරීක්ෂා කර ටිකකින් දන්වමි.';
+    default:
+      return neighbourNames.length ? `✖ දැනට නැහැ. ${neighbourNames.join(', ')} තුළ තිබිය හැක — ඒ වෙළඳසැල්වලටත් ඉල්ලන්න.` : '✖ සමාවෙන්න, දැනට නැහැ.';
+  }
 };
 
 // ---------- Fitting and price ----------

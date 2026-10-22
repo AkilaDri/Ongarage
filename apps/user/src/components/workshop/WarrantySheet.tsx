@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
+import { pickPhotos } from '@ongarage/shared';
 import { StyleSheet, Text, TextInput } from 'react-native';
 import { ActionButton, Colors, FONTS, PhotoStrip, themedStyles } from '@ongarage/shared';
 import { useWorkshops, type OwnerWorkshop } from '../../context/WorkshopContext';
-import { SAMPLE_UPLOAD_PHOTOS } from '../../constants/mockData';
 import { formatDate } from '../../utils/format';
 import { Sheet } from '../Sheet';
 
@@ -47,7 +47,7 @@ export const WarrantySheet: React.FC<{ workshop: OwnerWorkshop | null; onClose: 
         multiline
         accessibilityLabel="Warranty claim description"
       />
-      <PhotoStrip photos={photos} height={70} onAdd={photos.length < 4 ? () => setPhotos((p) => [...p, SAMPLE_UPLOAD_PHOTOS[p.length % SAMPLE_UPLOAD_PHOTOS.length]]) : undefined} />
+      <PhotoStrip photos={photos} height={70} onAdd={photos.length < 4 ? () => void pickPhotos(4 - photos.length).then((ph) => ph.length && setPhotos((p) => [...p, ...ph])) : undefined} />
       <Text style={styles.hint}>වගකීම ආවරණය කරන්නේ එම රැකියාවේ කළ වැඩ සහ සවි කළ කොටස් පමණි. ගරාජය ප්‍රතික්ෂේප කළොත් OnGarage කණ්ඩායම සලකා බලයි.</Text>
     </Sheet>
   );

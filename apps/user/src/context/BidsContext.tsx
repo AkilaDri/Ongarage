@@ -1,7 +1,8 @@
+import { flyTo } from '../utils/fly';
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { DEFAULT_COORDS, MOCK_GARAGES } from '../constants/mockData';
 import { useWorkshops } from './WorkshopContext';
-import { offsetCoordinate, marketPrice } from '@ongarage/shared';
+import { offsetCoordinate, marketPrice, travelFeeFor } from '@ongarage/shared';
 import type { Bid, RepairJob } from '@ongarage/shared';
 
 const MIN = 60 * 1000;
@@ -11,29 +12,34 @@ const HOUR = 60 * MIN;
 // profiles (MOCK_GARAGES), so a bid and the garage's page always agree.
 const profile = (name: string) => {
   const g = MOCK_GARAGES.find((x) => x.name === name)!;
-  return { garageName: g.name, level: g.level, rating: g.rating, reviews: g.reviews };
+  return { garageId: g.id, garageName: g.name, level: g.level, rating: g.rating, reviews: g.reviews };
 };
 const BIDDING_GARAGES = [
   { ...profile('TOPCODE Tuning & Service'), distanceKm: 1.2, bearing: 300, warrantyMonths: 3, estHours: 1 },
   { ...profile('Apex Motors & Hybrid Hub'), distanceKm: 3.5, bearing: 40, warrantyMonths: 1, estHours: 2 },
   { ...profile('Lanka Auto Diagnostics'), distanceKm: 2.1, bearing: 160, warrantyMonths: 2, estHours: 3 },
+  // Far away (beyond FAR_JOB_KM): its bid carries a travel compensation fee, and the owner sees it marked.
+  { ...profile('Speed Works Garage'), distanceKm: 18.6, bearing: 220, warrantyMonths: 2, estHours: 3 },
 ];
 
 const PRICE_FACTORS = [1.0, 0.82, 1.18];
-const SIMULATED_BID_DELAYS_MS = [6000, 14000, 24000];
+const SIMULATED_BID_DELAYS_MS = [6000, 14000, 24000, 36000];
 
 const makeBid = (job: Pick<RepairJob, 'categoryId' | 'coords'>, index: number, submittedAt: number): Bid => {
   const g = BIDDING_GARAGES[index % BIDDING_GARAGES.length];
   const base = marketPrice(job.categoryId);
+  const travelFee = travelFeeFor(g.distanceKm);
   return {
     id: `bid-${submittedAt}-${index}`,
+    garageId: g.garageId,
     garageName: g.garageName,
     level: g.level,
     rating: g.rating,
     reviews: g.reviews,
     distanceKm: g.distanceKm,
     coords: offsetCoordinate(job.coords, g.distanceKm, g.bearing),
-    price: Math.round((base * PRICE_FACTORS[index % PRICE_FACTORS.length]) / 100) * 100,
+    price: Math.round((base * PRICE_FACTORS[index % PRICE_FACTORS.length]) / 100) * 100 + travelFee,
+    ...(travelFee ? { travelFee } : {}),
     warrantyMonths: g.warrantyMonths,
     estHours: g.estHours,
     submittedAt,
@@ -53,7 +59,7 @@ const seedJobs = (now: number): RepairJob[] => {
     bids: [],
   };
   received.bids = [makeBid(received, 0, now - 10 * MIN), makeBid(received, 1, now - 6 * MIN)];
-  return [
+  const list: RepairJob[] = [
     received,
     {
       ...base,
@@ -96,6 +102,9 @@ const seedJobs = (now: number): RepairJob[] => {
       bids: [],
     },
   ];
+  // Nobody near picked the brake job up, but a garage far away did: its bid carries a travel fee.
+  list[1].bids = [makeBid(list[1], 3, now - MIN)];
+  return list;
 };
 
 export const biddingEndsAt = (job: RepairJob) => job.submittedAt + job.biddingHours * HOUR;
@@ -107,6 +116,8 @@ type BidsState = {
   jobs: RepairJob[];
   postJob: (job: NewJob) => RepairJob;
   acceptBid: (jobId: string, bidId: string) => void;
+  /** Dismiss a received bid that has not been accepted. */
+  removeBid: (jobId: string, bidId: string) => void;
 };
 
 const BidsContext = createContext<BidsState | null>(null);
@@ -125,6 +136,7 @@ export const BidsProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const now = Date.now();
     const job: RepairJob = { ...rest, id: `job-${now}`, submittedAt: now, bids: [] };
     setJobs((prev) => [job, ...prev.filter((j) => j.id !== replacesJobId)]);
+    flyTo('posted');
 
     // Demo: garages respond to a freshly posted job over the next ~25 seconds.
     SIMULATED_BID_DELAYS_MS.forEach((delay, i) => {
@@ -135,6 +147,8 @@ export const BidsProvider: React.FC<{ children: React.ReactNode }> = ({ children
               j.id === job.id && !j.acceptedBidId ? { ...j, bids: [...j.bids, makeBid(j, i, Date.now())] } : j
             )
           );
+          // the first bid in: the job's bids are ready
+          if (i === 0) flyTo('bidReady');
         }, delay)
       );
     });
@@ -144,15 +158,20 @@ export const BidsProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const acceptBid = useCallback(
     (jobId: string, bidId: string) => {
       setJobs((prev) => prev.map((j) => (j.id === jobId ? { ...j, acceptedBidId: bidId } : j)));
+      flyTo('booked');
       const job = live.current.find((j) => j.id === jobId);
       const bid = job?.bids.find((b) => b.id === bidId);
       // The winning garage takes the vehicle in and follows the workshop steps.
-      if (job && bid) startWorkshop({ id: jobId, garageName: bid.garageName, categoryId: job.categoryId, agreedPrice: bid.price, scheduledAt: Date.now(), doorstep: job.doorstep, warrantyMonths: bid.warrantyMonths, vehicleId: job.vehicleId, partType: job.sparePart, protectedJob: bid.level === 'premier' });
+      if (job && bid) startWorkshop({ id: jobId, garageId: bid.garageId, garageName: bid.garageName, categoryId: job.categoryId, agreedPrice: bid.price, scheduledAt: Date.now(), doorstep: job.doorstep, warrantyMonths: bid.warrantyMonths, vehicleId: job.vehicleId, partType: job.sparePart, protectedJob: bid.level === 'premier' });
     },
     [startWorkshop]
   );
+  const removeBid = useCallback((jobId: string, bidId: string) => {
+    setJobs((prev) => prev.map((j) => (j.id === jobId && !j.acceptedBidId ? { ...j, bids: j.bids.filter((b) => b.id !== bidId) } : j)));
+  }, []);
 
-  return <BidsContext.Provider value={{ jobs, postJob, acceptBid }}>{children}</BidsContext.Provider>;
+
+  return <BidsContext.Provider value={{ jobs, postJob, acceptBid, removeBid }}>{children}</BidsContext.Provider>;
 };
 
 export const useBids = () => {

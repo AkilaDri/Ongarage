@@ -1,3 +1,4 @@
+import { outline } from '../utils/material';
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Colors, FONTS, LevelBadge, Pulse, themedStyles, softShadow, softEdge } from '@ongarage/shared';
@@ -52,7 +53,7 @@ const styles = themedStyles(() =>
     top: { alignItems: 'center', gap: 6 },
     avatarWrap: { width: 96, height: 96, alignItems: 'center', justifyContent: 'center' },
     pulse: { position: 'absolute', width: 96, height: 96, borderRadius: 48, borderWidth: 2, borderColor: 'rgba(34, 197, 94, 0.5)' },
-    avatar: { width: 84, height: 84, borderRadius: 42, backgroundColor: Colors.bgCard, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: softEdge(), ...softShadow() },
+    avatar: { width: 84, height: 84, borderRadius: 42, backgroundColor: Colors.bgCard, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: outline(), ...softShadow() },
     initials: { fontSize: 22, fontWeight: '900', color: Colors.success, letterSpacing: 0.5 },
     dot: { position: 'absolute', right: 8, bottom: 8, width: 16, height: 16, borderRadius: 8, borderWidth: 3, borderColor: Colors.bgBody },
     nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6, maxWidth: '92%' },

@@ -1,10 +1,19 @@
-import type { BreakdownId, LatLng, PickedLocation, VoiceNote, WorkshopProgress, GarageReview } from '@ongarage/shared';
+import type { BreakdownId, LatLng, PartsFitting, PickedLocation, Vehicle, VoiceNote, WorkshopProgress, JobCancellation, GarageReview } from '@ongarage/shared';
 
 // Garage-side views of the records the owner app creates. When a backend exists
 // these are what the garage receives for each owner action.
 
-export type Customer = { name: string; phone: string };
-export type CustomerVehicle = { name: string; plate: string; type: string };
+export type Customer = {
+  /** The customer's own id, when the booking carries one: the record is kept by it. Without one the phone number (its last nine digits) tells the customer. */
+  id?: string;
+  name: string;
+  phone: string;
+};
+
+/** A customer's inquiry to this garage before booking it (from the garage's card in the owner app): it arrives as a chat the garage answers. */
+export type GarageInquiry = { id: string; customer: Customer; vehicle: CustomerVehicle; categoryId: string; service?: string; text: string; at: number };
+/** The vehicle as the owner registered it in their app: name, plate and type, plus registration, chassis and engine numbers, make, model, colour and insurance. */
+export type CustomerVehicle = Pick<Vehicle, 'name' | 'plate' | 'type'> & Partial<Pick<Vehicle, 'registrationNo' | 'chassisNo' | 'engineNo' | 'make' | 'model' | 'color' | 'insuranceNo'>>;
 
 /** An owner's SOS broadcast that reached this garage's coverage radius. */
 export type SOSRequest = {
@@ -61,13 +70,15 @@ export type Dispatch = {
    */
   techMode?: 'app' | 'manual';
   /** A final repair charge above the quote waits for the manager. */
-  priceApproval?: { amount: number; status: 'pending' | 'approved' | 'rejected' };
+  priceApproval?: { amount: number; status: 'pending' | 'approved' | 'rejected'; /** When the technician asked (for how long the customer has waited). */ askedAt?: number };
 };
 
 /** What an owner describes for a repair, however it reaches the garage. */
 export type JobDetails = {
   id: string;
   categoryId: string;
+  /** The sub-service the owner picked (for the Service category: Full Service, Oil Change, a fluid…). */
+  service?: string;
   description: string;
   buddySummary?: string;
   customer: Customer;
@@ -78,6 +89,8 @@ export type JobDetails = {
   distanceKm: number;
   photos?: string[];
   voiceNotes?: VoiceNote[];
+  /** Parts Fitting jobs: the part to fit and who supplies it. */
+  fitting?: PartsFitting;
 };
 
 /**
@@ -113,6 +126,8 @@ export type FeedJob = JobDetails & {
   distanceKm: number;
   /** Bids from other garages so far. */
   otherBids: number;
+  /** The owner posted this job again after its bidding ran out with no bid chosen: the same job, on offer once more. */
+  republished?: boolean;
 };
 
 export type BidStatus = 'pending' | 'won' | 'lost' | 'withdrawn';
@@ -123,7 +138,10 @@ export type MyBid = {
   jobId: string;
   /** Snapshot of the job when bid on (a won job leaves the feed). */
   job: FeedJob;
+  /** The total the owner pays: the work plus the travel fee. */
   price: number;
+  /** Travel compensation for a far job, included in `price`. */
+  travelFee?: number;
   warrantyMonths: number;
   estHours: number;
   note: string;
@@ -131,7 +149,10 @@ export type MyBid = {
   status: BidStatus;
 };
 
-export type BookingStatus = 'scheduled' | 'inProgress' | 'completed';
+export type BookingStatus = 'scheduled' | 'inProgress' | 'completed' | 'cancelled';
+
+/** A detail the garage adds to a job's card while the work goes on (what was found, done or needed), with photos. */
+export type JobUpdate = { id: string; at: number; text: string; photos?: string[] };
 
 export type Booking = {
   id: string;
@@ -146,7 +167,11 @@ export type Booking = {
   scheduledAt: number;
   price: number;
   status: BookingStatus;
+  /** A far job's travel compensation, already included in `price` (see marketplace/travel.ts). */
+  travelFee?: number;
   completedAt?: number;
+  /** The owner cancelled this job: why they said, a note and how they rated the garage so far. */
+  cancelled?: JobCancellation;
   rating?: number;
   /** SOS jobs: call-out fee only, no repair was needed. */
   calloutOnly?: boolean;
@@ -170,6 +195,8 @@ export type Booking = {
   warrantyMonths?: number;
   /** Team member the manager assigned to do the work. */
   assignedTechId?: string;
+  /** Details added to the job card as the work goes on, newest last. */
+  updates?: JobUpdate[];
 };
 
 /** hasApp: linked to the technician app, so SOS field steps come from their phone. */

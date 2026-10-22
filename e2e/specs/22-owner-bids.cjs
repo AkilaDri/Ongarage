@@ -63,6 +63,10 @@ module.exports = spec('Owner · bids: swipe a garage, not the job', 'user', asyn
 
   // The map is full screen behind a three-stage sheet: tap the handle to step up, flick down to minimise.
   const height = () => p.evaluate(() => document.querySelector('[aria-label="Sheet handle"]').parentElement.getBoundingClientRect().height);
+  // An open sheet has no grip (it melts away under the top bar): scroll up at the top of the list to bring it down first.
+  await p.mouse.move(195, 600);
+  await p.mouse.wheel({ deltaY: -400 });
+  await t.wait(900);
   // Tapping the handle steps through the heights (whatever the sheet starts at).
   const seen = [await height()];
   for (let i = 0; i < 2; i++) {

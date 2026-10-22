@@ -1,11 +1,12 @@
 import React from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { FONTS, Gradient, themedStyles } from '@ongarage/shared';
+import { DotScroll } from './DotScroll';
 type Tile = { id: string; title: string; subtitle: string; emoji: string; stops: { offset: string; color: string }[] };
 
 /** Colourful deal tiles in a sideways row: a short title, one line, a big emoji and an arrow. */
 export const OfferTiles = <T extends Tile>({ offers, onOpen }: { offers: T[]; onOpen: (o: T) => void }) => (
-  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
+  <DotScroll contentContainerStyle={styles.row}>
     {offers.map((o) => (
       <Pressable key={o.id} style={({ pressed }) => [styles.tile, pressed && styles.pressed]} onPress={() => onOpen(o)} accessibilityLabel={`Offer ${o.title}`}>
         <Gradient stops={o.stops} />
@@ -19,14 +20,14 @@ export const OfferTiles = <T extends Tile>({ offers, onOpen }: { offers: T[]; on
         </View>
       </Pressable>
     ))}
-  </ScrollView>
+  </DotScroll>
 );
 
 // White text on fixed-colour gradients (the intended exception to theme colours).
 const styles = themedStyles(() =>
   StyleSheet.create({
     row: { gap: 10, paddingRight: 8 },
-    tile: { width: 132, height: 150, borderRadius: 18, overflow: 'hidden', padding: 12, gap: 2 },
+    tile: { width: 132, height: 150, borderRadius: 12, overflow: 'hidden', padding: 12, gap: 2 },
     pressed: { opacity: 0.85 },
     title: { fontSize: 14, fontFamily: FONTS.titleBold, color: '#fff' },
     subtitle: { fontSize: 10.5, fontFamily: FONTS.bodyMedium, color: 'rgba(255, 255, 255, 0.9)', lineHeight: 14 },
