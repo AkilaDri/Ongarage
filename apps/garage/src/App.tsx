@@ -16,7 +16,7 @@ import {
   NotoSansSinhala_600SemiBold,
   NotoSansSinhala_700Bold,
 } from '@expo-google-fonts/noto-sans-sinhala';
-import { BottomNav, ClipboardLineIcon, FONTS, ScheduleLineIcon, SosLineIcon, type NavAlert, TitleBand, Colors, ThemeProvider, themedStyles, useTheme, headerBand, getThemeMode, setAppShape } from '@ongarage/shared';
+import { BottomNav, ClipboardLineIcon, FONTS, ScheduleLineIcon, type NavAlert, TitleBand, Colors, ThemeProvider, themedStyles, useTheme, headerBand, getThemeMode, setAppShape } from '@ongarage/shared';
 
 // The garage app has PickMe's shapes (big rounded cards, pill buttons and chips, light edges, soft shadows); the other apps keep the Material shapes. Set before the first screen is drawn.
 setAppShape('pickme');
@@ -38,14 +38,14 @@ import { ChatHeaderButton } from './components/ChatHeaderButton';
 import { GARAGE_TABS, type TabId } from './constants/tabs';
 import { GarageHeader } from './components/GarageHeader';
 import { Toast } from './components/Toast';
-import { SOSInboxScreen } from './screens/SOSInboxScreen';
 import { SOSDispatchScreen } from './screens/SOSDispatchScreen';
 import { JobFeedScreen } from './screens/JobFeedScreen';
+import { SOSInboxScreen } from './screens/SOSInboxScreen';
 import { ScheduleScreen } from './screens/ScheduleScreen';
 import { GarageProfileScreen } from './screens/GarageProfileScreen';
 import { OnMartScreen } from './screens/OnMartScreen';
 
-const TAB_TITLES: Partial<Record<TabId, string>> = { sos: 'SOS · හදිසි ඉල්ලීම්', jobs: 'ඔබගේ රැකියා අවස්ථා', schedule: 'ඔබගේ රැකියා කාලසටහන', parts: 'OnMart · කොටස් වෙළඳපොළ' };
+const TAB_TITLES: Partial<Record<TabId, string>> = { jobs: 'ඔබගේ රැකියා අවස්ථා', schedule: 'ඔබගේ රැකියා කාලසටහන', parts: 'OnMart · කොටස් වෙළඳපොළ' };
 
 export default function App() {
   return (
@@ -90,17 +90,18 @@ function AppShell() {
         : activeJobs.length
           ? 'active'
           : undefined;
-  const badges: Partial<Record<TabId, number>> = { sos: pendingApprovals.length || requests.length, jobs: newDirects, schedule: scheduleBadge, parts: partsBadge };
-  const tabs = GARAGE_TABS.map((t) => ({ ...t, badge: badges[t.id], alert: t.id === 'sos' ? sosAlert : undefined }));
+  const badges: Partial<Record<TabId, number>> = { jobs: newDirects + (pendingApprovals.length || requests.length), schedule: scheduleBadge, parts: partsBadge };
+  const tabs = GARAGE_TABS.map((t) => ({ ...t, badge: badges[t.id], alert: t.id === 'jobs' ? sosAlert : undefined }));
   // Jobs is the home screen: the garage opens on the work waiting for it.
   const [tab, setTab] = useState<TabId>('jobs');
-  // The Schedule page has two titles: the schedule itself and the Activity (every transaction, with the commissions).
+  // The SOS chip on the Jobs page opens SOS full screen (no header, like the old SOS tab); the Jobs tab brings the page back.
+  const [sosOpen, setSosOpen] = useState(false);
+  const sosFull = tab === 'jobs' && sosOpen;
+  useEffect(() => setSosOpen(false), [tab]);
+  // Schedule and Activity (every transaction, with the commissions) are two bottom tabs that share one page layout.
   const [calendarOpen, setCalendarOpen] = useState(false);
-  const [scheduleView, setScheduleView] = useState<'schedule' | 'activity'>('schedule');
-  const openScheduleView = (v: 'schedule' | 'activity') => {
-    setScheduleView(v);
-    header.reset();
-  };
+  const scheduleView: 'schedule' | 'activity' = tab === 'activity' ? 'activity' : 'schedule';
+  const onSchedulePage = tab === 'schedule' || tab === 'activity';
   // On the Jobs tab, backing out of a conversation opened from the inbox returns to the inbox.
   const { setInboxReturn } = useChat();
   useEffect(() => setInboxReturn(tab === 'jobs'), [tab]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -175,13 +176,13 @@ function AppShell() {
   if (!fontsLoaded) return null;
 
   // Jobs, Schedule and OnMart have a top header band; SOS and Profile start right at the top.
-  const band = tab === 'jobs' || tab === 'schedule' || tab === 'parts' ? bandH : 0;
+  const band = (tab === 'jobs' && !sosFull) || onSchedulePage || tab === 'parts' ? bandH : 0;
 
   return (
     <SafeAreaProvider>
       <StatusBar style={isDark ? 'light' : 'dark'} />
-      <SafeAreaView style={[styles.container, (tab === 'garage' || tab === 'schedule' || tab === 'sos') && styles.containerFull]} edges={['top']}>
-        {tab === 'jobs' || tab === 'schedule' || tab === 'parts' ? (
+      <SafeAreaView style={[styles.container, (tab === 'garage' || onSchedulePage || sosFull) && styles.containerFull]} edges={['top']}>
+        {(tab === 'jobs' && !sosFull) || onSchedulePage || tab === 'parts' ? (
           // Jobs, Schedule and OnMart: the title band and the sheet move up together as the page's list scrolls (a transform, so
           // nothing is re-laid out). The block reaches one band-height past the bottom (under the bottom bar), so when it has
           // moved up it still fills the screen. The page's own tab bar moves with it (see the page).
@@ -189,8 +190,8 @@ function AppShell() {
             <View onLayout={(e) => e.nativeEvent.layout.height > 0 && setBandH(e.nativeEvent.layout.height)}>
               {tab === 'jobs' && <GarageHeader />}
               {tab === 'parts' && <TitleBand title={TAB_TITLES.parts!} />}
-              {tab === 'schedule' && <TitleBand
-                  title="Schedule"
+              {onSchedulePage && <TitleBand
+                  title={scheduleView === 'activity' ? 'Activity' : 'Schedule'}
                   backgroundColor={pageBg()}
                   right={
                     // Two calendars that can be told apart: the Schedule's is the plain calendar (blue); the Activitys' is a calendar with a coin on its page (green), for the money.
@@ -198,25 +199,14 @@ function AppShell() {
                       {scheduleView === 'activity' ? <MoneyCalendarIcon size={26} /> : <ScheduleLineIcon active size={26} />}
                     </Pressable>
                   }
-                  // The open title stands first; touching the other one swaps them with a slide (the title band does the ordering).
-                  tabs={[
-                    { id: 'schedule', label: 'Schedule', icon: <ScheduleLineIcon active size={26} />, active: scheduleView === 'schedule', onPress: () => openScheduleView('schedule') },
-                    { id: 'activity', label: 'Activitys', icon: <ClipboardLineIcon active size={26} />, active: scheduleView === 'activity', onPress: () => openScheduleView('activity') },
-                  ]}
+                  icon={scheduleView === 'activity' ? <ClipboardLineIcon active size={28} /> : <ScheduleLineIcon active size={28} />}
                 />}
             </View>
             {/* The tab's screen overlaps the header band with rounded top corners, like the owner app. */}
-            <View style={[styles.sheet, tab === 'schedule' && styles.sheetFull]}>
-              {tab === 'jobs' && <JobFeedScreen shift={martShift} onScrollY={header.onScrollY} />}
-              {tab === 'schedule' && (
-                <>
-                  {/* Both stay mounted, so the Schedule keeps its tab and scroll while the Activity is open. */}
-                  <View style={[styles.flex1, scheduleView !== 'schedule' && { display: 'none' }]}>
-                    <ScheduleScreen onOpenParts={openParts} shift={martShift} onScrollY={header.onScrollY} />
-                  </View>
-                  {scheduleView === 'activity' && <GarageActivityView />}
-                </>
-              )}
+            <View style={[styles.sheet, onSchedulePage && styles.sheetFull]}>
+              {tab === 'jobs' && <JobFeedScreen shift={martShift} onScrollY={header.onScrollY} onOpenSos={() => setSosOpen(true)} />}
+              {tab === 'schedule' && <ScheduleScreen onOpenParts={openParts} shift={martShift} onScrollY={header.onScrollY} />}
+              {tab === 'activity' && <GarageActivityView />}
               {tab === 'parts' && (
                 <OnMartScreen shift={martShift} onScrollY={header.onScrollY} setBarShown={header.setShown} reset={header.reset} bandHeight={band} top={martTop} onTopChange={setMartTop} section={martSection} onSectionChange={setMartSection} searchSeed={martSeed} shopRequest={martShopReq} focusId={partsFocus} onFocusHandled={() => setPartsFocus(null)} />
               )}
@@ -224,10 +214,9 @@ function AppShell() {
           </Animated.View>
         ) : (
           <>
-            {tab === 'sos' && <TitleBand title="SOS" icon={<SosLineIcon active size={28} />} backgroundColor={pageBg()} />}
             {/* The tab's screen overlaps the header band with rounded top corners, like the owner app. */}
-            <View style={[styles.sheet, (tab === 'garage' || tab === 'sos') && styles.sheetFull]}>
-              {tab === 'sos' && <SOSInboxScreen />}
+            <View style={[styles.sheet, (tab === 'garage' || sosFull) && styles.sheetFull]}>
+              {sosFull && <SOSInboxScreen />}
               {tab === 'garage' && <GarageProfileScreen shift={martShift} onScrollY={header.onScrollY} />}
             </View>
           </>
@@ -251,7 +240,10 @@ function AppShell() {
               }}
             />
           ) : (
-            <BottomNav items={tabs} activeTab={tab} onTabChange={setTab} />
+            <BottomNav items={tabs} activeTab={tab} onTabChange={(next) => {
+              if (next === 'jobs') setSosOpen(false);
+              setTab(next);
+            }} />
           )}
         </View>
         {/* The chat icon stays put at the top right however the header folds away while the page scrolls. */}

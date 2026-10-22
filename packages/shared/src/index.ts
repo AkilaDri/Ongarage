@@ -69,6 +69,8 @@ export * from './ui/Icons';
 export * from './ui/OnMartIcon';
 export * from './ui/NoticeToast';
 export * from './ui/PhotoStrip';
+export * from './ui/CountdownPill';
+export * from './ui/TimeClock';
 export * from './ui/Sheet';
 export * from './ui/Slider';
 export * from './ui/StepProgress';

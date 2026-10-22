@@ -21,7 +21,26 @@ const outline = () => (getThemeMode() === 'dark' ? Colors.borderColor : '#dadce0
 const BLUE = () => (getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8');
 
 /** The vehicle a chat is about, shown under the app bar: its model and number plate. */
-export type ChatVehicle = { name: string; plate: string; type: string; registrationNo?: string };
+export type ChatVehicle = { name: string; plate: string; type: string; registrationNo?: string; chassisNo?: string; engineNo?: string; make?: string; model?: string; color?: string; insuranceNo?: string };
+
+/** What the garage writes when it asks the customer for the vehicle's details; the customer's reply starts with VEHICLE_SENT. */
+export const VEHICLE_ASK = '🚗 වාහන විස්තර ඉල්ලයි';
+export const VEHICLE_SENT = '🚗 වාහන විස්තර';
+
+/** Everything the customer has registered about the vehicle, as the lines of one message. */
+export const vehicleDetailsText = (v: ChatVehicle) =>
+  [
+    `${VEHICLE_SENT} · ${v.name}`,
+    `අංකය: ${v.registrationNo || v.plate}`,
+    `වර්ගය: ${v.type}`,
+    v.make || v.model ? `මාදිලිය: ${[v.make, v.model].filter(Boolean).join(' ')}` : '',
+    v.color ? `වර්ණය: ${v.color}` : '',
+    v.chassisNo ? `චැසි අංකය: ${v.chassisNo}` : '',
+    v.engineNo ? `එන්ජින් අංකය: ${v.engineNo}` : '',
+    v.insuranceNo ? `රක්ෂණ අංකය: ${v.insuranceNo}` : '',
+  ]
+    .filter(Boolean)
+    .join('\n');
 
 /**
  * Slides its content in from the right edge across the row (as if dragged in) when `show` turns on, and back out to the right when it turns off; it takes no space while
@@ -214,7 +233,8 @@ export const ChatSheet: React.FC<{
     ...((globalThis as { navigator?: { geolocation?: { getCurrentPosition: (ok: (p: { coords: { latitude: number; longitude: number } }) => void) => void } } }).navigator?.geolocation
       ? [{ key: 'loc', icon: '📍', label: 'මගේ ස්ථානය', run: () => (globalThis as { navigator: { geolocation: { getCurrentPosition: (ok: (p: { coords: { latitude: number; longitude: number } }) => void) => void } } }).navigator.geolocation.getCurrentPosition((p) => void send({ text: `📍 මගේ ස්ථානය: https://maps.google.com/?q=${p.coords.latitude.toFixed(5)},${p.coords.longitude.toFixed(5)}` })) }]
       : []),
-    ...(vehicle ? [{ key: 'veh', icon: '🚗', label: 'වාහන විස්තර', run: () => void send({ text: `🚗 ${vehicle.name} · ${vehicle.plate}` }) }] : []),
+    ...(vehicle && me === 'owner' ? [{ key: 'veh', icon: '🚗', label: 'වාහන විස්තර යවන්න', run: () => void send({ text: vehicleDetailsText(vehicle) }) }] : []),
+    ...(me === 'garage' ? [{ key: 'vehAsk', icon: '🚗', label: 'වාහන විස්තර ඉල්ලන්න', run: () => void send({ text: VEHICLE_ASK }) }] : []),
   ];
 
   // Parts shops tagged in the message being typed ("@name" in the text).
@@ -272,9 +292,21 @@ export const ChatSheet: React.FC<{
   messages.forEach((m, i) => {
     if (m.update && !m.deleted) anchorAt = i;
   });
+  // The garage asked for the vehicle's details and the customer has not sent them yet: one tap on this card sends everything.
+  const lastAsk = [...messages].reverse().find((m) => !m.deleted && m.from === 'garage' && m.text?.startsWith(VEHICLE_ASK));
+  const askOpen = me === 'owner' && !!vehicle && !!lastAsk && !messages.some((m) => !m.deleted && m.from === 'owner' && m.at > lastAsk.at && m.text?.startsWith(VEHICLE_SENT));
   const pending = (
     <>
       {cards}
+      {askOpen && (
+        <View style={{ gap: 8, padding: 14, borderRadius: 14, backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.14)' : '#e8f0fe', marginHorizontal: 10, marginVertical: 6 }} accessibilityLabel="The garage asked for the vehicle details">
+          <Text style={{ fontSize: 13.5, fontFamily: FONTS.titleBold, color: Colors.textMain }}>🚗 ගරාජය වාහන විස්තර ඉල්ලයි</Text>
+          <Text style={{ fontSize: 12, fontFamily: FONTS.bodyRegular, color: Colors.textMuted }}>{vehicle!.name} · {vehicle!.registrationNo || vehicle!.plate} — එක ස්පර්ශයකින් සියලු විස්තර යවන්න.</Text>
+          <Pressable onPress={() => void send({ text: vehicleDetailsText(vehicle!) })} style={{ height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? '#3b6fd4' : '#1a73e8' }} accessibilityLabel="Send the vehicle details">
+            <Text style={{ fontSize: 14, fontFamily: FONTS.bodyBold, color: '#ffffff' }}>🚗 වාහන විස්තර යවන්න</Text>
+          </Pressable>
+        </View>
+      )}
       {!!composerLocked && (
         <View style={[st.bubble, st.event, st.recordMessage, st.eventJobInfo]} accessibilityLabel="Messages locked">
           <Text style={st.recordText}>{composerLocked}</Text>

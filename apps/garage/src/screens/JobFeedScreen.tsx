@@ -7,7 +7,7 @@ import { CategoryArt } from '../components/CategoryArt';
 import { chatDockOffset } from '../utils/chatDock';
 import React, { useEffect, useMemo, useState } from 'react';
 import { pageBg } from '../utils/pageBg';
-import { Animated, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Animated, Easing, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { CustomerBadge } from '../components/CustomerBadge';
 import { InfoChip } from '@ongarage/shared';
 import { fittingLabel, isFarJob, ActionButton, categoryInfo, Colors, dayStart, EmptyState, FONTS, Icon, isHighValueJob, levelForFeature, marketPrice, SwipeCard, themedStyles, vehicleIcon, type IconName, softFill, softShadow, getThemeMode, PinnedEdge, PhotoStrip, usePinnedEdge } from '@ongarage/shared';
@@ -22,7 +22,7 @@ import type { BidStatus, DirectRequest, FeedJob, JobDetails, MyBid } from '../ty
 
 // Bidding jobs, direct bookings and this garage's bids share the Jobs tab, so the
 // bottom navigation keeps four tabs.
-type Segment = 'open' | 'direct' | 'mine';
+type Segment = 'open' | 'direct' | 'sos' | 'mine';
 /** A job this close to the garage (km) counts as near. */
 const NEAR_KM = 3;
 type Scope = 'services' | 'all';
@@ -37,17 +37,43 @@ const STATUS: Record<BidStatus, { label: string; color: () => string }> = {
 /** One quiet line of facts instead of a wall of chips. */
 const meta = (...parts: (string | false | undefined | 0 | null)[]) => parts.filter(Boolean).join('   ·   ');
 
-export const JobFeedScreen: React.FC<{ shift: Animated.Value; onScrollY: (y: number) => void }> = ({ shift, onScrollY }) => {
+/** `onOpenSos`: the SOS chip opens the SOS screen full screen (App swaps this page for it). */
+export const JobFeedScreen: React.FC<{ shift: Animated.Value; onScrollY: (y: number) => void; onOpenSos: () => void }> = ({ shift, onScrollY, onOpenSos }) => {
   const { progress: edge, scrollProps } = usePinnedEdge();
-  // The tab bar and the list move up together as the list scrolls (App moves the title band by the same shift).
+  // The chip bar's height (measured), which the list sits under.
   const [barH, setBarH] = useState(68);
   // The chat icon sits under the pinned bar once the header has folded away.
   useEffect(() => {
     chatDockOffset.setValue(barH);
     return () => chatDockOffset.setValue(0);
   }, [barH]);
-  const { feed, directs, bids, profile, withdrawBid, has, headStartUntil, intakeOn } = useGarage();
+  const { feed, directs, bids, profile, withdrawBid, has, headStartUntil, intakeOn, requests, activeJobs } = useGarage();
+  // SOS (the old bottom tab) is the chip after Booking: its count is what waits for an answer.
+  const sosWaiting = activeJobs.filter((d) => d.priceApproval?.status === 'pending').length || requests.length;
+  // While an SOS waits for an answer the chip flashes: a red glow breathes inside it and a ring spreads out from it, until the request is answered.
+  const sosPulse = React.useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (sosWaiting === 0) {
+      sosPulse.setValue(0);
+      return;
+    }
+    const loop = Animated.loop(Animated.timing(sosPulse, { toValue: 1, duration: 1100, easing: Easing.out(Easing.quad), useNativeDriver: Platform.OS !== 'web' }));
+    loop.start();
+    return () => loop.stop();
+  }, [sosWaiting, sosPulse]);
   const [segment, setSegment] = useState<Segment>('open');
+  // "ලංසු රැකියා" and "MyBids" swap places when My bids opens or closes: the chip that goes up slides in from below, the one that goes down drops in from above.
+  const swap = React.useRef(new Animated.Value(1)).current;
+  const lastSegment = React.useRef<Segment>('open');
+  useEffect(() => {
+    const was = lastSegment.current;
+    lastSegment.current = segment;
+    if (was === segment || (was !== 'open' && was !== 'mine') || (segment !== 'open' && segment !== 'mine')) return;
+    swap.setValue(0);
+    Animated.spring(swap, { toValue: 1, stiffness: 220, damping: 18, useNativeDriver: Platform.OS !== 'web' }).start();
+  }, [segment, swap]);
+  const goesUp = { opacity: swap, transform: [{ translateY: swap.interpolate({ inputRange: [0, 1], outputRange: [28, 0] }) }] };
+  const comesDown = { opacity: swap, transform: [{ translateY: swap.interpolate({ inputRange: [0, 1], outputRange: [-28, 0] }) }] };
   // The "My bids" chip: where a bid just sent flies to (its place is measured when the token lands).
   const myBidsChip = React.useRef<View>(null);
   useEffect(() => {
@@ -101,11 +127,17 @@ export const JobFeedScreen: React.FC<{ shift: Animated.Value; onScrollY: (y: num
     return job ? { kind: 'direct', job } : null;
   }, [detail, feed, directs, bids]);
 
-  const segments: { id: Segment; label: string; icon: IconName; count: number; alert?: boolean }[] = [
+  const allSegments: { id: Segment; label: string; icon: IconName; count: number; alert?: boolean }[] = [
     { id: 'open', label: 'ලංසු රැකියා', icon: 'inbox', count: mine.length },
     { id: 'direct', label: 'Booking', icon: 'calendar', count: newDirects, alert: newDirects > 0 },
+    { id: 'sos', label: 'SOS', icon: 'alert-triangle', count: sosWaiting, alert: sosWaiting > 0 },
     { id: 'mine', label: 'මගේ ලංසු', icon: 'tag', count: bids.filter((b) => b.status === 'pending').length },
   ];
+  // "My bids" is the tag icon at the end of the filter row, not a chip in this bar.
+  // While My bids is open it stands in the top bar where "ලංසු රැකියා" was (they swap places).
+  const mineSegment = { ...allSegments.find((s) => s.id === 'mine')!, label: 'MyBids' };
+  const segments = allSegments.filter((s) => s.id !== 'mine').map((s) => (s.id === 'open' && segment === 'mine' ? mineSegment : s));
+  const pendingBids = allSegments.find((s) => s.id === 'mine')!.count;
 
   const mediaText = (job: JobDetails) => {
     const p = job.photos?.length ?? 0;
@@ -318,11 +350,19 @@ export const JobFeedScreen: React.FC<{ shift: Animated.Value; onScrollY: (y: num
       <Pressable key={job.id} style={styles.jobRow} onPress={() => openJob(job)} accessibilityLabel={`${cat.name} job`}>
         <CategoryArt emoji={cat.icon} size={36} />
         <View style={styles.flex1}>
-          <Text style={styles.jobRowName} numberOfLines={1}>
-            {cat.name} · {job.customer.name}
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Text style={[styles.jobRowName, styles.nameShrink]} numberOfLines={1}>
+              {cat.name}
+            </Text>
+            <CountdownPill ms={left} urgent={left < 30 * 60 * 1000} small />
+          </View>
+          {!!job.description && (
+            <Text style={styles.jobRowSub} numberOfLines={1}>
+              {job.description}
+            </Text>
+          )}
           <Text style={styles.jobRowSub} numberOfLines={1}>
-            {job.vehicle.name} · {job.distanceKm} km · ⏱ {countdown(left)} · 🤝 {job.otherBids ?? 0}
+            {job.vehicle.name} · {job.distanceKm} km · 🤝 {job.otherBids ?? 0}
           </Text>
         </View>
         {pending ? (
@@ -444,6 +484,35 @@ export const JobFeedScreen: React.FC<{ shift: Animated.Value; onScrollY: (y: num
   };
 
 
+  // "My services", "All" and "MyBids" start the filter row on the Jobs page.
+  const scopeButtons = (
+    <>
+      {/* My bids, first in the row: the bids this garage has sent (a bid just sent flies here). */}
+      <Animated.View style={comesDown}>
+      <Pressable ref={myBidsChip} style={[styles.filter, segment === 'mine' && styles.filterActive]} onPress={() => setSegment('mine')} accessibilityRole="button" accessibilityLabel="මගේ ලංසු" accessibilityState={{ selected: segment === 'mine' }}>
+        <Icon name="tag" size={20} color={segment === 'mine' ? (getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8') : Colors.textMuted} />
+        <Text style={[styles.filterText, segment === 'mine' && styles.filterTextActive]}>MyBids</Text>
+        {pendingBids > 0 && (
+          <View style={[styles.segCount, styles.segCountOn]}>
+            <Text style={[styles.segCountText, styles.segCountTextOn]}>{pendingBids}</Text>
+          </View>
+        )}
+      </Pressable>
+      </Animated.View>
+      {(
+        [
+          ['services', JobsLineIcon],
+          ['all', OrdersLineIcon],
+        ] as [Scope, React.ComponentType<{ active: boolean; size?: number }>][]
+      ).map(([id, FilterIcon]) => (
+        <Pressable key={id} style={[styles.filter, scope === id && styles.filterActive]} onPress={() => setScope(id)} accessibilityLabel={id === 'services' ? 'My services' : 'All jobs'} accessibilityState={{ selected: scope === id }}>
+          <FilterIcon active={scope === id} size={20} />
+          {id === 'all' && <Text style={[styles.filterText, scope === id && styles.filterTextActive]}>All</Text>}
+        </Pressable>
+      ))}
+    </>
+  );
+
   return (
     <View style={styles.flex1}>
       <Animated.View style={styles.tabBar} onLayout={(e) => e.nativeEvent.layout.height > 0 && setBarH(e.nativeEvent.layout.height)}>
@@ -451,9 +520,16 @@ export const JobFeedScreen: React.FC<{ shift: Animated.Value; onScrollY: (y: num
         <View style={styles.segRow}>
           {segments.map((t) => {
             const active = segment === t.id;
-            return (
-              <Pressable key={t.id} ref={t.id === 'mine' ? myBidsChip : undefined} style={[styles.segChip, active && styles.segChipOn]} onPress={() => setSegment(t.id)} accessibilityLabel={t.label}>
-                <Icon name={t.icon} size={15} color={active ? (getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8') : Colors.textMuted} />
+            const flashing = t.id === 'sos' && t.alert;
+            const chip = (
+              <Pressable key={t.id} style={[styles.segChip, active && styles.segChipOn, flashing && styles.segChipSos]} onPress={() => (t.id === 'sos' ? onOpenSos() : setSegment(t.id))} accessibilityLabel={t.label}>
+                {flashing && (
+                  <>
+                    <Animated.View pointerEvents="none" style={[styles.sosRing, { opacity: sosPulse.interpolate({ inputRange: [0, 1], outputRange: [0.8, 0] }), transform: [{ scaleX: sosPulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.18] }) }, { scaleY: sosPulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.45] }) }] }]} />
+                    <Animated.View pointerEvents="none" style={[styles.sosGlow, { opacity: sosPulse.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0.05, 0.28, 0.05] }) }]} />
+                  </>
+                )}
+                <Icon name={t.icon} size={15} color={flashing ? '#d93025' : active ? (getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8') : Colors.textMuted} />
                 <Text style={[styles.segChipText, active && styles.segChipTextOn]} numberOfLines={1}>
                   {t.label}
                 </Text>
@@ -464,8 +540,64 @@ export const JobFeedScreen: React.FC<{ shift: Animated.Value; onScrollY: (y: num
                 )}
               </Pressable>
             );
+            // The first slot (ලංසු රැකියා, or MyBids while My bids is open) is the chip that swaps.
+            return t.id === 'open' || t.id === 'mine' ? (
+              <Animated.View key={t.id} style={[styles.swapSlot, goesUp]}>
+                {chip}
+              </Animated.View>
+            ) : (
+              chip
+            );
           })}
         </View>
+        {/* The filter row is part of the pinned bar (not of the list), so it stays on screen with the chips while the list scrolls. */}
+        {segment === 'open' && (
+              <View style={[styles.filters, styles.barFilters]}>
+                {scopeButtons}
+                {/* From here the icons sit at the right-hand end of the row: fewest bids first, then the rows icon, then the rest. */}
+                <View style={styles.flex1} />
+                <Pressable style={[styles.filter, fewBids && styles.filterActive]} onPress={() => setFewBids((v) => !v)} accessibilityRole="button" accessibilityState={{ selected: fewBids }} accessibilityLabel={fewBids ? 'Show all the jobs' : 'Only the jobs with the fewest bids'}>
+                  <Svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke={fewBids ? (getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8') : Colors.textMuted} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+                    <Path d="M7 4v15M7 19l-3-3.5M7 19l3-3.5" />
+                    <Path d="M13 6h7M13 12h5M13 18h3" />
+                  </Svg>
+                </Pressable>
+                <Pressable style={[styles.filter, rowsView && styles.filterActive]} onPress={() => setRowsView((v) => !v)} accessibilityRole="button" accessibilityState={{ selected: rowsView }} accessibilityLabel={rowsView ? 'Show the jobs as cards' : 'Show all the jobs as rows'}>
+                  <Svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke={rowsView ? (getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8') : Colors.textMuted} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+                    {rowsView ? (
+                      <>
+                        <Rect x={4} y={4} width={16} height={7} rx={2} />
+                        <Rect x={4} y={13} width={16} height={7} rx={2} />
+                      </>
+                    ) : (
+                      <Path d="M4 6h16M4 12h16M4 18h16" />
+                    )}
+                  </Svg>
+                </Pressable>
+                <Pressable style={[styles.filter, republishedOnly && styles.filterActive]} onPress={() => setRepublishedOnly((v) => !v)} accessibilityRole="button" accessibilityState={{ selected: republishedOnly }} accessibilityLabel={republishedOnly ? 'Show all the jobs' : 'Only the jobs posted again'}>
+                  <Svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke={republishedOnly ? (getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8') : Colors.textMuted} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+                    <Path d="M4 12a8 8 0 0113-6l3 3M20 4v5h-5M20 12a8 8 0 01-13 6l-3-3M4 20v-5h5" />
+                  </Svg>
+                </Pressable>
+                <Pressable style={[styles.filter, nearest && styles.filterActive]} onPress={() => setNearest((v) => !v)} accessibilityRole="button" accessibilityState={{ selected: nearest }} accessibilityLabel={nearest ? 'Show all the jobs' : `Only the jobs within ${NEAR_KM} km`}>
+                  <Svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke={nearest ? (getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8') : Colors.textMuted} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+                    <Path d="M12 21s-7-6.2-7-11a7 7 0 0114 0c0 4.8-7 11-7 11z" />
+                    <Circle cx={12} cy={10} r={2.5} />
+                  </Svg>
+                </Pressable>
+              </View>
+        )}
+        {/* In My bids the job filters are gone, and the two chips have swapped places: "MyBids" took the "ලංසු රැකියා" place in the top bar, and "ලංසු රැකියා" sits here (touch it to swap back). */}
+        {segment === 'mine' && (
+              <View style={[styles.filters, styles.barFilters]}>
+                <Animated.View style={comesDown}>
+                  <Pressable style={styles.filter} onPress={() => setSegment('open')} accessibilityRole="button" accessibilityLabel="ලංසු රැකියා">
+                    <Icon name="inbox" size={20} color={Colors.textMuted} />
+                    <Text style={styles.filterText}>ලංසු රැකියා</Text>
+                  </Pressable>
+                </Animated.View>
+              </View>
+        )}
       </Animated.View>
 
       <Animated.View style={[styles.listLayer, { top: barH, bottom: 0 }]}>
@@ -481,48 +613,6 @@ export const JobFeedScreen: React.FC<{ shift: Animated.Value; onScrollY: (y: num
       >
         {segment === 'open' && (
           <>
-            <View style={styles.filters}>
-              {(
-                [
-                  ['services', JobsLineIcon],
-                  ['all', OrdersLineIcon],
-                ] as [Scope, React.ComponentType<{ active: boolean; size?: number }>][]
-              ).map(([id, FilterIcon]) => (
-                <Pressable key={id} style={[styles.filter, scope === id && styles.filterActive]} onPress={() => setScope(id)} accessibilityLabel={id === 'services' ? 'My services' : 'All jobs'} accessibilityState={{ selected: scope === id }}>
-                  <FilterIcon active={scope === id} size={20} />
-                  {id === 'all' && <Text style={[styles.filterText, scope === id && styles.filterTextActive]}>All</Text>}
-                </Pressable>
-              ))}
-              <Pressable style={[styles.filter, rowsView && styles.filterActive]} onPress={() => setRowsView((v) => !v)} accessibilityRole="button" accessibilityState={{ selected: rowsView }} accessibilityLabel={rowsView ? 'Show the jobs as cards' : 'Show all the jobs as rows'}>
-                <Svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke={rowsView ? (getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8') : Colors.textMuted} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
-                  {rowsView ? (
-                    <>
-                      <Rect x={4} y={4} width={16} height={7} rx={2} />
-                      <Rect x={4} y={13} width={16} height={7} rx={2} />
-                    </>
-                  ) : (
-                    <Path d="M4 6h16M4 12h16M4 18h16" />
-                  )}
-                </Svg>
-              </Pressable>
-              <Pressable style={[styles.filter, fewBids && styles.filterActive]} onPress={() => setFewBids((v) => !v)} accessibilityRole="button" accessibilityState={{ selected: fewBids }} accessibilityLabel={fewBids ? 'Show all the jobs' : 'Only the jobs with the fewest bids'}>
-                <Svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke={fewBids ? (getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8') : Colors.textMuted} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
-                  <Path d="M7 4v15M7 19l-3-3.5M7 19l3-3.5" />
-                  <Path d="M13 6h7M13 12h5M13 18h3" />
-                </Svg>
-              </Pressable>
-              <Pressable style={[styles.filter, republishedOnly && styles.filterActive]} onPress={() => setRepublishedOnly((v) => !v)} accessibilityRole="button" accessibilityState={{ selected: republishedOnly }} accessibilityLabel={republishedOnly ? 'Show all the jobs' : 'Only the jobs posted again'}>
-                <Svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke={republishedOnly ? (getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8') : Colors.textMuted} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
-                  <Path d="M4 12a8 8 0 0113-6l3 3M20 4v5h-5M20 12a8 8 0 01-13 6l-3-3M4 20v-5h5" />
-                </Svg>
-              </Pressable>
-              <Pressable style={[styles.filter, nearest && styles.filterActive]} onPress={() => setNearest((v) => !v)} accessibilityRole="button" accessibilityState={{ selected: nearest }} accessibilityLabel={nearest ? 'Show all the jobs' : `Only the jobs within ${NEAR_KM} km`}>
-                <Svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke={nearest ? (getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8') : Colors.textMuted} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
-                  <Path d="M12 21s-7-6.2-7-11a7 7 0 0114 0c0 4.8-7 11-7 11z" />
-                  <Circle cx={12} cy={10} r={2.5} />
-                </Svg>
-              </Pressable>
-            </View>
             {shown.length === 0 ? (
               fewBids || republishedOnly || nearest ? (
                 <EmptyState icon="🔎" title={nearest ? 'ළඟම රැකියා නැත' : republishedOnly ? 'නැවත පළ කළ රැකියා නැත' : 'අඩු ලංසු සහිත රැකියා නැත'} text={nearest ? `ගරාජයේ සිට කි.මී. ${NEAR_KM} ඇතුළත රැකියා නැත. පෙරහන ඉවත් කර සියල්ල බලන්න.` : republishedOnly ? 'ලංසු කාලය අවසන් වී හිමියන් නැවත පළ කළ රැකියා මෙහි පෙන්වයි.' : 'සියලු රැකියාවලට දැනටමත් ලංසු කිහිපයක් ඇත. පෙරහන ඉවත් කර සියල්ල බලන්න.'} />
@@ -545,12 +635,15 @@ export const JobFeedScreen: React.FC<{ shift: Animated.Value; onScrollY: (y: num
           </>
         )}
 
-        {segment === 'mine' &&
-          (bids.length === 0 ? (
-            <EmptyState icon="🏷️" title="තවම ලංසු නැත" text="“ලංසු රැකියා” වෙතින් ලංසුවක් තැබූ විට එය මෙහි පෙන්වනු ඇත." />
-          ) : (
-            bids.map(bidCard)
-          ))}
+        {segment === 'mine' && (
+          <>
+            {bids.length === 0 ? (
+              <EmptyState icon="🏷️" title="තවම ලංසු නැත" text="“ලංසු රැකියා” වෙතින් ලංසුවක් තැබූ විට එය මෙහි පෙන්වනු ඇත." />
+            ) : (
+              bids.map(bidCard)
+            )}
+          </>
+        )}
       </ScrollView>
       </Animated.View>
 
@@ -583,6 +676,10 @@ const styles = themedStyles(() =>
     segRow: { flexDirection: 'row', gap: 8 },
     segChip: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, height: 44, paddingHorizontal: 6, borderRadius: 12, borderWidth: 1, borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#dadce0', backgroundColor: Colors.bgCard, shadowColor: '#3c4043', shadowOffset: { width: 0, height: 1 }, shadowOpacity: getThemeMode() === 'dark' ? 0.4 : 0.15, shadowRadius: 3, elevation: 1 },
     segChipOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe', borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#d2e3fc' },
+    swapSlot: { flex: 1 },
+    segChipSos: { borderColor: '#ee675c' },
+    sosRing: { ...StyleSheet.absoluteFill, borderRadius: 12, borderWidth: 2, borderColor: '#ee675c' },
+    sosGlow: { ...StyleSheet.absoluteFill, borderRadius: 12, backgroundColor: '#ef4444' },
     segChipText: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, flexShrink: 1 },
     segChipTextOn: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
     segCount: { position: 'absolute', top: -9, right: 6, minWidth: 20, height: 20, paddingHorizontal: 5, borderRadius: 10, borderWidth: 2, borderColor: pageBg(), alignItems: 'center', justifyContent: 'center', backgroundColor: '#1a73e8' },
@@ -593,6 +690,7 @@ const styles = themedStyles(() =>
 
     body: { paddingVertical: 16, paddingHorizontal: 6, paddingTop: 4, gap: 14, paddingBottom: 250 },
     filters: { flexDirection: 'row', gap: 8 },
+    barFilters: { paddingTop: 10, paddingBottom: 4, paddingRight: 2 },
     filter: { minWidth: 40, flexDirection: 'row', gap: 5, paddingHorizontal: 10, height: 28, alignItems: 'center', justifyContent: 'center', borderRadius: 14, borderWidth: 1, borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#dadce0', backgroundColor: Colors.bgCard },
     filterActive: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe', borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#d2e3fc' },
     filterText: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.textSoft },
