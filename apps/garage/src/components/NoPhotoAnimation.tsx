@@ -1,3 +1,4 @@
+import { CategoryArt } from './CategoryArt';
 import React, { useEffect, useRef } from 'react';
 import { Animated, Easing, Platform, StyleSheet, Text, View } from 'react-native';
 import { Colors, FONTS, getThemeMode, themedStyles } from '@ongarage/shared';
@@ -44,7 +45,7 @@ export const NoPhotoAnimation: React.FC<{ emoji: string; height?: number }> = ({
           ]}
         />
         <Animated.View style={[styles.disc, { transform: [{ translateY: float.interpolate({ inputRange: [0, 1], outputRange: [3, -5] }) }] }]}>
-          <Text style={styles.emoji}>{emoji}</Text>
+          <CategoryArt emoji={emoji} size={40} />
         </Animated.View>
       </View>
       <Text style={styles.caption}>පාරිභෝගිකයා ඡායාරූප එවා නැත</Text>

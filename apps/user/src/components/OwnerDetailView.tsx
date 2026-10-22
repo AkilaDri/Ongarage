@@ -1,3 +1,4 @@
+import { EmptyState } from '@ongarage/shared';
 import { useChat } from '../context/ChatContext';
 import { MOCK_GARAGES } from '../constants/mockData';
 import { VehicleLine } from '@ongarage/shared';
@@ -133,7 +134,7 @@ export const OwnerDetailView: React.FC<{
 
         <Text style={styles.section}>ලංසු {j.bids.length ? `(${j.bids.length})` : ''}</Text>
         {j.bids.length === 0 ? (
-          <Text style={styles.empty}>තවම ලංසු නැත — ළඟම ගරාජවලට ඔබගේ රැකියාව පෙනේ.</Text>
+          <EmptyState icon="📥" title="තවම ලංසු නැත" text="ළඟම ගරාජවලට ඔබගේ රැකියාව පෙනේ; ලංසු ලැබුණු විට මෙහි පෙන්වයි." />
         ) : (
           <>
             <GoogleMap

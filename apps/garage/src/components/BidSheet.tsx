@@ -1,3 +1,5 @@
+import { CategoryArt } from './CategoryArt';
+import { VehicleLabel } from '@ongarage/shared';
 import { outline } from '../utils/material';
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
@@ -87,12 +89,11 @@ export const BidSheet: React.FC<BidSheetProps> = ({ job, existing, onClose }) =>
 
           <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
             <View style={styles.jobCard}>
-              <GlassIcon emoji={cat.icon} small />
+              <CategoryArt emoji={cat.icon} size={40} />
               <View style={styles.flex1}>
                 <Text style={styles.cardTitle}>{cat.name}</Text>
-                <Text style={styles.sub} numberOfLines={1}>
-                  {vehicleIcon(shown.vehicle.type)} {shown.vehicle.name} · {shown.customer.name}
-                </Text>
+                <VehicleLabel type={shown.vehicle.type} style={styles.sub} numberOfLines={1}>{shown.vehicle.name} · {shown.customer.name}
+                </VehicleLabel>
                 <CustomerBadge customer={shown.customer} />
               </View>
             </View>

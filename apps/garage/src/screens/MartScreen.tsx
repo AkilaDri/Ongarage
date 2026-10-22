@@ -67,6 +67,8 @@ import { EnquirySheet, type EnquiryPrefill } from '../components/mart/EnquiryShe
 import { ShopSheet } from '../components/mart/ShopSheet';
 import { OrdersList } from '../components/mart/OrdersList';
 import { WallFeed, WallFilters, type FeedPost } from '../components/mart/WallFeed';
+import { FeedRecordSheet } from '../components/mart/FeedRecordSheet';
+import { openFeedRecord } from '../utils/feedRecord';
 import { KitSheet } from '../components/mart/KitSheet';
 import { MartBannerCarousel } from '../components/mart/MartBannerCarousel';
 import { DealsSection } from '../components/mart/DealsSection';
@@ -448,7 +450,17 @@ export const MartScreen: React.FC<MartScreenProps> = ({ activeVehicle, segment, 
         }}
       >
         <PinnedEdge progress={edge} />
-        {segment === 'wall' && <WallFilters category={wallCategory} onChange={setWallCategory} />}
+        {segment === 'wall' && (
+          <View style={styles.wallBar}>
+            <View style={styles.flex1}>
+              <WallFilters category={wallCategory} onChange={setWallCategory} />
+            </View>
+            {/* The hamburger menu: the record of what I liked, commented on, shared and messaged on the On Feed. */}
+            <Pressable style={styles.hamburgerBtn} onPress={openFeedRecord} accessibilityLabel="Open my On Feed record">
+              <Text style={styles.hamburger}>☰</Text>
+            </Pressable>
+          </View>
+        )}
         {segment === 'shops' && (
           <>
             <View style={styles.searchRow}>
@@ -737,6 +749,7 @@ export const MartScreen: React.FC<MartScreenProps> = ({ activeVehicle, segment, 
       </Modal>
       <ReserveSheet offer={reserving?.offer ?? null} brief={reserving?.brief ?? null} jobRef={reserving?.jobRef} onClose={() => setReserving(null)} onReserved={() => setSegment('orders')} />
       <ThreadSheet target={thread} onClose={() => setThread(null)} />
+      <FeedRecordSheet />
       <KitSheet kit={kit} vehicleId={activeVehicle} onClose={() => setKit(null)} onSent={() => setSegment('mine')} />
       <EnquirySheet
         visible={composer.open}
@@ -753,6 +766,9 @@ const styles = themedStyles(() =>
   StyleSheet.create({
     flex1: { flex: 1 },
     // Day theme: the wall sits on a light grey so each white post stands apart from the page (dark theme keeps its own surfaces).
+    wallBar: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    hamburgerBtn: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', backgroundColor: '#e8f0fe' },
+    hamburger: { fontSize: 20, lineHeight: 22, color: '#1a73e8' },
     wallBackdrop: getThemeMode() === 'dark' ? {} : { backgroundColor: pageBg() },
     // The tab bar, the search bar and the chips are all 6px from the sides and 8px apart.
     pinned: { zIndex: 5, paddingTop: 8, paddingBottom: 8, gap: 8, backgroundColor: pageBg() },

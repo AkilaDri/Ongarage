@@ -1,7 +1,21 @@
 import { VehicleLine } from '@ongarage/shared';
 import { elevation1, outline, pageBg } from '../utils/material';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Easing, Linking, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Animated, Easing, Image, Linking, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { BREAKDOWN_IMAGES } from '../constants/home';
+
+/** The pastel colour of each breakdown type's tile. */
+const BREAKDOWN_TINT: Record<string, string> = {
+  accident: '#e5675f',
+  battery: '#e0a243',
+  overheating: '#f0a45a',
+  fuel: '#9aa7b8',
+  lockout: '#e5b04b',
+  mechanical: '#6fb0ea',
+  tire: '#8c95a6',
+  towing: '#6a7fe0',
+  winching: '#75c5d6',
+};
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle, Line } from 'react-native-svg';
 import { CloseCode, Colors, distanceKm, LEVELS, makeCloseCode, martShop, partMarketPrice, themedStyles } from '@ongarage/shared';
@@ -202,6 +216,8 @@ const RADIUS_STEP_KM = 1;
 // approved); due even if no repair is needed. A wider search means farther travel.
 const BASE_FEE = 500;
 const SURCHARGE_STEP = 250;
+/** The call-out fee for a helper that is `km` away: OnGarage's Rs. 500, plus Rs. 250 for every km the search had to be widened beyond the first one. */
+const calloutFeeFor = (km: number) => BASE_FEE + Math.max(0, Math.ceil(km) - INITIAL_RADIUS_KM) * SURCHARGE_STEP;
 const CYCLE_MS = 6000;
 // How long the radar shows the nearest garage being reached before the owner is connected to it.
 const MATCH_MS = 3200;
@@ -534,7 +550,7 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
     addRecord({
       id: `sos-${closeCode}`,
       completedAt: Date.now(),
-      breakdown: { icon: kind.icon, label: kind.label },
+      breakdown: { icon: kind.icon, label: kind.label, id: kind.id },
       vehicleName: vehicle.name,
       vehiclePlate: vehicle.plate,
       address: location.address,
@@ -761,19 +777,18 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
       </View>
 
       <Text style={styles.sectionLabel}>බ්‍රේක්ඩවුන් වර්ගය තෝරන්න</Text>
-      <View style={styles.grid}>
+      {/* Four to a row, three rows: a big illustration on a soft pastel tile, the name under it. */}
+      <View style={styles.breakGrid}>
         {BREAKDOWN_TYPES.map((t) => {
           const active = breakdown === t.id;
           return (
-            <Pressable
-              key={t.id}
-              style={({ pressed }) => [styles.gridItem, pressed && { transform: [{ scale: 1.06 }] }]}
-              onPress={() => setBreakdown(t.id)}
-            >
-              <View style={[styles.glassTile, active && styles.glassTileActive]}>
-                <Text style={styles.gridEmoji}>{t.icon}</Text>
+            <Pressable key={t.id} style={({ pressed }) => [styles.breakItem, pressed && { transform: [{ scale: 0.96 }] }]} onPress={() => setBreakdown(t.id)} accessibilityLabel={`Breakdown ${t.id}`}>
+              <View style={[styles.breakTile, { backgroundColor: (BREAKDOWN_TINT[t.id] ?? '#9aa7b8') + (active ? '55' : '33') }, active && styles.breakTileActive]}>
+                {BREAKDOWN_IMAGES[t.id] ? <Image source={BREAKDOWN_IMAGES[t.id]} style={styles.breakImage} resizeMode="contain" /> : <Text style={styles.gridEmoji}>{t.icon}</Text>}
               </View>
-              <Text style={[styles.gridLabel, active && { color: Colors.errorText }]}>{t.label}</Text>
+              <Text style={[styles.breakLabel, active && { color: Colors.errorText }]} numberOfLines={1}>
+                {t.label}
+              </Text>
             </Pressable>
           );
         })}
@@ -881,7 +896,7 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
             </View>
           )}
           <View style={[styles.statusPill, styles.statusPillOff]}>
-            <Text style={[styles.statusPillText, { color: Colors.textMuted }]}>පැමිණීමේ ගාස්තුව ~{money(c.bid)}</Text>
+            <Text style={[styles.statusPillText, { color: Colors.textMuted }]}>පැමිණීමේ ගාස්තුව {money(calloutFeeFor(c.distanceKm))}</Text>
           </View>
         </View>
         {c.facts.map((f) => (
@@ -1335,7 +1350,7 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
 
   const bottomBar = renderBottomBar();
   const mapKind: 'confirm' | 'searching' | 'nearby' | 'tracking' | null =
-    baseStep === 'confirm' || baseStep === 'searching' || baseStep === 'nearby' || baseStep === 'tracking' ? baseStep : null;
+    baseStep === 'searching' || baseStep === 'nearby' || baseStep === 'tracking' ? baseStep : null;
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
@@ -1636,6 +1651,13 @@ const styles = themedStyles(() => StyleSheet.create({
   glassTile: { width: 76, height: 76, borderRadius: 38, backgroundColor: Colors.bgCard, borderWidth: getThemeMode() === 'dark' ? 1 : 0, borderColor: Colors.borderColor, justifyContent: 'center', alignItems: 'center', ...SOFT_SHADOW },
   glassTileActive: { backgroundColor: 'rgba(239, 68, 68, 0.14)', borderWidth: 2, borderColor: '#ef4444' },
   gridEmoji: { fontSize: 30 },
+  gridImage: { width: 60, height: 60 },
+  breakGrid: { flexDirection: 'row', flexWrap: 'wrap', rowGap: 12 },
+  breakItem: { width: '25%', alignItems: 'center', gap: 4 },
+  breakTile: { width: 84, height: 80, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'transparent' },
+  breakTileActive: { borderColor: '#ef4444' },
+  breakImage: { width: 80, height: 80 },
+  breakLabel: { fontSize: 10.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain, textAlign: 'center', lineHeight: 22, height: 24, paddingTop: 2, paddingHorizontal: 2 },
   gridLabel: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textMain, textAlign: 'center' },
 
   pinAnchor: { position: 'absolute', transform: [{ translateX: '-50%' }, { translateY: '-50%' }] },

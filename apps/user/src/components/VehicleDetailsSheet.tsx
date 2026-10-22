@@ -39,7 +39,7 @@ export const VehicleDetailsSheet: React.FC<{ vehicle: Vehicle | null; onClose: (
   };
 
   return (
-    <Sheet visible={!!vehicle} title="වාහන තොරතුරු" subtitle={`${vehicleIcon(vehicle.type)} ${vehicle.name} · ${vehicle.plate}`} onClose={onClose}>
+    <Sheet visible={!!vehicle} title="වාහන තොරතුරු" subtitle={`${vehicle.name} · ${vehicle.plate}`} onClose={onClose}>
       {VEHICLE_DETAIL_FIELDS.map((f) => (
         <View key={f.id} style={styles.field}>
           <Text style={styles.label}>{f.label}</Text>

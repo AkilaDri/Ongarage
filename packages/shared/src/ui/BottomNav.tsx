@@ -29,26 +29,30 @@ export type NavAlert = 'incoming' | 'approval' | 'enroute' | 'waiting' | 'active
 /** The light around a tab icon (see NavItem.alert): one looping clock `t` (0 to 1) drives every variant. */
 const AlertIcon: React.FC<{ kind?: NavAlert; children: React.ReactNode }> = ({ kind, children }) => {
   const t = useRef(new Animated.Value(0)).current;
+  // The clock is read from the time of day on every frame, not run as an animation: an animation can be stopped by the app (a tab change, a re-render,
+  // the view being rebuilt), while this keeps the light going for as long as the icon is on screen.
   useEffect(() => {
     if (!kind) return;
-    t.setValue(0);
-    const duration = { incoming: 1300, approval: 800, enroute: 1600, waiting: 2400, active: 2800 }[kind];
-    const loop = Animated.loop(Animated.timing(t, { toValue: 1, duration, easing: Easing.linear, useNativeDriver: true }));
-    loop.start();
-    return () => loop.stop();
+    const duration = { incoming: 2400, approval: 800, enroute: 1600, waiting: 2400, active: 2800 }[kind];
+    let frame = 0;
+    const tick = () => {
+      t.setValue((Date.now() % duration) / duration);
+      frame = requestAnimationFrame(tick);
+    };
+    tick();
+    return () => cancelAnimationFrame(frame);
   }, [kind, t]);
   if (!kind) return <>{children}</>;
 
   if (kind === 'incoming') {
-    // A red beacon that flashes twice in quick strobes, then rests, with a ring that flares out each flash.
-    const at = [0, 0.04, 0.16, 0.2, 0.32, 0.36, 0.48, 0.52, 1];
-    const lamp = t.interpolate({ inputRange: at, outputRange: [0.1, 1, 1, 0.12, 0.12, 1, 1, 0.1, 0.1] });
-    const ringOpacity = t.interpolate({ inputRange: at, outputRange: [0, 0.7, 0.35, 0, 0, 0.7, 0.35, 0, 0] });
-    const ring = t.interpolate({ inputRange: at, outputRange: [1, 1, 1.5, 1.6, 1, 1, 1.5, 1.6, 1.6] });
+    // New requests: a soft red light that breathes in and out, with a ring that rises gently and fades.
+    const glow = t.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0.08, 0.45, 0.08] });
+    const ringScale = t.interpolate({ inputRange: [0, 1], outputRange: [1, 1.5] });
+    const ringOpacity = t.interpolate({ inputRange: [0, 1], outputRange: [0.55, 0] });
     return (
       <View style={styles.alertWrap}>
-        <Animated.View style={[styles.ring, { opacity: ringOpacity, transform: [{ scale: ring }] }]} />
-        <Animated.View style={[styles.lamp, { opacity: lamp }]} />
+        <Animated.View style={[styles.ring, { opacity: ringOpacity, transform: [{ scale: ringScale }] }]} />
+        <Animated.View style={[styles.lamp, { opacity: glow }]} />
         <View>{children}</View>
       </View>
     );
@@ -179,10 +183,10 @@ const styles = themedStyles(() => StyleSheet.create({
   navItem: { alignItems: 'center', gap: 4, width: 70 },
   label: { fontSize: 10.5, fontFamily: FONTS.bodySemiBold },
   alertWrap: { alignItems: 'center', justifyContent: 'center' },
-  lamp: { position: 'absolute', width: 40, height: 40, borderRadius: 20, backgroundColor: '#ef4444' },
+  lamp: { position: 'absolute', width: 32, height: 32, borderRadius: 16, backgroundColor: '#f26b6b' },
   lampAmber: { backgroundColor: '#f59e0b' },
   lampGreen: { backgroundColor: '#16a34a' },
-  ring: { position: 'absolute', width: 40, height: 40, borderRadius: 20, borderWidth: 3, borderColor: '#ef4444' },
+  ring: { position: 'absolute', width: 32, height: 32, borderRadius: 16, borderWidth: 3, borderColor: '#f26b6b' },
   ringBig: { borderWidth: 4, borderColor: '#f59e0b' },
   ringBlue: { borderWidth: 2.5, borderColor: '#2563eb' },
   ringAmber: { borderWidth: 2.5, borderColor: '#f59e0b' },
@@ -296,5 +300,26 @@ export const StockLineIcon: React.FC<LineIconProps> = (p) => (
     <Path d="M12 3.5l8.5 4.3L12 12 3.5 7.8z" />
     <Path d="M3.5 12L12 16.3 20.5 12" />
     <Path d="M3.5 16.2L12 20.5l8.5-4.3" />
+  </LineFrame>
+);
+// The owner app's main bar uses the same line icons as OnMart's bar.
+export const HomeLineIcon: React.FC<LineIconProps> = (p) => (
+  <LineFrame {...p} fill="M5 10l7-6 7 6v10H5z">
+    <Path d="M3 11l9-8 9 8" />
+    <Path d="M5 10v10h14V10" />
+    <Path d="M10 20v-6h4v6" />
+  </LineFrame>
+);
+export const ReceiptLineIcon: React.FC<LineIconProps> = (p) => (
+  <LineFrame {...p} fill="M6 2h12v20l-3-2-3 2-3-2-3 2z">
+    <Path d="M6 2h12v20l-3-2-3 2-3-2-3 2z" />
+    <Path d="M9 8h6M9 12h6" />
+  </LineFrame>
+);
+export const ClipboardLineIcon: React.FC<LineIconProps> = (p) => (
+  <LineFrame {...p} fill="M5 4h14v17H5z">
+    <Path d="M5 5.5A1.5 1.5 0 016.5 4h11A1.5 1.5 0 0119 5.5v14a1.5 1.5 0 01-1.5 1.5h-11A1.5 1.5 0 015 19.5z" />
+    <Path d="M9 4h6v3H9z" />
+    <Path d="M9 14l2 2 4-4" />
   </LineFrame>
 );

@@ -1,3 +1,4 @@
+import { EmptyState } from '@ongarage/shared';
 import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { ActionButton, Colors, FONTS, getThemeMode, linesOwnerBuys, MAX_BASKET_PARTS, themedStyles, type DiagnosisLine, type MartAudience } from '@ongarage/shared';
@@ -85,7 +86,7 @@ export const BasketSheet: React.FC<{ workshopId: string | null; onClose: () => v
       footer={<ActionButton label={chosen.length ? `කොටස් ${chosen.length} ම ඉල්ලන්න` : 'කොටස් තෝරන්න'} icon="📨" variant="primary" disabled={!chosen.length} onPress={send} />}
     >
       {parts.length === 0 ? (
-        <Text style={styles.hint}>ඉල්ලිය යුතු කොටස් නැත — සියල්ල දැනටමත් ඉල්ලා හෝ මිලදී ගෙන ඇත.</Text>
+        <EmptyState icon="🧺" title="ඉල්ලිය යුතු කොටස් නැත" text="සියල්ල දැනටමත් ඉල්ලා හෝ මිලදී ගෙන ඇත." />
       ) : (
         <>
           <Text style={styles.hint}>ගරාජය ඔබ මිලදී ගන්න කියා ඇති කොටස් මේවායි. වෙළඳසැල් හැම කොටසකටම වෙන වෙනම පිළිතුරු දෙයි; ඔබට ඒවා එකම ලැයිස්තුවකින් බලා ගත හැක.</Text>

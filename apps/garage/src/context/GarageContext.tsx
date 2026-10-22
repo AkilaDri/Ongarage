@@ -1,3 +1,4 @@
+import { flyTo } from '../utils/fly';
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import {
   breakdownInfo,
@@ -195,12 +196,13 @@ export type Crew = {
   free: number;
 };
 
-const computeCrew = (team: TeamMember[], attendance: Attendance, dispatches: Dispatch[]): Crew => {
-  const confirmed = attendance.date === today();
-  const presentIds = confirmed ? attendance.presentIds.filter((id) => team.some((m) => m.id === id)) : [];
+// Attendance is not tracked in the app any more: every mechanic on the team counts as present and nobody is on a break.
+const computeCrew = (team: TeamMember[], _attendance: Attendance, dispatches: Dispatch[]): Crew => {
+  const confirmed = true;
+  const presentIds = team.map((m) => m.id);
   const committed = dispatches.filter(isCommitted);
   const onJobIds = committed.map((d) => d.mechanicId).filter((id): id is string => !!id);
-  const breakIds = confirmed ? attendance.breakIds.filter((id) => presentIds.includes(id) && !onJobIds.includes(id)) : [];
+  const breakIds: string[] = [];
   return {
     total: team.length,
     confirmed,
@@ -215,8 +217,6 @@ const computeCrew = (team: TeamMember[], attendance: Attendance, dispatches: Dis
 /** Why a new SOS cannot be taken right now (null = it can). */
 export const sosBlockReason = (isOpen: boolean, crew: Crew): string | null => {
   if (!isOpen) return 'ඔබ නොබැඳියි';
-  if (!crew.confirmed) return 'අද පැමිණීම තහවුරු කර නැත';
-  if (crew.presentIds.length === 0) return 'අද කාර්මිකයන් පැමිණ නැත';
   if (crew.free === 0) return crew.breakIds.length ? 'නිදහස් කාර්මිකයන් නැත (විවේකයේ / රැකියාවල)' : 'සියලු කාර්මිකයන් රැකියාවල';
   return null;
 };
@@ -345,6 +345,8 @@ type GarageState = {
   quoteCancel: (id: string, input: { compensation: number; workDone: string }) => boolean;
   /** Answer the owner's request to fit another part: accept it (the price goes as extra work) or decline it with a reason. */
   respondFit: (id: string, fitId: string, accept: boolean, declineReason?: string) => void;
+  /** The garage confirms the part the customer brought (OnMart) was handed over with the vehicle. */
+  confirmFitPart: (id: string, fitId: string) => void;
   /** Change the condition photos of a vehicle just received (true when it could be changed: the diagnosis has not been sent yet). */
   editCheckIn: (id: string, photos: string[]) => boolean;
   /** Add a detail (text and photos) to a job's card. */
@@ -470,12 +472,18 @@ export const GarageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   // A direct booking arrives a little later; unanswered ones lapse so the owner can go elsewhere.
   useEffect(() => {
-    const t = setTimeout(() => {
-      const d = makeDirect(2, live.current.profile, Date.now());
-      if (live.current.directs.some((x) => x.id === d.id)) return;
-      setDirects((prev) => (prev.some((x) => x.id === d.id) ? prev : [d, ...prev]));
-      notify({ icon: '📅', title: 'ඍජු වෙන්කිරීම් ඉල්ලීමක්', body: `${d.customer.name} ඔබව තෝරා ගත්තා · ${categoryInfo(d.categoryId).name}`, tone: 'primary' });
-    }, DIRECT_ARRIVAL_MS);
+    // Two arrive: a customer this garage has served before (a regular one) after a minute, another it has served three times (see EARLIER_JOBS) after two and a half.
+    const timers = [
+      [2, DIRECT_ARRIVAL_MS],
+      [4, DIRECT_ARRIVAL_MS * 2.5],
+    ].map(([index, at]) =>
+      setTimeout(() => {
+        const d = makeDirect(index, live.current.profile, Date.now());
+        if (live.current.directs.some((x) => x.id === d.id)) return;
+        setDirects((prev) => (prev.some((x) => x.id === d.id) ? prev : [d, ...prev]));
+        notify({ icon: '📅', title: 'ඍජු වෙන්කිරීම් ඉල්ලීමක්', body: `${d.customer.name} ඔබව තෝරා ගත්තා · ${categoryInfo(d.categoryId).name}`, tone: 'primary' });
+      }, at)
+    );
     const sweep = setInterval(() => {
       const now = Date.now();
       const lapsed = live.current.directs.filter((d) => d.status === 'new' && d.respondBy <= now);
@@ -484,7 +492,7 @@ export const GarageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       notify({ icon: '⌛', title: 'ඍජු ඉල්ලීමක් කල් ඉකුත් විය', body: `${lapsed[0].customer.name} හට දැන් වෙනත් ගරාජයක් තෝරා ගත හැක.`, tone: 'danger' });
     }, 5000);
     return () => {
-      clearTimeout(t);
+      timers.forEach(clearTimeout);
       clearInterval(sweep);
     };
   }, [notify]);
@@ -849,6 +857,7 @@ export const GarageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
       const existing = live.current.bids.find((b) => b.jobId === jobId && b.status === 'pending');
       const bid: MyBid = { ...input, id: existing?.id ?? `bid-${Date.now()}`, jobId, job, submittedAt: Date.now(), status: 'pending' };
+      flyTo('bid');
       setBids((prev) => [bid, ...prev.filter((b) => b.id !== bid.id)]);
 
       // The owner compares bids and decides; re-submitting (editing) restarts the clock.
@@ -864,6 +873,7 @@ export const GarageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           at.setHours(10, 0, 0, 0);
           setBookings((prev) => [{ ...bookingFrom(job, 'bid', at.getTime(), current.price, current.note, current.warrantyMonths), id: `b-${bid.id}`, travelFee: current.travelFee }, ...prev]);
           setFeed((prev) => prev.filter((j) => j.id !== jobId));
+          flyTo('schedule');
           notify({ icon: '🏆', title: 'ඔබ ලංසුව දිනුවා!', body: `${cat.name} · ${job.customer.name} — වෙන් කිරීම කාලසටහනට එක් විය.`, tone: 'success' });
         } else {
           notify({ icon: '📉', title: 'ලංසුව අහිමි විය', body: `${cat.name} සඳහා පාරිභෝගිකයා අඩු මිලක් තෝරා ගත්තා.`, tone: 'danger' });
@@ -889,6 +899,7 @@ export const GarageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         // The owner already chose this garage and this slot: accepting books it.
         setDirects((prev) => prev.filter((x) => x.id !== id));
         setBookings((prev) => [bookingFrom(d, 'direct', reply.at, reply.estimate, reply.note), ...prev]);
+        flyTo('schedule');
         notify({
           icon: '✅',
           title: 'වෙන්කිරීම තහවුරු කළා',
@@ -954,7 +965,19 @@ export const GarageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const receiveVehicle = useCallback(
     (id: string, photos: string[]) => {
       patchProgress(id, { stage: 'diagnosing', checkInPhotos: photos, receivedAt: Date.now() }, { status: 'inProgress' });
-      notify({ icon: '🚗', title: 'වාහනය ලැබුණා', body: 'පරීක්ෂා කර වාර්තාව අයිතිකරුට යවන්න.', tone: 'primary' });
+      // The customer answers in their own app that they handed the vehicle over; here it is simulated a little later. The garage can write the inspection report meanwhile.
+      setTimeout(() => {
+        let who = '';
+        setBookings((prev) =>
+          prev.map((x) => {
+            if (x.id !== id || !x.progress || x.progress.handoverConfirmedAt) return x;
+            who = `${x.customer.name} · ${x.title}`;
+            return { ...x, progress: { ...x.progress, handoverConfirmedAt: Date.now() } };
+          })
+        );
+        setTimeout(() => who && notify({ icon: '✅', title: 'පාරිභෝගිකයා වාහනය ලබා දුන් බව සනාථ කළා', body: who, tone: 'success' }), 0);
+      }, 20000);
+      notify({ icon: '🚗', title: 'වාහනය ලැබුණා — පාරිභෝගිකයා සනාථ කරන තෙක් රැඳී සිටී', body: 'පරීක්ෂා කර වාර්තාව අයිතිකරුට යවන්න.', tone: 'primary' });
     },
     [notify, patchProgress]
   );
@@ -1020,6 +1043,18 @@ export const GarageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (!b?.progress || !r || r.status !== 'requested') return;
       patchProgress(id, { fitRequests: b.progress.fitRequests!.map((x) => (x.id === fitId ? { ...x, status: accept ? ('accepted' as const) : ('declined' as const), decidedAt: Date.now(), declineReason: accept ? undefined : declineReason } : x)) });
       notify(accept ? { icon: '✅', title: 'ඉල්ලීම පිළිගත්තා', body: `${r.partName} සවි කිරීම — මිල අමතර වැඩ ඉල්ලීමක් ලෙස යවන්න.`, tone: 'success' } : { icon: '✖', title: 'ඉල්ලීම ප්‍රතික්ෂේප කළා', body: `${b.customer.name} ට හේතුව දැනුම් දුන්නා.`, tone: 'primary' });
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [notify, patchProgress]
+  );
+
+  const confirmFitPart = useCallback(
+    (id: string, fitId: string) => {
+      const b = findBooking(id);
+      const r = b?.progress?.fitRequests?.find((x) => x.id === fitId);
+      if (!b?.progress || !r || r.partReceivedAt) return;
+      patchProgress(id, { fitRequests: b.progress.fitRequests!.map((x) => (x.id === fitId ? { ...x, partReceivedAt: Date.now() } : x)) });
+      notify({ icon: '📦', title: 'පාරිභෝගිකයාගේ කොටස ලැබුණා', body: `${r.partName} · ${b.customer.name} — සවි කිරීමට සූදානම්.`, tone: 'success' });
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [notify, patchProgress]
@@ -1288,6 +1323,7 @@ export const GarageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             : x
         )
       );
+      flyTo('done');
       // Handed over is not the same as paid: ask what the customer actually paid.
       setPayPromptId(id);
       notify({ icon: '🎉', title: 'රැකියාව අවසන්', body: `${b.customer.name} කේතයෙන් තහවුරු කළා · මාස ${b.warrantyMonths ?? DEFAULT_WARRANTY_MONTHS} වගකීම ආරම්භ විය.`, tone: 'success' });
@@ -1492,6 +1528,7 @@ export const GarageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     editExtraWork,
     editCheckIn,
     respondFit,
+    confirmFitPart,
     quoteCancel,
     requestExtraWork,
     addJobUpdate,

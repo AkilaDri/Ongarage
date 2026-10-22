@@ -162,7 +162,6 @@ const QuoteCard: React.FC<{
   onPickup: (collector?: Member) => void;
 }> = ({ quote: q, lines, late, cheapest, team, onChoose, onPickup }) => {
   const [picking, setPicking] = useState(false);
-  const [who, setWho] = useState<string>('garage');
   return (
   <View style={[styles.card, cheapest && styles.cardBest]}>
     <View style={styles.rowBetween}>
@@ -205,23 +204,12 @@ const QuoteCard: React.FC<{
         <Text style={styles.sub}>
           🏪 {q.shop.address} · මිනි. ~{q.pickup.readyInMin}කින් සූදානම් · {money(q.pickup.total)} (බෙදාහැරීම් ගාස්තුවක් නැත)
         </Text>
-        <Text style={styles.rowLabel}>එකතු කරන්නේ කවුද?</Text>
-        <View style={styles.chips}>
-          {[{ id: 'garage', name: 'ගරාජයෙන් (මම)' } as Member, ...team].map((m) => (
-            <Pressable key={m.id} style={[styles.chip, who === m.id && styles.chipOn]} onPress={() => setWho(m.id)} accessibilityLabel={`Collector ${m.id}`}>
-              <Text style={[styles.chipText, who === m.id && styles.chipTextOn]}>
-                {m.name}
-                {m.hasApp ? ' · ඇප්' : ''}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
         <View style={styles.actions}>
           <View style={styles.flex1}>
             <ActionButton label="ආපසු" variant="ghost" compact onPress={() => setPicking(false)} />
           </View>
           <View style={styles.flex2}>
-            <ActionButton label={`එකතු කරන්න · ${money(q.pickup.total)}`} icon="🏪" variant="success" compact onPress={() => onPickup(team.find((m) => m.id === who))} />
+            <ActionButton label={`එකතු කරන්න · ${money(q.pickup.total)}`} icon="🏪" variant="success" compact onPress={() => onPickup(undefined)} />
           </View>
         </View>
       </View>

@@ -72,7 +72,7 @@ const Body: React.FC<{ vehicle: Vehicle; onClose: () => void }> = ({ vehicle, on
   const list = useServiceRecords(vehicle);
   const spent = list.reduce((s, r) => s + r.amount, 0);
   return (
-    <Sheet visible title="සේවා වාර්තා" subtitle={`${vehicleIcon(vehicle.type)} ${vehicle.name} · ${vehicle.plate}`} onClose={onClose}>
+    <Sheet visible title="සේවා වාර්තා" subtitle={`${vehicle.name} · ${vehicle.plate}`} onClose={onClose}>
       {list.length === 0 ? (
         <EmptyState icon="🧾" title="සේවා වාර්තා නැත" text="ගරාජයක් මගින් මෙම වාහනයේ රැකියාවක් අවසන් කළ විට (ඔබගේ කේතයෙන් වසා දැමූ පසු) එහි වාර්තාව මෙහි එකතු වේ." />
       ) : (

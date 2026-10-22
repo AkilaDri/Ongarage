@@ -16,20 +16,34 @@ const outline = () => (getThemeMode() === 'dark' ? Colors.borderColor : '#dadce0
  */
 export const JobCardUpdates: React.FC<{ booking: Booking }> = ({ booking: b }) => {
   const updates = b.updates ?? [];
+  // Short by default: only the latest update, a line or two of it; the earlier ones open with a link.
+  const [all, setAll] = useState(false);
+  const shown = all ? updates : updates.slice(-1);
+  const earlier = updates.length - 1;
   return (
     <>
       <Text style={styles.section}>රැකියා කාඩ්පත {updates.length ? `(${updates.length})` : ''}</Text>
       <View style={styles.card}>
         {updates.length === 0 && <Text style={styles.empty}>තවම විස්තර එක් කර නැත. රැකියාව සිදුවන අතරතුර හමු වූ දේ, කළ දේ සහ අවශ්‍ය දේ සටහන් කිරීමට පහළ දකුණේ ＋ බොත්තම ඔබන්න.</Text>}
-        {updates.map((u, i) => (
-          <View key={u.id} style={[styles.update, i === updates.length - 1 && styles.updateLast]}>
+        {shown.map((u, i) => (
+          <View key={u.id} style={[styles.update, i === shown.length - 1 && styles.updateLast]}>
             <Text style={styles.when}>
               {formatDate(u.at)} · {formatTime(u.at)}
+              {!all && !!u.photos?.length ? `  ·  📷 ${u.photos.length}` : ''}
             </Text>
-            {!!u.text && <Text style={styles.text}>{u.text}</Text>}
-            {!!u.photos?.length && <PhotoStrip photos={u.photos} height={64} />}
+            {!!u.text && (
+              <Text style={styles.text} numberOfLines={all ? undefined : 2}>
+                {u.text}
+              </Text>
+            )}
+            {all && !!u.photos?.length && <PhotoStrip photos={u.photos} height={64} />}
           </View>
         ))}
+        {earlier > 0 && (
+          <Pressable onPress={() => setAll((v) => !v)} hitSlop={6} accessibilityLabel={all ? 'Show only the latest update' : 'Show the earlier updates'}>
+            <Text style={styles.more}>{all ? 'අඩුවෙන් පෙන්වන්න ‹' : `කලින් විස්තර ${earlier} ක් බලන්න ›`}</Text>
+          </Pressable>
+        )}
       </View>
     </>
   );
@@ -106,6 +120,7 @@ const styles = themedStyles(() =>
     when: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
     text: { fontSize: 14, fontFamily: FONTS.bodyRegular, color: Colors.textSoft, lineHeight: 21 },
     // Material extended FAB: a pill with a plus and a label, floating over the job card at its bottom right.
+    more: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8', paddingTop: 8 },
     fab: {
       position: 'absolute',
       right: 16,

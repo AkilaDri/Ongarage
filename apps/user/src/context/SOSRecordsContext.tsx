@@ -5,7 +5,7 @@ import React, { createContext, useCallback, useContext, useState } from 'react';
 export type SOSRecord = {
   id: string;
   completedAt: number;
-  breakdown: { icon: string; label: string };
+  breakdown: { icon: string; label: string; id?: string };
   vehicleName: string;
   vehiclePlate: string;
   address: string;

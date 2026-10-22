@@ -19,10 +19,10 @@ export const CustomerBadge: React.FC<{ customer: Customer; compact?: boolean }> 
 
   return (
     <>
-      {compact ? (
-        // Just a mark that sits before the customer's name: the level's dot and the garages' average stars. Tap it for the detail.
+      {compact ? (!r.avgStars ? null :
+        // Just the garages' average stars beside the customer's name (no coloured dot): nothing when no garage has rated them. Tap it for the detail.
         <Pressable onPress={() => setOpen(true)} hitSlop={8} style={styles.mark} accessibilityLabel={`Customer record ${t.label}`}>
-          <Text style={styles.markText}>{t.icon}{r.avgStars ? ` ★${r.avgStars}` : ''}</Text>
+          <Text style={styles.markText}>{r.avgStars ? `★${r.avgStars}` : ''}</Text>
         </Pressable>
       ) : (
       <Pressable style={[styles.badge, r.level === 'poor' && styles.poor, r.level === 'fair' && styles.fair]} onPress={() => setOpen(true)} accessibilityLabel={`Customer record ${t.label}`}>

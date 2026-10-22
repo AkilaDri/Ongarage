@@ -1,3 +1,4 @@
+import { EmptyState } from '@ongarage/shared';
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Pressable, StyleSheet, Text, View } from 'react-native';
 import { ChatIconButton, cheapestMix, checkWindowText, PartTypeChip, Colors, FONTS, getThemeMode, mixSavings, money, shopCoverage, themedStyles } from '@ongarage/shared';
@@ -92,7 +93,7 @@ export const BatchCompare: React.FC<{ items: MartEnquiry[] }> = ({ items }) => {
           </Pressable>
         ))}
       </View>
-      {listed.length === 0 && <Text style={styles.sub}>කොටස් තියෙන වෙළඳසැල් තවම නැත.</Text>}
+      {listed.length === 0 && <EmptyState icon="🏪" title="වෙළඳසැල් නැත" text="කොටස් තියෙන වෙළඳසැල් තවම නැත." />}
       {mix.picks.some((p) => open(p.enquiryId)) && (
         <View style={styles.mixCard} accessibilityLabel="Cheapest for every part">
           {/* Folded to start with: the whole price and the cart chip; touching the card opens the quotation. */}

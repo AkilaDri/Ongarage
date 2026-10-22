@@ -1,3 +1,4 @@
+import { CustomerHistoryTag } from './CustomerHistory';
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Colors, FONTS, getThemeMode, paymentDue, themedStyles } from '@ongarage/shared';
@@ -27,9 +28,11 @@ export const ReceivablesCard: React.FC = () => {
       </Text>
       {owed.map((b) => (
         <View key={b.id} style={styles.item}>
-          <Text style={styles.who}>
-            {b.customer.name} · {b.title}
-          </Text>
+          <View style={styles.whoRow}>
+            <Text style={styles.who}>{b.customer.name}</Text>
+            <CustomerHistoryTag customer={b.customer} />
+            <Text style={styles.who}>· {b.title}</Text>
+          </View>
           <PaymentNote booking={b} />
         </View>
       ))}
@@ -45,6 +48,7 @@ const styles = themedStyles(() =>
     total: { fontSize: 16, fontFamily: FONTS.titleBold, color: getThemeMode() === 'dark' ? '#fdd663' : '#b06000' },
     sub: { fontSize: 11.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
     item: { gap: 6 },
+    whoRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6 },
     who: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
   })
 );

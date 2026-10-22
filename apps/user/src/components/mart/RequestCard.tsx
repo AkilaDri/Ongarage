@@ -819,7 +819,7 @@ const styles = themedStyles(() =>
     flex1: { flex: 1 },
     sep: { height: 1, backgroundColor: getThemeMode() === 'dark' ? Colors.borderColor : '#dadce0' },
     // A modern card: roomy, big round corners, no hard outline, a soft wide shadow.
-    card: { gap: 7, paddingVertical: 9, paddingHorizontal: 9, borderRadius: 24, backgroundColor: Colors.bgCard, borderWidth: getThemeMode() === 'dark' ? 1 : 0, borderColor: Colors.borderColor, shadowColor: '#0f172a', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.08, shadowRadius: 18, elevation: 3 },
+    card: { gap: 10, paddingVertical: 14, paddingHorizontal: 14, borderRadius: 24, backgroundColor: Colors.bgCard, borderWidth: getThemeMode() === 'dark' ? 1 : 0, borderColor: Colors.borderColor, shadowColor: '#0f172a', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.08, shadowRadius: 18, elevation: 3 },
     head: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     title: { fontSize: 14, fontFamily: FONTS.titleBold, color: Colors.textMain },
     badge: { fontSize: 11.5, fontFamily: FONTS.bodyBold, color: Colors.primary },

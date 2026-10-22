@@ -1,3 +1,4 @@
+import { VehicleIcon3D } from '@ongarage/shared';
 import { VehicleLine } from '@ongarage/shared';
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
@@ -129,7 +130,7 @@ export const SOSJobScreen: React.FC = () => {
               {c && (
                 <View style={[styles.pinAnchor, { left: c.x, top: c.y }]} pointerEvents="none">
                   <View style={styles.customerPin}>
-                    <Text style={styles.pinEmoji}>{vehicleIcon(job.vehicle.type)}</Text>
+                    <VehicleIcon3D type={job.vehicle.type} size={26} />
                   </View>
                 </View>
               )}

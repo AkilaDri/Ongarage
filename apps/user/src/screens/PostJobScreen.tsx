@@ -1,3 +1,4 @@
+import { CategoryStrip } from '../components/home/CategoryStrip';
 import { VehicleLine } from '@ongarage/shared';
 import { elevation1, outline, pageBg } from '../utils/material';
 import React, { useEffect, useRef, useState } from 'react';
@@ -465,25 +466,8 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, defaultVehi
         {renderBuddy()}
 
         <StepCard step={1} title={`සේවා අංශය`} done={categoryId !== null} hint={`${SERVICE_CATEGORIES.length} අංශ`}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.grid}>
-            {Array.from({ length: Math.ceil(SERVICE_CATEGORIES.length / 2) }, (_, i) => SERVICE_CATEGORIES.slice(i * 2, i * 2 + 2)).map((col) => (
-              <View key={col[0].id} style={styles.gridCol}>
-                {col.map((c) => {
-              const active = categoryId === c.id;
-              return (
-                <Pressable key={c.id} style={({ pressed }) => [styles.gridItem, pressed && { transform: [{ scale: 1.06 }] }]} onPress={() => setCategoryId(c.id)}>
-                  <View style={[styles.tile, active && styles.tileActive]}>
-                    <CategoryPhoto categoryId={c.id} size={46} />
-                  </View>
-                  <Text style={[styles.tileLabel, active && styles.tileLabelActive]} numberOfLines={2}>
-                    {c.name}
-                  </Text>
-                </Pressable>
-              );
-                })}
-              </View>
-            ))}
-          </ScrollView>
+          {/* The same tiles as the Home screen's categories. */}
+          <CategoryStrip onSelect={(c) => setCategoryId(c.id)} selectedId={categoryId} />
         </StepCard>
 
         <StepCard step={2} title="ගැටලුව / සේවාව විස්තර කරන්න" done={description.trim().length > 0}>

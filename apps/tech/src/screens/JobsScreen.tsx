@@ -1,3 +1,4 @@
+import { VehicleLabel } from '@ongarage/shared';
 import { VehicleLine } from '@ongarage/shared';
 import React, { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -122,9 +123,8 @@ export const JobsScreen: React.FC = () => {
                   <Text style={styles.timerText}>{countdown(left)}</Text>
                 </View>
               </View>
-              <Text style={styles.sub}>
-                {vehicleIcon(j.vehicle.type)} {j.vehicle.name} · {j.customer.name} · 📍 {j.location.address}
-              </Text>
+              <VehicleLabel type={j.vehicle.type} style={styles.sub}>{j.vehicle.name} · {j.customer.name} · 📍 {j.location.address}
+              </VehicleLabel>
               {!!j.sos?.note && <Text style={styles.note}>“{j.sos.note}”</Text>}
               <View style={styles.chips}>
                 <Chip text={`💵 ඔබට ${money(j.pay)}`} accent />

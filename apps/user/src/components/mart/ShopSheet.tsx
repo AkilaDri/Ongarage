@@ -1,3 +1,4 @@
+import { EmptyState } from '@ongarage/shared';
 import { elevation1, outline } from '../../utils/material';
 import React from 'react';
 import { Image, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -220,9 +221,9 @@ export const ShopSheet: React.FC<{ shop: ShopListing | null; onClose: () => void
               </ScrollView>
 
               {stock.length === 0 ? (
-                <Text style={styles.sub}>දැනට තොග පෙන්වා නැත.</Text>
+                <EmptyState icon="📦" title="තොග පෙන්වා නැත" text="මෙම වෙළඳසැලේ තොග මෙහි පෙන්වන විට දැකිය හැක." />
               ) : sections.length === 0 ? (
-                <Text style={styles.sub}>මෙම වර්ගයේ / සෙවුමට ගැළපෙන කොටසක් නැත — වෙනත් වර්ගයක් තෝරන්න, නැතහොත් වෙළඳසැලෙන් අසන්න.</Text>
+                <EmptyState icon="🔎" title="ගැළපෙන කොටසක් නැත" text="වෙනත් වර්ගයක් තෝරන්න, නැතහොත් වෙළඳසැලෙන් අසන්න." />
               ) : (
                 sections.map((sec) => (
                   <View key={sec.id} style={styles.section}>

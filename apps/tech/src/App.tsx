@@ -128,6 +128,6 @@ const styles = themedStyles(() =>
     flex1: { flex: 1 },
     sheet: { flex: 1, marginTop: -18, borderTopLeftRadius: 24, borderTopRightRadius: 24, overflow: 'hidden', backgroundColor: getThemeMode() === 'dark' ? Colors.bgBody : '#ffffff' },
     nav: { position: 'absolute', left: 0, right: 0, bottom: 0 },
-    floatChat: { position: 'absolute', top: 10, right: 14, zIndex: 50, elevation: 50 },
+    floatChat: { position: 'absolute', top: 10, right: 14, zIndex: 50 },
   })
 );

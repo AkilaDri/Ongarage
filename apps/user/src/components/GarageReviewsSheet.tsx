@@ -1,3 +1,4 @@
+import { EmptyState } from '@ongarage/shared';
 import { elevation1, outline } from '../utils/material';
 import React, { useEffect, useState } from 'react';
 import { Image, Linking, Pressable, ScrollView, StyleSheet, Share, Text, View, type ImageSourcePropType } from 'react-native';
@@ -629,7 +630,7 @@ export const GarageReviewsSheet: React.FC<{
       ))}
       </ScrollView>
       )}
-      {!g.recentReviews?.length && <Text style={styles.sub}>තවම සමාලෝචන නැත.</Text>}
+      {!g.recentReviews?.length && <EmptyState icon="⭐" title="තවම සමාලෝචන නැත" text="පාරිභෝගිකයන් සමාලෝචන ලියූ විට ඒවා මෙහි පෙන්වයි." />}
         </>
       )}
     </Sheet>

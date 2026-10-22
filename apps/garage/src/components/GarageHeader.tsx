@@ -19,6 +19,7 @@ export const GarageHeader: React.FC = () => {
   return (
     <View style={styles.header}>
       <View style={styles.brandBox}>
+        <View style={styles.badgeCol}>
         <Pressable
           style={({ pressed }) => [styles.badgeWrap, pressed && { transform: [{ scale: 0.96 }] }]}
           onPress={() => setOpen(!isOpen)}
@@ -32,13 +33,16 @@ export const GarageHeader: React.FC = () => {
           </View>
           <View style={[styles.statusDot, { backgroundColor: isOpen ? '#22c55e' : Colors.textMuted }]} />
         </Pressable>
+        <Text style={[styles.statusText, { fontSize: 9, color: isOpen ? Colors.success : Colors.textMuted }]} numberOfLines={1}>
+          {isOpen ? 'Online' : 'Offline'}
+        </Text>
+        </View>
         <View style={styles.flexShrink}>
           <Text style={styles.name} numberOfLines={1}>
             Hi {profile.name},
           </Text>
           <Text style={styles.greeting} numberOfLines={1}>
             {greetingFor(new Date().getHours())}
-            <Text style={{ color: isOpen ? Colors.success : Colors.textMuted }}>{isOpen ? '  ·  ● සබැඳියි' : '  ·  ○ නොබැඳියි'}</Text>
           </Text>
           <View style={styles.nameRow}>
             <LevelBadge level={level.id} compact />
@@ -50,7 +54,7 @@ export const GarageHeader: React.FC = () => {
       </View>
 
       <View style={styles.actions}>
-      <View style={{ width: 52 }} />
+      <View style={{ width: 66 }} />
       </View>
     </View>
   );
@@ -63,6 +67,8 @@ const styles = themedStyles(() =>
     header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 18, paddingTop: 18, paddingBottom: 38, backgroundColor: headerBand().bg },
     brandBox: { flexDirection: 'row', alignItems: 'center', gap: 14, flexShrink: 1, marginRight: 8 },
     flexShrink: { flexShrink: 1 },
+    badgeCol: { alignItems: 'center', gap: 2 },
+    statusText: { fontSize: 11, fontFamily: FONTS.bodySemiBold },
     badgeWrap: { width: 52, height: 52, justifyContent: 'center', alignItems: 'center' },
     pulseRing: { position: 'absolute', width: 52, height: 52, borderRadius: 26, borderWidth: 2, borderColor: 'rgba(34, 197, 94, 0.55)' },
     badge: { width: 46, height: 46, borderRadius: 23, backgroundColor: '#ffffff', justifyContent: 'center', alignItems: 'center', ...softShadow() },

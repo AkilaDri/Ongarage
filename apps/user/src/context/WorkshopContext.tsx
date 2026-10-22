@@ -1,3 +1,4 @@
+import { flyTo } from '../utils/fly';
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import {
   approvedLines,
@@ -47,7 +48,7 @@ import {
   type WorkshopProgress,
 } from '@ongarage/shared';
 import { useNotice } from './NoticeContext';
-import { SPEED_WORKS, SAMPLE_UPLOAD_PHOTOS } from '../constants/mockData';
+import { MOCK_GARAGES, SPEED_WORKS, SAMPLE_UPLOAD_PHOTOS } from '../constants/mockData';
 
 const MIN = 60 * 1000;
 const HOUR = 60 * MIN;
@@ -102,6 +103,8 @@ export const overallFrom = (d: DimensionRating) => Math.round(RATING_DIMENSIONS.
 export type OwnerWorkshop = {
   /** The direct booking's or posted job's id. */
   id: string;
+  /** The garage's own id (the owner's record with a garage is kept by it; the name is only for showing). */
+  garageId?: string;
   garageName: string;
   categoryId: string;
   /** The agreed price: the bid, or the garage's estimate for a direct booking. */
@@ -272,6 +275,7 @@ const pastJob = (o: {
     id: o.id,
     title: o.title,
     icon: o.icon,
+    garageId: MOCK_GARAGES.find((g) => g.name === o.garageName)?.id,
     garageName: o.garageName,
     categoryId: o.categoryId,
     vehicleId: o.vehicleId,
@@ -317,6 +321,7 @@ export const SEED_WORKSHOP_ID = 'db-seed';
 const seedWorkshop = (): OwnerWorkshop => {
   const base: OwnerWorkshop = {
     id: SEED_WORKSHOP_ID,
+    garageId: MOCK_GARAGES.find((g) => g.name === SPEED_WORKS.name)?.id,
     garageName: SPEED_WORKS.name,
     categoryId: '7',
     vehicleId: 'premio',
@@ -858,6 +863,7 @@ export const WorkshopProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           warrantyUntil: warrantyEnd(now, w.warrantyMonths),
           dispute: w.progress.dispute ? { ...w.progress.dispute, status: 'resolved' } : undefined,
         });
+        flyTo('done');
         notify({ icon: '🎉', title: 'රැකියාව අවසන්', body: `${w.garageName} ඔබගේ කේතය තහවුරු කළා · මාස ${w.warrantyMonths} වගකීම ආරම්භ විය.`, tone: 'success' });
       }, SCAN_MS);
     },

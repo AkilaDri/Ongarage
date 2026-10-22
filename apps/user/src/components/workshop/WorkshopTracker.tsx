@@ -54,6 +54,9 @@ type SheetId = 'fit' | 'cancel' | 'decide' | 'approve' | 'extra' | 'recon' | 'ha
  * the vehicle with their code, report a problem, claim the warranty. `detailed` adds the
  * record (diagnosis lines, bill, photos) for the details view.
  */
+/** The steps as the owner reads them: the approval is theirs ("your approval"), not "the owner's". */
+const OWNER_STEP_LABELS = WORKSHOP_STEP_LABELS.map((l) => l.replace('අයිතිකරුගේ අනුමැතිය', 'ඔබගේ අනුමැතිය'));
+
 export const WorkshopTracker: React.FC<{ id: string; detailed?: boolean }> = ({ id, detailed }) => {
   const { workshops, escalate, acknowledgeClosed } = useWorkshops();
   const { openBasket } = useChat();
@@ -191,7 +194,7 @@ export const WorkshopTracker: React.FC<{ id: string; detailed?: boolean }> = ({ 
 
   return (
     <View style={styles.wrap}>
-      {p.stage !== 'closed' && <StepProgress steps={WORKSHOP_STEP_LABELS} current={workshopStepIndex(p.stage)} alert={alert || p.stage === 'disputed'} />}
+      {p.stage !== 'closed' && <StepProgress steps={OWNER_STEP_LABELS} current={workshopStepIndex(p.stage)} alert={alert || p.stage === 'disputed'} />}
       {p.protected && (
         <View style={styles.protectedPill} accessibilityLabel="Protected job">
           <Text style={styles.protectedText}>🛡️ ආරක්ෂිත රැකියාව · OnGarage Guarantee</Text>

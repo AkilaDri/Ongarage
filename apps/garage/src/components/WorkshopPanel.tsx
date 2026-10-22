@@ -17,7 +17,6 @@ const lineState = (b: Booking, l: DiagnosisLine): 'approved' | 'declined' | 'pen
  * the diagnosis with the owner's decision per line, the bill, handover and warranty.
  */
 export const WorkshopPanel: React.FC<{ booking: Booking }> = ({ booking: b }) => {
-  const { team, assignTech } = useGarage();
   const p = b.progress;
   if (!p) return null;
   const bill = p.handover?.bill ?? workshopBill(b.price, p, b.partsCost);
@@ -28,28 +27,6 @@ export const WorkshopPanel: React.FC<{ booking: Booking }> = ({ booking: b }) =>
     <View style={styles.wrap}>
       <Text style={styles.section}>වැඩපළ ප්‍රගතිය</Text>
       <WorkshopStatus booking={b} />
-
-      {/* Who does the work */}
-      <Text style={styles.label}>වැඩ කරන්නා</Text>
-      <View style={styles.chips}>
-        {team.map((m) => {
-          const on = b.assignedTechId === m.id;
-          return (
-            <Pressable
-              key={m.id}
-              style={[styles.chip, on && styles.chipOn, closed && styles.off]}
-              disabled={closed}
-              onPress={() => assignTech(b.id, m.id)}
-              accessibilityLabel={`Assign ${m.name}`}
-            >
-              <Text style={[styles.chipText, on && { color: Colors.primary }]}>
-                {on ? '✓ ' : ''}
-                {m.name}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
 
       {!!p.checkInPhotos?.length && (
         <>

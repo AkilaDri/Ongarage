@@ -1,3 +1,5 @@
+import { CustomerHistoryTag } from './CustomerHistory';
+import { VehicleIcon3D, VehicleLabel } from '@ongarage/shared';
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import {
@@ -28,7 +30,7 @@ import { WorkshopPanel } from './WorkshopPanel';
 import type { Booking, JobDetails } from '../types';
 
 const BOOKING_STATUS: Record<Booking['status'], string> = { scheduled: 'නියමිතයි', inProgress: 'වැඩ කරමින්', completed: 'සම්පූර්ණයි', cancelled: 'අවලංගුයි' };
-const SOURCE: Record<Booking['source'], string> = { sos: 'SOS', direct: 'ඍජු වෙන්කිරීම', bid: 'ලංසු' };
+const SOURCE: Record<Booking['source'], string> = { sos: 'SOS', direct: 'Direct booking', bid: 'ලංසු' };
 const MAP_H = 110;
 
 const outline = () => (getThemeMode() === 'dark' ? Colors.borderColor : '#dadce0');
@@ -76,27 +78,42 @@ export const BookingJobCard: React.FC<{ booking: Booking }> = ({ booking: b }) =
             <Text style={styles.statusText}>{BOOKING_STATUS[b.status]}</Text>
           </View>
         </View>
-        <LkPlate plate={b.vehicle.plate} stacked={b.vehicle.type === 'Motorbike'} />
-        <Text style={styles.vehicle}>
-          {vehicleIcon(b.vehicle.type)} {b.vehicle.name} · {b.vehicle.type}
-        </Text>
+        {/* The OnChat icon (the Home page's blue bubble) stands at the right end of the number plate's line. */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          <LkPlate plate={b.vehicle.plate} stacked={b.vehicle.type === 'Motorbike'} />
+          {/* At the right end: the call icon, and the OnChat icon right after it. */}
+          <View style={{ marginLeft: 'auto', flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            <Pressable
+              style={{ width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe' }}
+              onPress={() => {
+                callCustomer(b.customer.phone);
+                logCall(b.id);
+              }}
+              accessibilityLabel="Call customer"
+            >
+              <Text style={{ fontSize: 20 }}>📞</Text>
+            </Pressable>
+            <ChatButton solid size={54} booking={b} />
+          </View>
+        </View>
+        <VehicleLabel type={b.vehicle.type} style={styles.vehicle}>{b.vehicle.name} · {b.vehicle.type}
+        </VehicleLabel>
         <View style={styles.rule} />
         <Field label="සේවාව" value={b.icon + ' ' + b.title} />
         <Field label="මූලාශ්‍රය" value={SOURCE[b.source]} />
         <Field label="වෙන් කළ වේලාව" value={formatDate(b.scheduledAt) + ' · ' + formatTime(b.scheduledAt)} />
         <Field label="තත්ත්වය" value={stage} />
         <View style={styles.rule} />
-        <Field label="පාරිභෝගිකයා" value={b.customer.name} />
+        <View style={styles.field}>
+          <Text style={styles.fieldLabel}>පාරිභෝගිකයා</Text>
+          <View style={styles.nameWithTag}>
+            <Text style={styles.fieldValue}>{b.customer.name}</Text>
+            <CustomerHistoryTag customer={b.customer} />
+          </View>
+        </View>
         <View style={styles.field}>
           <Text style={styles.fieldLabel}>දුරකථනය</Text>
           <Text style={styles.fieldValue}>{b.customer.phone}</Text>
-          <ChatButton booking={b} />
-          <Pressable style={styles.callBtn} onPress={() => {
-            callCustomer(b.customer.phone);
-            logCall(b.id);
-          }} accessibilityLabel="Call customer">
-            <Text style={styles.callText}>📞 අමතන්න</Text>
-          </Pressable>
         </View>
       </View>
 
@@ -130,7 +147,7 @@ export const BookingJobCard: React.FC<{ booking: Booking }> = ({ booking: b }) =
         {photos.length > 0 ? <PhotoStrip photos={photos} height={84} /> : <NoPhotoAnimation emoji={b.icon} height={96} />}
         {voices.length > 0 && (
           <View style={styles.voices}>
-            <Text style={styles.voiceLabel}>🎙️ පාරිභෝගිකයාගේ හඬ සටහන් ({voices.length})</Text>
+            <Text style={styles.voiceLabel}>🎙️ Voice note ({voices.length})</Text>
             {voices.map((n, i) => (
               <VoiceNotePlayer key={n.id} note={n} index={i} compact />
             ))}
@@ -205,7 +222,7 @@ export const BookingJobCard: React.FC<{ booking: Booking }> = ({ booking: b }) =
               {c && (
                 <View style={[styles.pinAnchor, { left: c.x, top: c.y }]} pointerEvents="none">
                   <View style={[styles.pin, { backgroundColor: Colors.primary }]}>
-                    <Text style={styles.pinEmoji}>{vehicleIcon(job.vehicle.type)}</Text>
+                    <VehicleIcon3D type={job.vehicle.type} size={26} />
                   </View>
                 </View>
               )}
@@ -231,6 +248,7 @@ const Field: React.FC<{ label: string; value: string }> = ({ label, value }) => 
 const styles = themedStyles(() =>
   StyleSheet.create({
     flex1: { flex: 1 },
+    nameWithTag: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 },
     sheet: {
       backgroundColor: Colors.bgCard,
       borderWidth: 1,
