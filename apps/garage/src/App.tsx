@@ -5,7 +5,7 @@ import { GarageCalendar } from './components/GarageCalendar';
 import { MoneyCalendarIcon } from './components/MoneyCalendarIcon';
 import { pageBg } from './utils/pageBg';
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, Easing, Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
@@ -76,6 +76,8 @@ function AppShell() {
   // Parts: quotes waiting for a choice, or a delivery waiting to be checked in.
   const { awaitingChoice, orders } = useParts();
   const partsBadge = awaitingChoice.length + orders.filter((o) => o.status === 'arrived').length;
+  // OnMart news the garage has not seen yet: it is added to the OnMart tab's count and makes the tab pulse while the garage is on another tab.
+  const { attention, markSeen } = useMart();
   // SOS: requests waiting for an answer. Schedule: the jobs still to do (booked or in progress).
   const scheduleBadge = bookings.filter((b) => b.status !== 'completed' && b.status !== 'cancelled').length;
   // What the SOS tab says without being opened (priority order): a technician's repair charge waits for the owner's answer right now (fast red / amber strobe), new
@@ -90,8 +92,8 @@ function AppShell() {
         : activeJobs.length
           ? 'active'
           : undefined;
-  const badges: Partial<Record<TabId, number>> = { jobs: newDirects + (pendingApprovals.length || requests.length), schedule: scheduleBadge, parts: partsBadge };
-  const tabs = GARAGE_TABS.map((t) => ({ ...t, badge: badges[t.id], alert: t.id === 'jobs' ? sosAlert : undefined }));
+  const badges: Partial<Record<TabId, number>> = { jobs: newDirects + (pendingApprovals.length || requests.length), schedule: scheduleBadge, parts: partsBadge + attention.total };
+  const tabs = GARAGE_TABS.map((t) => ({ ...t, badge: badges[t.id], alert: t.id === 'jobs' ? sosAlert : t.id === 'parts' && attention.total > 0 ? ('enroute' as const) : undefined }));
   // Jobs is the home screen: the garage opens on the work waiting for it.
   const [tab, setTab] = useState<TabId>('jobs');
   // The SOS chip on the Jobs page opens SOS full screen (no header, like the old SOS tab); the Jobs tab brings the page back.
@@ -132,9 +134,16 @@ function AppShell() {
       setShopOpener(null);
     };
   }, []);
-  const { enquiries, purchases } = useMart();
-  const martBadges: Partial<Record<MartNavId, number>> = { mine: enquiries.length, orders: purchases.filter((p) => ACTIVE_STAGES.includes(p.stage)).length };
-  const martTabs = MART_TABS.map((t) => ({ ...t, badge: martBadges[t.id] }));
+  // Inside OnMart each page shows what is new on it (a shop has the part, a reply to a wall post, a shop writing back, an order that moved); opening the page clears it.
+  const martBadges: Partial<Record<MartNavId, number>> = { mine: attention.requests, wall: attention.wall, orders: attention.orders };
+  const martTabs = MART_TABS.map((t) => ({ ...t, badge: martBadges[t.id] || undefined, alert: martBadges[t.id] ? ('enroute' as const) : undefined }));
+  // The page being open counts what is on it as seen.
+  useEffect(() => {
+    if (tab !== 'parts' || martTop !== 'mart') return;
+    if (martSection === 'mine') markSeen('requests');
+    else if (martSection === 'wall') markSeen('wall');
+    else if (martSection === 'orders') markSeen('orders');
+  }, [tab, martTop, martSection, attention.total, markSeen]);
   // How far the headers have scrolled away on this page: the title band and the page's own tab bar both follow it.
   const header = useCollapsingHeader();
   // A bid sent: the Jobs page's header (and its chips) comes back down, so "My bids" is in view for the token to land on.
@@ -150,6 +159,16 @@ function AppShell() {
     setTab('parts');
   };
   const fade = useRef(new Animated.Value(0)).current;
+  // Changing page (a bottom tab, or SOS opening / closing) brings the new page in: it fades up and rises a little.
+  const pageAnim = useRef(new Animated.Value(1)).current;
+  const pageKey = `${tab}|${sosFull}`;
+  const lastPage = useRef(pageKey);
+  useEffect(() => {
+    if (lastPage.current === pageKey) return;
+    lastPage.current = pageKey;
+    pageAnim.setValue(0);
+    Animated.timing(pageAnim, { toValue: 1, duration: 260, easing: Easing.out(Easing.cubic), useNativeDriver: Platform.OS !== 'web' }).start();
+  }, [pageKey, pageAnim]);
   const [fadeColor, setFadeColor] = useState(Colors.bgBody);
   const firstRender = useRef(true);
   const [fontsLoaded] = useFonts({
@@ -182,6 +201,7 @@ function AppShell() {
     <SafeAreaProvider>
       <StatusBar style={isDark ? 'light' : 'dark'} />
       <SafeAreaView style={[styles.container, (tab === 'garage' || onSchedulePage || sosFull) && styles.containerFull]} edges={['top']}>
+        <Animated.View style={{ flex: 1, opacity: pageAnim, transform: [{ translateY: pageAnim.interpolate({ inputRange: [0, 1], outputRange: [14, 0] }) }] }}>
         {(tab === 'jobs' && !sosFull) || onSchedulePage || tab === 'parts' ? (
           // Jobs, Schedule and OnMart: the title band and the sheet move up together as the page's list scrolls (a transform, so
           // nothing is re-laid out). The block reaches one band-height past the bottom (under the bottom bar), so when it has
@@ -196,24 +216,43 @@ function AppShell() {
                   right={
                     // Two calendars that can be told apart: the Schedule's is the plain calendar (blue); the Activitys' is a calendar with a coin on its page (green), for the money.
                     <Pressable style={[styles.calendarBtn, scheduleView === 'activity' && styles.calendarBtnMoney]} onPress={() => setCalendarOpen(true)} accessibilityLabel={scheduleView === 'activity' ? 'Open transactions calendar' : 'Open schedule calendar'}>
-                      {scheduleView === 'activity' ? <MoneyCalendarIcon size={26} /> : <ScheduleLineIcon active size={26} />}
+                      {scheduleView === 'activity' ? <MoneyCalendarIcon size={36} /> : <ScheduleLineIcon active size={36} />}
                     </Pressable>
                   }
                   icon={scheduleView === 'activity' ? <ClipboardLineIcon active size={28} /> : <ScheduleLineIcon active size={28} />}
                 />}
             </View>
             {/* The tab's screen overlaps the header band with rounded top corners, like the owner app. */}
-            <View style={[styles.sheet, onSchedulePage && styles.sheetFull]}>
+            {/* The sheet overlaps the band by 18px with rounded corners; as the header folds away the overlap and the corners go too, so the sheet ends exactly at the top of the screen (nothing of it is cut off). */}
+            <Animated.View
+              style={[
+                styles.sheet,
+                onSchedulePage && styles.sheetFull,
+                !onSchedulePage && {
+                  marginTop: martShift.interpolate({ inputRange: [0, HEADER_SCROLL], outputRange: [-18, 0], extrapolate: 'clamp' }),
+                  borderTopLeftRadius: martShift.interpolate({ inputRange: [0, HEADER_SCROLL], outputRange: [24, 0], extrapolate: 'clamp' }),
+                  borderTopRightRadius: martShift.interpolate({ inputRange: [0, HEADER_SCROLL], outputRange: [24, 0], extrapolate: 'clamp' }),
+                },
+              ]}
+            >
               {tab === 'jobs' && <JobFeedScreen shift={martShift} onScrollY={header.onScrollY} onOpenSos={() => setSosOpen(true)} />}
               {tab === 'schedule' && <ScheduleScreen onOpenParts={openParts} shift={martShift} onScrollY={header.onScrollY} />}
               {tab === 'activity' && <GarageActivityView />}
               {tab === 'parts' && (
                 <OnMartScreen shift={martShift} onScrollY={header.onScrollY} setBarShown={header.setShown} reset={header.reset} bandHeight={band} top={martTop} onTopChange={setMartTop} section={martSection} onSectionChange={setMartSection} searchSeed={martSeed} shopRequest={martShopReq} focusId={partsFocus} onFocusHandled={() => setPartsFocus(null)} />
               )}
-            </View>
+            </Animated.View>
           </Animated.View>
         ) : (
           <>
+            {/* SOS is full screen; this slim bar is the way back to the Jobs window (the Jobs tab does the same). */}
+            {sosFull && (
+              <View style={styles.sosBar}>
+                <Pressable style={styles.sosBack} onPress={() => setSosOpen(false)} accessibilityRole="button" accessibilityLabel="Back to jobs">
+                  <Text style={styles.sosBackText}>‹  රැකියා වෙත ආපසු</Text>
+                </Pressable>
+              </View>
+            )}
             {/* The tab's screen overlaps the header band with rounded top corners, like the owner app. */}
             <View style={[styles.sheet, (tab === 'garage' || sosFull) && styles.sheetFull]}>
               {sosFull && <SOSInboxScreen />}
@@ -221,6 +260,7 @@ function AppShell() {
             </View>
           </>
         )}
+        </Animated.View>
         <View style={styles.nav}>
           {tab === 'parts' ? (
             <BottomNav
@@ -280,7 +320,10 @@ const styles = themedStyles(() =>
     flex1: { flex: 1 },
     sheet: { flex: 1, marginTop: -18, borderTopLeftRadius: 24, borderTopRightRadius: 24, overflow: 'hidden', backgroundColor: pageBg() },
     nav: { position: 'absolute', left: 0, right: 0, bottom: 0 },
-    calendarBtn: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe' },
+    sosBar: { paddingHorizontal: 14, paddingTop: 8, paddingBottom: 6, backgroundColor: pageBg() },
+    sosBack: { alignSelf: 'flex-start', height: 36, paddingHorizontal: 16, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#dadce0' },
+    sosBackText: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
+    calendarBtn: { width: 58, height: 58, borderRadius: 29, alignItems: 'center', justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe' },
     calendarBtnMoney: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(129, 201, 149, 0.16)' : '#e6f4ea' },
     floatChat: { position: 'absolute', top: 10, right: 14, zIndex: 50 },
   })

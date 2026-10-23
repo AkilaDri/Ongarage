@@ -84,9 +84,7 @@ export const FitRequestNote: React.FC<{ booking: Booking }> = ({ booking: b }) =
           </Text>
           {onHold ? (
             <Text style={styles.text}>⏸ අවලංගු කිරීමේ ඉල්ලීම සමථයකට පත් වන තුරු මෙයට පිළිතුරු දිය නොහැක.</Text>
-          ) : notReceived ? (
-            <Text style={styles.text}>🚗 පළමුව වාහනය ලැබුණු / පැමිණි බව තහවුරු කරන්න — ඉන් පසු මෙයට පිළිතුරු දිය හැක.</Text>
-          ) : (
+          ) : notReceived ? null : (
           <View style={styles.row}>
             <View style={styles.flex1}>
               <ActionButton label="පිළිගන්න" icon="✓" variant="success" compact onPress={() => respondFit(b.id, r.id, true)} />

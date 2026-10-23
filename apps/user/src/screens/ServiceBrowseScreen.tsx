@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, getThemeMode, themedStyles } from '@ongarage/shared';
 import { MOCK_GARAGES } from '../constants/mockData';
 import { GarageTile } from '../components/home/GarageTile';
+import { GARAGE_INFO } from '../constants/home';
 import { GoogleMap } from '@ongarage/shared';
 import { Icon } from '@ongarage/shared';
 import { useUserLocation } from '../context/LocationContext';
@@ -13,6 +14,7 @@ import { directionsUrl, distanceKm } from '@ongarage/shared';
 import type { Garage, ServiceCategory } from '@ongarage/shared';
 
 const COLLAPSED_HEIGHT = 420;
+const TOP_RATED_MIN = 4.5;
 // Fallback until the "Top Rated" row is measured; the minimised sheet ends just below it.
 const DEFAULT_PEEK_HEIGHT = 140;
 
@@ -27,11 +29,16 @@ interface ServiceBrowseScreenProps {
 
 export const ServiceBrowseScreen: React.FC<ServiceBrowseScreenProps> = ({ service, onClose, onBook }) => {
   const [searchText, setSearchText] = useState('');
+  // A garage touched on the map: it is picked (its pin lights up and its card comes first in the list) until it is touched again or cleared.
+  const [pickedId, setPickedId] = useState<string | null>(null);
+  // Only the garages that have an offer running (the tag on their photo: a free check, 10% off the first service, ...).
+  const [listMode, setListMode] = useState<'all' | 'offers' | 'top'>('all');
   const [reviewsFor, setReviewsFor] = useState<Garage | null>(null);
   const { notify } = useNotice();
   const [selectedSub, setSelectedSub] = useState(0);
   const [mapHeight, setMapHeight] = useState(0);
-  const [sheet, setSheet] = useState<SheetState>('collapsed');
+  // The sheet opens folded down at the bottom (just its title and the count); it is dragged up to see the garages and down to fold it again.
+  const [sheet, setSheet] = useState<SheetState>('peek');
   const [peekHeight, setPeekHeight] = useState(DEFAULT_PEEK_HEIGHT);
   const sheetRef = useRef<SheetState>(sheet);
   sheetRef.current = sheet;
@@ -42,9 +49,9 @@ export const ServiceBrowseScreen: React.FC<ServiceBrowseScreenProps> = ({ servic
   const lastSnap = useRef(0);
   const listRef = useRef<ScrollView>(null);
   const listY = useRef(0);
-  const sheetHeight = useRef(new Animated.Value(COLLAPSED_HEIGHT)).current;
-  const currentHeight = useRef(COLLAPSED_HEIGHT);
-  const dragStart = useRef(COLLAPSED_HEIGHT);
+  const sheetHeight = useRef(new Animated.Value(DEFAULT_PEEK_HEIGHT)).current;
+  const currentHeight = useRef(DEFAULT_PEEK_HEIGHT);
+  const dragStart = useRef(DEFAULT_PEEK_HEIGHT);
 
   const fullHeight = mapHeight || 700;
   const collapsedHeight = Math.max(peekHeight + 60, Math.min(COLLAPSED_HEIGHT, fullHeight * 0.6));
@@ -166,11 +173,25 @@ export const ServiceBrowseScreen: React.FC<ServiceBrowseScreenProps> = ({ servic
 
   const user = useUserLocation();
   const query = searchText.trim().toLowerCase();
-  const garages = MOCK_GARAGES.filter(
+  const found = MOCK_GARAGES.filter(
     (g) => !query || g.name.toLowerCase().includes(query) || g.specialization.toLowerCase().includes(query)
   )
     .map((g) => ({ ...g, distance: Number(distanceKm(user.coords, g.coords).toFixed(1)) }))
     .sort((a, b) => a.distance - b.distance);
+  const withOffers = found.filter((g) => !!GARAGE_INFO[g.id]?.offer);
+  // Top rated: the garages owners rate best (TOP_RATED_MIN stars and up), the best first.
+  const topRated = found.filter((g) => g.rating >= TOP_RATED_MIN).sort((a, b) => b.rating - a.rating);
+  const garages = listMode === 'offers' ? withOffers : listMode === 'top' ? topRated : found;
+  // The picked garage (if it is still in the search) comes first, and the other garages follow it below, nearest first.
+  const openCount = garages.filter((g) => g.status === 'open').length;
+  const pickedGarage = pickedId ? garages.find((g) => g.id === pickedId) : undefined;
+  const shownGarages = pickedGarage ? [pickedGarage, ...garages.filter((g) => g.id !== pickedGarage.id)] : garages;
+  const pickGarage = (id: string) => {
+    setPickedId((cur) => (cur === id ? null : id));
+    // Bring its card into view: the sheet leaves its small peek and shows the list from the top.
+    if (sheetRef.current === 'peek') animateTo('collapsed');
+    listRef.current?.scrollTo({ y: 0, animated: true });
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
@@ -193,15 +214,11 @@ export const ServiceBrowseScreen: React.FC<ServiceBrowseScreenProps> = ({ servic
             value={searchText}
             onChangeText={setSearchText}
           />
+          {/* The close button lives inside the search bar now that the header bar is gone. */}
+          <Pressable style={({ pressed }) => [styles.searchClose, pressed && styles.sheetClosePressed]} onPress={onClose} hitSlop={8} accessibilityLabel="Close screen">
+            <Icon name="x" size={16} strokeWidth={2.5} color={Colors.textMain} />
+          </Pressable>
         </View>
-        <Pressable
-          style={({ pressed }) => [styles.headerClose, pressed && styles.sheetClosePressed]}
-          onPress={onClose}
-          hitSlop={6}
-          accessibilityLabel="Close screen"
-        >
-          <Icon name="x" size={16} strokeWidth={2.5} color={Colors.textMain} />
-        </Pressable>
       </View>
       </Animated.View>
 
@@ -215,11 +232,18 @@ export const ServiceBrowseScreen: React.FC<ServiceBrowseScreenProps> = ({ servic
               {garages.map((g) => {
                 const p = project(g.coords);
                 return p ? (
-                  <View key={g.id} style={[styles.mapPin, { left: p.x, top: p.y }]} pointerEvents="none">
-                    <Text style={styles.mapPinText}>
+                  <Pressable
+                    key={g.id}
+                    style={[styles.mapPin, { left: p.x, top: p.y }, pickedId === g.id && styles.mapPinPicked]}
+                    onPress={() => pickGarage(g.id)}
+                    hitSlop={8}
+                    accessibilityLabel={`Select ${g.name}`}
+                    accessibilityState={{ selected: pickedId === g.id }}
+                  >
+                    <Text style={[styles.mapPinText, pickedId === g.id && styles.mapPinTextPicked]}>
                       {service.icon} {g.name.split(' ')[0]}
                     </Text>
-                  </View>
+                  </Pressable>
                 ) : null;
               })}
               {(() => {
@@ -245,14 +269,41 @@ export const ServiceBrowseScreen: React.FC<ServiceBrowseScreenProps> = ({ servic
               <Text style={[styles.sheetIcon, { color: service.color }]}>{service.icon}</Text>
               <Text style={styles.sheetTitle}>{service.name}</Text>
             </Pressable>
-            {sheet === 'expanded' && (
-              <Pressable
-                style={({ pressed }) => [styles.sheetClose, styles.sheetMinimize, pressed && styles.sheetClosePressed]}
-                onPress={() => animateTo('collapsed')}
-                hitSlop={8}
-                accessibilityLabel="Minimize"
-              >
-                <Icon name="chevron-down" size={16} strokeWidth={2.5} color={Colors.primary} />
+            <View style={styles.headerRight}>
+              {/* A sticker with how many of these garages are open right now, always in the sheet's header bar. */}
+              <View style={styles.openSticker} accessibilityLabel={`${openCount} garages open`}>
+                <View style={styles.openDot} />
+                <Text style={styles.openStickerText}>විවෘත {openCount}</Text>
+              </View>
+              {sheet === 'expanded' && (
+                <Pressable
+                  style={({ pressed }) => [styles.sheetClose, styles.sheetMinimize, pressed && styles.sheetClosePressed]}
+                  onPress={() => animateTo('collapsed')}
+                  hitSlop={8}
+                  accessibilityLabel="Minimize"
+                >
+                  <Icon name="chevron-down" size={16} strokeWidth={2.5} color={Colors.primary} />
+                </Pressable>
+              )}
+            </View>
+          </View>
+
+          {/* Every garage, or only the ones that have an offer: above the sub-category filters. */}
+          <View style={styles.offerRow}>
+            {(
+              [
+                ['all', `සියලු ගරාජ ${found.length}`, 'All garages'],
+                ['offers', `🏷️ දීමනා ඇති ${withOffers.length}`, 'Garages with offers'],
+                ['top', `⭐ Top Rated ${topRated.length}`, 'Top rated garages'],
+              ] as const
+            ).map(([id, label, a11y]) => (
+              <Pressable key={id} style={[styles.offerChip, listMode === id && styles.offerChipOn]} onPress={() => setListMode(id)} accessibilityLabel={a11y} accessibilityState={{ selected: listMode === id }}>
+                <Text style={[styles.offerChipText, listMode === id && styles.offerChipTextOn]}>{label}</Text>
+              </Pressable>
+            ))}
+            {pickedGarage && (
+              <Pressable style={styles.offerChip} onPress={() => setPickedId(null)} accessibilityLabel="Clear the selected garage">
+                <Text style={styles.offerChipText}>තෝරාගත් ගරාජය ඉහළින් · ✕</Text>
               </Pressable>
             )}
           </View>
@@ -268,13 +319,8 @@ export const ServiceBrowseScreen: React.FC<ServiceBrowseScreenProps> = ({ servic
             })}
           </ScrollView>
 
-          <View
-            style={styles.listHeader}
-            onLayout={(e) => setPeekHeight(Math.round(e.nativeEvent.layout.y + e.nativeEvent.layout.height + 14))}
-          >
-            <Text style={styles.listLabel}>⭐ ඉහළම ශ්‍රේණිගත කිරීම් (Top Rated)</Text>
-            <Text style={styles.countLabel}>ගරාජ {garages.length}ක් හමුවිය</Text>
-          </View>
+          {/* No "Top Rated / N garages found" row any more. This empty marker still tells the sheet how tall its folded (peek) state is: down to here. */}
+          <View style={styles.peekEnd} onLayout={(e) => setPeekHeight(Math.round(e.nativeEvent.layout.y + e.nativeEvent.layout.height + 14))} />
 
           <Animated.ScrollView
             ref={listRef}
@@ -291,11 +337,14 @@ export const ServiceBrowseScreen: React.FC<ServiceBrowseScreenProps> = ({ servic
               if (listY.current > 2 && sheetRef.current !== 'expanded' && Date.now() - lastSnap.current > 700) animateTo('expanded');
             }}
           >
-            {garages.map((g) => (
+            {shownGarages.map((g) => (
               <GarageTile
                 key={g.id}
                 garage={g}
                 width="100%"
+                showStatus
+                showDetails
+                categoryId={service.id}
                 onOpen={() => setReviewsFor(g)}
                 onSaveChange={(saved) => notify({ icon: saved ? '♥' : '♡', title: saved ? 'සුරැකි ගරාජ වලට එක් කළා' : 'සුරැකි ලැයිස්තුවෙන් ඉවත් කළා', body: g.name, tone: 'primary' })}
               />
@@ -329,22 +378,11 @@ const styles = themedStyles(() => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
+    // No header bar any more (no band, no rule under it): only the search bar stands above the map.
     paddingHorizontal: 14,
-    paddingVertical: 12,
-    backgroundColor: Colors.barBg,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.borderColor,
+    paddingVertical: 10,
   },
-  headerClose: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    backgroundColor: Colors.bgCard,
-    borderWidth: 1,
-    borderColor: Colors.borderColor,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+  searchClose: { width: 28, height: 28, borderRadius: 14, marginLeft: 6, justifyContent: 'center', alignItems: 'center' },
   searchBox: {
     flex: 1,
     flexDirection: 'row',
@@ -357,7 +395,8 @@ const styles = themedStyles(() => StyleSheet.create({
     borderColor: Colors.borderColor,
   },
   searchIcon: { fontSize: 14, color: Colors.textMuted, marginRight: 8 },
-  searchInput: { flex: 1, color: Colors.textMain, fontSize: 12, paddingVertical: 0 },
+  // On the web the browser draws its own coloured box round a focused text field; the search bar already is the box, so that outline is off.
+  searchInput: { flex: 1, color: Colors.textMain, fontSize: 12, paddingVertical: 0, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none', outlineWidth: 0 } as object) : null) },
   mapArea: { flex: 1, backgroundColor: Colors.mapBg, overflow: 'hidden' },
   mapPin: {
     position: 'absolute',
@@ -370,6 +409,9 @@ const styles = themedStyles(() => StyleSheet.create({
     borderRadius: 10,
   },
   mapPinText: { fontSize: 10, fontWeight: '800', color: Colors.textMain },
+  // The garage that is picked: filled and raised above the other pins.
+  mapPinPicked: { backgroundColor: '#1a73e8', borderColor: '#1a73e8', zIndex: 5, elevation: 5, paddingVertical: 4 },
+  mapPinTextPicked: { color: '#ffffff' },
   meDot: {
     position: 'absolute',
     width: 16,
@@ -394,10 +436,10 @@ const styles = themedStyles(() => StyleSheet.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     overflow: 'hidden',
-    paddingTop: 10,
+    paddingTop: 9,
     paddingHorizontal: 6,
     paddingBottom: 20,
-    gap: 10,
+    gap: 9,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -10 },
     shadowOpacity: getThemeMode() === 'dark' ? 0.8 : 0.1,
@@ -408,7 +450,17 @@ const styles = themedStyles(() => StyleSheet.create({
   mapDim: { ...StyleSheet.absoluteFill, backgroundColor: '#000' },
   handleBar: { width: 36, height: 4, borderRadius: 2, backgroundColor: Colors.subtleBorder },
   // Fixed height so the row does not jump when the minimize button appears.
-  sheetHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0, minHeight: 30 },
+  sheetHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0, minHeight: 28 },
+  peekEnd: { height: 0, marginTop: -9 },
+  offerRow: { flexWrap: 'wrap', flexDirection: 'row', gap: 6, paddingBottom: 0 },
+  offerChip: { paddingHorizontal: 12, height: 28, borderRadius: 15, justifyContent: 'center', borderWidth: 1, borderColor: Colors.borderColor, backgroundColor: Colors.bgCard },
+  offerChipOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe', borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#d2e3fc' },
+  offerChipText: { fontSize: 12, fontWeight: '700', color: Colors.textMuted },
+  offerChipTextOn: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
+  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  openSticker: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, height: 26, borderRadius: 13, backgroundColor: getThemeMode() === 'dark' ? 'rgba(129, 201, 149, 0.18)' : '#e6f4ea' },
+  openDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#16a34a' },
+  openStickerText: { fontSize: 12, fontWeight: '800', color: getThemeMode() === 'dark' ? '#81c995' : '#137333' },
   sheetTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   sheetIcon: { fontSize: 18 },
   sheetTitle: { fontSize: 15, fontWeight: '800', color: Colors.textMain },
@@ -425,13 +477,13 @@ const styles = themedStyles(() => StyleSheet.create({
   sheetMinimize: { backgroundColor: 'rgba(56, 189, 248, 0.12)', borderColor: 'rgba(56, 189, 248, 0.45)' },
   sheetClosePressed: { transform: [{ scale: 0.9 }] },
   subScroll: { flexGrow: 0, flexShrink: 0 },
-  subRow: { gap: 8, paddingBottom: 2 },
+  subRow: { gap: 6, paddingBottom: 0 },
   subChip: {
     backgroundColor: Colors.bgCard,
     borderWidth: 1,
     borderColor: Colors.borderColor,
     paddingHorizontal: 14,
-    paddingVertical: 6,
+    paddingVertical: 5,
     borderRadius: 20,
   },
   subChipActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },

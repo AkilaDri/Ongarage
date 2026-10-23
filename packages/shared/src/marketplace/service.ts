@@ -8,7 +8,7 @@ export const SERVICE_CATEGORY_ID = '14';
 export const isServiceCategory = (categoryId?: string) => categoryId === SERVICE_CATEGORY_ID;
 
 /** The sub-services the owner picks when booking a service. */
-export const SERVICE_SUBCATEGORIES = ['Full Service', 'Oil Change', 'Engine Oil', 'Transmission Oil', 'Brake Fluid', 'Power Steering Oil'];
+export const SERVICE_SUBCATEGORIES = ['Full Service', 'Oil Change', 'Engine Oil', 'Transmission Oil', 'Brake Fluid', 'Power Steering Oil', 'Air Filter', 'Cabin / AC Filter', 'Fuel Filter', 'Coolant Flush', 'Differential Oil', 'AdBlue / DEF', 'Spark Plugs', 'Throttle Body Cleaning', 'Injector Cleaning', 'MAF / MAP Cleaning', 'Carbon Cleaning', 'Belt & Hose Check', 'Washer Fluid', 'Transfer Case Fluid', 'Glow Plugs', 'Idle Adaptation', 'PCV Valve', 'Sunroof Drain Cleaning'];
 
 export const SERVICE_KINDS: { id: ServiceKind; label: string; hint: string }[] = [
   { id: 'full', label: 'Full service', hint: 'තෙල්, පෙරහන් සහ තරල සියල්ල පරීක්ෂා කර වෙනස් කිරීම' },

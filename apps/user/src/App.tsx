@@ -25,7 +25,7 @@ import { setFittingOpener } from './utils/fittingBridge';
 import { LocationProvider } from './context/LocationContext';
 import { LanguageProvider } from './context/LanguageContext';
 import { periodOf, SkyBar, SkyShade, useHour } from './components/WeatherAnimation';
-import { MartProvider } from './context/MartContext';
+import { MartProvider, useMart } from './context/MartContext';
 import { WallProvider } from './context/WallContext';
 import { BidsProvider } from './context/BidsContext';
 import { NoticeProvider } from './context/NoticeContext';
@@ -63,6 +63,18 @@ import { USER_TABS, type MartSegment, type TabId } from './constants/tabs';
 import { categoryInfo, type Garage, type JobDraft, type PickedLocation, type ServiceCategory } from '@ongarage/shared';
 
 // The title band other tabs show instead of the greeting header (Home has the header; Account has nothing and uses the full screen).
+/** Marks what is on the OnMart page the owner has open (My requests / Open wall / Orders) as seen, so its count on the bottom bar clears. */
+const MartSeenTracker: React.FC<{ active: boolean; segment: string }> = ({ active, segment }) => {
+  const { markSeen, attention } = useMart();
+  useEffect(() => {
+    if (!active) return;
+    if (segment === 'mine') markSeen('requests');
+    else if (segment === 'wall') markSeen('wall');
+    else if (segment === 'orders') markSeen('orders');
+  }, [active, segment, attention.total, markSeen]);
+  return null;
+};
+
 const TAB_TITLES: Partial<Record<TabId, string>> = { bids: 'Your Bids', activity: 'Activity', mart: 'OnMart', profile: 'ඔබගේ ගිණුම' };
 /** The title bar of every tab but Home: a plain line of text at the top of the screen. */
 
@@ -151,6 +163,15 @@ function AppShell() {
   });
 
   const [activeTab, setActiveTab] = useState<TabId>('home');
+  // Changing tab brings the new page in: the sheet fades up and rises a little.
+  const pageAnim = useRef(new Animated.Value(1)).current;
+  const lastTab = useRef(activeTab);
+  useEffect(() => {
+    if (lastTab.current === activeTab) return;
+    lastTab.current = activeTab;
+    pageAnim.setValue(0);
+    Animated.timing(pageAnim, { toValue: 1, duration: 260, easing: Easing.out(Easing.cubic), useNativeDriver: Platform.OS !== 'web' }).start();
+  }, [activeTab, pageAnim]);
   const [martSegment, setMartSegment] = useState<MartSegment>('shops');
   const martHeaderCollapse = useRef(new Animated.Value(0)).current;
   // Natural height of the title band (the inner view keeps it even while the wrapper folds), so the band can fold to nothing.
@@ -413,6 +434,7 @@ function AppShell() {
             activeTab === 'home' && styles.sheetHome,
             // On Home the sheet's top corners straighten once the page has scrolled up to the top of the screen.
             activeTab === 'home' && { borderTopLeftRadius: lerp(24, 0), borderTopRightRadius: lerp(24, 0) },
+            { opacity: pageAnim, transform: [{ translateY: pageAnim.interpolate({ inputRange: [0, 1], outputRange: [14, 0] }) }] },
           ]}
         >
           {activeTab === 'home' ? (
@@ -504,6 +526,8 @@ function AppShell() {
             />
           </ModalCard>
         )}
+        {/* Something in OnMart for the owner while they are elsewhere shows on the OnMart tab; the page being open counts it as seen. */}
+        <MartSeenTracker active={activeTab === 'mart'} segment={martSegment} />
         <ServiceReminders />
         <PaymentReminders />
         {/* The chat icon stays put at the top right however the header folds away while the page scrolls. */}

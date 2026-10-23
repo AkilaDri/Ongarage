@@ -936,6 +936,8 @@ export const GarageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const d = live.current.directs.find((x) => x.id === id);
       if (!d) return;
       setDirects((prev) => prev.filter((x) => x.id !== id));
+      // The request's card leaves the Jobs list with an animation and a red token drops away.
+      flyTo('reject', id);
       notify({ icon: '👋', title: 'ඉල්ලීම ප්‍රතික්ෂේප කළා', body: `${d.customer.name} හට දැනුම් දුන්නා (${reason}) — ඔවුන්ට වෙනත් ගරාජයක් තෝරා ගත හැක.`, tone: 'primary' });
     },
     [notify]

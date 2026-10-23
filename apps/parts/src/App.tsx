@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, StyleSheet, View } from 'react-native';
+import { Animated, Easing, Platform, StyleSheet, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
@@ -50,6 +50,15 @@ function AppShell() {
   const tabs = PARTS_TABS.map((t) => ({ ...t, badge: badges[t.id] }));
   const [tab, setTab] = useState<TabId>('requests');
   const fade = useRef(new Animated.Value(0)).current;
+  // Changing tab brings the new page in: it fades up and rises a little.
+  const pageAnim = useRef(new Animated.Value(1)).current;
+  const lastTab = useRef(tab);
+  useEffect(() => {
+    if (lastTab.current === tab) return;
+    lastTab.current = tab;
+    pageAnim.setValue(0);
+    Animated.timing(pageAnim, { toValue: 1, duration: 260, easing: Easing.out(Easing.cubic), useNativeDriver: Platform.OS !== 'web' }).start();
+  }, [tab, pageAnim]);
   const [fadeColor, setFadeColor] = useState(Colors.bgBody);
   const firstRender = useRef(true);
   const [fontsLoaded] = useFonts({
@@ -79,6 +88,7 @@ function AppShell() {
     <SafeAreaProvider>
       <StatusBar style={isDark ? 'light' : 'dark'} />
       <SafeAreaView style={[styles.container, tab === 'shop' && styles.containerFull]} edges={['top']}>
+        <Animated.View style={{ flex: 1, opacity: pageAnim, transform: [{ translateY: pageAnim.interpolate({ inputRange: [0, 1], outputRange: [14, 0] }) }] }}>
         {/* Like the owner app: a sky-blue title band, and the tab's screen overlaps it on rounded corners. The Shop tab (profile) has no band and fills the area. */}
         {tab === 'requests' ? <ShopHeader /> : TAB_TITLES[tab] ? <TitleBand title={TAB_TITLES[tab]!} /> : null}
         <View style={[styles.sheet, tab === 'shop' && styles.sheetFull]}>
@@ -87,6 +97,7 @@ function AppShell() {
           {tab === 'stock' && <CatalogueScreen />}
           {tab === 'shop' && <ShopProfileScreen />}
         </View>
+        </Animated.View>
         <View style={styles.nav}>
           <BottomNav items={tabs} activeTab={tab} onTabChange={setTab} />
         </View>

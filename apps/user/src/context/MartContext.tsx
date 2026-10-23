@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import {
   availabilityAt,
   BROADCAST_LIMIT,
@@ -42,6 +42,11 @@ import {
   type ShopListing,
   type ShopStockLine,
   type ShopOffer,
+  countAttention,
+  keysOf,
+  martAttentionItems,
+  type AttentionCounts,
+  type AttentionKind,
 } from '@ongarage/shared';
 import { useNotice } from './NoticeContext';
 import { useProfile } from './ProfileContext';
@@ -174,6 +179,10 @@ type MartState = {
   /** Change the text of a message the buyer sent / take it back (the same as in OnChat). */
   editMessage: (enquiryId: string, shopId: string, messageId: string, text: string) => void;
   removeMessage: (enquiryId: string, shopId: string, messageId: string) => void;
+  /** What in OnMart needs the buyer's attention and has not been seen yet (a shop has the part, a reply on the wall, a shop writing back, an order that moved): the OnMart tab shows it while the buyer is elsewhere. */
+  attention: AttentionCounts;
+  /** The buyer has the page open (My requests / Open wall / Orders): what is on it counts as seen. */
+  markSeen: (kind: AttentionKind) => void;
 };
 
 const MartContext = createContext<MartState | null>(null);
@@ -742,13 +751,25 @@ export const MartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setThreads((prev) => prev.map((t) => (t.id === key ? { ...t, messages: t.messages.map((m) => (m.id === messageId && m.from === 'buyer' ? { ...m, text: undefined, quick: undefined, photos: undefined, voiceNotes: undefined, deleted: true } : m)) } : t)));
   }, []);
 
+  // Attention: every event that is news for the buyer has a key; a page being open marks its keys as seen.
+  const [seen, setSeen] = useState<ReadonlySet<string>>(() => new Set());
+  const attentionItems = useMemo(() => martAttentionItems({ enquiries, offers, purchases, threads }), [enquiries, offers, purchases, threads]);
+  const attention = useMemo(() => countAttention(attentionItems, seen), [attentionItems, seen]);
+  const markSeen = useCallback(
+    (kind: AttentionKind) => {
+      const keys = keysOf(attentionItems, kind);
+      setSeen((prev) => (keys.every((k) => prev.has(k)) ? prev : new Set([...prev, ...keys])));
+    },
+    [attentionItems]
+  );
+
   const offersFor = useCallback((enquiryId: string) => offers.filter((o) => o.enquiryId === enquiryId), [offers]);
   const purchaseFor = useCallback((enquiryId: string) => purchases.find((p) => p.purchase.enquiryId === enquiryId), [purchases]);
   const threadFor = useCallback((enquiryId: string, shopId: string) => threads.find((t) => t.id === `${enquiryId}:${shopId}`), [threads]);
 
   return (
     <MartContext.Provider
-      value={{ enquiries, offers, purchases, threads, offersFor, purchaseFor, threadFor, createEnquiry, createBatch, widen, askMore, askShops, postToWall, searchWithin, cancelEnquiry, editEnquiry, reserve, reserveMany, cart, addToCart, removeFromCart, confirmCart, buy, reject, cancelReservation, returnPart, rate, sendMessage, editMessage, removeMessage }}
+      value={{ enquiries, offers, purchases, threads, offersFor, purchaseFor, threadFor, createEnquiry, createBatch, widen, askMore, askShops, postToWall, searchWithin, cancelEnquiry, editEnquiry, reserve, reserveMany, cart, addToCart, removeFromCart, confirmCart, buy, reject, cancelReservation, returnPart, rate, sendMessage, editMessage, removeMessage, attention, markSeen }}
     >
       {children}
     </MartContext.Provider>

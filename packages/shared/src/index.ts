@@ -48,6 +48,7 @@ export * from './marketplace/reliability';
 export * from './marketplace/customerRating';
 export * from './marketplace/inquiry';
 export * from './marketplace/partsBatch';
+export * from './marketplace/martAttention';
 export * from './marketplace/jobUpdates';
 
 // AI decisions layer (rules today; Claude / Laya through the back end later).

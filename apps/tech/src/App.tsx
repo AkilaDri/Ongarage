@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Modal, StyleSheet, View } from 'react-native';
+import { Animated, Easing, Modal, Platform, StyleSheet, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
@@ -57,6 +57,15 @@ function AppShell() {
   const tabs = TECH_TABS.map((t) => ({ ...t, badge: badges[t.id], alert: t.id === 'jobs' ? jobsAlert : undefined }));
   const [tab, setTab] = useState<TabId>('jobs');
   const fade = useRef(new Animated.Value(0)).current;
+  // Changing tab brings the new page in: it fades up and rises a little.
+  const pageAnim = useRef(new Animated.Value(1)).current;
+  const lastTab = useRef(tab);
+  useEffect(() => {
+    if (lastTab.current === tab) return;
+    lastTab.current = tab;
+    pageAnim.setValue(0);
+    Animated.timing(pageAnim, { toValue: 1, duration: 260, easing: Easing.out(Easing.cubic), useNativeDriver: Platform.OS !== 'web' }).start();
+  }, [tab, pageAnim]);
   const [fadeColor, setFadeColor] = useState(Colors.bgBody);
   const firstRender = useRef(true);
   const [fontsLoaded] = useFonts({
@@ -86,6 +95,7 @@ function AppShell() {
     <SafeAreaProvider>
       <StatusBar style={isDark ? 'light' : 'dark'} />
       <SafeAreaView style={[styles.container, tab === 'me' && styles.containerFull]} edges={['top']}>
+        <Animated.View style={{ flex: 1, opacity: pageAnim, transform: [{ translateY: pageAnim.interpolate({ inputRange: [0, 1], outputRange: [14, 0] }) }] }}>
         {tab === 'jobs' ? <TechHeader /> : TAB_TITLES[tab] ? <TitleBand title={TAB_TITLES[tab]!} /> : null}
         {/* The tab's screen overlaps the header band with rounded top corners, like the owner app. */}
         <View style={[styles.sheet, tab === 'me' && styles.sheetFull]}>
@@ -94,6 +104,7 @@ function AppShell() {
           {tab === 'earnings' && <EarningsScreen />}
           {tab === 'me' && <ProfileScreen />}
         </View>
+        </Animated.View>
         <View style={styles.nav}>
           <BottomNav items={tabs} activeTab={tab} onTabChange={setTab} />
         </View>

@@ -11,7 +11,7 @@ const useOwnerCounts = () => {
   const { jobs } = useBids();
   const { bookings } = useBookings();
   const { workshops } = useWorkshops();
-  const { purchases } = useMart();
+  const { attention } = useMart();
   // Posted jobs that have bids and no winner picked yet.
   const bids = jobs.filter((j) => !j.acceptedBidId && j.bids.length > 0).length;
   // A garage's proposed time, a diagnosis or extra work to approve, a Recon question, or a vehicle ready to collect.
@@ -21,18 +21,20 @@ const useOwnerCounts = () => {
       const p = w.progress;
       return !p.cancelled && (p.stage === 'awaitingApproval' || p.stage === 'readyForHandover' || (p.stage === 'repairing' && (!!pendingExtra(p) || !!pendingRecon(p))));
     }).length;
-  // OnMart parts ready at the counter or arrived at the door.
-  const orders = purchases.filter((p) => p.stage === 'ready' || p.stage === 'arrived').length;
-  return { bids, activity, orders };
+  // OnMart: what is news and not seen yet (a shop has the part, a reply to a wall post, a shop writing back, an order ready / sent / arrived).
+  return { bids, activity, mart: attention };
 };
 
 export const OwnerNav: React.FC<{ activeTab: TabId; onTabChange: (tab: TabId) => void }> = ({ activeTab, onTabChange }) => {
   const c = useOwnerCounts();
-  const badges: Partial<Record<TabId, number>> = { bids: c.bids, activity: c.activity, mart: c.orders };
-  return <BottomNav items={USER_TABS.map((t) => ({ ...t, badge: badges[t.id] }))} activeTab={activeTab} onTabChange={onTabChange} />;
+  const badges: Partial<Record<TabId, number>> = { bids: c.bids, activity: c.activity, mart: c.mart.total };
+  // While something in OnMart waits for the owner, its tab pulses (a blue radar) as well as showing the count, so it is noticed from any other tab.
+  return <BottomNav items={USER_TABS.map((t) => ({ ...t, badge: badges[t.id], alert: t.id === 'mart' && c.mart.total > 0 ? ('enroute' as const) : undefined }))} activeTab={activeTab} onTabChange={onTabChange} />;
 };
 
 export const OwnerMartNav: React.FC<{ activeTab: Exclude<MartNavId, 'ongarage'>; onTabChange: (tab: MartNavId) => void }> = ({ activeTab, onTabChange }) => {
   const c = useOwnerCounts();
-  return <BottomNav items={MART_TABS.map((t) => (t.id === 'orders' ? { ...t, badge: c.orders } : t))} activeTab={activeTab} onTabChange={onTabChange} />;
+  // Inside OnMart each page shows what is new on it; opening the page clears it.
+  const news: Partial<Record<MartNavId, number>> = { mine: c.mart.requests, wall: c.mart.wall, orders: c.mart.orders };
+  return <BottomNav items={MART_TABS.map((t) => ({ ...t, badge: news[t.id] || undefined, alert: news[t.id] ? ('enroute' as const) : undefined }))} activeTab={activeTab} onTabChange={onTabChange} />;
 };

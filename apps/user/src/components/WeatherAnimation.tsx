@@ -3,6 +3,7 @@ import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, Defs, Ellipse, Line, LinearGradient, Path, RadialGradient, Rect, Stop } from 'react-native-svg';
 import { themedStyles } from '@ongarage/shared';
 import { pageBg } from '../utils/material';
+import { useClimate, type Climate } from '../utils/weather';
 
 /** The four parts of the day, each with its own sky, light and skyline: morning (ude), daytime (dahawala), evening (hendewa), night (rathriya). */
 export type Period = 'morning' | 'day' | 'evening' | 'night';
@@ -378,6 +379,21 @@ const CartoonSun: React.FC<{ size: number }> = ({ size }) => {
   );
 };
 
+/** A shooting star: a small four-pointed star (the same shape as the twinkling ones) with a thin tail that fades out behind it. The star is at the left end; the bar is tilted so it points down and to the left. */
+const ShootingStar: React.FC<{ length?: number }> = ({ length = 52 }) => (
+  <Svg width={length} height={10} viewBox={`0 0 ${length} 10`}>
+    <Defs>
+      <LinearGradient id="shootTail" x1="0" y1="0" x2="1" y2="0">
+        <Stop offset="0" stopColor="#ffffff" stopOpacity={0.95} />
+        <Stop offset="0.3" stopColor="#dbe6ff" stopOpacity={0.6} />
+        <Stop offset="1" stopColor="#9db4ff" stopOpacity={0} />
+      </LinearGradient>
+    </Defs>
+    <Path d={`M6 4.2 L${length} 5 L6 5.8 Z`} fill="url(#shootTail)" />
+    <Path d="M5 0 L6.2 3.8 L10 5 L6.2 6.2 L5 10 L3.8 6.2 L0 5 L3.8 3.8 Z" fill="#ffffff" />
+  </Svg>
+);
+
 /** A bird in flight: two curved wings in a soft "v". */
 const Bird: React.FC<{ size: number; color: string }> = ({ size, color }) => (
   <Svg width={size} height={size * 0.5} viewBox="0 0 28 14">
@@ -403,6 +419,12 @@ const sky = {
   twinkleB: new Animated.Value(0),
   bob: new Animated.Value(0),
   spin: new Animated.Value(0),
+  shootA: new Animated.Value(0),
+  shootB: new Animated.Value(0),
+  shootC: new Animated.Value(0),
+  rainA: new Animated.Value(0),
+  rainB: new Animated.Value(0),
+  flash: new Animated.Value(0),
 };
 /**
  * Every layer is a pure function of the clock: one ticker works out where each cycle is from the time of day and sets the
@@ -423,6 +445,14 @@ const LAYERS: { key: keyof typeof sky; period: number; wave: Wave; offset: numbe
   { key: 'twinkleB', period: 3400, wave: 'sine', offset: 0 },
   { key: 'bob', period: 5200, wave: 'sine', offset: 0 },
   { key: 'spin', period: 60000, wave: 'saw', offset: 0 },
+  // Shooting stars at night: each streaks across for about a fifth of its cycle, then the sky is quiet until its next turn.
+  { key: 'shootA', period: 9000, wave: 'saw', offset: 0.15 },
+  { key: 'shootB', period: 13000, wave: 'saw', offset: 0.6 },
+  { key: 'shootC', period: 17000, wave: 'saw', offset: 0.85 },
+  // Rain falls in two staggered sheets; a storm flashes now and then.
+  { key: 'rainA', period: 760, wave: 'saw', offset: 0 },
+  { key: 'rainB', period: 1020, wave: 'saw', offset: 0.4 },
+  { key: 'flash', period: 6500, wave: 'saw', offset: 0.3 },
 ];
 const waveAt = (wave: Wave, phase: number) =>
   wave === 'sine' ? 0.5 - 0.5 * Math.cos(phase * Math.PI * 2) : wave === 'ease' ? (phase < 0.5 ? 2 * phase * phase : 1 - Math.pow(-2 * phase + 2, 2) / 2) : phase;
@@ -459,6 +489,9 @@ export const useHour = () => {
   return hour;
 };
 
+/** Where the rain drops fall from (a % of the band's width). */
+const RAIN_X = [4, 12, 19, 27, 34, 41, 48, 55, 62, 69, 76, 83, 90, 96];
+
 /**
  * The sky behind the whole greeting band (it fills its parent). Daytime: the sun with clouds drifting sideways.
  * Evening: the sun slowly sinking behind the horizon while clouds drift. Night: a moon, twinkling stars and a few
@@ -466,9 +499,27 @@ export const useHour = () => {
  */
 const WeatherAnimation: React.FC<{ hour: number }> = ({ hour }) => {
   const period = periodOf(hour);
+  // The weather at the owner's place only adds to the sky: rain drops while it rains, a flash in a storm. Everything else stays as it was.
+  const climate = useClimate();
+  const raining = climate === 'rain' || climate === 'storm';
   const [width, setWidth] = useState(360);
   useSkyClock();
-  const { cloudA, cloudB, cloudC, sun, birdA, birdB, flap, twinkleA, twinkleB, bob } = sky;
+  const { cloudA, cloudB, cloudC, sun, birdA, birdB, flap, twinkleA, twinkleB, bob, shootA, shootB, shootC, rainA, rainB, flash } = sky;
+  // One streak: it slides down and to the left while it fades in and out, and is invisible for the rest of its cycle.
+  // Three of the night's stars break off and fall now and then (each starts exactly where its star hangs).
+  const SHOOTERS = [
+    { star: 6, v: shootA, length: 52 },
+    { star: 2, v: shootB, length: 44 },
+    { star: 8, v: shootC, length: 38 },
+  ];
+  const streak = (v: Animated.Value) => ({
+    opacity: v.interpolate({ inputRange: [0, 0.02, 0.15, 0.22, 1], outputRange: [0, 1, 1, 0, 0] }),
+    transform: [
+      { translateX: v.interpolate({ inputRange: [0, 0.22, 1], outputRange: [0, -90, -90] }) },
+      { translateY: v.interpolate({ inputRange: [0, 0.22, 1], outputRange: [0, 52, 52] }) },
+      { rotate: '-30deg' },
+    ],
+  });
 
   const drift = (v: Animated.Value) => ({ transform: [{ translateX: v.interpolate({ inputRange: [0, 1], outputRange: [-48, width + 8] }) }] });
   const cloudOpacity = period === 'night' ? 0.22 : period === 'evening' ? 0.75 : period === 'morning' ? 0.7 : 0.6;
@@ -500,11 +551,26 @@ const WeatherAnimation: React.FC<{ hour: number }> = ({ hour }) => {
       </Animated.View>
       {period === 'night' && (
         <>
-          {STARS.map((st, i) => (
-            <Animated.Text key={i} style={[styles.star, { left: `${st.x}%`, top: st.y, fontSize: st.size, opacity: i % 2 ? twinkle(twinkleA, st.lo, st.hi) : twinkle(twinkleB, st.hi, st.lo) }]}>
-              ✦
-            </Animated.Text>
-          ))}
+          {STARS.map((st, i) => {
+            const base = i % 2 ? twinkle(twinkleA, st.lo, st.hi) : twinkle(twinkleB, st.hi, st.lo);
+            // A star that breaks off and falls is gone from its place while its piece falls, then slowly lights up again.
+            const shooter = SHOOTERS.find((sh) => sh.star === i);
+            const opacity = shooter ? Animated.multiply(base, shooter.v.interpolate({ inputRange: [0, 0.02, 0.22, 0.4, 1], outputRange: [1, 0, 0, 1, 1] })) : base;
+            return (
+              <Animated.Text key={i} style={[styles.star, { left: `${st.x}%`, top: st.y, fontSize: st.size, opacity }]}>
+                ✦
+              </Animated.Text>
+            );
+          })}
+          {/* shooting stars: now and then a bright streak falls across the night sky */}
+          {SHOOTERS.map((sh) => {
+            const st = STARS[sh.star];
+            return (
+              <Animated.View key={sh.star} style={[styles.shoot, { left: `${st.x}%`, top: st.y + st.size / 2 - 5, marginLeft: st.size / 2 - 5 }, streak(sh.v)]}>
+                <ShootingStar length={sh.length} />
+              </Animated.View>
+            );
+          })}
         </>
       )}
       <Luminary period={period} width={width} />
@@ -517,6 +583,25 @@ const WeatherAnimation: React.FC<{ hour: number }> = ({ hour }) => {
       <Animated.View style={[styles.cloud, { top: 62, opacity: cloudOpacity * 0.8 }, drift(cloudC)]}>
         <CloudArt width={44} />
       </Animated.View>
+      {/* rain: thin slanted drops falling in two sheets */}
+      {raining &&
+        RAIN_X.map((x, i) => {
+          const v = i % 2 ? rainA : rainB;
+          return (
+            <Animated.View
+              key={`rain${i}`}
+              pointerEvents="none"
+              style={[styles.drop, { left: `${x}%`, backgroundColor: period === 'night' ? 'rgba(160, 185, 230, 0.75)' : 'rgba(225, 240, 255, 0.85)', height: 5 + (i % 3) * 2, transform: [{ translateY: v.interpolate({ inputRange: [0, 1], outputRange: [-20 - (i % 4) * 14, 150] }) }, { rotate: '14deg' }] }]}
+            />
+          );
+        })}
+      {/* a storm: now and then the whole sky flashes */}
+      {climate === 'storm' && (
+        <Animated.View
+          style={[StyleSheet.absoluteFill, { backgroundColor: '#f4f7ff', opacity: flash.interpolate({ inputRange: [0, 0.02, 0.04, 0.07, 0.1, 1], outputRange: [0, 0.7, 0.1, 0.5, 0, 0] }) }]}
+          pointerEvents="none"
+        />
+      )}
     </Animated.View>
   );
 };
@@ -530,6 +615,8 @@ const styles = themedStyles(() =>
     sun: { position: 'absolute', left: '50%', marginLeft: -28, top: 14, width: 56, height: 56 },
     moon: { position: 'absolute', left: '50%', marginLeft: -20, top: 16, fontSize: 36 },
     star: { position: 'absolute', fontSize: 12, color: '#ffffff' },
+    shoot: { position: 'absolute' },
+    drop: { position: 'absolute', top: 0, width: 1.1, borderRadius: 1 },
     cloud: { position: 'absolute', left: 0 },
     horizon: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 26, backgroundColor: '#7a3b2e' },
   })
