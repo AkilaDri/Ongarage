@@ -30,6 +30,7 @@ const FILTERS: InboxFilter[] = [
   { id: 'garage', label: 'ගරාජ' },
   { id: 'customer', label: 'පාරිභෝගික' },
   { id: 'order', label: 'ඇණවුම්' },
+  { id: 'done', label: 'අවසන්' },
 ];
 
 const ORDER_TEXT: Partial<Record<ShopOrderStatus, { from: ChatSide; text: string }>> = {
@@ -75,10 +76,14 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (r.passed) continue;
       const id = `g:${r.id}`;
       const ordered = orders.some((o) => o.quote.request.id === r.id);
+      // Every order of this request is finished (the garage has the parts, or sent them back, or the shop had none): the chat is kept under "අවසන්".
+      const mine = orders.filter((o) => o.quote.request.id === r.id);
+      const finished = mine.length > 0 && mine.every((o) => o.status === 'received' || o.status === 'returned' || o.status === 'unavailable');
       const messages = store.messages(id);
       const parts = r.lines.map((l) => (l.qty > 1 ? `${l.name} ×${l.qty}` : l.name)).join(', ');
       list.push({
         id,
+        done: finished,
         kind: ordered ? 'order' : 'garage',
         icon: '🔧',
         title: r.garage.name,
@@ -107,12 +112,16 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (cr.passed || (cr.via === 'wall' && !answered)) continue;
       const id = `c:${cr.id}`;
       const sold = sales.some((s) => s.offer.request.id === cr.id);
+      // Every sale to this customer is over (bought and handed over, or the hold ended).
+      const theirs = sales.filter((s) => s.offer.request.id === cr.id);
+      const settled = theirs.length > 0 && theirs.every((s) => s.stage === 'bought' || s.stage === 'released');
       const messages = store.messages(id);
       const briefs = cr.enquiry.briefs;
       const parts = briefs.map((b) => (b.qty > 1 ? `${b.name} ×${b.qty}` : b.name)).join(', ');
       const v = briefs[0]?.vehicle;
       list.push({
         id,
+        done: settled,
         kind: sold ? 'order' : 'customer',
         icon: '🛍️',
         title: buyerLabel(cr),

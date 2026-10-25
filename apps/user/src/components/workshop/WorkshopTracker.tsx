@@ -58,8 +58,8 @@ type SheetId = 'fit' | 'cancel' | 'decide' | 'approve' | 'extra' | 'recon' | 'ha
 const OWNER_STEP_LABELS = WORKSHOP_STEP_LABELS.map((l) => l.replace('අයිතිකරුගේ අනුමැතිය', 'ඔබගේ අනුමැතිය'));
 
 export const WorkshopTracker: React.FC<{ id: string; detailed?: boolean }> = ({ id, detailed }) => {
-  const { workshops, escalate, acknowledgeClosed } = useWorkshops();
-  const { openBasket } = useChat();
+  const { workshops, escalate, acknowledgeClosed, confirmReceived } = useWorkshops();
+  const { openBasket, say } = useChat();
   const [sheet, setSheet] = useState<SheetId>(null);
   const w = workshops[id];
   if (!w) return null;
@@ -77,7 +77,12 @@ export const WorkshopTracker: React.FC<{ id: string; detailed?: boolean }> = ({ 
   const gc = p.guaranteeClaim;
   const GC_TEXT = { submitted: '⏳ ගරාජයේ පිළිතුර බලාපොරොත්තුවෙන්', garageResponded: '⚖️ OnGarage කණ්ඩායම සලකා බලමින්', approved: '✅ අනුමතයි', rejected: '✕ ප්‍රතික්ෂේප විය' } as const;
 
+  // The garage says it has the vehicle but the owner has not yet confirmed that: nothing on the job can be answered (the report, extra work, Recon, the
+  // handover code) until the owner has confirmed it, the same order as in the job's chat.
+  const receiptPending = !!p.receivedAt && !w.receiptConfirmed && p.stage !== 'closed' && p.stage !== 'declined';
+
   const action = () => {
+    if (receiptPending) return null;
     switch (p.stage) {
       case 'awaitingApproval':
         return <ActionButton label="වාර්තාව බලා අනුමත කරන්න" icon="🔍" variant="primary" compact onPress={() => setSheet('approve')} />;
@@ -198,6 +203,34 @@ export const WorkshopTracker: React.FC<{ id: string; detailed?: boolean }> = ({ 
       {p.protected && (
         <View style={styles.protectedPill} accessibilityLabel="Protected job">
           <Text style={styles.protectedText}>🛡️ ආරක්ෂිත රැකියාව · OnGarage Guarantee</Text>
+        </View>
+      )}
+      {/* The garage says it received the vehicle: the same question as in the job's chat, short, so it can be answered from the card. */}
+      {receiptPending && !p.cancelRequest && (
+        <View style={styles.receiptBox} accessibilityLabel="Confirm vehicle handed over">
+          <Text style={styles.receiptText} numberOfLines={2}>🚗 {w.garageName} ඔබගේ වාහනය ලැබුණා කියා දන්වා ඇත — නිවැරදිද?</Text>
+          <View style={styles.receiptBtns}>
+            <Pressable
+              style={[styles.receiptBtn, styles.receiptYes]}
+              onPress={() => {
+                confirmReceived(id, true);
+                say(id, '✅ අයිතිකරු වාහනය භාර දුන් බව තහවුරු කළා.');
+              }}
+              accessibilityLabel="Confirm handed over"
+            >
+              <Text style={styles.receiptYesText}>✓ තහවුරුයි</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.receiptBtn, styles.receiptNo]}
+              onPress={() => {
+                confirmReceived(id, false);
+                say(id, '⚠️ අයිතිකරු වාහනය භාර දුන් බව තහවුරු නොකරයි — ගරාජය පරීක්ෂා කළ යුතුයි.');
+              }}
+              accessibilityLabel="Not handed over"
+            >
+              <Text style={styles.receiptNoText}>✖ එසේ නොවේ</Text>
+            </Pressable>
+          </View>
         </View>
       )}
       <View style={styles.rowBetween}>
@@ -337,6 +370,14 @@ export const WorkshopTracker: React.FC<{ id: string; detailed?: boolean }> = ({ 
 
 const styles = themedStyles(() =>
   StyleSheet.create({
+    receiptBox: { padding: 10, borderRadius: 12, gap: 8, backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.12)' : '#e8f0fe' },
+    receiptText: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textMain, lineHeight: 18 },
+    receiptBtns: { flexDirection: 'row', gap: 8 },
+    receiptBtn: { flex: 1, alignItems: 'center', paddingVertical: 7, borderRadius: 10 },
+    receiptYes: { backgroundColor: '#16a34a' },
+    receiptNo: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(239, 68, 68, 0.18)' : '#fde8e8' },
+    receiptYesText: { fontSize: 12, fontFamily: FONTS.bodyBold, color: '#ffffff' },
+    receiptNoText: { fontSize: 12, fontFamily: FONTS.bodyBold, color: Colors.errorText },
     sep: { height: 1, backgroundColor: getThemeMode() === 'dark' ? Colors.borderColor : '#dadce0' },
     wrap: { gap: 8 },
     rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },

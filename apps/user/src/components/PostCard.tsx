@@ -5,7 +5,8 @@ import { GarageHistoryTag } from './GarageHistory';
 
 /**
  * The header of a job card, laid out like a Facebook post (the same as the garage app's job cards): a round picture, the garage's name in bold
- * with its New / Old tag, the date in grey under it; at the end three dots (touch for the details) with the price under them.
+ * with its New / Old tag, the date in grey under it; at the end three dots (touch for the details) with the price under them. When a `chat` button is given it
+ * stands in the corner instead of the three dots (the card's details stay one touch away on the card itself).
  */
 export const PostHead: React.FC<{
   photo: React.ReactNode;
@@ -15,7 +16,9 @@ export const PostHead: React.FC<{
   meta: string;
   price: string;
   onMore: () => void;
-}> = ({ photo, name, garage, meta, price, onMore }) => (
+  /** The OnChat button for this job: shown in the top right corner in place of the three dots. */
+  chat?: React.ReactNode;
+}> = ({ photo, name, garage, meta, price, onMore, chat }) => (
   <View style={styles.head}>
     {photo}
     <View style={styles.flex1}>
@@ -30,11 +33,13 @@ export const PostHead: React.FC<{
       </Text>
     </View>
     <View style={styles.priceCol}>
-      <Pressable style={styles.dotsBtn} onPress={onMore} hitSlop={10} accessibilityLabel="Details">
-        <View style={styles.dot} />
-        <View style={styles.dot} />
-        <View style={styles.dot} />
-      </Pressable>
+      {chat ?? (
+        <Pressable style={styles.dotsBtn} onPress={onMore} hitSlop={10} accessibilityLabel="Details">
+          <View style={styles.dot} />
+          <View style={styles.dot} />
+          <View style={styles.dot} />
+        </Pressable>
+      )}
       <Text style={styles.price}>{price}</Text>
     </View>
   </View>
@@ -102,6 +107,6 @@ const styles = themedStyles(() =>
     kindTextBlue: { color: dark() ? '#8db1ff' : '#1a73e8' },
     kindTextGreen: { color: Colors.success },
     kindTextRed: { color: Colors.errorText },
-    subject: { fontSize: 15, fontFamily: FONTS.titleBold, color: Colors.textMain, lineHeight: 22 },
+    subject: { fontSize: 13.5, fontFamily: FONTS.titleBold, color: Colors.textMain, lineHeight: 20 },
   })
 );

@@ -52,3 +52,10 @@ export const simulatedChatReply = (replier: ChatSide, incoming: string): string 
   if (has(incoming, ['අවසන්', 'ගන්න එන්න', 'ලැබුණා'])) return 'හොඳයි, මම එන්නම්.';
   return 'හරි, ස්තූතියි.';
 };
+
+/**
+ * Which conversations an inbox chip shows. The conversations of jobs that are over (`done`: closed, completed or cancelled) are kept under the
+ * "done" chip only; every other chip, "all" included, leaves them out, so the working list holds only what is still going on.
+ */
+export const inInboxFilter = (thread: { kind: string; done?: boolean }, filter: string): boolean =>
+  filter === 'done' ? !!thread.done : !thread.done && (filter === 'all' || thread.kind === filter);

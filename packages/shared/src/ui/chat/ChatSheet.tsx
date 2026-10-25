@@ -111,7 +111,7 @@ export const ChatSheet: React.FC<{
   cards?: React.ReactNode;
   /** An action at the right end of the vehicle bar under the app bar (the owner's "cancel the job"). */
   vehicleAction?: React.ReactNode;
-  /** A notice shown as a message in the middle of the chat (in the Job Info colour), e.g. the vehicle must be confirmed before answering. */
+  /** A notice shown as a message in the middle of the chat (in the OnJob Info colour), e.g. the vehicle must be confirmed before answering. */
   composerLocked?: string;
   /** The ready-made replies under the messages (the side's usual ones when not given). */
   quickReplies?: string[];
@@ -708,7 +708,7 @@ const styles = themedStyles(() =>
     eventHead: {},
     // The tag says which side wrote the step (garage, owner, shop, technician), in that side's own colour.
     eventMine: { backgroundColor: getThemeMode() === 'dark' ? '#1c2b4a' : '#e8f0fe', borderColor: getThemeMode() === 'dark' ? '#2f4b7c' : '#c6dafc' },
-    // The Job Info card's cream: what a side other than the owner and the garage owner (technician, parts shop) posts uses it too.
+    // The OnJob Info card's cream: what a side other than the owner and the garage owner (technician, parts shop) posts uses it too.
     eventJobInfo: { backgroundColor: getThemeMode() === 'dark' ? '#182229' : '#ffeecd', borderColor: getThemeMode() === 'dark' ? '#2a3942' : '#f1dfb4' },
     recordMessage: { alignSelf: 'center', width: '92%', marginVertical: 6 },
     eventTag: { alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 3, borderRadius: 8 },
@@ -852,7 +852,7 @@ const wa = themedStyles(() => {
     eventLine: {},
     eventHead: {},
     eventMine: { backgroundColor: getThemeMode() === 'dark' ? '#1c2b4a' : '#e8f0fe', borderColor: getThemeMode() === 'dark' ? '#2f4b7c' : '#c6dafc' },
-    // The Job Info card's cream: what a side other than the owner and the garage owner (technician, parts shop) posts uses it too.
+    // The OnJob Info card's cream: what a side other than the owner and the garage owner (technician, parts shop) posts uses it too.
     eventJobInfo: { backgroundColor: getThemeMode() === 'dark' ? '#182229' : '#ffeecd', borderColor: getThemeMode() === 'dark' ? '#2a3942' : '#f1dfb4' },
     recordMessage: { alignSelf: 'center', width: '92%', marginVertical: 6 },
     eventTag: { alignSelf: 'flex-start', paddingHorizontal: 9, paddingVertical: 2, borderRadius: 8 },

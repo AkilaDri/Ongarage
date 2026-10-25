@@ -9,7 +9,7 @@ import { FONTS } from '@ongarage/shared';
 import { MOCK_GARAGES } from '../constants/mockData';
 import { FITTING_SUPPLY, PARTS_FITTING_CATEGORY_ID, SERVICE_CATEGORIES, type PartsFitting, type PartType } from '@ongarage/shared';
 import { useVehicles } from '../context/VehiclesContext';
-import { VehiclePicker } from '../components/Header';
+import { VehicleOptions } from '../components/VehicleOptions';
 import { GoogleMap } from '@ongarage/shared';
 import { Gradient, GRADIENTS } from '@ongarage/shared';
 import { ActionButton, GlassIcon, glassStyle } from '@ongarage/shared';
@@ -17,6 +17,7 @@ import { Slider } from '@ongarage/shared';
 import { useUserLocation } from '../context/LocationContext';
 import { useBids } from '../context/BidsContext';
 import type { JobDraft, VoiceNote } from '@ongarage/shared';
+import { FormTabs } from '../components/FormTabs';
 import { MediaAttachments } from '../components/MediaAttachments';
 import { SPARE_PARTS } from '../constants/labels';
 import { CategoryPhoto } from '../components/home/CategoryPhoto';
@@ -172,6 +173,7 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, defaultVehi
   const { findVehicle } = useVehicles();
   const [vehicleId, setVehicleId] = useState(draft?.vehicleId ?? defaultVehicleId);
   const [categoryId, setCategoryId] = useState<string | null>(draft?.categoryId ?? null);
+  const [subService, setSubService] = useState<string | null>(null);
   const [description, setDescription] = useState(draft?.description ?? '');
   // Republishing keeps the fault details but asks for parts and timer again.
   const [sparePart, setSparePart] = useState<PartType | null>(draft?.fitting?.supply === 'owner' ? 'GarageChoice' : null);
@@ -180,11 +182,11 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, defaultVehi
   const [fitSupply, setFitSupply] = useState<PartsFitting['supply']>(draft?.fitting?.supply ?? 'owner');
   const [biddingHours, setBiddingHours] = useState<number | null>(null);
   const [doorstep, setDoorstep] = useState(false);
-  const [showVehiclePicker, setShowVehiclePicker] = useState(false);
+  // The form is five tabs, filled in this order: the service, the details, the parts and the place, the vehicle, then how long bids may come in.
+  const [tab, setTab] = useState<'service' | 'vehicle' | 'details' | 'parts' | 'timer'>('service');
   const [showMap, setShowMap] = useState(false);
   const [photos, setPhotos] = useState<string[]>([]);
   const [voiceNotes, setVoiceNotes] = useState<VoiceNote[]>([]);
-  const vehicleRef = useRef<View>(null);
 
   const [buddy, setBuddy] = useState<BuddyMode>('idle');
   const [buddyInput, setBuddyInput] = useState('');
@@ -201,6 +203,18 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, defaultVehi
   const essentials = [categoryId !== null, description.trim().length > 0, sparePart !== null || (fitting && fitSupply === 'owner'), biddingHours !== null, !fitting || fitPart.trim().length > 0];
   const percent = essentials.filter(Boolean).length * 25;
   const isComplete = percent === 100;
+
+  const ORDER = ['service', 'details', 'parts', 'vehicle', 'timer'] as const;
+  const tabIndex = ORDER.indexOf(tab);
+  const lastTab = tabIndex === ORDER.length - 1;
+  const tabDone = {
+    service: categoryId !== null,
+    vehicle: true,
+    details: description.trim().length > 0 && (!fitting || fitPart.trim().length > 0),
+    parts: sparePart !== null || (fitting && fitSupply === 'owner'),
+    timer: biddingHours !== null,
+  };
+  const next = () => setTab(ORDER[Math.min(ORDER.length - 1, tabIndex + 1)]);
 
   useEffect(() => {
     Animated.timing(progressAnim, { toValue: percent, duration: 350, useNativeDriver: false }).start();
@@ -258,12 +272,15 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, defaultVehi
     closeBuddy();
   };
 
+  // The sub-service picked in the first tab is written into the job's text (the job has no field of its own for it).
+  const withSub = (text: string) => (subService ? `🔧 ${subService}\n${text}` : text);
+
   const submit = () => {
     if (!isComplete || !categoryId || (!sparePart && !(fitting && fitSupply === 'owner')) || biddingHours === null) return;
     const fittingInfo: PartsFitting | undefined = fitting ? { partName: fitPart.trim(), supply: fitSupply } : undefined;
     postJob({
       categoryId,
-      description: fittingInfo ? `${description.trim()}\n🔩 සවි කළ යුතු කොටස: ${fittingInfo.partName} (${FITTING_SUPPLY.find((x) => x.id === fittingInfo.supply)?.short})` : description.trim(),
+      description: withSub(fittingInfo ? `${description.trim()}\n🔩 සවි කළ යුතු කොටස: ${fittingInfo.partName} (${FITTING_SUPPLY.find((x) => x.id === fittingInfo.supply)?.short})` : description.trim()),
       fitting: fittingInfo,
       vehicleId,
       sparePart: sparePart ?? 'GarageChoice',
@@ -447,29 +464,69 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, defaultVehi
           <Text style={styles.closeText}>✕</Text>
         </Pressable>
       </View>
-      <View style={styles.progressTrack}>
-        <Animated.View style={[styles.progressFill, { width: progressAnim.interpolate({ inputRange: [0, 100], outputRange: ['0%', '100%'] }) }]} />
-      </View>
 
       <ScrollView style={styles.flex1} contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-        <Pressable ref={vehicleRef} style={[styles.card, styles.rowCenter]} onPress={() => setShowVehiclePicker(true)}>
-          <GlassIcon emoji="🚗" />
-          <View style={styles.flex1}>
-            <Text style={styles.eyebrow}>තෝරාගත් වාහනය</Text>
-            <VehicleLine vehicle={vehicle} textStyle={styles.cardTitle} />
-          </View>
-          <View style={styles.changePill}>
-            <Text style={styles.changePillText}>වෙනස් කරන්න</Text>
-          </View>
-        </Pressable>
+        <FormTabs
+          active={tab}
+          onChange={(id) => setTab(id as typeof tab)}
+          tabs={[
+            { id: 'service', label: 'සේවාව', done: tabDone.service },
+            { id: 'details', label: 'විස්තර', done: tabDone.details },
+            { id: 'parts', label: 'කොටස්', done: tabDone.parts },
+            { id: 'vehicle', label: 'වාහනය', done: tabDone.vehicle },
+            { id: 'timer', label: 'කාලය', done: tabDone.timer },
+          ]}
+        />
 
+        {tab === 'service' && (
+          <>
         {renderBuddy()}
 
         <StepCard step={1} title={`සේවා අංශය`} done={categoryId !== null} hint={`${SERVICE_CATEGORIES.length} අංශ`}>
           {/* The same tiles as the Home screen's categories. */}
-          <CategoryStrip onSelect={(c) => setCategoryId(c.id)} selectedId={categoryId} />
+          <CategoryStrip
+            onSelect={(c) => {
+              setCategoryId(c.id);
+              setSubService(null);
+            }}
+            selectedId={categoryId}
+          />
+          {/* The sub-services of the chosen category, in its colour, as in the booking form (optional). */}
+          {!!categoryId && (
+            <>
+              <Text style={styles.eyebrow}>උප සේවාව (විකල්ප)</Text>
+              <View style={styles.subWrap}>
+                {(SERVICE_CATEGORIES.find((c) => c.id === categoryId)?.subcategories ?? []).map((sub) => {
+                  const color = SERVICE_CATEGORIES.find((c) => c.id === categoryId)?.color ?? Colors.primary;
+                  const on = subService === sub;
+                  return (
+                    <Pressable
+                      key={sub}
+                      style={[styles.subChip, { backgroundColor: on ? color : `${color}26`, borderColor: on ? color : `${color}8c` }]}
+                      onPress={() => setSubService(on ? null : sub)}
+                      accessibilityLabel={`Sub-service ${sub}`}
+                      accessibilityState={{ selected: on }}
+                    >
+                      <Text style={[styles.subChipText, on && styles.subChipTextOn]}>{sub}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </>
+          )}
         </StepCard>
 
+          </>
+        )}
+        {tab === 'vehicle' && (
+          <>
+        <Text style={styles.eyebrow}>ඔබගේ වාහනය තෝරන්න</Text>
+        <VehicleOptions value={vehicleId} onChange={setVehicleId} />
+
+          </>
+        )}
+        {tab === 'details' && (
+          <>
         <StepCard step={2} title="ගැටලුව / සේවාව විස්තර කරන්න" done={description.trim().length > 0}>
           <TextInput
             style={styles.textArea}
@@ -500,6 +557,10 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, defaultVehi
           <MediaAttachments photos={photos} voiceNotes={voiceNotes} onPhotos={setPhotos} onVoiceNotes={setVoiceNotes} />
         </StepCard>
 
+          </>
+        )}
+        {tab === 'parts' && (
+          <>
         <StepCard step={3} title="කැමති අමතර කොටස් වර්ගය" done={sparePart !== null}>
           <View style={styles.choiceGrid}>
             {SPARE_PARTS.map((p) => {
@@ -534,6 +595,10 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, defaultVehi
           </Pressable>
         </StepCard>
 
+          </>
+        )}
+        {tab === 'timer' && (
+          <>
         <StepCard step={5} title="⏱️ ලංසු කාලය" done={biddingHours !== null} hint="උපරිම පැය 24">
           <Slider min={1} max={24} value={biddingHours} onChange={setBiddingHours} />
           <View style={styles.rowBetween}>
@@ -544,15 +609,21 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, defaultVehi
             <Text style={styles.cardSub}>පැය 24</Text>
           </View>
         </StepCard>
+          </>
+        )}
       </ScrollView>
 
       <View style={styles.footer}>
-        <ActionButton
-          label={isComplete ? 'ඊළඟ: රැකියාව ගරාජ වෙත යොමු කරන්න →' : `${percent}% — අවශ්‍ය ක්ෂේත්‍ර සම්පූර්ණ කරන්න`}
-          variant="primary"
-          disabled={!isComplete}
-          onPress={submit}
-        />
+        {lastTab ? (
+          <ActionButton
+            label={isComplete ? 'ඊළඟ: රැකියාව ගරාජ වෙත යොමු කරන්න →' : `${percent}% — අවශ්‍ය ක්ෂේත්‍ර සම්පූර්ණ කරන්න`}
+            variant="primary"
+            disabled={!isComplete}
+            onPress={submit}
+            />
+        ) : (
+          <ActionButton label="ඊළඟ ›" variant="primary" disabled={!tabDone[tab]} onPress={next} />
+        )}
       </View>
 
       <Modal visible={showMap} transparent animationType="fade" onRequestClose={() => setShowMap(false)}>
@@ -572,13 +643,6 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, defaultVehi
           </View>
         </View>
       </Modal>
-      <VehiclePicker
-        visible={showVehiclePicker}
-        activeVehicle={vehicleId}
-        anchorRef={vehicleRef}
-        onSelect={setVehicleId}
-        onClose={() => setShowVehiclePicker(false)}
-      />
     </SafeAreaView>
   );
 };
@@ -622,6 +686,10 @@ const styles = themedStyles(() => StyleSheet.create({
   progressTrack: { height: 6, marginHorizontal: 6, marginTop: 12, borderRadius: 3, overflow: 'hidden', backgroundColor: isDay() ? '#d5dde8' : Colors.subtleBorder },
   progressFill: { height: '100%', borderRadius: 3, backgroundColor: Colors.primary },
   body: { paddingHorizontal: 6, paddingTop: 10, gap: 10, paddingBottom: 20 },
+  subWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  subChip: { paddingHorizontal: 9, paddingVertical: 5, borderRadius: 12, borderWidth: 1 },
+  subChipText: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
+  subChipTextOn: { color: '#ffffff' },
   eyebrow: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, letterSpacing: 0.3 },
   changePill: { paddingHorizontal: 12, height: 30, borderRadius: 8, justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe' },
   changePillText: { fontSize: 12, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },

@@ -54,6 +54,7 @@ export const DirectBookingCard: React.FC<{ booking: DirectBooking; onBookAgain: 
         meta={`${formatDate(b.scheduledAt ?? b.preferredAt)} · ${formatTime(b.scheduledAt ?? b.preferredAt)}`}
         price={b.estimate ? money(b.estimate) : b.proposal ? money(b.proposal.estimate) : '—'}
         onMore={() => onOpen?.()}
+        chat={<ChatButton plain size={36} target={{ id: b.id, title: b.garage.name, subtitle: cat.name, phone: b.garage.phone, vehicle: v }} />}
       />
       <PostBody vehicle={v} kind="direct" subject={`${cat.name}${b.service ? ` · ${b.service}` : ''}`} onPress={onOpen}>
         {finishedJob && !cancelledJob && (
@@ -148,7 +149,6 @@ export const DirectBookingCard: React.FC<{ booking: DirectBooking; onBookAgain: 
       {/* The details link sits in the card's bottom right corner. */}
       {!!onOpen && (
         <View style={styles.detailsCorner}>
-          <ChatButton plain size={36} target={{ id: b.id, title: b.garage.name, subtitle: cat.name, phone: b.garage.phone, vehicle: v }} />
           <Pressable onPress={onOpen} hitSlop={8} accessibilityLabel="Booking details">
             <Text style={styles.link}>විස්තර ›</Text>
           </Pressable>

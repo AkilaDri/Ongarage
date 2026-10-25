@@ -1,5 +1,6 @@
 import { LkPlate, VehicleIcon3D } from '@ongarage/shared';
 import { elevation1, outline, pageBg } from '../utils/material';
+import { useHeaderCollapse } from '../utils/headerCollapse';
 import React, { useRef, useState } from 'react';
 import { Image, ImageBackground, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Colors, FONTS, getThemeMode, Gradient, ThemeToggle, themedStyles, useTheme } from '@ongarage/shared';
@@ -34,8 +35,7 @@ type SheetId = 'settings' | 'help' | 'about' | null;
 
 /** The account page: who you are (tap to edit), how complete the profile is, your vehicles, then a list of rows. */
 export const ProfileScreen: React.FC<ProfileScreenProps> = ({ activeVehicle, onVehicleChange, onHeaderProgress }) => {
-  const lastY = useRef(0);
-  const hidden = useRef(false);
+  const collapse = useHeaderCollapse(onHeaderProgress);
   const { isDark, toggle } = useTheme();
   const { lang, setLang } = useLang();
   const { profile, fullName, initials } = useProfile();
@@ -73,18 +73,8 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ activeVehicle, onV
         scrollEventThrottle={16}
         onScroll={(e) => {
           const y = e.nativeEvent.contentOffset.y;
-          const dy = y - lastY.current;
-          lastY.current = y;
-          // The band folds away as the page scrolls up, and comes back in full on the first drag down.
-          if (y <= 4 || dy < -3) {
-            if (hidden.current) {
-              hidden.current = false;
-              onHeaderProgress?.(0);
-            }
-          } else if (dy > 3 && y > 12 && !hidden.current) {
-            hidden.current = true;
-            onHeaderProgress?.(1);
-          }
+          // The band folds away as the page scrolls up, and comes back when it scrolls down (steady scrolling only, so the page does not shake).
+          collapse(y);
         }}
       >
         {/* Who you are, like a Google account page: a big avatar, the name, the contact line and a "manage" button */}

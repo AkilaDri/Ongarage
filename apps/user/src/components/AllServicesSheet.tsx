@@ -3,11 +3,15 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Colors, FONTS, GlassIcon, marketPrice, SERVICE_CATEGORIES, themedStyles, type ServiceCategory } from '@ongarage/shared';
 import { Sheet } from './Sheet';
 import { money } from '../utils/format';
+import { useRankedCategories } from '../utils/rankedCategories';
 
 /** Every service with what it covers and a typical price; picking one opens its garages. */
-export const AllServicesSheet: React.FC<{ visible: boolean; onClose: () => void; onSelect: (s: ServiceCategory) => void }> = ({ visible, onClose, onSelect }) => (
+export const AllServicesSheet: React.FC<{ visible: boolean; onClose: () => void; onSelect: (s: ServiceCategory) => void }> = ({ visible, onClose, onSelect }) => {
+  // Same order as the Home strip: the common services first.
+  const ranked = useRankedCategories();
+  return (
   <Sheet visible={visible} title="සියලු සේවා" subtitle="සේවාවක් තෝරා ළඟම ගරාජ බලන්න" onClose={onClose}>
-    {SERVICE_CATEGORIES.map((c) => (
+    {ranked.map((c) => (
       <Pressable
         key={c.id}
         style={({ pressed }) => [styles.row, pressed && styles.pressed]}
@@ -31,7 +35,8 @@ export const AllServicesSheet: React.FC<{ visible: boolean; onClose: () => void;
       </Pressable>
     ))}
   </Sheet>
-);
+  );
+};
 
 const styles = themedStyles(() =>
   StyleSheet.create({

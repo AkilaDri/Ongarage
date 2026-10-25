@@ -1,7 +1,7 @@
 import { FlyLayer } from './components/FlyLayer';
 import { pageBg } from './utils/material';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Animated, Easing, Platform, View, StyleSheet, Modal, Text, Pressable } from 'react-native';
+import { Animated, Easing, PanResponder, Platform, View, StyleSheet, Modal, Text, Pressable } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
@@ -35,6 +35,10 @@ import { SOSRecordsProvider } from './context/SOSRecordsContext';
 import { WorkshopProvider } from './context/WorkshopContext';
 import { ProfileProvider } from './context/ProfileContext';
 import { Header, HEADER_BAND_H, TitleBand } from './components/Header';
+import { HOME_FLOW } from './constants/homeFlow';
+import { HomeSearch } from './components/home/HomeSearch';
+import { QuoteOutline } from './components/home/QuoteOutline';
+import { GarageReviewsSheet } from './components/GarageReviewsSheet';
 import { MartHeader } from './components/mart/MartHeader';
 import { ChatHeaderButton } from './components/ChatHeaderButton';
 import { ServiceReminders } from './components/ServiceReminders';
@@ -75,12 +79,30 @@ const MartSeenTracker: React.FC<{ active: boolean; segment: string }> = ({ activ
   return null;
 };
 
+/** On the web: is the touch inside something that scrolls sideways (a row of chips, a carousel)? Those keep their own sideways drags. */
+const inSideScroller = (e: { nativeEvent?: unknown }) => {
+  if (Platform.OS !== 'web') return false;
+  let el = (e.nativeEvent as { target?: HTMLElement } | undefined)?.target ?? null;
+  while (el && el !== document.body) {
+    if (el.scrollWidth > el.clientWidth + 2 && ['auto', 'scroll'].includes(getComputedStyle(el).overflowX)) return true;
+    el = el.parentElement;
+  }
+  return false;
+};
+
 const TAB_TITLES: Partial<Record<TabId, string>> = { bids: 'Your Bids', activity: 'Activity', mart: 'OnMart', profile: 'ඔබගේ ගිණුම' };
 /** The title bar of every tab but Home: a plain line of text at the top of the screen. */
 
 // Banner sizes: stacked cards at the top of Home, one compact row once the page is scrolled.
+// The deeper blue under the free-quotes text, behind the search bar (transparent at the top, navy at the bottom).
+const SEARCH_TINT = [
+  { offset: '0', color: '#0b1d5e', opacity: 0 },
+  { offset: '1', color: '#0b1d5e', opacity: 0.75 },
+];
 const SOS_H = 108;
-const JOB_H = 108;
+// The blue card is taller when it holds the search bar (HOME_FLOW 'search'); JOB_TOP_H is its text part.
+const JOB_TOP_H = 108;
+const JOB_H = HOME_FLOW === 'search' ? JOB_TOP_H + 62 : JOB_TOP_H;
 const BANNER_GAP = 8;
 const COMPACT_H = 56;
 
@@ -164,6 +186,31 @@ function AppShell() {
 
   const [activeTab, setActiveTab] = useState<TabId>('home');
   // Changing tab brings the new page in: the sheet fades up and rises a little.
+  // Swiping the page sideways changes the tab, in the order of the bottom bar (left = the next tab, right = the one before). OnMart keeps its own sideways
+  // gestures (swipe a request to the wall, its own bar), and anything that scrolls sideways or can be swiped open (SwipeCard) takes its own drags first.
+  // On the web a sideways drag at the edge of the page is the browser's back / forward gesture; the page's own sideways swipe must not trigger it.
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    document.documentElement.style.overscrollBehaviorX = 'none';
+    document.body.style.overscrollBehaviorX = 'none';
+  }, []);
+  const goTab = useRef<(dir: 1 | -1) => void>(() => {});
+  goTab.current = (dir) => {
+    if (activeTab === 'mart') return;
+    const next = USER_TABS[USER_TABS.findIndex((t) => t.id === activeTab) + dir]?.id;
+    if (!next) return;
+    if (next === 'mart' && !martAllowed) setAskMart(true);
+    else setActiveTab(next);
+  };
+  const tabSwipe = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (e, g) => Math.abs(g.dx) > 28 && Math.abs(g.dx) > Math.abs(g.dy) * 2.2 && !inSideScroller(e),
+      onPanResponderTerminationRequest: () => true,
+      onPanResponderRelease: (_, g) => {
+        if (Math.abs(g.dx) > 70 || (Math.abs(g.dx) > 35 && Math.abs(g.vx) > 0.5)) goTab.current(g.dx < 0 ? 1 : -1);
+      },
+    })
+  ).current;
   const pageAnim = useRef(new Animated.Value(1)).current;
   const lastTab = useRef(activeTab);
   useEffect(() => {
@@ -195,12 +242,14 @@ function AppShell() {
   const [sosLocation, setSOSLocation] = useState<PickedLocation | null>(null);
   const [selectedVehicle, setSelectedVehicle] = useState('premio');
   const [selectedService, setSelectedService] = useState<ServiceCategory | null>(null);
+  // A suggested job from Home ("Oil Change") opens its category with that sub-service picked.
+  const [selectedSubName, setSelectedSubName] = useState<string | undefined>(undefined);
   const [postJob, setPostJob] = useState<{ draft: JobDraft | null } | null>(null);
   // A balance long overdue limits new work (marketplace/reliability.ts): a new job, a bid accepted, a direct booking. SOS, chat, OnMart and paying stay open.
   const standing = usePayStanding();
   const [payFirst, setPayFirst] = useState(false);
   const openPost = (draft: JobDraft | null) => (standing.limited ? setPayFirst(true) : setPostJob({ draft }));
-  const openBooking = (b: { garage: Garage; categoryId?: string; initial?: { description?: string; vehicleId?: string; service?: string } }) => (standing.limited ? setPayFirst(true) : setBooking(b));
+  const openBooking = (b: { garage: Garage; categoryId?: string; initial?: { description?: string; vehicleId?: string; service?: string }; back?: () => void }) => (standing.limited ? setPayFirst(true) : setBooking(b));
   // A chat can send the owner to OnMart with a part searched (a part the garage asks for or the owner must buy).
   useEffect(() => {
     setMartOpener((part) => {
@@ -227,7 +276,11 @@ function AppShell() {
   }, [selectedVehicle, standing.limited]);
   const [bidsTab, setBidsTab] = useState<BidsTab>('received');
   // Booking a garage directly (from Home, a service list, or "book again").
-  const [booking, setBooking] = useState<{ garage: Garage; categoryId?: string; initial?: { description?: string; vehicleId?: string; service?: string } } | null>(null);
+  // `back` brings the garage's profile back when the form is closed without booking (the profile was open when "book" was tapped).
+  const [booking, setBooking] = useState<{ garage: Garage; categoryId?: string; initial?: { description?: string; vehicleId?: string; service?: string }; back?: () => void } | null>(null);
+  const bookedRef = useRef(false);
+  // A garage picked in Home's search: its profile opens over Home.
+  const [searchGarage, setSearchGarage] = useState<Garage | null>(null);
   // A garage's chat (opened from its card) can start a direct booking of it, with what the owner already asked.
   useEffect(() => {
     setBookingOpener((garageId, categoryId, initial) => {
@@ -400,8 +453,10 @@ function AppShell() {
                 <Animated.View style={[styles.jobBanner, styles.bannerAbs, { width: lerp(bannerW, half), height: lerp(JOB_H, COMPACT_H), top: lerp(SOS_H + BANNER_GAP, 0), left: lerp(0, half + BANNER_GAP) }]}>
                   <Gradient stops={JOB_GRADIENT} />
                   <View style={styles.sheen} pointerEvents="none" />
+                  {/* The free-quotes text and the ＋ sit in a card of their own inside the blue card: only an outline, no fill. */}
+                  {HOME_FLOW === 'search' && <QuoteOutline style={[styles.jobQuoteOutline, { opacity: fadeOut }]} />}
                   <Pressable style={({ pressed }) => [StyleSheet.absoluteFill, pressed && styles.pressed]} onPress={() => openPost(null)} accessibilityLabel="Post a repair job">
-                    <Animated.View style={[styles.jobBannerContent, styles.bannerFull, { width: bannerW, opacity: fadeOut }]}>
+                    <Animated.View style={[styles.jobBannerContent, styles.bannerFull, HOME_FLOW === 'search' && { bottom: undefined, height: JOB_TOP_H }, { width: bannerW, opacity: fadeOut }]}>
                       <View style={styles.jobLeft}>
                         <View style={styles.jobBadge}>
                           <Text style={styles.badgeText}>නොමිලේ Quotes</Text>
@@ -421,6 +476,28 @@ function AppShell() {
                       <Text style={styles.compactJob}>Quotes ඉල්ලන්න</Text>
                     </Animated.View>
                   </Pressable>
+                  {/* The search part of the card has its own deeper blue, fading in from where the free-quotes text ends down to the card's bottom edge. */}
+                  {HOME_FLOW === 'search' && (
+                    <Animated.View pointerEvents="none" style={[styles.jobSearchTint, { opacity: fadeOut }]}>
+                      <Gradient vertical stops={SEARCH_TINT} />
+                    </Animated.View>
+                  )}
+                  {/* The search part of the card is its own touch zone: touching the search bar or the space round it never reaches the post-a-job press behind it. */}
+                  {HOME_FLOW === 'search' && <View style={{ position: 'absolute', left: 0, right: 0, top: JOB_TOP_H, bottom: 0 }} onStartShouldSetResponder={() => true} />}
+                  {/* The search bar inside the blue card, under the free-quotes text; the ＋ above still posts a job. */}
+                  {HOME_FLOW === 'search' && (
+                    <Animated.View style={{ position: 'absolute', left: 12, bottom: 12, width: Math.max(0, bannerW - 24), opacity: fadeOut }}>
+                      <HomeSearch
+                        inCard
+                        onService={(c, sub) => {
+                          setSelectedSubName(sub);
+                          setSelectedService(c);
+                        }}
+                        onGarage={setSearchGarage}
+                        onPost={(categoryId, text) => openPost({ categoryId, description: text, vehicleId: selectedVehicle } as unknown as JobDraft)}
+                      />
+                    </Animated.View>
+                  )}
                 </Animated.View>
               </Animated.View>
             </View>
@@ -428,6 +505,7 @@ function AppShell() {
         )}
 
         <Animated.View
+          {...tabSwipe.panHandlers}
           style={[
             styles.sheet,
             activeTab === 'home' && styles.sheetOverlap,
@@ -441,8 +519,11 @@ function AppShell() {
             <HomeScreen
               onSOSPress={() => setSOSStage('map')}
               onPostJob={() => openPost(null)}
-              onServicePress={setSelectedService}
-              onBookGarage={(garage) => openBooking({ garage })}
+              onServicePress={(c, sub) => {
+                setSelectedSubName(sub);
+                setSelectedService(c);
+              }}
+              onBookGarage={(garage, back) => openBooking({ garage, back })}
               onScrollChange={handleHomeScroll}
             />
           ) : activeTab === 'bids' ? (
@@ -606,7 +687,7 @@ function AppShell() {
 
       <Modal visible={selectedService !== null} animationType="slide" statusBarTranslucent onRequestClose={() => setSelectedService(null)}>
         {selectedService && (
-          <ServiceBrowseScreen service={selectedService} onClose={() => setSelectedService(null)} onBook={(garage) => openBooking({ garage, categoryId: selectedService.id })} />
+          <ServiceBrowseScreen service={selectedService} initialSub={selectedSubName} onPostJob={HOME_FLOW === 'search' ? (categoryId) => { setSelectedService(null); openPost({ categoryId, description: '', vehicleId: selectedVehicle } as unknown as JobDraft); } : undefined} onClose={() => setSelectedService(null)} onBook={(garage, back) => openBooking({ garage, categoryId: selectedService.id, back })} />
         )}
         <Toast topOffset={84} />
       </Modal>
@@ -614,13 +695,25 @@ function AppShell() {
           focusActivity({ kind: 'done' });
           setActiveTab('activity');
         }} />
+      <GarageReviewsSheet
+        garage={searchGarage}
+        onClose={() => setSearchGarage(null)}
+        onReopen={setSearchGarage}
+        onBook={searchGarage ? () => { const g = searchGarage; setSearchGarage(null); openBooking({ garage: g, back: () => setSearchGarage(g) }); } : undefined}
+      />
       <DirectBookingSheet
         garage={booking?.garage ?? null}
         categoryId={booking?.categoryId}
         initial={booking?.initial}
         defaultVehicleId={selectedVehicle}
-        onClose={() => setBooking(null)}
+        onClose={() => {
+          const back = booking?.back;
+          setBooking(null);
+          if (bookedRef.current) bookedRef.current = false;
+          else back?.();
+        }}
         onBooked={() => {
+          bookedRef.current = true;
           setSelectedService(null);
           focusActivity({ kind: 'current', current: 'direct' });
           setActiveTab('activity');
@@ -682,7 +775,10 @@ const styles = themedStyles(() => StyleSheet.create({
   heroSub: { fontSize: 12, fontFamily: FONTS.bodyMedium, color: 'rgba(255, 255, 255, 0.82)' },
   sosButton: { width: 70, height: 70, borderRadius: 35, backgroundColor: '#ffffff', borderWidth: 5, borderColor: 'rgba(255, 255, 255, 0.35)', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   sosButtonText: { fontSize: 17, fontWeight: '900', color: '#c81e2b', letterSpacing: 1 },
-  jobBanner: { borderRadius: 22, overflow: 'hidden', backgroundColor: '#1b3a96', borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.2)', shadowColor: '#1b3a96', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.3, shadowRadius: 20, elevation: 6 },
+  // No shadow keys at all (the app's PickMe shape adds a soft shadow to any style that has one): its shadow showed as a pale streak between this card and the search bar.
+  jobSearchTint: { position: 'absolute', left: 0, right: 0, top: JOB_TOP_H - 14, bottom: 0 },
+  jobQuoteOutline: { position: 'absolute', left: 10, right: 10, top: 10, height: JOB_TOP_H - 14 },
+  jobBanner: { borderRadius: 22, overflow: 'hidden', backgroundColor: '#1b3a96', borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.2)' },
   jobBannerContent: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 18, paddingVertical: 16, gap: 12 },
   jobLeft: { flex: 1, gap: 2 },
   jobBannerTitle: { fontSize: 17, fontFamily: FONTS.titleBold, color: '#fff', letterSpacing: 0.2 },

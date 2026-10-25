@@ -31,8 +31,9 @@ const DAY = 24 * 60 * 60 * 1000;
 interface HomeScreenProps {
   onSOSPress: () => void;
   onPostJob: () => void;
-  onServicePress: (service: ServiceCategory) => void;
-  onBookGarage: (garage: Garage) => void;
+  /** `sub`: a suggested job (an oil change, a wheel alignment ...) already picked in that category. */
+  onServicePress: (service: ServiceCategory, sub?: string) => void;
+  onBookGarage: (garage: Garage, back?: () => void) => void;
   onScrollChange?: (scrollY: number) => void;
 }
 
@@ -93,8 +94,10 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onSOSPress, onPostJob, o
         </View>
 
         {/* Deals */}
-        <Text style={styles.sectionTitle}>ගනුදෙනු සහ දීමනා</Text>
-        <OfferTiles offers={OFFERS} onOpen={openOffer} />
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>ගනුදෙනු සහ දීමනා</Text>
+          <OfferTiles offers={OFFERS} onOpen={openOffer} />
+        </View>
 
         {/* Garage rows */}
         <GarageRow title="විශේෂාංග · දැන්වීම්" garages={sponsored} ad onOpen={setOpen} onSaveChange={save} onSeeAll={() => setList({ title: 'විශේෂාංග · දැන්වීම්', garages: sponsored, ad: true })} />
@@ -115,13 +118,14 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onSOSPress, onPostJob, o
       <GarageReviewsSheet
         garage={open}
         onClose={() => setOpen(null)}
+        onReopen={setOpen}
         onCall={open ? () => Linking.openURL(`tel:${open.phone.replace(/\s/g, '')}`) : undefined}
         onBook={
           open
             ? () => {
                 const g = open;
                 setOpen(null);
-                onBookGarage(g);
+                onBookGarage(g, () => setOpen(g));
               }
             : undefined
         }
@@ -134,13 +138,16 @@ const styles = themedStyles(() => StyleSheet.create({
   // Transparent: the rounded sheet in App.tsx supplies the background.
   container: { flex: 1 },
   scroll: { flex: 1 },
-  content: { paddingTop: 8, paddingHorizontal: 6, paddingBottom: 90, gap: 20 },
+  // One rhythm for the whole page: 24px between sections; inside a section its title sits 10px above its own content (`section`).
+  content: { paddingTop: 8, paddingHorizontal: 6, paddingBottom: 90, gap: 24 },
+  section: { gap: 10 },
   // The categories sit in their own soft rounded panel, header and four-column grid together.
   // The categories have no fill or side padding of their own: the icon boxes start at the same edge as the cards below (the page's 6px).
-  categoriesBlock: { gap: 14, paddingHorizontal: 0, paddingBottom: 14, paddingTop: 8, borderRadius: 24, backgroundColor: 'transparent' },
+  categoriesBlock: { gap: 14, paddingHorizontal: 0, paddingBottom: 0, paddingTop: 0, borderRadius: 24, backgroundColor: 'transparent' },
   // Opaque and full width (the negative margin cancels the content padding), so the lists scroll underneath it.
-  adsPinned: { marginHorizontal: -6, paddingHorizontal: 6, paddingVertical: 6, backgroundColor: pageBg() },
+  adsPinned: { marginHorizontal: -6, paddingHorizontal: 6, paddingTop: 0, paddingBottom: 4, backgroundColor: pageBg() },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 },
   seeAll: { fontSize: 10.5, fontFamily: FONTS.bodyBold, color: '#1877f2' },
-  sectionTitle: { fontSize: 15, fontFamily: FONTS.bodyBold, color: Colors.primary },
+  // The same size as the titles of the garage rows (GarageRow), so every section heading on the page reads alike.
+  sectionTitle: { fontSize: 14, fontFamily: FONTS.bodyBold, color: Colors.primary, letterSpacing: 0.2 },
 }));

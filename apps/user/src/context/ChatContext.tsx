@@ -45,6 +45,10 @@ type ChatApi = {
   logCall: (id: string) => void;
   /** Opens the parts basket of a job: every part the owner has to buy, asked of OnMart together. */
   openBasket: (workshopId: string) => void;
+  /** The inquiry form for a garage, opened on its own: the chat opens only once the form is sent (`back` runs when it is cancelled). */
+  askInquiry: (t: ChatTarget, back?: () => void) => void;
+  /** Writes a line into a job's chat as the owner (what the owner answers on a job card also goes into its chat). */
+  say: (id: string, text: string) => void;
 };
 
 const ChatContext = createContext<ChatApi | null>(null);
@@ -74,6 +78,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode; /** The Home ta
   const [editingCancel, setEditingCancel] = useState<string | null>(null);
   // An inquiry to a garage (chat opened from its card): the form, and what was last asked of each garage (a booking from the chat starts from it).
   const [composeInquiry, setComposeInquiry] = useState(false);
+  const [draft, setDraft] = useState<{ target: ChatTarget; back?: () => void } | null>(null);
   // The parts basket of a job (opened from the tracker, the parts list, a report's chip in the chat).
   const [basketFor, setBasketFor] = useState<string | null>(null);
   const lastInquiry = useRef<Record<string, InquiryInput>>({});
@@ -101,18 +106,23 @@ export const ChatProvider: React.FC<{ children: React.ReactNode; /** The Home ta
   // Every conversation the owner can have: a confirmed direct booking, a won bid, a finished SOS, and the OnMart shops.
   const threads = useMemo<ChatThreadInfo[]>(() => {
     const list = new Map<string, Omit<ChatThreadInfo, 'last' | 'unread'>>();
+    // A job whose workshop record is closed or cancelled is over: its chat moves to the "අවසන්" chip of the inbox.
+    const isOver = (id: string) => {
+      const p = workshops[id]?.progress;
+      return !!p && (p.stage === 'closed' || !!p.cancelled);
+    };
     for (const b of bookings) {
       // A chat opens with the request itself, so the garage can be asked something while it answers.
       if (b.status === 'declined' || b.status === 'expired' || b.status === 'cancelled') continue;
-      list.set(b.id, { id: b.id, kind: 'direct', icon: '📅', title: b.garage.name, subtitle: `ඍජු වෙන්කිරීම · ${categoryInfo(b.categoryId).name}`, phone: b.garage.phone, vehicle: findVehicle(b.vehicleId), record: jobRecordText({ title: `${categoryInfo(b.categoryId).name}${b.service ? ' · ' + b.service : ''} (ඍජු වෙන්කිරීම)`, who: { label: 'ගරාජය', name: b.garage.name, phone: b.garage.phone }, vehicle: findVehicle(b.vehicleId), description: b.description, at: b.scheduledAt ?? b.preferredAt, doorstep: b.doorstep, place: b.garage.address, price: b.estimate, priceLabel: 'ඇස්තමේන්තුව', photos: b.photos.length, voiceNotes: b.voiceNotes.length, notes: b.garageNote ? [`ගරාජයේ සටහන: ${b.garageNote}`] : undefined }) });
+      list.set(b.id, { id: b.id, done: isOver(b.id), kind: 'direct', icon: '📅', title: b.garage.name, subtitle: `ඍජු වෙන්කිරීම · ${categoryInfo(b.categoryId).name}`, phone: b.garage.phone, vehicle: findVehicle(b.vehicleId), record: jobRecordText({ title: `${categoryInfo(b.categoryId).name}${b.service ? ' · ' + b.service : ''} (ඍජු වෙන්කිරීම)`, who: { label: 'ගරාජය', name: b.garage.name, phone: b.garage.phone }, vehicle: findVehicle(b.vehicleId), description: b.description, at: b.scheduledAt ?? b.preferredAt, doorstep: b.doorstep, place: b.garage.address, price: b.estimate, priceLabel: 'ඇස්තමේන්තුව', photos: b.photos.length, voiceNotes: b.voiceNotes.length, notes: b.garageNote ? [`ගරාජයේ සටහන: ${b.garageNote}`] : undefined }) });
     }
     for (const j of jobs) {
       const bid = j.bids.find((x) => x.id === j.acceptedBidId);
       if (!bid) continue;
-      list.set(j.id, { id: j.id, kind: 'job', icon: '🔧', title: bid.garageName, subtitle: `ලංසු · ${categoryInfo(j.categoryId).name}`, phone: MOCK_GARAGES.find((g) => g.name === bid.garageName)?.phone, vehicle: findVehicle(j.vehicleId), record: jobRecordText({ title: `${categoryInfo(j.categoryId).name} (ලංසුවෙන් ලැබුණු රැකියාව)`, who: { label: 'ගරාජය', name: bid.garageName, phone: MOCK_GARAGES.find((g) => g.name === bid.garageName)?.phone }, vehicle: findVehicle(j.vehicleId), description: j.description, partType: j.sparePart, doorstep: j.doorstep, price: bid.price, priceLabel: 'එකඟ වූ මිල', photos: j.photos?.length, voiceNotes: j.voiceNotes?.length, notes: [`වගකීම මාස ${bid.warrantyMonths}`, `ඇස්තමේන්තු කාලය පැය ${bid.estHours}`, ...(bid.travelFee ? [`දුර ගමන් ගාස්තුව රු. ${bid.travelFee.toLocaleString('en-US')} ඇතුළුව (රැකියාව රු. ${(bid.price - bid.travelFee).toLocaleString('en-US')})`] : []), ...(j.fitting ? [`සවි කළ යුතු කොටස: ${j.fitting.partName}`] : [])] }) });
+      list.set(j.id, { id: j.id, done: isOver(j.id), kind: 'job', icon: '🔧', title: bid.garageName, subtitle: `ලංසු · ${categoryInfo(j.categoryId).name}`, phone: MOCK_GARAGES.find((g) => g.name === bid.garageName)?.phone, vehicle: findVehicle(j.vehicleId), record: jobRecordText({ title: `${categoryInfo(j.categoryId).name} (ලංසුවෙන් ලැබුණු රැකියාව)`, who: { label: 'ගරාජය', name: bid.garageName, phone: MOCK_GARAGES.find((g) => g.name === bid.garageName)?.phone }, vehicle: findVehicle(j.vehicleId), description: j.description, partType: j.sparePart, doorstep: j.doorstep, price: bid.price, priceLabel: 'එකඟ වූ මිල', photos: j.photos?.length, voiceNotes: j.voiceNotes?.length, notes: [`වගකීම මාස ${bid.warrantyMonths}`, `ඇස්තමේන්තු කාලය පැය ${bid.estHours}`, ...(bid.travelFee ? [`දුර ගමන් ගාස්තුව රු. ${bid.travelFee.toLocaleString('en-US')} ඇතුළුව (රැකියාව රු. ${(bid.price - bid.travelFee).toLocaleString('en-US')})`] : []), ...(j.fitting ? [`සවි කළ යුතු කොටස: ${j.fitting.partName}`] : [])] }) });
     }
     for (const r of records) {
-      list.set(r.id, { id: r.id, kind: 'sos', icon: r.breakdown.icon, title: r.responder.name, subtitle: `SOS · ${r.breakdown.label}`, phone: r.responder.phone, vehicle: { name: r.vehicleName, plate: r.vehiclePlate, type: 'Car' } });
+      list.set(r.id, { id: r.id, done: true, kind: 'sos', icon: r.breakdown.icon, title: r.responder.name, subtitle: `SOS · ${r.breakdown.label}`, phone: r.responder.phone, vehicle: { name: r.vehicleName, plate: r.vehiclePlate, type: 'Car' } });
     }
     for (const [id, t] of Object.entries(extras)) {
       if (list.has(id) || (!t.listed && !store.messages(id).length)) continue;
@@ -144,7 +154,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode; /** The Home ta
       });
     }
     return [...people, ...shops.values()].sort((a, b) => b.unread - a.unread || (b.last?.at ?? 0) - (a.last?.at ?? 0));
-  }, [bookings, jobs, records, findVehicle, extras, offers, martThreads, martSeen, store.messages, store.unread, store.isFresh]);
+  }, [bookings, jobs, records, workshops, findVehicle, extras, offers, martThreads, martSeen, store.messages, store.unread, store.isFresh]);
   const totalUnread = useMemo(() => threads.reduce((s, t) => s + t.unread, 0), [threads]);
 
   // A booking or a won bid: its record goes into the chat the moment it appears (not for the ones the app starts with).
@@ -212,10 +222,23 @@ export const ChatProvider: React.FC<{ children: React.ReactNode; /** The Home ta
 
   // The inquiry goes into the chat with the garage as a message; the garage answers there.
   const sendInquiry = (r: InquiryInput) => {
-    if (!target) return;
-    lastInquiry.current[target.id] = r;
+    // Sent from a garage's profile: the chat opens now, with the inquiry as its first message.
+    const t = draft?.target ?? target;
+    if (!t) return;
+    if (draft) {
+      setDraft(null);
+      open({ ...t, inquiry: { ...t.inquiry, compose: false } });
+    }
+    lastInquiry.current[t.id] = r;
     const v = findVehicle(r.vehicleId);
-    void store.send(target.id, { text: inquiryText({ category: categoryInfo(r.categoryId).name, service: r.service, vehicle: `${v.name} ${v.plate}`, text: r.text }), photos: r.photos });
+    void store.send(t.id, { text: inquiryText({ category: categoryInfo(r.categoryId).name, service: r.service, vehicle: `${v.name} ${v.plate}`, text: r.text }), photos: r.photos, voiceNotes: r.voiceNotes });
+    setComposeInquiry(false);
+  };
+  const closeInquiry = () => {
+    if (draft) {
+      draft.back?.();
+      setDraft(null);
+    }
     setComposeInquiry(false);
   };
   // Book the garage directly from its chat: the chat closes and the booking form opens with what was asked.
@@ -279,7 +302,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode; /** The Home ta
   }, [count, target, store.markRead]);
 
   return (
-    <ChatContext.Provider value={{ open, openWith, start, unread: store.unread, openInbox: () => setInbox(true), totalUnread, logCall, openBasket: setBasketFor }}>
+    <ChatContext.Provider value={{ open, openWith, start, unread: store.unread, openInbox: () => setInbox(true), totalUnread, logCall, openBasket: setBasketFor, askInquiry: (t, back) => setDraft({ target: t, back }), say: (id, text) => store.postUpdate(id, text, 'owner') }}>
       {children}
       <ChatInboxSheet
         visible={inbox}
@@ -365,10 +388,10 @@ export const ChatProvider: React.FC<{ children: React.ReactNode; /** The Home ta
         whatsapp
       />
       <InquirySheet
-        visible={composeInquiry && target?.profile === 'garage'}
-        garageName={target?.title ?? ''}
-        categoryId={target?.inquiry?.categoryId}
-        onClose={() => setComposeInquiry(false)}
+        visible={!!draft || (composeInquiry && target?.profile === 'garage')}
+        garageName={(draft?.target ?? target)?.title ?? ''}
+        categoryId={(draft?.target ?? target)?.inquiry?.categoryId}
+        onClose={closeInquiry}
         onSend={sendInquiry}
       />
       <BasketSheet workshopId={basketFor} onClose={() => setBasketFor(null)} onSent={(n) => basketFor && store.postUpdate(basketFor, `🛍️ අයිතිකරු කොටස් ${n} ක් OnMart හි ඉල්ලුවා — වෙළඳසැල් පිළිතුරු දෙන තෙක් බලා සිටී.`, 'owner')} />

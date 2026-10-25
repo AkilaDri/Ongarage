@@ -1,6 +1,7 @@
 import { PostBody, PostHead } from '../components/PostCard';
 import { onActivityFocus, takeActivityFocus, type ActivityFocus } from '../utils/activityFocus';
 import { elevation1, outline, pageBg } from '../utils/material';
+import { useHeaderCollapse } from '../utils/headerCollapse';
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Image, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Colors, getThemeMode, Gradient, themedStyles, ReceiptLineIcon, ScheduleLineIcon, SosLineIcon } from '@ongarage/shared';
@@ -110,8 +111,7 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
   const edge = useRef(new Animated.Value(0)).current;
   // The chat icon sits under the pinned tiles while this screen is shown.
   const pinnedH = useRef(0);
-  const lastY = useRef(0);
-  const hidden = useRef(false);
+  const collapse = useHeaderCollapse(onHeaderProgress);
   useEffect(() => {
     chatDockOffset.setValue(pinnedH.current);
     return () => chatDockOffset.setValue(0);
@@ -163,6 +163,7 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
           meta={`වෙන් කළේ ${formatDate(new Date(bid.submittedAt))}`}
           price={money(bid.price)}
           onMore={() => setDetail({ kind: 'job', id: job.id })}
+          chat={<ChatButton plain size={36} target={{ id: job.id, title: bid.garageName, subtitle: cat?.name, phone: MOCK_GARAGES.find((g) => g.name === bid.garageName)?.phone, vehicle: findVehicle(job.vehicleId) }} />}
         />
         <PostBody vehicle={findVehicle(job.vehicleId)} kind="bid" subject={cat?.name ?? 'Service'} onPress={() => setDetail({ kind: 'job', id: job.id })}>
           <View style={styles.rowBetween}>
@@ -179,7 +180,6 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
               🛡️ මාස {bid.warrantyMonths} වගකීම
             </Text>
             <View style={styles.linkRow}>
-              <ChatButton plain size={36} target={{ id: job.id, title: bid.garageName, subtitle: cat?.name, phone: MOCK_GARAGES.find((g) => g.name === bid.garageName)?.phone, vehicle: findVehicle(job.vehicleId) }} />
               <Pressable onPress={() => setDetail({ kind: 'job', id: job.id })} hitSlop={8}>
                 <Text style={styles.link}>විස්තර ›</Text>
               </Pressable>
@@ -253,18 +253,8 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
         onScroll={(e) => {
           const y = e.nativeEvent.contentOffset.y;
           edge.setValue(Math.min(1, Math.max(0, (y - 8) / 30)));
-          // The band folds away as the page scrolls up, and comes back in full on the first drag down.
-          const dy = y - lastY.current;
-          lastY.current = y;
-          if (y <= 4 || dy < -3) {
-            if (hidden.current) {
-              hidden.current = false;
-              onHeaderProgress?.(0);
-            }
-          } else if (dy > 3 && y > 12 && !hidden.current) {
-            hidden.current = true;
-            onHeaderProgress?.(1);
-          }
+          // The band folds away as the page scrolls up, and comes back when it scrolls down (steady scrolling only, so the page does not shake).
+          collapse(y);
         }}
       >
         {/* Pinned: the three summary tiles stay at the top while the lists scroll beneath */}
@@ -475,6 +465,7 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
               meta={formatDate(new Date(w.progress.closedAt ?? 0))}
               price={money(w.progress.handover?.bill.total ?? 0)}
               onMore={() => setRecord({ kind: 'history', workshop: w })}
+              chat={<ChatButton plain size={36} target={{ id: w.id, title: w.garageName, subtitle: w.title ?? categoryInfo(w.categoryId).name, vehicle: w.vehicleId ? findVehicle(w.vehicleId) : undefined }} />}
             />
             <PostBody vehicle={w.vehicleId ? findVehicle(w.vehicleId) : undefined} kind="bid" subject={w.title ?? categoryInfo(w.categoryId).name}>
               <View style={styles.rowBetween}>
@@ -490,7 +481,6 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
                 🛡️ මාස {w.warrantyMonths} වගකීම
               </Text>
               <View style={styles.linkRow}>
-                <ChatButton plain size={36} target={{ id: w.id, title: w.garageName, subtitle: w.title ?? categoryInfo(w.categoryId).name, vehicle: w.vehicleId ? findVehicle(w.vehicleId) : undefined }} />
                 <Text style={styles.link}>විස්තර ›</Text>
               </View>
             </View>

@@ -49,6 +49,7 @@ export * from './marketplace/customerRating';
 export * from './marketplace/inquiry';
 export * from './marketplace/partsBatch';
 export * from './marketplace/martAttention';
+export * from './marketplace/popularity';
 export * from './marketplace/jobUpdates';
 
 // AI decisions layer (rules today; Claude / Laya through the back end later).
@@ -93,7 +94,7 @@ export * from './ui/VehicleIcon3D';
 export * from './ui/chat/ChatSheet';
 export * from './ui/chat/useChatStore';export * from './utils/initials';
 export * from './ui/chat/ChatInboxSheet';
-export * from './ui/chat/jobRecord';
+export * from './marketplace/jobRecord';
 export * from './ui/chat/chatTerms';
 export * from './ui/chat/CallPill';
 export * from './ui/workshop/ServiceRecordFields';

@@ -2,7 +2,8 @@ import { EmptyState } from '@ongarage/shared';
 import { elevation1, outline } from '../utils/material';
 import React, { useEffect, useState } from 'react';
 import { Image, Linking, Pressable, ScrollView, StyleSheet, Share, Text, View, type ImageSourcePropType } from 'react-native';
-import { ActionButton, Colors, directionsUrl, FONTS, getThemeMode, GoogleMap, LevelBadge, LEVELS, RATING_DIMENSIONS, themedStyles, type Bid, type Garage } from '@ongarage/shared';
+import { ActionButton, Colors, directionsUrl, FONTS, getThemeMode, GoogleMap, LevelBadge, LEVELS, RATING_DIMENSIONS, SERVICE_CATEGORIES, themedStyles, type Bid, type Garage } from '@ongarage/shared';
+import { MakeLogoStrip } from './MakeLogo';
 import { MOCK_GARAGES } from '../constants/mockData';
 import { GARAGE_COVERS, GARAGE_INFO } from '../constants/home';
 import { garageProfileContent } from '../constants/garageProfile';
@@ -28,6 +29,9 @@ export const garageForBid = (b: Bid): Garage =>
   };
 
 /** A review card's width: about one and a half show at once, so the next one peeks in. */
+/** How many lines the garage's service tags make (they scroll sideways together). */
+const SERVICE_TAG_ROWS = 4;
+
 const REVIEW_W = 210;
 const AVATAR_COLORS = ['#2457e6', '#0e9f6e', '#e5483d', '#8b5cf6', '#f59e0b', '#0891b2', '#db2777'];
 const avatarColor = (id: string) => AVATAR_COLORS[[...id].reduce((n, ch) => n + ch.charCodeAt(0), 0) % AVATAR_COLORS.length];
@@ -47,9 +51,11 @@ export const GarageReviewsSheet: React.FC<{
   /** Opened from Home: call or book this garage. */
   onCall?: () => void;
   onBook?: () => void;
+  /** Brings this profile back when a form opened from it (the inquiry) is cancelled. */
+  onReopen?: (garage: Garage) => void;
   /** Opened from a service category: the inquiry form starts on that service. */
   inquiryCategoryId?: string;
-}> = ({ garage, onClose, bid, onAccept, onCall, onBook, inquiryCategoryId }) => {
+}> = ({ garage, onClose, bid, onAccept, onCall, onBook, onReopen, inquiryCategoryId }) => {
   const [shown, setShown] = useState(garage);
   useEffect(() => {
     if (garage) setShown(garage);
@@ -78,13 +84,35 @@ export const GarageReviewsSheet: React.FC<{
   };
   const openChat = () => startChat(false);
   // "Send an inquiry" opens the same chat with the inquiry form ready.
-  const askInquiry = () => startChat(true);
+  // The form opens by itself; the chat opens only once it is sent, and cancelling it brings this profile back.
+  const askInquiry = () => {
+    if (!g) return;
+    const shownGarage = g;
+    onClose();
+    chat.askInquiry({ id: `garage:${g.id}`, title: g.name, subtitle: 'ගරාජ පැතිකඩ', phone: g.phone, profile: 'garage', inquiry: { categoryId: inquiryCategoryId, compose: false } }, onReopen ? () => onReopen(shownGarage) : undefined);
+  };
   if (!g) return null;
   const level = g.level ? LEVELS.find((l) => l.id === g.level) : undefined;
   const info = GARAGE_INFO[g.id];
   const content = garageProfileContent(g);
   const totalJobs = content.services.reduce((n, sv) => n + sv.jobs, 0);
-  const topJobs = Math.max(...content.services.map((sv) => sv.jobs));
+  // Opened from a service category (the garages list): the services shown are that category's own sub-services (Tyres: wheel alignment, balancing, tyre
+  // replacement ...), with the category's picture; opened from anywhere else, the garage's own mix of services.
+  // The service tags go in four rows that scroll sideways together: each tag joins the row that is shortest so far, so the rows end up about equally long.
+  const focusCat = inquiryCategoryId ? SERVICE_CATEGORIES.find((c) => c.id === inquiryCategoryId) : undefined;
+  const serviceTiles: { id: string; name: string; icon: string; color: string; isNew: boolean; categoryId?: string }[] = focusCat
+    ? focusCat.subcategories.map((name, i) => ({ id: `${focusCat.id}-${i}`, name, icon: focusCat.icon, color: focusCat.color, isNew: false, categoryId: focusCat.id }))
+    : content.services.map((sv) => ({ id: sv.id, name: sv.name, icon: sv.icon, color: sv.color, isNew: sv.isNew }));
+  const tagRows = (() => {
+    const rows: (typeof serviceTiles)[] = Array.from({ length: Math.min(SERVICE_TAG_ROWS, serviceTiles.length) }, () => []);
+    const widths = rows.map(() => 0);
+    for (const t of serviceTiles) {
+      const shortest = widths.indexOf(Math.min(...widths));
+      rows[shortest].push(t);
+      widths[shortest] += t.name.length * 7 + 40;
+    }
+    return rows;
+  })();
   const cover = GARAGE_COVERS[g.id];
   const open = g.status === 'open';
   const todayHours = content.hours[(new Date().getDay() + 6) % 7]?.open ?? null;
@@ -105,8 +133,10 @@ export const GarageReviewsSheet: React.FC<{
           horizontal
           pagingEnabled
           showsHorizontalScrollIndicator={false}
-          // On a phone browser only sideways drags belong to the photos; a drag down is left to the sheet (swipe down to close).
-          style={[StyleSheet.absoluteFill, { touchAction: 'pan-x' } as object]}
+          // On a phone browser sideways drags belong to the photos and vertical drags scroll the sheet. (This used to be pan-x only, which swallowed every
+          // up-and-down drag that began on the big cover photo, so the sheet seemed stuck. A drag down on the photos no longer closes the sheet; the handle and
+          // the header still do.)
+          style={[StyleSheet.absoluteFill, { touchAction: 'pan-x pan-y' } as object]}
           onLayout={(e) => setCoverW(Math.round(e.nativeEvent.layout.width))}
           onScroll={(e) => coverW > 0 && setSlide(Math.round(e.nativeEvent.contentOffset.x / coverW))}
           scrollEventThrottle={16}
@@ -120,7 +150,7 @@ export const GarageReviewsSheet: React.FC<{
                   <View style={styles.coverPlay}>
                     <Text style={styles.coverPlayText}>▶</Text>
                   </View>
-                  <View style={styles.coverVideoTag}>
+                  <View style={[styles.coverVideoTag, focusCat && { top: 90 }]}>
                     <Text style={styles.coverVideoTagText}>🎬 {m.caption} · {m.length}</Text>
                   </View>
                 </>
@@ -146,6 +176,14 @@ export const GarageReviewsSheet: React.FC<{
         <View style={[styles.statusPill, open ? styles.statusOpen : styles.statusClosed]}>
           <Text style={styles.statusText}>{open ? '● දැන් විවෘතයි' : '● දැන් වසා ඇත'}</Text>
         </View>
+        {/* Opened from a main service: its name sits under the open / closed badge on the picture. */}
+        {!!focusCat && (
+          <View style={styles.coverCategory} accessibilityLabel={`Service ${focusCat.name}`}>
+            <Text style={styles.coverCategoryText} numberOfLines={1}>
+              {focusCat.icon} {focusCat.name}
+            </Text>
+          </View>
+        )}
       </View>
       <View style={styles.place}>
         <View style={styles.placeTop}>
@@ -174,6 +212,8 @@ export const GarageReviewsSheet: React.FC<{
           <Text style={open ? styles.placeOpen : styles.placeClosed}>{open ? 'විවෘතයි' : 'වසා ඇත'}</Text>
           {open && closesAt ? <Text style={styles.placeMuted}> ⋅ {closesAt} දක්වා</Text> : null}
         </Text>
+        {/* The makes this garage works on, as one row of logos right under the opening hours (above the action buttons). */}
+        <MakeLogoStrip makes={content.brands} />
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.placeActions}>
           {[
             { id: 'dir', icon: '🧭', label: 'දිශාවන්', primary: true, onPress: () => Linking.openURL(directionsUrl(g.coords, user.coords)) },
@@ -202,16 +242,12 @@ export const GarageReviewsSheet: React.FC<{
       onClose={onClose}
       hero={hero}
       compact
+      noDividers
       footer={
         bid && onAccept ? (
           <ActionButton label={`ලංසුව පිළිගන්න · ${money(bid.price)}`} icon="✓" variant="success" onPress={onAccept} />
         ) : onBook ? (
           <View style={styles.actions}>
-            {!!onCall && (
-              <View style={styles.flex1}>
-                <ActionButton label="අමතන්න" icon="📞" variant="ghost" compact onPress={onCall} />
-              </View>
-            )}
             <View style={styles.flex1}>
               <ActionButton label="විමසීම" icon="❓" variant="ghost" compact onPress={askInquiry} />
             </View>
@@ -314,34 +350,37 @@ export const GarageReviewsSheet: React.FC<{
       </ScrollView>
 
       <View style={styles.sectionHead}>
-        <Text style={styles.sectionTitleBare}>🛠️ ලබාදෙන සේවා</Text>
+        <Text style={styles.sectionTitleBare}>🛠️ ලබාදෙන සේවා{focusCat ? ` · ${focusCat.name}` : ''}</Text>
         <View style={styles.jobsPill}>
           <Text style={styles.jobsPillText}>✓ රැකියා {totalJobs}</Text>
         </View>
       </View>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.hRow}>
-        {content.services.map((sv) => (
-          <View key={sv.id} style={styles.serviceTile} accessibilityLabel={`Service ${sv.name}`}>
-            <View style={styles.serviceTop}>
-              <View style={[styles.serviceIconBox, { backgroundColor: `${sv.color}26` }]}>
-                <Text style={styles.serviceIcon}>{sv.icon}</Text>
+      {/* The services as tags (a tint of the category's colour, no icon, no box) in four rows that scroll sideways together. */}
+      {/* Two scrollers, each with two rows: the top pair and the bottom pair can be dragged sideways separately. */}
+      <View style={styles.serviceTagGrid}>
+        {[tagRows.slice(0, Math.ceil(tagRows.length / 2)), tagRows.slice(Math.ceil(tagRows.length / 2))]
+          .filter((group) => group.length > 0)
+          .map((group, g) => (
+            <ScrollView key={g} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.serviceTagRows}>
+              <View style={styles.serviceTagGrid}>
+                {group.map((row, r) => (
+                  <View key={r} style={styles.serviceTagRow}>
+                    {row.map((sv) => (
+                      <View key={sv.id} style={[styles.serviceTag, { backgroundColor: `${sv.color}26`, borderColor: `${sv.color}8c` }]} accessibilityLabel={`Service ${sv.name}`}>
+                        <Text style={styles.serviceTagText}>{sv.name}</Text>
+                        {sv.isNew && (
+                          <View style={styles.newBadge}>
+                            <Text style={styles.newBadgeText}>අලුත්</Text>
+                          </View>
+                        )}
+                      </View>
+                    ))}
+                  </View>
+                ))}
               </View>
-              {sv.isNew && (
-                <View style={styles.newBadge}>
-                  <Text style={styles.newBadgeText}>අලුත්</Text>
-                </View>
-              )}
-            </View>
-            <Text style={styles.serviceTileName} numberOfLines={2}>
-              {sv.name}
-            </Text>
-            <View style={styles.jobsTrack}>
-              <View style={[styles.jobsFill, { width: `${Math.max(8, (sv.jobs / topJobs) * 100)}%`, backgroundColor: sv.color }]} />
-            </View>
-            <Text style={styles.jobsText}>✓ රැකියා {sv.jobs} ක් සම්පූර්ණ</Text>
-          </View>
-        ))}
-      </ScrollView>
+            </ScrollView>
+          ))}
+      </View>
 
       <View style={styles.sectionHead}>
         <Text style={styles.sectionTitleBare}>⚡ ගරාජය පළ කළ Gigs</Text>
@@ -639,29 +678,30 @@ export const GarageReviewsSheet: React.FC<{
 
 const styles = themedStyles(() =>
   StyleSheet.create({
-    tabs: { flexDirection: 'row', marginTop: 8, borderBottomWidth: 1, borderBottomColor: getThemeMode() === 'dark' ? Colors.borderColor : '#dadce0' },
+    // No thin divider lines in the profile (under the tabs, between the contact rows, between service rows): the sections are told apart by their spacing.
+    tabs: { flexDirection: 'row', marginTop: 8 },
     tabBtn: { flex: 1, height: 42, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4, borderBottomWidth: 3, borderBottomColor: 'transparent' },
     tabBtnOn: { borderBottomColor: '#1a73e8' },
     tabText: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
     tabTextOn: { color: '#1a73e8', fontFamily: FONTS.bodyBold },
-    sectionTitle: { fontSize: 14, fontFamily: FONTS.bodyBold, color: Colors.primary, letterSpacing: 0.2, marginTop: 0 },
-    hRow: { gap: 6, paddingRight: 6 },
+    // The profile's sections breathe: 22px above every section heading and 4px more under it, and the cards / chips of a row sit 10px apart.
+    sectionTitle: { fontSize: 14, fontFamily: FONTS.bodyBold, color: Colors.primary, letterSpacing: 0.2, marginTop: 22, marginBottom: 4 },
+    hRow: { gap: 10, paddingRight: 10 },
     offerCard: { width: 150, padding: 8, borderRadius: 12, gap: 2 },
     offerCardIcon: { fontSize: 22 },
     offerCardTitle: { fontSize: 13, fontFamily: FONTS.titleBold, color: '#ffffff', lineHeight: 17 },
     offerCardDetail: { fontSize: 10.5, fontFamily: FONTS.bodyMedium, color: 'rgba(255,255,255,0.85)' },
-    sectionHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 0 },
+    sectionHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 22, marginBottom: 4 },
     sectionTitleBare: { fontSize: 14, fontFamily: FONTS.bodyBold, color: Colors.primary, letterSpacing: 0.2 },
     jobsPill: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, backgroundColor: 'rgba(16, 185, 129, 0.15)' },
     jobsPillText: { fontSize: 11, fontFamily: FONTS.bodyBold, color: Colors.success },
     serviceGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-    serviceTile: { width: 140, gap: 3, padding: 12, borderRadius: 12, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), ...elevation1() },
-    serviceTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-    serviceIconBox: { width: 42, height: 42, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-    serviceTileName: { fontSize: 13.5, fontFamily: FONTS.titleBold, color: Colors.textMain, lineHeight: 17, minHeight: 34 },
-    jobsTrack: { height: 5, borderRadius: 3, backgroundColor: Colors.subtleFill, overflow: 'hidden', marginTop: 2 },
-    jobsFill: { height: 5, borderRadius: 3 },
-    jobsText: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: Colors.textSoft },
+    // Small cards, so several of the garage's services show at once (no per-service job count any more).
+    serviceTagRows: { paddingRight: 10 },
+    serviceTagGrid: { gap: 8 },
+    serviceTagRow: { flexDirection: 'row', gap: 8, alignSelf: 'flex-start' },
+    serviceTag: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, height: 32, borderRadius: 16, borderWidth: 1 },
+    serviceTagText: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
     moreBtn: { alignSelf: 'center', paddingHorizontal: 16, height: 36, borderRadius: 8, justifyContent: 'center', backgroundColor: 'rgba(36, 87, 230, 0.1)' },
     moreBtnText: { fontSize: 12, fontFamily: FONTS.bodyBold, color: '#2457e6' },
     gig: { width: 210, borderRadius: 12, overflow: 'hidden', backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), ...elevation1() },
@@ -675,11 +715,10 @@ const styles = themedStyles(() =>
     gigBtn: { alignSelf: 'flex-start', marginTop: 2, paddingHorizontal: 14, height: 30, borderRadius: 8, justifyContent: 'center', backgroundColor: '#2457e6' },
     gigBtnText: { fontSize: 11.5, fontFamily: FONTS.bodyBold, color: '#ffffff' },
     serviceList: { borderRadius: 12, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), overflow: 'hidden', ...elevation1() },
-    serviceRow: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderBottomWidth: 1, borderBottomColor: Colors.borderColor },
-    serviceIcon: { fontSize: 22 },
+    serviceRow: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12 },
     serviceName: { fontSize: 12.5, fontFamily: FONTS.bodyBold, color: Colors.textMain },
-    newBadge: { paddingHorizontal: 9, paddingVertical: 3, borderRadius: 6, backgroundColor: '#ef4444' },
-    newBadgeText: { fontSize: 10, fontFamily: FONTS.bodyBold, color: '#ffffff' },
+    newBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5, backgroundColor: '#ef4444' },
+    newBadgeText: { fontSize: 9, fontFamily: FONTS.bodyBold, color: '#ffffff' },
     photoTile: { width: 128, gap: 5 },
     photoImg: { width: 128, height: 128, borderRadius: 12, backgroundColor: Colors.subtleFill },
     photoCaption: { fontSize: 10.5, fontFamily: FONTS.bodyMedium, color: Colors.textMuted },
@@ -719,6 +758,8 @@ const styles = themedStyles(() =>
     statusPill: { position: 'absolute', left: 16, top: 16, paddingHorizontal: 10, height: 26, borderRadius: 13, justifyContent: 'center' },
     statusOpen: { backgroundColor: 'rgba(16, 185, 129, 0.92)' },
     statusClosed: { backgroundColor: 'rgba(100, 116, 139, 0.92)' },
+    coverCategory: { position: 'absolute', left: 16, top: 50, maxWidth: '70%', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, backgroundColor: 'rgba(0, 0, 0, 0.55)' },
+    coverCategoryText: { fontSize: 11.5, fontFamily: FONTS.bodyBold, color: '#ffffff' },
     statusText: { fontSize: 11, fontFamily: FONTS.bodyBold, color: '#ffffff' },
     identity: { flexDirection: 'row', alignItems: 'flex-end', gap: 12, paddingHorizontal: 6, marginTop: -34 },
     avatarRing: { width: 84, height: 84, borderRadius: 42, padding: 4, backgroundColor: Colors.sheetBg },
@@ -777,15 +818,15 @@ const styles = themedStyles(() =>
     placeStatus: { fontSize: 13, fontFamily: FONTS.bodyRegular },
     placeOpen: { fontFamily: FONTS.bodyBold, color: '#188038' },
     placeClosed: { fontFamily: FONTS.bodyBold, color: '#d93025' },
-    placeActions: { gap: 16, paddingTop: 12, paddingBottom: 4, paddingRight: 6 },
+    placeActions: { gap: 16, paddingTop: 6, paddingBottom: 4, paddingRight: 6 },
     placeAction: { alignItems: 'center', gap: 8, minWidth: 64},
     placeActionCircle: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? Colors.subtleFill : '#ffffff', borderWidth: 1, borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#dadce0' },
     placeActionPrimary: { backgroundColor: '#1a73e8', borderColor: '#1a73e8' },
     placeActionOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(229, 72, 61, 0.16)' : '#fdecea', borderColor: '#f5b5b0' },
     placeActionIcon: { fontSize: 19, color: '#1a73e8' },
     placeActionLabel: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
-    gmList: { borderTopWidth: 1, borderBottomWidth: 1, borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#e8eaed', marginHorizontal: 4 },
-    gmRow: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 4, paddingHorizontal: 4, borderBottomWidth: 1, borderBottomColor: getThemeMode() === 'dark' ? Colors.borderColor : '#f1f3f4' },
+    gmList: { marginHorizontal: 4 },
+    gmRow: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 4, paddingHorizontal: 4 },
     gmIcon: { width: 22, fontSize: 16, textAlign: 'center' },
     gmText: { fontSize: 12.5, fontFamily: FONTS.bodyRegular, color: Colors.textMain, lineHeight: 18 },
     infoLine: { flexDirection: 'row', alignItems: 'center', gap: 10 },
@@ -802,7 +843,7 @@ const styles = themedStyles(() =>
     noteBoxOn: { backgroundColor: 'rgba(239, 68, 68, 0.12)' },
     noteText: { fontSize: 12.5, fontFamily: FONTS.bodyMedium, color: Colors.textSoft, lineHeight: 17 },
     noteTextOn: { color: Colors.errorText, fontFamily: FONTS.bodySemiBold },
-    chipWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    chipWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
     tagChip: { paddingHorizontal: 12, height: 32, borderRadius: 8, justifyContent: 'center', backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline() },
     tagChipText: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
     tagChipBrand: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e3ecfd', borderColor: 'transparent' },
