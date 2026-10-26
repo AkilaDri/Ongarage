@@ -424,6 +424,10 @@ const sky = {
   shootC: new Animated.Value(0),
   rainA: new Animated.Value(0),
   rainB: new Animated.Value(0),
+  rainC: new Animated.Value(0),
+  rainD: new Animated.Value(0),
+  rainE: new Animated.Value(0),
+  rainF: new Animated.Value(0),
   flash: new Animated.Value(0),
 };
 /**
@@ -449,9 +453,13 @@ const LAYERS: { key: keyof typeof sky; period: number; wave: Wave; offset: numbe
   { key: 'shootA', period: 9000, wave: 'saw', offset: 0.15 },
   { key: 'shootB', period: 13000, wave: 'saw', offset: 0.6 },
   { key: 'shootC', period: 17000, wave: 'saw', offset: 0.85 },
-  // Rain falls in two staggered sheets; a storm flashes now and then.
-  { key: 'rainA', period: 760, wave: 'saw', offset: 0 },
-  { key: 'rainB', period: 1020, wave: 'saw', offset: 0.4 },
+  // Rain falls in six sheets, each at its own speed and starting point, so the drops are never in step; a storm flashes now and then.
+  { key: 'rainA', period: 520, wave: 'saw', offset: 0 },
+  { key: 'rainB', period: 610, wave: 'saw', offset: 0.17 },
+  { key: 'rainC', period: 700, wave: 'saw', offset: 0.43 },
+  { key: 'rainD', period: 560, wave: 'saw', offset: 0.61 },
+  { key: 'rainE', period: 650, wave: 'saw', offset: 0.29 },
+  { key: 'rainF', period: 760, wave: 'saw', offset: 0.82 },
   { key: 'flash', period: 6500, wave: 'saw', offset: 0.3 },
 ];
 const waveAt = (wave: Wave, phase: number) =>
@@ -489,22 +497,34 @@ export const useHour = () => {
   return hour;
 };
 
-/** Where the rain drops fall from (a % of the band's width). */
-const RAIN_X = [4, 12, 19, 27, 34, 41, 48, 55, 62, 69, 76, 83, 90, 96];
+/** The rain: 54 streaks, each with its own place across the band, length (10 to 22 px), thickness and brightness, fixed so the rain looks the same each time. */
+const RAIN = Array.from({ length: 54 }, (_, i) => ({
+  x: ((i * 53) % 97) + (i % 3) * 0.9,
+  sheet: i % 6,
+  length: 10 + ((i * 7) % 13),
+  width: 0.9 + (i % 3) * 0.35,
+  alpha: 0.35 + ((i * 13) % 5) * 0.12,
+  from: -34 - (i % 5) * 11,
+}));
+/** How far the streaks slant: they travel along their own slant while they fall. */
+const RAIN_TILT = 12;
+/** How tall the shaded bottom edge of Home's band is (px). */
+const FADE_H = 44;
+const RAIN_FALL = 190;
 
 /**
  * The sky behind the whole greeting band (it fills its parent). Daytime: the sun with clouds drifting sideways.
  * Evening: the sun slowly sinking behind the horizon while clouds drift. Night: a moon, twinkling stars and a few
  * dim clouds.
  */
-const WeatherAnimation: React.FC<{ hour: number }> = ({ hour }) => {
+const WeatherAnimation: React.FC<{ hour: number; /** Home's band: its bottom edge shades into the colour the sheet below starts with, so no line shows where they meet. */ fadeBottom?: boolean }> = ({ hour, fadeBottom }) => {
   const period = periodOf(hour);
   // The weather at the owner's place only adds to the sky: rain drops while it rains, a flash in a storm. Everything else stays as it was.
   const climate = useClimate();
   const raining = climate === 'rain' || climate === 'storm';
   const [width, setWidth] = useState(360);
   useSkyClock();
-  const { cloudA, cloudB, cloudC, sun, birdA, birdB, flap, twinkleA, twinkleB, bob, shootA, shootB, shootC, rainA, rainB, flash } = sky;
+  const { cloudA, cloudB, cloudC, sun, birdA, birdB, flap, twinkleA, twinkleB, bob, shootA, shootB, shootC, rainA, rainB, rainC, rainD, rainE, rainF, flash } = sky;
   // One streak: it slides down and to the left while it fades in and out, and is invisible for the rest of its cycle.
   // Three of the night's stars break off and fall now and then (each starts exactly where its star hangs).
   const SHOOTERS = [
@@ -583,18 +603,45 @@ const WeatherAnimation: React.FC<{ hour: number }> = ({ hour }) => {
       <Animated.View style={[styles.cloud, { top: 62, opacity: cloudOpacity * 0.8 }, drift(cloudC)]}>
         <CloudArt width={44} />
       </Animated.View>
-      {/* rain: thin slanted drops falling in two sheets */}
+      {/* rain: streaks of different lengths falling at an angle in six sheets, each at its own speed (no grey veil over the band: its edge showed against the sky's gradient below it) */}
       {raining &&
-        RAIN_X.map((x, i) => {
-          const v = i % 2 ? rainA : rainB;
+        RAIN.map((d, i) => {
+          const v = [rainA, rainB, rainC, rainD, rainE, rainF][d.sheet];
+          const dx = (RAIN_FALL - d.from) * Math.tan((RAIN_TILT * Math.PI) / 180);
           return (
             <Animated.View
               key={`rain${i}`}
               pointerEvents="none"
-              style={[styles.drop, { left: `${x}%`, backgroundColor: period === 'night' ? 'rgba(160, 185, 230, 0.75)' : 'rgba(225, 240, 255, 0.85)', height: 5 + (i % 3) * 2, transform: [{ translateY: v.interpolate({ inputRange: [0, 1], outputRange: [-20 - (i % 4) * 14, 150] }) }, { rotate: '14deg' }] }]}
+              style={[
+                styles.drop,
+                {
+                  left: `${d.x}%`,
+                  width: d.width,
+                  height: d.length,
+                  backgroundColor: period === 'night' ? `rgba(170, 195, 240, ${d.alpha})` : `rgba(235, 245, 255, ${d.alpha})`,
+                  transform: [
+                    { translateY: v.interpolate({ inputRange: [0, 1], outputRange: [d.from, RAIN_FALL] }) },
+                    { translateX: v.interpolate({ inputRange: [0, 1], outputRange: [0, -dx] }) },
+                    { rotate: `${RAIN_TILT}deg` },
+                  ],
+                },
+              ]}
             />
           );
         })}
+      {/* The band's bottom edge: the last stretch shades into the colour the sheet under it starts with (the sky's bottom colour), whatever the weather has put on the sky,
+          so the two meet without a line. */}
+      {fadeBottom && (
+        <Svg style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: FADE_H }} width="100%" height={FADE_H} preserveAspectRatio="none" pointerEvents="none">
+          <Defs>
+            <LinearGradient id={`bandFade${period}`} x1="0" y1="0" x2="0" y2="1">
+              <Stop offset="0" stopColor={SKY_STOPS[period][2]} stopOpacity={0} />
+              <Stop offset="1" stopColor={SKY_STOPS[period][2]} stopOpacity={1} />
+            </LinearGradient>
+          </Defs>
+          <Rect x="0" y="0" width="100%" height={FADE_H} fill={`url(#bandFade${period})`} />
+        </Svg>
+      )}
       {/* a storm: now and then the whole sky flashes */}
       {climate === 'storm' && (
         <Animated.View

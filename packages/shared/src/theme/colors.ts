@@ -41,11 +41,11 @@ const dark = {
 export type Palette = typeof dark;
 
 const light: Palette = {
-  bgBody: '#f1f5f9',
+  bgBody: '#f0f0f0',
   bgCard: '#ffffff',
   bgCardHover: '#e2e8f0',
   bgDark: '#eef2f7',
-  sheetBg: '#f8fafc',
+  sheetBg: '#f7f7f7',
   mapBg: '#dbe4ee',
   barBg: 'rgba(255, 255, 255, 0.97)',
   cardGlass: 'rgba(255, 255, 255, 0.95)',
@@ -163,10 +163,10 @@ const reshapePickMe = <T extends object>(sheet: T): T => {
     if ('shadowColor' in st || 'elevation' in st) {
       const dark = current === 'dark';
       st.shadowColor = '#1f2937';
-      st.shadowOffset = { width: 0, height: 6 };
-      st.shadowOpacity = dark ? 0.4 : 0.1;
-      st.shadowRadius = 14;
-      st.elevation = 3;
+      st.shadowOffset = { width: 0, height: dark ? 8 : 3 };
+      st.shadowOpacity = dark ? 0.55 : 0.09;
+      st.shadowRadius = dark ? 18 : 12;
+      st.elevation = dark ? 5 : 3;
     }
     out[name] = st;
   }

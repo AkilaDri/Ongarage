@@ -14,6 +14,10 @@ export type Vehicle = {
   model?: string;
   color?: string;
   insuranceNo?: string;
+  /** What it runs on (a fuel or an electric vehicle): the stations and chargers list starts with matching filters. */
+  fuelType?: 'Petrol' | 'Diesel' | 'Hybrid' | 'Electric';
+  /** An electric vehicle's charging plug. */
+  connectorType?: 'Type 2' | 'CCS2' | 'CHAdeMO';
 };
 
 export type Garage = {

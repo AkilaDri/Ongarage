@@ -7,14 +7,24 @@ import { GarageTile } from '../components/home/GarageTile';
 import { GARAGE_INFO } from '../constants/home';
 import { CategoryPhoto } from '../components/home/CategoryPhoto';
 import { GoogleMap } from '@ongarage/shared';
-import { Icon } from '@ongarage/shared';
+import { Icon, Gradient } from '@ongarage/shared';
 import { useUserLocation } from '../context/LocationContext';
 import { useNotice } from '../context/NoticeContext';
 import { GarageReviewsSheet } from '../components/GarageReviewsSheet';
-import { directionsUrl, distanceKm } from '@ongarage/shared';
+import { AMENITIES, canBid, directionsUrl, distanceKm, FUEL_NAMES, filterDefaultsFor, filterPlaces, PLUG_TYPES, serviceModeOf, type Amenity, type Place, type PlaceFilter } from '@ongarage/shared';
+import { PlaceTile } from '../components/home/PlaceTile';
+import { PlaceSheet } from '../components/PlaceSheet';
+import { AMENITY_ICON, AMENITY_LABEL, placesOfCategory } from '../constants/places';
+import { useVehicles } from '../context/VehiclesContext';
 import type { Garage, LatLng, ServiceCategory } from '@ongarage/shared';
 
 const COLLAPSED_HEIGHT = 420;
+/** The blue of the Free Quotes banner on Home. */
+const QUOTE_GRADIENT = [
+  { offset: '0', color: '#2f5bd6' },
+  { offset: '0.5', color: '#1b3a96' },
+  { offset: '1', color: '#0b1c52' },
+];
 /** The search range the bar over the map covers (km), in half-km steps. */
 const RADIUS_MIN = 0.5;
 const RADIUS_MAX = 10;
@@ -31,16 +41,25 @@ interface ServiceBrowseScreenProps {
   onBook: (garage: Garage, back?: () => void) => void;
   /** Ask every nearby garage for bids on this service (shown only in the search-first Home). */
   onPostJob?: (categoryId: string) => void;
+  /** The owner's active vehicle: stations and chargers start with filters that suit it (its fuel, or an electric one's plug). */
+  vehicleId?: string;
   /** A sub-service to start on (a suggested job from Home). */
   initialSub?: string;
 }
 
-export const ServiceBrowseScreen: React.FC<ServiceBrowseScreenProps> = ({ service, onClose, onBook, initialSub, onPostJob }) => {
+export const ServiceBrowseScreen: React.FC<ServiceBrowseScreenProps> = ({ service, onClose, onBook, initialSub, onPostJob, vehicleId }) => {
   const [searchText, setSearchText] = useState('');
   // A garage touched on the map: it is picked (its pin lights up and its card comes first in the list) until it is touched again or cleared.
   const [pickedId, setPickedId] = useState<string | null>(null);
   // Only the garages that have an offer running (the tag on their photo: a free check, 10% off the first service, ...).
   const [listMode, setListMode] = useState<'all' | 'offers' | 'top'>('all');
+  // The filters of the stations / chargers list; they start from what the active vehicle suggests (its fuel, or an electric one's plug) and the owner can clear them.
+  const { vehicles } = useVehicles();
+  const activeVehicle = vehicles.find((v) => v.id === vehicleId);
+  const [pf, setPf] = useState<PlaceFilter>(() => filterDefaultsFor(activeVehicle, service.id === '16' ? 'fuel' : 'ev'));
+  const [detailPlace, setDetailPlace] = useState<(Place & { distance: number }) | null>(null);
+  const togglePf = <K extends keyof PlaceFilter>(key: K, value: PlaceFilter[K]) => setPf((cur) => ({ ...cur, [key]: cur[key] === value ? undefined : value }));
+  const toggleAmenity = (a: Amenity) => setPf((cur) => ({ ...cur, amenities: cur.amenities?.includes(a) ? cur.amenities.filter((x) => x !== a) : [...(cur.amenities ?? []), a] }));
   const [reviewsFor, setReviewsFor] = useState<Garage | null>(null);
   const { notify } = useNotice();
   // The sub-service chips: they slide in sideways whenever the category changes, and drift along the row by themselves (like the suggested services on
@@ -272,8 +291,9 @@ export const ServiceBrowseScreen: React.FC<ServiceBrowseScreenProps> = ({ servic
   // (down to a minimum) instead of running under the sheet; the bar's bottom stays a little above the sheet's top edge.
   const sheetTopY = (mapHeight || 700) - peekHeight;
   const BAR_CHROME = 76;
-  const barTrackH = Math.min(150, Math.max(70, sheetTopY - 14 - 150 - BAR_CHROME));
-  const barTop = Math.max(150, sheetTopY - 14 - (barTrackH + BAR_CHROME)) - 108;
+  const LOC_ROOM = 52; // the my-location button under the bar
+  const barTrackH = Math.min(150, Math.max(70, sheetTopY - 14 - LOC_ROOM - 150 - BAR_CHROME));
+  const barTop = Math.max(150, sheetTopY - 14 - LOC_ROOM - (barTrackH + BAR_CHROME)) - 108;
   const query = searchText.trim().toLowerCase();
   const found = MOCK_GARAGES.filter(
     (g) => !query || g.name.toLowerCase().includes(query) || g.specialization.toLowerCase().includes(query)
@@ -289,6 +309,27 @@ export const ServiceBrowseScreen: React.FC<ServiceBrowseScreenProps> = ({ servic
   const openCount = garages.filter((g) => g.status === 'open').length;
   const pickedGarage = pickedId ? garages.find((g) => g.id === pickedId) : undefined;
   const shownGarages = pickedGarage ? [pickedGarage, ...garages.filter((g) => g.id !== pickedGarage.id)] : garages;
+  // How the picked service works (service mode): a fuel station or an EV charging point is a place (nearest first, navigate or call; no bids, no booking of garages),
+  // the rest are garages. The sub-service chips then filter the places (Petrol, Diesel ... / AC Charging Port, DC Fast Charging).
+  const activeSub = service.subcategories[selectedSub];
+  const mode = serviceModeOf(service.id, activeSub);
+  const placeMode = mode === 'place';
+  const kind = service.id === '16' ? 'fuel' : 'ev';
+  const placesFound = placeMode
+    ? placesOfCategory(service.id)
+        .filter((p) => !query || p.name.toLowerCase().includes(query) || p.brand.toLowerCase().includes(query))
+        .filter((p) => p.services.includes(activeSub))
+        .map((p) => ({ ...p, distance: Number(distanceKm(center, p.coords).toFixed(1)) }))
+        .filter((p) => p.distance <= radiusKm)
+        .sort((a, b) => a.distance - b.distance)
+    : [];
+  const placesList = filterPlaces(placesFound, pf) as typeof placesFound;
+  const pickedPlace = pickedId ? placesList.find((p) => p.id === pickedId) : undefined;
+  const shownPlaces = pickedPlace ? [pickedPlace, ...placesList.filter((p) => p.id !== pickedPlace.id)] : placesList;
+  const placeOpenCount = placesList.filter((p) => p.open).length;
+  const pins = placeMode
+    ? shownPlaces.map((p) => ({ id: p.id, name: p.name, coords: p.coords, open: p.open, label: `${service.icon} ${p.brand}` }))
+    : garages.map((g) => ({ id: g.id, name: g.name, coords: g.coords, open: g.status === 'open', label: `${service.icon} ${g.name.split(' ')[0]}` }));
   const pickGarage = (id: string) => {
     setPickedId((cur) => (cur === id ? null : id));
     // Bring its card into view: the sheet leaves its small peek and shows the list from the top.
@@ -315,7 +356,7 @@ export const ServiceBrowseScreen: React.FC<ServiceBrowseScreenProps> = ({ servic
           onPressCoordinate={pickMode ? (c) => { setOrigin(c); setPickMode(false); } : undefined}
           renderOverlay={(project) => (
             <>
-              {garages.map((g) => {
+              {pins.map((g) => {
                 const p = project(g.coords);
                 return p ? (
                   <Pressable
@@ -326,13 +367,11 @@ export const ServiceBrowseScreen: React.FC<ServiceBrowseScreenProps> = ({ servic
                     accessibilityLabel={`Select ${g.name}`}
                     accessibilityState={{ selected: pickedId === g.id }}
                   >
-                    <Text style={[styles.mapPinText, pickedId === g.id && styles.mapPinTextPicked]}>
-                      {service.icon} {g.name.split(' ')[0]}
-                    </Text>
-                    {/* The pointer under the label: its tip is the garage's exact spot on the map. */}
+                    <Text style={[styles.mapPinText, pickedId === g.id && styles.mapPinTextPicked]}>{g.label}</Text>
+                    {/* The pointer under the label: its tip is the exact spot on the map. */}
                     <View style={[styles.pinTip, pickedId === g.id && styles.pinTipPicked]} pointerEvents="none" />
-                    {/* A small dot in the pin's top right corner: green when the garage is open now, red when it is closed. */}
-                    <View style={[styles.pinDot, g.status === 'open' ? styles.pinTagOpen : styles.pinTagClosed]} accessibilityLabel={g.status === 'open' ? 'Open now' : 'Closed'} />
+                    {/* A small dot in the pin's top right corner: green when it is open now, red when it is closed. */}
+                    <View style={[styles.pinDot, g.open ? styles.pinTagOpen : styles.pinTagClosed]} accessibilityLabel={g.open ? 'Open now' : 'Closed'} />
                   </Pressable>
                 ) : null;
               })}
@@ -371,6 +410,46 @@ export const ServiceBrowseScreen: React.FC<ServiceBrowseScreenProps> = ({ servic
           </View>
         </Animated.View>
 
+        {/* The sub-services of the picked service (they slide by themselves to show there are more) float over the map right under the search bar, and fade out with it. */}
+        <Animated.View
+          style={[styles.subFloat, { opacity: sheetHeight.interpolate({ inputRange: [collapsedHeight, collapsedHeight + 70], outputRange: [1, 0], extrapolate: 'clamp' }) }]}
+          pointerEvents={sheet === 'expanded' ? 'none' : 'box-none'}
+        >
+          <Animated.View style={{ opacity: subIn, transform: [{ translateX: subIn.interpolate({ inputRange: [0, 1], outputRange: [60, 0] }) }] }}>
+            <ScrollView
+              ref={subRef}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.subScroll}
+              contentContainerStyle={styles.subRow}
+              scrollEventThrottle={32}
+              onLayout={(e) => (subDims.current.view = e.nativeEvent.layout.width)}
+              onContentSizeChange={(w) => (subDims.current.content = w)}
+              onScroll={(e) => (subDims.current.x = e.nativeEvent.contentOffset.x)}
+              onScrollBeginDrag={() => (subDims.current.pausedUntil = Date.now() + 10000)}
+            >
+              {service.subcategories.map((sub, i) => {
+                const active = i === selectedSub;
+                return (
+                  <Pressable
+                    key={sub}
+                    style={[styles.subChip, { backgroundColor: active ? service.color : '#ffffff', borderColor: active ? service.color : service.color + '8c' }]}
+                    onPress={() => {
+                      subDims.current.pausedUntil = Date.now() + 10000;
+                      setSelectedSub(i);
+                    }}
+                    accessibilityLabel={`Sub service ${sub}`}
+                    accessibilityState={{ selected: active }}
+                  >
+                    <CategoryPhoto categoryId={service.id} size={22} />
+                    <Text style={[styles.subChipText, styles.subChipTextMap, active && styles.subChipTextActive]}>{sub}</Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          </Animated.View>
+        </Animated.View>
+
         {/* Over the map: the range bar (drag it to change how far garages are searched) and the choice of where to search from. They fade out with the search bar. */}
         <Animated.View style={[styles.mapControls, { opacity: sheetHeight.interpolate({ inputRange: [collapsedHeight, collapsedHeight + 70], outputRange: [1, 0], extrapolate: 'clamp' }) }]} pointerEvents="box-none">
           {/* Sits at the very bottom of the map, just above the peeking sheet. */}
@@ -388,6 +467,31 @@ export const ServiceBrowseScreen: React.FC<ServiceBrowseScreenProps> = ({ servic
               <View style={styles.rangeTouch} {...radiusPan.panHandlers} accessibilityLabel="Search range" accessibilityRole="adjustable" />
             </View>
           </Animated.View>
+          {/* My location: a round button directly under the range bar, drawn as the blue "you are here" dot with its soft halo (grey once another spot has been
+              picked). It brings the search back to where the owner is. */}
+          <Animated.View
+            style={[styles.myLoc, { top: barTop + barTrackH + BAR_CHROME + 10, opacity: sheetHeight.interpolate({ inputRange: [peekHeight, peekHeight + 40], outputRange: [1, 0], extrapolate: 'clamp' }) }]}
+            pointerEvents={sheet === 'peek' ? 'auto' : 'none'}
+          >
+            <Pressable
+              style={styles.myLocBtn}
+              onPress={() => {
+                setOrigin(null);
+                setPickMode(false);
+              }}
+              accessibilityLabel="My location"
+              accessibilityState={{ selected: !origin }}
+            >
+              <View style={[styles.locHalo, origin ? styles.locHaloOff : styles.locHaloOn]}>
+                <View style={[styles.locCore, origin ? styles.locCoreOff : styles.locCoreOn]} />
+              </View>
+            </Pressable>
+          </Animated.View>
+          {/* How many of these (garages, stations or chargers) are open right now, in the map's top right corner. */}
+          <View style={styles.mapOpen} pointerEvents="none" accessibilityLabel={`${placeMode ? placeOpenCount : openCount} open`}>
+            <View style={styles.openDot} />
+            <Text style={styles.openStickerText}>විවෘත {placeMode ? placeOpenCount : openCount}</Text>
+          </View>
           <View style={styles.spotRow}>
             <Pressable style={[styles.spotChip, pickMode && styles.spotChipOn]} onPress={() => setPickMode((m) => !m)} accessibilityLabel="Pick the search location on the map">
               <Text style={[styles.spotChipText, pickMode && styles.spotChipTextOn]}>{pickMode ? 'සිතියමේ ස්ථානයක් ඔබන්න…' : '📍 ස්ථානය තෝරන්න'}</Text>
@@ -415,17 +519,24 @@ export const ServiceBrowseScreen: React.FC<ServiceBrowseScreenProps> = ({ servic
           </Pressable>
 
           <View style={styles.sheetHeader}>
-            <Pressable style={styles.sheetTitleRow} onPress={() => sheet === 'peek' && animateTo('collapsed')}>
-              {/* The category's own artwork, the same picture as its tile on Home. */}
-              <CategoryPhoto categoryId={service.id} size={34} />
-              <Text style={styles.sheetTitle}>{service.name}</Text>
-            </Pressable>
+            <View style={styles.headerLeft}>
+              <Pressable style={styles.sheetTitleRow} onPress={() => sheet === 'peek' && animateTo('collapsed')}>
+                {/* The category's own artwork, the same picture as its tile on Home. */}
+                <CategoryPhoto categoryId={service.id} size={34} />
+                <Text style={styles.sheetTitle} numberOfLines={1}>{service.name}</Text>
+              </Pressable>
+            </View>
             <View style={styles.headerRight}>
-              {/* A sticker with how many of these garages are open right now, always in the sheet's header bar. */}
-              <View style={styles.openSticker} accessibilityLabel={`${openCount} garages open`}>
-                <View style={styles.openDot} />
-                <Text style={styles.openStickerText}>විවෘත {openCount}</Text>
-              </View>
+              {/* Free quote: the same look as the Free Quotes banner on Home (the blue card with the white ＋), asking every nearby garage for bids on this service. */}
+              {!!onPostJob && canBid(service.id, activeSub) && (
+                <Pressable style={[styles.freeQuote, styles.freeQuoteHead]} onPress={() => onPostJob(service.id)} accessibilityLabel="Ask all garages for bids">
+                  <Gradient stops={QUOTE_GRADIENT} />
+                  <Text style={styles.freeQuoteText}>Free Quote</Text>
+                  <View style={styles.freeQuotePlus}>
+                    <Text style={styles.freeQuotePlusText}>＋</Text>
+                  </View>
+                </Pressable>
+              )}
               {sheet === 'expanded' && (
                 <Pressable
                   style={({ pressed }) => [styles.sheetClose, styles.sheetMinimize, pressed && styles.sheetClosePressed]}
@@ -440,63 +551,79 @@ export const ServiceBrowseScreen: React.FC<ServiceBrowseScreenProps> = ({ servic
           </View>
 
           {/* Every garage, or only the ones that have an offer: above the sub-category filters. */}
-          <View style={styles.offerRow}>
-            {(
-              [
-                ['all', `සියලු ගරාජ ${found.length}`, 'All garages'],
-                ['offers', `🏷️ දීමනා ඇති ${withOffers.length}`, 'Garages with offers'],
-                ['top', `⭐ Top Rated ${topRated.length}`, 'Top rated garages'],
-              ] as const
-            ).map(([id, label, a11y]) => (
-              <Pressable key={id} style={[styles.offerChip, listMode === id && styles.offerChipOn]} onPress={() => setListMode(id)} accessibilityLabel={a11y} accessibilityState={{ selected: listMode === id }}>
-                <Text style={[styles.offerChipText, listMode === id && styles.offerChipTextOn]}>{label}</Text>
-              </Pressable>
-            ))}
-            {!!onPostJob && (
-              <Pressable style={[styles.offerChip, styles.bidChip]} onPress={() => onPostJob(service.id)} accessibilityLabel="Ask all garages for bids">
-                <Text style={[styles.offerChipText, styles.bidChipText]}>＋ සියල්ලන්ගෙන් ලංසු</Text>
-              </Pressable>
-            )}
-            {pickedGarage && (
-              <Pressable style={styles.offerChip} onPress={() => setPickedId(null)} accessibilityLabel="Clear the selected garage">
-                <Text style={styles.offerChipText}>තෝරාගත් ගරාජය ඉහළින් · ✕</Text>
-              </Pressable>
-            )}
-          </View>
-
-          <Animated.View style={{ opacity: subIn, transform: [{ translateX: subIn.interpolate({ inputRange: [0, 1], outputRange: [60, 0] }) }] }}>
-          <ScrollView
-            ref={subRef}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.subScroll}
-            contentContainerStyle={styles.subRow}
-            scrollEventThrottle={32}
-            onLayout={(e) => (subDims.current.view = e.nativeEvent.layout.width)}
-            onContentSizeChange={(w) => (subDims.current.content = w)}
-            onScroll={(e) => (subDims.current.x = e.nativeEvent.contentOffset.x)}
-            onScrollBeginDrag={() => (subDims.current.pausedUntil = Date.now() + 10000)}
-          >
-            {service.subcategories.map((sub, i) => {
-              const active = i === selectedSub;
-              return (
-                <Pressable
-                  key={sub}
-                  style={[styles.subChip, { backgroundColor: active ? service.color : service.color + '26', borderColor: active ? service.color : service.color + '8c' }]}
-                  onPress={() => {
-                    subDims.current.pausedUntil = Date.now() + 10000;
-                    setSelectedSub(i);
-                  }}
-                  accessibilityLabel={`Sub service ${sub}`}
-                  accessibilityState={{ selected: active }}
-                >
-                  <CategoryPhoto categoryId={service.id} size={22} />
-                  <Text style={[styles.subChipText, active && styles.subChipTextActive]}>{sub}</Text>
+          {placeMode ? (
+            <>
+              <View style={styles.offerRow}>
+                {(
+                  [
+                    ['all', `සියලු ${placesFound.length}`, 'All places', !pf.open && !pf.open24 && !pf.freeNow, () => setPf((cur) => ({ ...cur, open: undefined, open24: undefined, freeNow: undefined }))],
+                    ['open', `🟢 දැන් විවෘත ${filterPlaces(placesFound, { open: true }).length}`, 'Open places', !!pf.open, () => togglePf('open', true)],
+                    ['special', kind === 'fuel' ? `🌙 24/7 ${filterPlaces(placesFound, { open24: true }).length}` : `🟢 නිදහස් ${filterPlaces(placesFound, { freeNow: true }).length}`, kind === 'fuel' ? 'Open all day' : 'Free chargers now', kind === 'fuel' ? !!pf.open24 : !!pf.freeNow, () => (kind === 'fuel' ? togglePf('open24', true) : togglePf('freeNow', true))],
+                  ] as const
+                ).map(([id, label, a11y, on, press]) => (
+                  <Pressable key={id} style={[styles.offerChip, on && styles.offerChipOn]} onPress={press} accessibilityLabel={a11y} accessibilityState={{ selected: on }}>
+                    <Text style={[styles.offerChipText, on && styles.offerChipTextOn]} numberOfLines={1}>
+                      {label}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+              {/* The finer filters, sliding sideways: fuel type (or plug and speed) and the facilities. The ones picked come first, side by side at the start of the row,
+                  and the rest follow in their usual order. */}
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll} contentContainerStyle={styles.filterRow}>
+                {(() => {
+                  type FilterChip = { key: string; label: string; a11y: string; on: boolean; press: () => void };
+                  const chips: FilterChip[] =
+                    kind === 'fuel'
+                      ? FUEL_NAMES.map((n) => ({ key: `fuel-${n}`, label: `⛽ ${n}`, a11y: `Fuel ${n}`, on: pf.fuel === n, press: () => togglePf('fuel', n) }))
+                      : [
+                          ...PLUG_TYPES.map((n) => ({ key: `plug-${n}`, label: `🔌 ${n}`, a11y: `Plug ${n}`, on: pf.plug === n, press: () => togglePf('plug', n) })),
+                          { key: 'speed-fast', label: '⚡ වේගවත් 50kW+', a11y: 'Fast chargers', on: pf.speed === 'fast', press: () => togglePf('speed', 'fast') },
+                          { key: 'speed-slow', label: '🐢 මන්දගාමී', a11y: 'Slow chargers', on: pf.speed === 'slow', press: () => togglePf('speed', 'slow') },
+                        ];
+                  AMENITIES.forEach((am) => chips.push({ key: `amenity-${am}`, label: `${AMENITY_ICON[am]} ${AMENITY_LABEL[am]}`, a11y: `Facility ${am}`, on: !!pf.amenities?.includes(am), press: () => toggleAmenity(am) }));
+                  // Picked ones first (the sort keeps the order of the rest).
+                  return [...chips.filter((c) => c.on), ...chips.filter((c) => !c.on)].map((c) => (
+                    <Pressable key={c.key} style={[styles.fChip, c.on && styles.fChipOn]} onPress={c.press} accessibilityLabel={c.a11y} accessibilityState={{ selected: c.on }}>
+                      <Text style={[styles.fChipText, c.on && styles.fChipTextOn]}>{c.label}</Text>
+                      {/* A picked chip carries a small round plus tag on its top corner. */}
+                      {c.on && (
+                        <View style={styles.fChipTag} pointerEvents="none">
+                          <Text style={styles.fChipTagText}>＋</Text>
+                        </View>
+                      )}
+                    </Pressable>
+                  ));
+                })()}
+              </ScrollView>
+            </>
+          ) : (
+            <View style={styles.offerRow}>
+              {(
+                [
+                  ['all', `සියලු ගරාජ ${found.length}`, 'All garages'],
+                  ['offers', `🏷️ දීමනා ඇති ${withOffers.length}`, 'Garages with offers'],
+                  ['top', `⭐ Top Rated ${topRated.length}`, 'Top rated garages'],
+                ] as const
+              ).map(([id, label, a11y]) => (
+                <Pressable key={id} style={[styles.offerChip, listMode === id && styles.offerChipOn]} onPress={() => setListMode(id)} accessibilityLabel={a11y} accessibilityState={{ selected: listMode === id }}>
+                  <Text style={[styles.offerChipText, listMode === id && styles.offerChipTextOn]} numberOfLines={1}>
+                    {label}
+                  </Text>
                 </Pressable>
-              );
-            })}
-          </ScrollView>
-          </Animated.View>
+              ))}
+            </View>
+          )}
+          {/* Once a garage is picked, the "picked garage first" tag (the Free Quote tag is up in the header, beside the category name). */}
+          {(!!pickedGarage || !!pickedPlace) && (
+            <View style={styles.tagRow}>
+            {(pickedGarage || pickedPlace) && (
+              <Pressable style={styles.pickedChip} onPress={() => setPickedId(null)} accessibilityLabel="Clear the selected garage">
+                <Text style={styles.offerChipText}>{placeMode ? 'තෝරාගත් ස්ථානය ඉහළින් · ✕' : 'තෝරාගත් ගරාජය ඉහළින් · ✕'}</Text>
+              </Pressable>
+            )}
+            </View>
+          )}
 
           {/* No "Top Rated / N garages found" row any more. This empty marker still tells the sheet how tall its folded (peek) state is: down to here. */}
           <View style={styles.peekEnd} onLayout={(e) => setPeekHeight(Math.round(e.nativeEvent.layout.y + e.nativeEvent.layout.height + 14))} />
@@ -518,21 +645,24 @@ export const ServiceBrowseScreen: React.FC<ServiceBrowseScreenProps> = ({ servic
               if (listY.current > 2 && sheetRef.current !== 'expanded' && Date.now() - lastSnap.current > 700) animateTo('expanded');
             }}
           >
-            {shownGarages.map((g) => (
+            {placeMode
+              ? shownPlaces.map((p) => <PlaceTile key={p.id} place={p} distance={p.distance} from={user.coords} picked={pickedId === p.id} onPress={() => setDetailPlace(p)} />)
+              : shownGarages.map((g) => (
               <GarageTile
-                key={g.id}
-                garage={g}
-                width="100%"
-                showStatus
-                showDetails
-                categoryId={service.id}
-                onOpen={() => setReviewsFor(g)}
-                onSaveChange={(saved) => notify({ icon: saved ? '♥' : '♡', title: saved ? 'සුරැකි ගරාජ වලට එක් කළා' : 'සුරැකි ලැයිස්තුවෙන් ඉවත් කළා', body: g.name, tone: 'primary' })}
-              />
-            ))}
+                    key={g.id}
+                    garage={g}
+                    width="100%"
+                    showStatus
+                    showDetails
+                    categoryId={service.id}
+                    onOpen={() => setReviewsFor(g)}
+                    onSaveChange={(saved) => notify({ icon: saved ? '♥' : '♡', title: saved ? 'සුරැකි ගරාජ වලට එක් කළා' : 'සුරැකි ලැයිස්තුවෙන් ඉවත් කළා', body: g.name, tone: 'primary' })}
+                  />
+                ))}
           </Animated.ScrollView>
         </Animated.View>
       </View>
+      <PlaceSheet place={detailPlace} distance={detailPlace?.distance} from={user.coords} onClose={() => setDetailPlace(null)} />
       <GarageReviewsSheet
         garage={reviewsFor}
         inquiryCategoryId={service.id}
@@ -645,7 +775,7 @@ const styles = themedStyles(() => StyleSheet.create({
   },
   handleHitArea: { alignSelf: 'center', marginBottom: -2, flexShrink: 0, paddingVertical: 2 },
   // No background: just the dot and the words on the map (light words with a soft shadow so they read on any map).
-  mapControls: { position: 'absolute', top: 108, left: 14, right: 14, zIndex: 3, gap: 8 },
+  mapControls: { position: 'absolute', top: 116, left: 14, right: 14, zIndex: 3, gap: 8 },
   // A vertical bar on the right side of the map: the km value on top, the track below it (top = widest range). No fill, only an outline round it.
   rangeBar: { position: 'absolute', right: 0, top: 96, width: 42, alignItems: 'center', paddingVertical: 10, borderRadius: 14, borderWidth: 1.5, borderColor: 'rgba(255, 255, 255, 0.85)' },
   rangeLabel: { fontSize: 12.5, fontFamily: FONTS.bodyBold, color: '#ffffff', textShadowColor: 'rgba(0, 0, 0, 0.6)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 3 },
@@ -656,6 +786,20 @@ const styles = themedStyles(() => StyleSheet.create({
   rangeThumb: { position: 'absolute', width: 20, height: 20, borderRadius: 10, marginBottom: -10, backgroundColor: '#ffffff', borderWidth: 3, borderColor: '#1a73e8', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 4, elevation: 4 },
   rangeTouch: { ...StyleSheet.absoluteFill, ...(Platform.OS === 'web' ? ({ touchAction: 'none', cursor: 'pointer' } as object) : null) },
   spotRow: { flexDirection: 'row', gap: 8, paddingRight: 52 },
+  // The my-location button, under the range bar: a white disc as wide as the bar with the blue "you are here" dot (a soft halo round a dot with a white rim).
+  myLoc: { position: 'absolute', right: 0 },
+  // The garage filter chips: in a row at the left, ending before the my-location button.
+  garageFilters: { position: 'absolute', left: 14, right: 80, zIndex: 5 },
+  garageFilterScroll: { flexGrow: 0 },
+  garageFilterRow: { gap: 6, alignItems: 'center', paddingRight: 8, paddingBottom: 6 },
+  garageChip: { paddingHorizontal: 10 },
+  myLocBtn: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center', backgroundColor: '#ffffff', shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 5 },
+  locHalo: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  locHaloOn: { backgroundColor: 'rgba(26, 115, 232, 0.22)' },
+  locHaloOff: { backgroundColor: 'rgba(60, 64, 67, 0.16)' },
+  locCore: { width: 14, height: 14, borderRadius: 7, borderWidth: 2.5, borderColor: '#ffffff', shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.35, shadowRadius: 2, elevation: 2 },
+  locCoreOn: { backgroundColor: '#1a73e8' },
+  locCoreOff: { backgroundColor: '#5f6368' },
   spotChip: { alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 7, borderRadius: 8, backgroundColor: '#ffffff', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 6, elevation: 3 },
   spotChipOn: { backgroundColor: '#1a73e8' },
   spotChipText: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: '#0f2a3d' },
@@ -667,15 +811,33 @@ const styles = themedStyles(() => StyleSheet.create({
   handleArrow: { alignSelf: 'center', paddingVertical: 1, transform: [{ rotate: '180deg' }] },
   handleBar: { width: 36, height: 4, borderRadius: 2, backgroundColor: Colors.subtleBorder },
   // Fixed height so the row does not jump when the minimize button appears.
-  sheetHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0, minHeight: 28, marginTop: -8 },
+  sheetHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0, minHeight: 28, marginTop: -16 },
   peekEnd: { height: 0, marginTop: -9 },
-  offerRow: { flexWrap: 'wrap', flexDirection: 'row', gap: 6, paddingBottom: 0 },
-  bidChip: { backgroundColor: '#1b3a96', borderColor: '#1b3a96' },
-  bidChipText: { color: '#ffffff' },
-  offerChip: { paddingHorizontal: 12, height: 28, borderRadius: 15, justifyContent: 'center', borderWidth: 1, borderColor: Colors.borderColor, backgroundColor: Colors.bgCard },
+  // The three filters fill the bar between them, the same width each.
+  offerRow: { flexDirection: 'row', gap: 8, paddingBottom: 0 },
+  filterScroll: { flexGrow: 0, flexShrink: 0, marginTop: -7 },
+  filterRow: { gap: 6, paddingRight: 12, paddingTop: 7 },
+  fChipTag: { position: 'absolute', top: -6, right: -4, width: 17, height: 17, borderRadius: 9, alignItems: 'center', justifyContent: 'center', backgroundColor: '#1a73e8', borderWidth: 1.5, borderColor: Colors.sheetBg },
+  fChipTagText: { fontSize: 12, lineHeight: 14, color: '#ffffff', fontFamily: FONTS.bodyBold, marginTop: -1 },
+  fChip: { paddingHorizontal: 12, height: 30, borderRadius: 15, justifyContent: 'center', borderWidth: 1, borderColor: Colors.borderColor, backgroundColor: Colors.bgCard },
+  fChipOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe', borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#d2e3fc' },
+  fChipText: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
+  fChipTextOn: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
+  offerChip: { flex: 1, height: 38, paddingHorizontal: 6, borderRadius: 19, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: Colors.borderColor, backgroundColor: Colors.bgCard },
+  tagRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8 },
+  pickedChip: { alignSelf: 'center', paddingHorizontal: 12, height: 28, borderRadius: 15, justifyContent: 'center', borderWidth: 1, borderColor: Colors.borderColor, backgroundColor: Colors.bgCard },
+  // Tag-sized: it is only as wide as its words and the little white circle.
+  freeQuote: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4, paddingLeft: 14, paddingRight: 5, borderRadius: 16, overflow: 'hidden', backgroundColor: '#1b3a96' },
+  freeQuoteText: { fontSize: 12.5, fontFamily: FONTS.titleBold, color: '#ffffff', letterSpacing: 0.2 },
+  freeQuotePlus: { width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: '#ffffff' },
+  freeQuotePlusText: { fontSize: 17, lineHeight: 19, color: '#1b3a96', fontFamily: FONTS.bodyBold, marginTop: -1 },
   offerChipOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe', borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#d2e3fc' },
-  offerChipText: { fontSize: 12, fontWeight: '700', color: Colors.textMuted },
+  offerChipText: { fontSize: 12.5, fontWeight: '700', color: Colors.textMuted },
   offerChipTextOn: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
+  // The open count over the map, with no background of its own, at the right end of the line of the location chip.
+  mapOpen: { position: 'absolute', right: 0, top: 0, flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 6, backgroundColor: 'transparent' },
+  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 },
+  freeQuoteHead: { alignSelf: 'center', gap: 6, paddingLeft: 10 },
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   openSticker: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, height: 26, borderRadius: 13, backgroundColor: getThemeMode() === 'dark' ? 'rgba(129, 201, 149, 0.18)' : '#e6f4ea' },
   openDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#16a34a' },
@@ -695,8 +857,12 @@ const styles = themedStyles(() => StyleSheet.create({
   },
   sheetMinimize: { backgroundColor: 'rgba(56, 189, 248, 0.12)', borderColor: 'rgba(56, 189, 248, 0.45)' },
   sheetClosePressed: { transform: [{ scale: 0.9 }] },
+  // The sub-service chips float over the map right under the search bar; the spot chip and the controls below start a little lower to make room.
+  // Full width, so the chips slide edge to edge of the screen (the row's side margins are padding inside the scroller, not a clipping edge).
+  subFloat: { position: 'absolute', top: 70, left: 0, right: 0, zIndex: 4 },
+  subChipTextMap: { color: '#0f2a3d' },
   subScroll: { flexGrow: 0, flexShrink: 0 },
-  subRow: { gap: 6, paddingBottom: 0 },
+  subRow: { gap: 6, paddingBottom: 0, paddingHorizontal: 14 },
   // Each chip takes its category's colour (a tint, with a border of the same colour); the picked one is filled with it. Same look as the suggested services on Home.
   subChip: { flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, paddingLeft: 8, paddingRight: 12, height: 34, borderRadius: 17 },
   subChipText: { fontSize: 11.5, fontWeight: '700', color: Colors.textMain },

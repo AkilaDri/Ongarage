@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { ActionButton, categoryInfo, Colors, FONTS, GlassIcon, themedStyles, type VoiceNote } from '@ongarage/shared';
+import { ActionButton, categoryInfo, Colors, garageSubServices, FONTS, GlassIcon, themedStyles, type VoiceNote } from '@ongarage/shared';
 import { MediaAttachments } from './MediaAttachments';
 import { useVehicles } from '../context/VehiclesContext';
 import { Sheet } from './Sheet';
@@ -62,6 +62,7 @@ export const InquirySheet: React.FC<{ visible: boolean; garageName: string; cate
 
       <Text style={styles.label}>සේවාව</Text>
       <CategoryStrip
+        include={(id) => garageSubServices(id).length > 0}
         selectedId={categoryId}
         onSelect={(c) => {
           setCategoryId(c.id);
@@ -69,7 +70,7 @@ export const InquirySheet: React.FC<{ visible: boolean; garageName: string; cate
         }}
       />
       <View style={styles.chips}>
-        {cat.subcategories.map((s) => (
+        {garageSubServices(categoryId).map((s) => (
           <Chip key={s} label={s} on={service === s} onPress={() => setService((x) => (x === s ? undefined : s))} small color={cat.color} />
         ))}
       </View>

@@ -1,6 +1,6 @@
 import { LkPlate, VehicleIcon3D } from '@ongarage/shared';
 import { elevation1, outline, pageBg } from '../utils/material';
-import { useHeaderCollapse } from '../utils/headerCollapse';
+import { PAGE_TITLE_H } from '../constants/layout';
 import React, { useRef, useState } from 'react';
 import { Image, ImageBackground, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Colors, FONTS, getThemeMode, Gradient, ThemeToggle, themedStyles, useTheme } from '@ongarage/shared';
@@ -35,7 +35,6 @@ type SheetId = 'settings' | 'help' | 'about' | null;
 
 /** The account page: who you are (tap to edit), how complete the profile is, your vehicles, then a list of rows. */
 export const ProfileScreen: React.FC<ProfileScreenProps> = ({ activeVehicle, onVehicleChange, onHeaderProgress }) => {
-  const collapse = useHeaderCollapse(onHeaderProgress);
   const { isDark, toggle } = useTheme();
   const { lang, setLang } = useLang();
   const { profile, fullName, initials } = useProfile();
@@ -73,8 +72,9 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ activeVehicle, onV
         scrollEventThrottle={16}
         onScroll={(e) => {
           const y = e.nativeEvent.contentOffset.y;
-          // The band folds away as the page scrolls up, and comes back when it scrolls down (steady scrolling only, so the page does not shake).
-          collapse(y);
+          // The title band folds away in step with the scroll (the first PAGE_TITLE_H px) and comes back the same way, straight from the offset: no thresholds or
+          // timers, so nothing shakes.
+          onHeaderProgress?.(Math.min(1, Math.max(0, y / PAGE_TITLE_H)));
         }}
       >
         {/* Who you are, like a Google account page: a big avatar, the name, the contact line and a "manage" button */}

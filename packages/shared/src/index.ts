@@ -27,6 +27,10 @@ export * from './ui/PartTypeChip';
 
 // Business rules every app agrees on (trust, levels, fair share, guarantee, closing codes).
 export * from './marketplace/trust';
+export * from './marketplace/places';
+export * from './marketplace/placeReports';
+export * from './marketplace/evBooking';
+export * from './marketplace/towing';
 export * from './marketplace/relationship';
 export * from './marketplace/levels';
 export * from './marketplace/fairness';

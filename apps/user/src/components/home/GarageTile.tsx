@@ -1,9 +1,11 @@
-import { outline } from '../../utils/material';
+import { cardGlow, outline } from '../../utils/material';
 import React, { useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Colors, FONTS, InfoChip, LEVELS, getThemeMode, marketPrice, themedStyles, type Garage } from '@ongarage/shared';
 import { garageProfileContent } from '../../constants/garageProfile';
 import { GARAGE_COVERS, GARAGE_INFO } from '../../constants/home';
+import { MakeLogo } from '../MakeLogo';
+import { BookedTag } from '../BookedTag';
 
 /**
  * A garage at a glance: one big photo, its name, and a single line of the details that
@@ -49,6 +51,7 @@ export const GarageTile: React.FC<{
             <Text style={styles.photoCountText}>📷 {content.gallery.length}</Text>
           </View>
         )}
+        <BookedTag garageId={g.id} style={[styles.booked, content && styles.bookedHigh]} />
         {showStatus && (
           <View style={styles.status} accessibilityLabel={g.status === 'open' ? 'Garage is online' : 'Garage is offline'}>
             <View style={[styles.statusDot, g.status === 'open' ? styles.dotOn : styles.dotOff]} />
@@ -80,9 +83,17 @@ export const GarageTile: React.FC<{
         {content && (
           <View style={styles.details}>
             <InfoChip text={today?.open ? `🕒 ${today.open}` : '🕒 අද වසා ඇත'} />
-            {!!info && <InfoChip text={`⚡ මිනි. ${info.replyMin} ඇතුළත පිළිතුරු`} />}
             {estimate !== undefined && <InfoChip text={`💰 ආසන්න මිල රු. ${estimate.toLocaleString()} සිට`} />}
-            {content.brands.length > 0 && <InfoChip text={`🚗 ${content.brands.slice(0, 3).join(' · ')}`} />}
+            {/* The makes the garage works on as their logos (a round badge each), not as words. */}
+            {content.brands.length > 0 && (
+              <View style={styles.logos} accessibilityLabel={`Works on ${content.brands.slice(0, 4).join(', ')}`}>
+                {content.brands.slice(0, 4).map((m) => (
+                  <View key={m} style={styles.logoBadge}>
+                    <MakeLogo make={m} size={18} />
+                  </View>
+                ))}
+              </View>
+            )}
             {content.emergency24 && <InfoChip text="🌙 24/7 හදිසි සේවාව" />}
           </View>
         )}
@@ -92,8 +103,7 @@ export const GarageTile: React.FC<{
 };
 
 // A stronger, softer shadow than the usual card one, so the garage cards stand clearly off the page.
-const cardShadow = () =>
-  ({ shadowColor: '#0f172a', shadowOffset: { width: 0, height: 6 }, shadowOpacity: getThemeMode() === 'dark' ? 0.6 : 0.22, shadowRadius: 14, elevation: 8 }) as const;
+const cardShadow = cardGlow;
 
 const styles = themedStyles(() =>
   StyleSheet.create({
@@ -116,8 +126,12 @@ const styles = themedStyles(() =>
     heart: { position: 'absolute', bottom: 8, right: 8, width: 30, height: 30, borderRadius: 15, backgroundColor: 'rgba(255, 255, 255, 0.85)', alignItems: 'center', justifyContent: 'center' },
     heartText: { fontSize: 16, color: '#334155', marginTop: -1 },
     heartOn: { color: '#f43f5e' },
+    booked: { position: 'absolute', left: 8, bottom: 8 },
+    bookedHigh: { bottom: 40 },
     photoCount: { position: 'absolute', left: 10, bottom: 10, paddingHorizontal: 9, height: 24, borderRadius: 12, justifyContent: 'center', backgroundColor: 'rgba(15, 23, 42, 0.62)' },
     photoCountText: { fontSize: 11, fontFamily: FONTS.bodyBold, color: '#ffffff' },
+    logos: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    logoBadge: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline() },
     details: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 },
     body: { paddingHorizontal: 14, paddingVertical: 12, gap: 4 },
     name: { fontSize: 15, fontFamily: FONTS.titleBold, color: Colors.textMain },

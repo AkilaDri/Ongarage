@@ -35,15 +35,18 @@ interface HomeScreenProps {
   onServicePress: (service: ServiceCategory, sub?: string) => void;
   onBookGarage: (garage: Garage, back?: () => void) => void;
   onScrollChange?: (scrollY: number) => void;
+  /** How far the page scrolls while the banners above fold and the sheet rises (the page holds its content back by this much, so all of it moves with the finger). */
+  collapsePx?: number;
 }
 
-export const HomeScreen: React.FC<HomeScreenProps> = ({ onSOSPress, onPostJob, onServicePress, onBookGarage, onScrollChange }) => {
+export const HomeScreen: React.FC<HomeScreenProps> = ({ onSOSPress, onPostJob, onServicePress, onBookGarage, onScrollChange, collapsePx = 0 }) => {
   const user = useUserLocation();
   const [allServices, setAllServices] = useState(false);
   const { notify } = useNotice();
   // Where the ads sit in the scroll content; the edge shadow fades in once they have reached the top and are pinned.
   const adsY = useRef(0);
   const edge = useRef(new Animated.Value(0)).current;
+  const scrollAnim = useRef(new Animated.Value(0)).current;
   const [list, setList] = useState<{ title: string; garages: Garage[]; ad?: boolean } | null>(null);
 
   // Distances from where the owner is; the rows below are organic (ratings, distance,
@@ -72,14 +75,18 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onSOSPress, onPostJob, o
 
   return (
     <View style={styles.container}>
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} scrollEventThrottle={16} onScroll={(e) => {
+      <ScrollView style={styles.scroll} contentContainerStyle={[styles.content, { paddingBottom: 90 + collapsePx }]} showsVerticalScrollIndicator={false} scrollEventThrottle={16} onScroll={(e) => {
           const y = e.nativeEvent.contentOffset.y;
+          scrollAnim.setValue(y);
           edge.setValue(Math.min(1, Math.max(0, (y - adsY.current) / 30)));
           onScrollChange?.(y);
         }}>
+        {/* While the banners above fold and the sheet rises (the first `collapsePx` of scrolling) this content is held back by the same distance, so it moves with the
+            finger one for one instead of also sliding up inside the rising sheet. */}
+        <Animated.View style={[styles.contentInner, collapsePx > 0 && { transform: [{ translateY: scrollAnim.interpolate({ inputRange: [0, collapsePx], outputRange: [0, collapsePx], extrapolate: 'clamp' }) }] }]}>
         {/* Categories: cut-out icons, two rows, slide sideways. They scroll away with the page. */}
         <View style={styles.categoriesBlock}>
-        <CategoryStrip onSelect={onServicePress} />
+        <CategoryStrip onSelect={onServicePress} scrollHint />
         </View>
 
         {/* Ads: they scroll with the page and fold away with the sheet, like everything else; nothing but the banners stays pinned */}
@@ -104,6 +111,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onSOSPress, onPostJob, o
         <GarageRow title="අලුතින් එක් වූ" garages={newlyJoined} onOpen={setOpen} onSaveChange={save} onSeeAll={() => setList({ title: 'අලුතින් එක් වූ ගරාජ', garages: newlyJoined })} />
         <GarageRow title="ජනප්‍රිය ගරාජ" garages={popular.slice(0, 6)} onOpen={setOpen} onSaveChange={save} onSeeAll={() => setList({ title: 'ජනප්‍රිය ගරාජ', garages: popular })} />
         <GarageRow title="ඔබට ළඟම" garages={nearest.slice(0, 6)} onOpen={setOpen} onSaveChange={save} onSeeAll={() => setList({ title: 'ඔබට ළඟම ගරාජ', garages: nearest })} />
+        </Animated.View>
       </ScrollView>
       <AllServicesSheet visible={allServices} onClose={() => setAllServices(false)} onSelect={onServicePress} />
       <GarageListSheet
@@ -138,6 +146,7 @@ const styles = themedStyles(() => StyleSheet.create({
   // Transparent: the rounded sheet in App.tsx supplies the background.
   container: { flex: 1 },
   scroll: { flex: 1 },
+  contentInner: { gap: 24 },
   // One rhythm for the whole page: 24px between sections; inside a section its title sits 10px above its own content (`section`).
   content: { paddingTop: 8, paddingHorizontal: 6, paddingBottom: 90, gap: 24 },
   section: { gap: 10 },

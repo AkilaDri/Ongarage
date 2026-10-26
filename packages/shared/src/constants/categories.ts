@@ -30,3 +30,33 @@ const MARKET_PRICE: Record<string, number> = {
 export const marketPrice = (categoryId: string) => MARKET_PRICE[categoryId] ?? 4000;
 
 export const categoryInfo = (categoryId: string) => SERVICE_CATEGORIES.find((c) => c.id === categoryId) ?? SERVICE_CATEGORIES[0];
+
+/**
+ * How a category works, which decides what the owner is offered:
+ *  - 'job': repair and service work. Bids and direct bookings with garages.
+ *  - 'place': somewhere to go (a fuel station, an EV charging point). The nearest ones are found and the owner navigates or calls; there are no bids, and only
+ *    chargers take a booking (a time slot).
+ *  - 'dispatch': something that comes to the owner (towing, a mobile EV charger). Booked, never bid for; the nearest, cheapest operator is chosen.
+ */
+export type ServiceMode = 'job' | 'place' | 'dispatch';
+
+const CATEGORY_MODE: Record<string, ServiceMode> = { '16': 'place', '13': 'place', '12': 'dispatch' };
+/** Sub-services whose mode differs from their category's (EV Charging holds a place, a job and a dispatch). */
+const SUB_MODE: Record<string, Record<string, ServiceMode>> = {
+  '13': { 'Home Charger Install': 'job', 'Mobile EV Charging': 'dispatch' },
+};
+
+export const serviceModeOf = (categoryId: string, subService?: string): ServiceMode =>
+  (subService && SUB_MODE[categoryId]?.[subService]) || CATEGORY_MODE[categoryId] || 'job';
+
+/** Only repair and service work can be posted for bids. */
+export const canBid = (categoryId: string, subService?: string) => serviceModeOf(categoryId, subService) === 'job';
+/** Fuel stations cannot be booked; EV chargers (a slot), towing (a dispatch) and every job can. */
+export const canBook = (categoryId: string, subService?: string) => !(categoryId === '16' && serviceModeOf(categoryId, subService) === 'place');
+/** Garages (and their cards, profiles, inquiries) belong to jobs and dispatches only: a station or a charger is a place. */
+export const usesGarages = (categoryId: string, subService?: string) => serviceModeOf(categoryId, subService) !== 'place';
+
+/** The sub-services of a category that can be posted for bids (a fuel station has none; EV Charging has only "Home Charger Install"). */
+export const bidSubServices = (categoryId: string): string[] => (SERVICE_CATEGORIES.find((c) => c.id === categoryId)?.subcategories ?? []).filter((s) => canBid(categoryId, s));
+/** The sub-services that garages offer (everything but the places: stations and charging ports). */
+export const garageSubServices = (categoryId: string): string[] => (SERVICE_CATEGORIES.find((c) => c.id === categoryId)?.subcategories ?? []).filter((s) => usesGarages(categoryId, s));

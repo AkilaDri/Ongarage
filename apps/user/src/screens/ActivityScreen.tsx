@@ -1,7 +1,7 @@
 import { PostBody, PostHead } from '../components/PostCard';
 import { onActivityFocus, takeActivityFocus, type ActivityFocus } from '../utils/activityFocus';
 import { elevation1, outline, pageBg } from '../utils/material';
-import { useHeaderCollapse } from '../utils/headerCollapse';
+import { PAGE_TITLE_H } from '../constants/layout';
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Image, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Colors, getThemeMode, Gradient, themedStyles, ReceiptLineIcon, ScheduleLineIcon, SosLineIcon } from '@ongarage/shared';
@@ -111,7 +111,6 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
   const edge = useRef(new Animated.Value(0)).current;
   // The chat icon sits under the pinned tiles while this screen is shown.
   const pinnedH = useRef(0);
-  const collapse = useHeaderCollapse(onHeaderProgress);
   useEffect(() => {
     chatDockOffset.setValue(pinnedH.current);
     return () => chatDockOffset.setValue(0);
@@ -253,8 +252,9 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
         onScroll={(e) => {
           const y = e.nativeEvent.contentOffset.y;
           edge.setValue(Math.min(1, Math.max(0, (y - 8) / 30)));
-          // The band folds away as the page scrolls up, and comes back when it scrolls down (steady scrolling only, so the page does not shake).
-          collapse(y);
+          // The title band folds away in step with the scroll (the first PAGE_TITLE_H px) and comes back the same way, straight from the offset: no thresholds or
+          // timers, so nothing shakes.
+          onHeaderProgress?.(Math.min(1, Math.max(0, y / PAGE_TITLE_H)));
         }}
       >
         {/* Pinned: the three summary tiles stay at the top while the lists scroll beneath */}

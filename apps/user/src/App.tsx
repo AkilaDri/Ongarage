@@ -28,7 +28,7 @@ import { periodOf, SkyBar, SkyShade, useHour } from './components/WeatherAnimati
 import { MartProvider, useMart } from './context/MartContext';
 import { WallProvider } from './context/WallContext';
 import { BidsProvider } from './context/BidsContext';
-import { NoticeProvider } from './context/NoticeContext';
+import { NoticeProvider, useNotice } from './context/NoticeContext';
 import { ChatProvider } from './context/ChatContext';
 import { BookingsProvider } from './context/BookingsContext';
 import { SOSRecordsProvider } from './context/SOSRecordsContext';
@@ -36,6 +36,10 @@ import { WorkshopProvider } from './context/WorkshopContext';
 import { ProfileProvider } from './context/ProfileContext';
 import { Header, HEADER_BAND_H, TitleBand } from './components/Header';
 import { HOME_FLOW } from './constants/homeFlow';
+import { PlaceCommunityProvider } from './context/PlaceCommunityContext';
+import { EvBookingProvider } from './context/EvBookingContext';
+import { TowProvider } from './context/TowContext';
+import { TowingScreen } from './screens/TowingScreen';
 import { HomeSearch } from './components/home/HomeSearch';
 import { QuoteOutline } from './components/home/QuoteOutline';
 import { GarageReviewsSheet } from './components/GarageReviewsSheet';
@@ -54,6 +58,7 @@ import { focusActivity } from './utils/activityFocus';
 import { PAGE_TITLE_H } from './constants/layout';
 import { Toast } from './components/Toast';
 import { DirectBookingSheet } from './components/DirectBookingSheet';
+import { BookedPrompt } from './components/BookedPrompt';
 import { HomeScreen } from './screens/HomeScreen';
 import { SOSMapPickerScreen } from './screens/SOSMapPickerScreen';
 import { SOSFlowScreen } from './screens/SOSFlowScreen';
@@ -152,14 +157,19 @@ function AppShell() {
   const [fadeColor, setFadeColor] = useState(Colors.bgBody);
   const firstRender = useRef(true);
   const sheetScroll = useRef(new Animated.Value(0)).current;
+  // How far the two banners have folded into their compact, pinned row (0 = stacked cards, 1 = the row at the top): they get there after a short scroll
+  // (BANNER_FOLD_PX), while `sheetScroll` (the sheet's rise, one for one with the finger) takes longer.
+  const bannerFold = useRef(new Animated.Value(0)).current;
   const scrollY = useRef(0);
   const [headerH, setHeaderH] = useState(80);
   // Width of the banner area: the two banners tween between stacked cards and one row of two.
   const [bannerW, setBannerW] = useState(358);
+  // The pinned row is the full width of the header, the two banners side by side and the same size (the OnChat button docks below it).
   const half = (bannerW - BANNER_GAP) / 2;
   const lerp = (a: number, b: number) => sheetScroll.interpolate({ inputRange: [0, 1], outputRange: [a, b] });
-  const fadeOut = sheetScroll.interpolate({ inputRange: [0, 0.4], outputRange: [1, 0], extrapolate: 'clamp' });
-  const fadeIn = sheetScroll.interpolate({ inputRange: [0.6, 1], outputRange: [0, 1], extrapolate: 'clamp' });
+  const lerpB = (a: number, b: number) => bannerFold.interpolate({ inputRange: [0, 1], outputRange: [a, b] });
+  const fadeOut = bannerFold.interpolate({ inputRange: [0, 0.4], outputRange: [1, 0], extrapolate: 'clamp' });
+  const fadeIn = bannerFold.interpolate({ inputRange: [0.6, 1], outputRange: [0, 1], extrapolate: 'clamp' });
 
   useEffect(() => {
     if (firstRender.current) {
@@ -167,7 +177,7 @@ function AppShell() {
       return;
     }
     // Briefly veil the switch with the previous background so it cross-fades.
-    setFadeColor(isDark ? '#f1f5f9' : '#07090e');
+    setFadeColor(isDark ? '#f0f0f0' : '#07090e');
     fade.setValue(0.75);
     Animated.timing(fade, { toValue: 0, duration: 450, useNativeDriver: true }).start();
   }, [isDark, fade]);
@@ -278,7 +288,9 @@ function AppShell() {
   // Booking a garage directly (from Home, a service list, or "book again").
   // `back` brings the garage's profile back when the form is closed without booking (the profile was open when "book" was tapped).
   const [booking, setBooking] = useState<{ garage: Garage; categoryId?: string; initial?: { description?: string; vehicleId?: string; service?: string }; back?: () => void } | null>(null);
-  const bookedRef = useRef(false);
+  const { notify } = useNotice();
+  // The garage a booking request has just gone to: the "sent" message (BookedPrompt) shows while this is set.
+  const [bookedGarage, setBookedGarage] = useState<string | null>(null);
   // A garage picked in Home's search: its profile opens over Home.
   const [searchGarage, setSearchGarage] = useState<Garage | null>(null);
   // A garage's chat (opened from its card) can start a direct booking of it, with what the owner already asked.
@@ -301,30 +313,17 @@ function AppShell() {
     Animated.timing(martHeaderCollapse, { toValue: visible ? 0 : 1, duration: 280, easing: Easing.out(Easing.cubic), useNativeDriver: false }).start();
   }, [martHeaderCollapse]);
 
-  const homeLastY = useRef(0);
-  const homeReturning = useRef(false);
+  // The banners follow the owner's own scrolling (nothing snaps by itself): as the Home sheet is scrolled up the SOS and free-quotes banners fold into their
+  // one row and stick in the top header, and they unfold the same way on the way back. They are pinned when the sheet reaches them, after `collapsePx` of scrolling, and `HomeScreen` holds its content back by the same distance so everything moves with the finger, one for one.
+  const collapsePx = Math.max(1, SOS_H + BANNER_GAP + JOB_H - COMPACT_H + Math.max(0, headerH - 18));
+  const collapseRef = useRef(collapsePx);
+  collapseRef.current = collapsePx;
   const handleHomeScroll = useCallback((y: number) => {
     scrollY.current = y;
-    const dy = y - homeLastY.current;
-    homeLastY.current = y;
-    // The banner area rises over the greeting within the first 60px of scrolling, and settles back at the top (service categories).
-    const progress = Math.min(1, Math.max(0, y / 60));
-    if (y <= 4) {
-      homeReturning.current = false;
-      sheetScroll.setValue(progress);
-    } else if (dy < -3) {
-      // The first drag down brings the greeting band back at once.
-      if (!homeReturning.current) {
-        homeReturning.current = true;
-        Animated.timing(sheetScroll, { toValue: 0, duration: 220, easing: Easing.out(Easing.cubic), useNativeDriver: false }).start();
-      }
-    } else if (dy > 3 && homeReturning.current) {
-      homeReturning.current = false;
-      Animated.timing(sheetScroll, { toValue: progress, duration: 220, easing: Easing.out(Easing.cubic), useNativeDriver: false }).start();
-    } else if (!homeReturning.current) {
-      sheetScroll.setValue(progress);
-    }
-  }, [sheetScroll]);
+    sheetScroll.setValue(Math.min(1, Math.max(0, y / collapseRef.current)));
+    // The banners fold over the same distance as the sheet rises, so the sheet always meets the banners (a quicker fold leaves an empty gap between them).
+    bannerFold.setValue(Math.min(1, Math.max(0, y / collapseRef.current)));
+  }, [sheetScroll, bannerFold]);
 
   React.useEffect(() => {
     if (Platform.OS === 'web' && typeof document !== 'undefined') {
@@ -359,6 +358,9 @@ function AppShell() {
 
   return (
     <LocationProvider>
+    <PlaceCommunityProvider>
+    <EvBookingProvider>
+    <TowProvider>
     <MartProvider>
     <WallProvider>
     <BidsProvider>
@@ -422,7 +424,7 @@ function AppShell() {
             <View onLayout={(e) => setBannerW(Math.round(e.nativeEvent.layout.width))}>
               <Animated.View style={{ height: lerp(SOS_H + BANNER_GAP + JOB_H, COMPACT_H) }}>
                 {/* SOS: full card at the top of the page, the left half of a single row once scrolled */}
-                <Animated.View style={[styles.sosBanner, styles.bannerAbs, { width: lerp(bannerW, half), height: lerp(SOS_H, COMPACT_H), top: 0, left: 0 }]}>
+                <Animated.View style={[styles.sosBanner, styles.bannerAbs, { width: lerpB(bannerW, half), height: lerpB(SOS_H, COMPACT_H), top: 0, left: 0 }]}>
                   <Gradient stops={SOS_GRADIENT} />
                   <View style={styles.sheen} pointerEvents="none" />
                   <Pressable style={({ pressed }) => [StyleSheet.absoluteFill, pressed && styles.pressed]} onPress={() => setSOSStage('map')} accessibilityLabel="Open SOS">
@@ -450,7 +452,7 @@ function AppShell() {
                 </Animated.View>
 
                 {/* Post a job: full card below the SOS card, the right half of the row once scrolled */}
-                <Animated.View style={[styles.jobBanner, styles.bannerAbs, { width: lerp(bannerW, half), height: lerp(JOB_H, COMPACT_H), top: lerp(SOS_H + BANNER_GAP, 0), left: lerp(0, half + BANNER_GAP) }]}>
+                <Animated.View style={[styles.jobBanner, styles.bannerAbs, { width: lerpB(bannerW, half), height: lerpB(JOB_H, COMPACT_H), top: lerpB(SOS_H + BANNER_GAP, 0), left: lerpB(0, half + BANNER_GAP) }]}>
                   <Gradient stops={JOB_GRADIENT} />
                   <View style={styles.sheen} pointerEvents="none" />
                   {/* The free-quotes text and the ＋ sit in a card of their own inside the blue card: only an outline, no fill. */}
@@ -525,6 +527,7 @@ function AppShell() {
               }}
               onBookGarage={(garage, back) => openBooking({ garage, back })}
               onScrollChange={handleHomeScroll}
+              collapsePx={collapsePx}
             />
           ) : activeTab === 'bids' ? (
             <BidsScreen
@@ -540,7 +543,7 @@ function AppShell() {
               onHeaderVisibilityChange={setMartHeaderVisible}
             />
           ) : activeTab === 'activity' ? (
-            <ActivityScreen onHeaderProgress={(p) => setMartHeaderVisible(p < 0.5)} onOpenMart={() => setActiveTab('mart')} onOpenBids={() => setActiveTab('bids')} onBookAgain={(b) => setSelectedService(categoryInfo(b.categoryId))} />
+            <ActivityScreen onHeaderProgress={(p) => martHeaderCollapse.setValue(p)} onOpenMart={() => setActiveTab('mart')} onOpenBids={() => setActiveTab('bids')} onBookAgain={(b) => setSelectedService(categoryInfo(b.categoryId))} />
           ) : activeTab === 'mart' ? (
             <MartScreen
               activeVehicle={selectedVehicle}
@@ -551,7 +554,7 @@ function AppShell() {
               onHeaderVisibilityChange={setMartHeaderVisible}
             />
           ) : (
-            <ProfileScreen activeVehicle={selectedVehicle} onVehicleChange={setSelectedVehicle} onHeaderProgress={(p) => setMartHeaderVisible(p < 0.5)} />
+            <ProfileScreen activeVehicle={selectedVehicle} onVehicleChange={setSelectedVehicle} onHeaderProgress={(p) => martHeaderCollapse.setValue(p)} />
           )}
         </Animated.View>
 
@@ -686,8 +689,9 @@ function AppShell() {
       </Modal>
 
       <Modal visible={selectedService !== null} animationType="slide" statusBarTranslucent onRequestClose={() => setSelectedService(null)}>
-        {selectedService && (
-          <ServiceBrowseScreen service={selectedService} initialSub={selectedSubName} onPostJob={HOME_FLOW === 'search' ? (categoryId) => { setSelectedService(null); openPost({ categoryId, description: '', vehicleId: selectedVehicle } as unknown as JobDraft); } : undefined} onClose={() => setSelectedService(null)} onBook={(garage, back) => openBooking({ garage, categoryId: selectedService.id, back })} />
+        {selectedService && selectedService.id === '12' && <TowingScreen vehicleId={selectedVehicle} onClose={() => setSelectedService(null)} />}
+        {selectedService && selectedService.id !== '12' && (
+          <ServiceBrowseScreen service={selectedService} initialSub={selectedSubName} vehicleId={selectedVehicle} onPostJob={HOME_FLOW === 'search' ? (categoryId) => { setSelectedService(null); openPost({ categoryId, description: '', vehicleId: selectedVehicle } as unknown as JobDraft); } : undefined} onClose={() => setSelectedService(null)} onBook={(garage, back) => openBooking({ garage, categoryId: selectedService.id, back })} />
         )}
         <Toast topOffset={84} />
       </Modal>
@@ -707,14 +711,25 @@ function AppShell() {
         initial={booking?.initial}
         defaultVehicleId={selectedVehicle}
         onClose={() => {
+          // The form closes, booked or not, and the garage's profile it was opened from comes back: the owner stays where they were.
           const back = booking?.back;
           setBooking(null);
-          if (bookedRef.current) bookedRef.current = false;
-          else back?.();
+          back?.();
         }}
-        onBooked={() => {
-          bookedRef.current = true;
+        // The form's last step says the request was sent and points to the Activity tab; closing it brings the garage's profile back.
+        onViewActivity={() => {
+          setBooking(null);
           setSelectedService(null);
+          setSearchGarage(null);
+          focusActivity({ kind: 'current', current: 'direct' });
+          setActiveTab('activity');
+        }}
+      />
+      <BookedPrompt
+        garageName={bookedGarage}
+        onClose={() => setBookedGarage(null)}
+        onGo={() => {
+          setBookedGarage(null);
           focusActivity({ kind: 'current', current: 'direct' });
           setActiveTab('activity');
         }}
@@ -725,6 +740,9 @@ function AppShell() {
     </BidsProvider>
     </WallProvider>
     </MartProvider>
+    </TowProvider>
+    </EvBookingProvider>
+    </PlaceCommunityProvider>
     </LocationProvider>
   );
 }

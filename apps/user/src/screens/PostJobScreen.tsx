@@ -1,13 +1,14 @@
 import { CategoryStrip } from '../components/home/CategoryStrip';
 import { VehicleLine } from '@ongarage/shared';
 import { elevation1, outline, pageBg } from '../utils/material';
+import { jobDescription, problemTold } from '../utils/jobText';
 import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Animated, Easing, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, getThemeMode, themedStyles } from '@ongarage/shared';
 import { FONTS } from '@ongarage/shared';
 import { MOCK_GARAGES } from '../constants/mockData';
-import { FITTING_SUPPLY, PARTS_FITTING_CATEGORY_ID, SERVICE_CATEGORIES, type PartsFitting, type PartType } from '@ongarage/shared';
+import { bidSubServices, FITTING_SUPPLY, PARTS_FITTING_CATEGORY_ID, SERVICE_CATEGORIES, type PartsFitting, type PartType } from '@ongarage/shared';
 import { useVehicles } from '../context/VehiclesContext';
 import { VehicleOptions } from '../components/VehicleOptions';
 import { GoogleMap } from '@ongarage/shared';
@@ -195,30 +196,25 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, defaultVehi
   const [confidence, setConfidence] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
-  const progressAnim = useRef(new Animated.Value(0)).current;
   const buddyFloat = useRef(new Animated.Value(0)).current;
 
   const vehicle = findVehicle(vehicleId);
   const fitting = categoryId === PARTS_FITTING_CATEGORY_ID;
-  const essentials = [categoryId !== null, description.trim().length > 0, sparePart !== null || (fitting && fitSupply === 'owner'), biddingHours !== null, !fitting || fitPart.trim().length > 0];
-  const percent = essentials.filter(Boolean).length * 25;
-  const isComplete = percent === 100;
-
   const ORDER = ['service', 'details', 'parts', 'vehicle', 'timer'] as const;
   const tabIndex = ORDER.indexOf(tab);
   const lastTab = tabIndex === ORDER.length - 1;
   const tabDone = {
     service: categoryId !== null,
     vehicle: true,
-    details: description.trim().length > 0 && (!fitting || fitPart.trim().length > 0),
+    details: problemTold(description, voiceNotes) && (!fitting || fitPart.trim().length > 0),
     parts: sparePart !== null || (fitting && fitSupply === 'owner'),
     timer: biddingHours !== null,
   };
+  // The job can be posted once every part of the form is filled in (there is no percentage any more: the five parts used to be counted as 25% each, so a
+  // complete form read 125% and was never taken as complete).
+  const isComplete = ORDER.every((id) => tabDone[id]);
+  const firstMissing = ORDER.find((id) => !tabDone[id]);
   const next = () => setTab(ORDER[Math.min(ORDER.length - 1, tabIndex + 1)]);
-
-  useEffect(() => {
-    Animated.timing(progressAnim, { toValue: percent, duration: 350, useNativeDriver: false }).start();
-  }, [percent, progressAnim]);
 
   useEffect(() => {
     const loop = Animated.loop(
@@ -280,7 +276,7 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, defaultVehi
     const fittingInfo: PartsFitting | undefined = fitting ? { partName: fitPart.trim(), supply: fitSupply } : undefined;
     postJob({
       categoryId,
-      description: withSub(fittingInfo ? `${description.trim()}\n🔩 සවි කළ යුතු කොටස: ${fittingInfo.partName} (${FITTING_SUPPLY.find((x) => x.id === fittingInfo.supply)?.short})` : description.trim()),
+      description: withSub(fittingInfo ? `${jobDescription(description)}\n🔩 සවි කළ යුතු කොටස: ${fittingInfo.partName} (${FITTING_SUPPLY.find((x) => x.id === fittingInfo.supply)?.short})` : jobDescription(description)),
       fitting: fittingInfo,
       vehicleId,
       sparePart: sparePart ?? 'GarageChoice',
@@ -458,7 +454,7 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, defaultVehi
         <GlassIcon emoji="🔨" small />
         <View style={styles.flex1}>
           <Text style={styles.headerTitle}>{draft?.replacesJobId ? 'රැකියාව නැවත පළ කරන්න' : 'අලුත්වැඩියා රැකියාවක් පළ කරන්න'}</Text>
-          <Text style={styles.headerSub}>රැකියා විස්තර · {percent}% සම්පූර්ණයි</Text>
+          <Text style={styles.headerSub}>රැකියා විස්තර</Text>
         </View>
         <Pressable style={styles.closeBtn} onPress={onClose}>
           <Text style={styles.closeText}>✕</Text>
@@ -484,7 +480,9 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, defaultVehi
 
         <StepCard step={1} title={`සේවා අංශය`} done={categoryId !== null} hint={`${SERVICE_CATEGORIES.length} අංශ`}>
           {/* The same tiles as the Home screen's categories. */}
+          {/* Only what can be bid for: not fuel stations, not towing (those are found and booked, see the service mode). */}
           <CategoryStrip
+            include={(id) => bidSubServices(id).length > 0}
             onSelect={(c) => {
               setCategoryId(c.id);
               setSubService(null);
@@ -496,7 +494,7 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, defaultVehi
             <>
               <Text style={styles.eyebrow}>උප සේවාව (විකල්ප)</Text>
               <View style={styles.subWrap}>
-                {(SERVICE_CATEGORIES.find((c) => c.id === categoryId)?.subcategories ?? []).map((sub) => {
+                {bidSubServices(categoryId).map((sub) => {
                   const color = SERVICE_CATEGORIES.find((c) => c.id === categoryId)?.color ?? Colors.primary;
                   const on = subService === sub;
                   return (
@@ -527,7 +525,7 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, defaultVehi
         )}
         {tab === 'details' && (
           <>
-        <StepCard step={2} title="ගැටලුව / සේවාව විස්තර කරන්න" done={description.trim().length > 0}>
+        <StepCard step={2} title="ගැටලුව / සේවාව විස්තර කරන්න" done={problemTold(description, voiceNotes)}>
           <TextInput
             style={styles.textArea}
             multiline
@@ -553,7 +551,7 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, defaultVehi
               </View>
             </View>
           )}
-          <Text style={styles.eyebrow}>ඡායාරූප සහ හඬ සටහන් (විකල්ප)</Text>
+          <Text style={styles.eyebrow}>ඡායාරූප සහ හඬ සටහන් (ඡායාරූප විකල්ප — විස්තරයක් නැත්නම් හඬ සටහනක් ප්‍රමාණවත්)</Text>
           <MediaAttachments photos={photos} voiceNotes={voiceNotes} onPhotos={setPhotos} onVoiceNotes={setVoiceNotes} />
         </StepCard>
 
@@ -616,10 +614,10 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, defaultVehi
       <View style={styles.footer}>
         {lastTab ? (
           <ActionButton
-            label={isComplete ? 'ඊළඟ: රැකියාව ගරාජ වෙත යොමු කරන්න →' : `${percent}% — අවශ්‍ය ක්ෂේත්‍ර සම්පූර්ණ කරන්න`}
+            label={isComplete ? 'ඊළඟ: රැකියාව ගරාජ වෙත යොමු කරන්න →' : 'ඉතිරි තොරතුරු සම්පූර්ණ කරන්න ›'}
             variant="primary"
-            disabled={!isComplete}
-            onPress={submit}
+            // Always pressable: with something missing it takes the owner to the first part that still needs filling in.
+            onPress={() => (isComplete ? submit() : firstMissing && setTab(firstMissing))}
             />
         ) : (
           <ActionButton label="ඊළඟ ›" variant="primary" disabled={!tabDone[tab]} onPress={next} />

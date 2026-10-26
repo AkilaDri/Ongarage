@@ -4,7 +4,7 @@ import { Colors, getThemeMode } from '@ongarage/shared';
 // corners, a thin outline and a light elevation on every card.
 
 /** The page colour behind cards: a clear light grey in day mode, the body colour in dark mode. */
-export const pageBg = () => (getThemeMode() === 'dark' ? Colors.bgBody : '#e8edf4');
+export const pageBg = () => (getThemeMode() === 'dark' ? Colors.bgBody : '#f0f0f0');
 
 /** The thin outline of a Material card. */
 export const outline = () => (getThemeMode() === 'dark' ? Colors.borderColor : '#dadce0');

@@ -73,7 +73,7 @@ export const BookingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const booking: DirectBooking = { ...input, id: `db-${now}`, requestedAt: now, respondBy: now + RESPOND_WITHIN_MS, status: 'requested' };
       setBookings((prev) => [booking, ...prev]);
       flyTo('booked');
-      notify({ icon: '📨', title: 'වෙන්කිරීම් ඉල්ලීම යැව්වා', body: `${input.garage.name} පැය 2ක් ඇතුළත පිළිතුරු දෙයි.`, tone: 'primary' });
+      // (The booking form shows its own "sent" message box, so no banner here.)
 
       timers.current.push(
         setTimeout(() => {

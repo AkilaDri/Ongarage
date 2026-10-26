@@ -11,6 +11,8 @@ import { useUserLocation } from '../context/LocationContext';
 import { useChat } from '../context/ChatContext';
 import { ago, money } from '../utils/format';
 import { Sheet } from './Sheet';
+import { RatingSummary, ReviewCard, ReviewsSection } from './ReviewCard';
+import { BookedTag } from './BookedTag';
 
 /** The garage behind a bid: its full profile when known, else what the bid carries. */
 export const garageForBid = (b: Bid): Garage =>
@@ -212,6 +214,7 @@ export const GarageReviewsSheet: React.FC<{
           <Text style={open ? styles.placeOpen : styles.placeClosed}>{open ? 'විවෘතයි' : 'වසා ඇත'}</Text>
           {open && closesAt ? <Text style={styles.placeMuted}> ⋅ {closesAt} දක්වා</Text> : null}
         </Text>
+        <BookedTag garageId={g.id} />
         {/* The makes this garage works on, as one row of logos right under the opening hours (above the action buttons). */}
         <MakeLogoStrip makes={content.brands} />
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.placeActions}>
@@ -625,50 +628,23 @@ export const GarageReviewsSheet: React.FC<{
         ))}
       </ScrollView>
 
+      <ReviewsSection
+        avg={g.rating}
+        count={g.reviews}
+        reviews={(g.recentReviews ?? []).map((r) => ({ id: r.id, name: r.customer, rating: r.rating, at: r.at, text: r.text, meta: '✓ කේතයෙන් අවසන් කළ රැකියාවක්', reply: r.reply ? { by: g.name, text: r.reply.text, at: r.reply.at } : undefined }))}
+        onSeeAll={() => setTab('reviews')}
+      />
         </>
       )}
       {tab === 'reviews' && (
         <>
-      {!!g.dimensions && (
-        <View style={styles.box}>
-          {RATING_DIMENSIONS.map((d) => {
-            const v = g.dimensions![d.id];
-            return (
-              <View key={d.id} style={styles.dimRow}>
-                <Text style={styles.dimLabel}>{d.label}</Text>
-                <View style={styles.track}>
-                  <View style={[styles.fill, { width: `${(v / 5) * 100}%` }]} />
-                </View>
-                <Text style={styles.dimValue}>{v.toFixed(1)}</Text>
-              </View>
-            );
-          })}
-        </View>
-      )}
-
-      {!!g.recentReviews?.length && (
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.hRow} snapToInterval={REVIEW_W + 8} decelerationRate="fast">
-      {g.recentReviews.map((r) => (
-        <View key={r.id} style={styles.review}>
-          <View style={styles.rowBetween}>
-            <Text style={styles.customer}>{r.customer}</Text>
-            <Text style={styles.stars}>
-              {'★'.repeat(Math.round(r.rating))}
-              <Text style={styles.starsOff}>{'★'.repeat(5 - Math.round(r.rating))}</Text>
-            </Text>
-          </View>
-          <Text style={styles.text}>{r.text}</Text>
-          <Text style={styles.sub}>{ago(Date.now() - r.at)} · ✓ කේතයෙන් අවසන් කළ රැකියාවක්</Text>
-          {!!r.reply && (
-            <View style={styles.reply}>
-              <Text style={styles.replyLabel}>↳ {g.name} පිළිතුර</Text>
-              <Text style={styles.text}>{r.reply.text}</Text>
-            </View>
-          )}
-        </View>
+      <RatingSummary avg={g.rating} count={g.reviews} ratings={(g.recentReviews ?? []).map((r) => r.rating)} />
+      {(g.recentReviews ?? []).map((r) => (
+        <ReviewCard
+          key={r.id}
+          review={{ id: r.id, name: r.customer, rating: r.rating, at: r.at, text: r.text, meta: '✓ කේතයෙන් අවසන් කළ රැකියාවක්', reply: r.reply ? { by: g.name, text: r.reply.text, at: r.reply.at } : undefined }}
+        />
       ))}
-      </ScrollView>
-      )}
       {!g.recentReviews?.length && <EmptyState icon="⭐" title="තවම සමාලෝචන නැත" text="පාරිභෝගිකයන් සමාලෝචන ලියූ විට ඒවා මෙහි පෙන්වයි." />}
         </>
       )}

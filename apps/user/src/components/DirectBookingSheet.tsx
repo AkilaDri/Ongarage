@@ -1,4 +1,5 @@
 import { GarageHistoryTag } from './GarageHistory';
+import { jobDescription, problemTold } from '../utils/jobText';
 import React, { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import {
@@ -7,6 +8,7 @@ import {
   Colors,
   FONTS,
   getAi,
+  getThemeMode,
   GlassIcon,
   Icon,
   marketPrice,
@@ -15,6 +17,7 @@ import {
   themedStyles,
   vehicleIcon,
   FITTING_SUPPLY,
+  garageSubServices,
   PARTS_FITTING_CATEGORY_ID,
   type Garage,
   type PartsFitting,
@@ -47,13 +50,57 @@ const dayLabel = (offset: number, t: number) => (offset === 0 ? 'අද' : offse
  * Book a garage directly (no bidding): what's wrong, when, and whether the garage comes
  * to you. The garage gets it as a direct request and must answer within 2 hours.
  */
-export const DirectBookingSheet: React.FC<{ garage: Garage | null; categoryId?: string; defaultVehicleId: string; /** What the owner already told this garage (an inquiry), to start the form from. */ initial?: { description?: string; vehicleId?: string; service?: string }; onClose: () => void; onBooked?: () => void }> = ({
+/**
+ * What the owner sees when the booking request has gone: not a window but a message box that pops up in the middle of the screen, over the garage's profile. It says the
+ * request was sent, when the garage answers, and points to the Activity tab where the answer shows.
+ */
+const BookingSentBox: React.FC<{ visible: boolean; garageName: string; when: string; onViewActivity: () => void; onClose: () => void }> = ({ visible, garageName, when, onViewActivity, onClose }) => (
+  !visible ? null : (
+    <View style={sentStyles.backdrop}>
+      <View style={sentStyles.box} accessibilityLabel="Booking sent">
+        <Pressable style={sentStyles.close} onPress={onClose} hitSlop={10} accessibilityLabel="Close booking message">
+          <Text style={sentStyles.closeText}>✕</Text>
+        </Pressable>
+        <View style={sentStyles.tick}>
+          <Text style={sentStyles.tickText}>✓</Text>
+        </View>
+        <Text style={sentStyles.title}>වෙන්කිරීම ඉල්ලීම යැව්වා</Text>
+        <Text style={sentStyles.body}>{garageName} පැය 2ක් ඇතුළත පිළිතුරු දෙයි.</Text>
+        <View style={sentStyles.actions}>
+          <Pressable style={sentStyles.main} onPress={onViewActivity} accessibilityLabel="Go to Activity">
+            <Text style={sentStyles.mainText}>ක්‍රියාකාරකම් බලන්න</Text>
+          </Pressable>
+        </View>
+      </View>
+    </View>
+  )
+);
+
+const sentStyles = themedStyles(() =>
+  StyleSheet.create({
+    backdrop: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, zIndex: 300, alignItems: 'center', justifyContent: 'center', padding: 28, backgroundColor: 'rgba(15, 23, 42, 0.45)' },
+    box: { width: '100%', maxWidth: 340, alignItems: 'center', gap: 10, padding: 22, borderRadius: 24, backgroundColor: Colors.bgCard, shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.3, shadowRadius: 24, elevation: 16 },
+    tick: { width: 58, height: 58, borderRadius: 29, alignItems: 'center', justifyContent: 'center', backgroundColor: '#16a34a' },
+    tickText: { fontSize: 30, color: '#ffffff', fontFamily: FONTS.bodyBold },
+    title: { fontSize: 17, fontFamily: FONTS.titleBold, color: Colors.textMain, textAlign: 'center' },
+    body: { fontSize: 13, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 20, textAlign: 'center' },
+    note: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a56c9', lineHeight: 19, textAlign: 'center' },
+    actions: { flexDirection: 'row', gap: 10, marginTop: 8, width: '100%' },
+    close: { position: 'absolute', top: 12, right: 12, width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? 'rgba(255, 255, 255, 0.1)' : '#eef1f5' },
+    closeText: { fontSize: 13, color: Colors.textMain, fontFamily: FONTS.bodyBold },
+    main: { flex: 1, alignItems: 'center', paddingVertical: 12, borderRadius: 22, backgroundColor: '#1a73e8' },
+    mainText: { fontSize: 13.5, fontFamily: FONTS.bodyBold, color: '#ffffff' },
+  })
+);
+
+export const DirectBookingSheet: React.FC<{ garage: Garage | null; categoryId?: string; defaultVehicleId: string; /** What the owner already told this garage (an inquiry), to start the form from. */ initial?: { description?: string; vehicleId?: string; service?: string }; onClose: () => void; onBooked?: () => void; /** The last step's button that goes to the Activity tab, where the booking's answer shows. */ onViewActivity?: () => void }> = ({
   garage,
   categoryId: initialCategory,
   initial,
   defaultVehicleId,
   onClose,
   onBooked,
+  onViewActivity,
 }) => {
   const { vehicles } = useVehicles();
   const { requestBooking } = useBookings();
@@ -74,6 +121,8 @@ export const DirectBookingSheet: React.FC<{ garage: Garage | null; categoryId?: 
   const [voiceNotes, setVoiceNotes] = useState<VoiceNote[]>([]);
   const [suggestion, setSuggestion] = useState<string | null>(null);
   const aiRun = useRef(0);
+  // The form's last step, after the request has gone: it says so and points to the Activity tab.
+  const [sent, setSent] = useState(false);
 
   useEffect(() => {
     if (!garage) return;
@@ -89,6 +138,7 @@ export const DirectBookingSheet: React.FC<{ garage: Garage | null; categoryId?: 
     setPhotos([]);
     setVoiceNotes([]);
     setSuggestion(null);
+    setSent(false);
   }, [garage, initialCategory, defaultVehicleId]);
 
   // AI suggestion: if the description points to another service, offer to switch.
@@ -113,29 +163,31 @@ export const DirectBookingSheet: React.FC<{ garage: Garage | null; categoryId?: 
   const preferredAt = dayStart(day) + hour * HOUR;
   const slotPast = preferredAt <= Date.now() + HOUR;
   const fitting = categoryId === PARTS_FITTING_CATEGORY_ID;
-  const valid = description.trim().length >= 5 && !slotPast && (!fitting || fitPart.trim().length > 0);
+  const valid = problemTold(description, voiceNotes, 5) && !slotPast && (!fitting || fitPart.trim().length > 0);
 
   const ORDER = ['service', 'details', 'vehicle', 'when'] as const;
   const tabIndex = ORDER.indexOf(tab);
   const lastTab = tabIndex === ORDER.length - 1;
-  const tabDone = { service: true, vehicle: !!vehicleId, when: !slotPast, details: description.trim().length >= 5 && (!fitting || fitPart.trim().length > 0) };
+  const tabDone = { service: true, vehicle: !!vehicleId, when: !slotPast, details: problemTold(description, voiceNotes, 5) && (!fitting || fitPart.trim().length > 0) };
   // A tab's own requirement for moving on (the details are checked by the last button).
   const tabOk = tab === 'details' ? tabDone.details : tab === 'vehicle' ? !!vehicleId : tab === 'when' ? !slotPast : true;
   const next = () => setTab(ORDER[Math.min(ORDER.length - 1, tabIndex + 1)]);
 
   const submit = () => {
     const fittingInfo: PartsFitting | undefined = fitting ? { partName: fitPart.trim(), supply: fitSupply } : undefined;
-    requestBooking({ garage: shown, categoryId, service, vehicleId, preferredAt, description: fittingInfo ? `${description.trim()}\n🔩 සවි කළ යුතු කොටස: ${fittingInfo.partName} (${FITTING_SUPPLY.find((x) => x.id === fittingInfo.supply)?.short})` : description.trim(), doorstep, photos, voiceNotes, fitting: fittingInfo });
+    requestBooking({ garage: shown, categoryId, service, vehicleId, preferredAt, description: fittingInfo ? `${jobDescription(description)}\n🔩 සවි කළ යුතු කොටස: ${fittingInfo.partName} (${FITTING_SUPPLY.find((x) => x.id === fittingInfo.supply)?.short})` : jobDescription(description), doorstep, photos, voiceNotes, fitting: fittingInfo });
     onBooked?.();
-    onClose();
+    setSent(true);
   };
 
   return (
+    <>
     <Sheet
       visible={!!garage}
       fullScreen
       noDividers
       title="ගරාජය වෙන් කරන්න"
+      overlayExtra={<BookingSentBox visible={sent} garageName={shown.name} when={`${formatDate(preferredAt)} ${formatTime(preferredAt)}`} onViewActivity={() => { setSent(false); onViewActivity?.(); }} onClose={() => { setSent(false); onClose(); }} />}
       onClose={onClose}
       footer={
         lastTab ? (
@@ -180,6 +232,7 @@ export const DirectBookingSheet: React.FC<{ garage: Garage | null; categoryId?: 
           <Text style={styles.label}>සේවාව</Text>
           {/* The same main-category tiles as Home (two rows that slide sideways, the category's own picture on each), the chosen one ringed in blue. */}
           <CategoryStrip
+            include={(id) => garageSubServices(id).length > 0}
             selectedId={categoryId}
             onSelect={(c) => {
               setCategoryId(c.id);
@@ -188,7 +241,7 @@ export const DirectBookingSheet: React.FC<{ garage: Garage | null; categoryId?: 
           />
           <Text style={styles.label}>උප සේවාව (විකල්ප)</Text>
           <View style={styles.chips}>
-            {cat.subcategories.map((s) => (
+            {garageSubServices(categoryId).map((s) => (
               <Chip key={s} label={s} on={service === s} onPress={() => setService(service === s ? undefined : s)} small color={cat.color} />
             ))}
           </View>
@@ -260,7 +313,7 @@ export const DirectBookingSheet: React.FC<{ garage: Garage | null; categoryId?: 
             </Pressable>
           )}
 
-          <Text style={styles.label}>ඡායාරූප සහ හඬ සටහන් (විකල්ප)</Text>
+          <Text style={styles.label}>ඡායාරූප සහ හඬ සටහන් (ඡායාරූප විකල්ප — විස්තරයක් නැත්නම් හඬ සටහනක් ප්‍රමාණවත්)</Text>
           <MediaAttachments photos={photos} voiceNotes={voiceNotes} onPhotos={setPhotos} onVoiceNotes={setVoiceNotes} />
 
           <Text style={styles.hint}>
@@ -269,6 +322,7 @@ export const DirectBookingSheet: React.FC<{ garage: Garage | null; categoryId?: 
         </>
       )}
     </Sheet>
+    </>
   );
 };
 
@@ -289,6 +343,16 @@ const styles = themedStyles(() =>
     shrink: { flexShrink: 1 },
     garage: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: 16, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.borderColor },
     nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    // The last step, after the request has gone.
+    sent: { alignItems: 'center', gap: 12, paddingTop: 36, paddingHorizontal: 8 },
+    sentTick: { width: 72, height: 72, borderRadius: 36, alignItems: 'center', justifyContent: 'center', backgroundColor: '#16a34a' },
+    sentTickText: { fontSize: 38, color: '#ffffff', fontFamily: FONTS.bodyBold },
+    sentTitle: { fontSize: 20, fontFamily: FONTS.titleBold, color: Colors.textMain, textAlign: 'center' },
+    sentBody: { fontSize: 13.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 21, textAlign: 'center' },
+    sentNote: { marginTop: 8, padding: 14, borderRadius: 14, backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.14)' : '#e8f0fe' },
+    sentNoteText: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a56c9', lineHeight: 20, textAlign: 'center' },
+    sentActions: { flexDirection: 'row', gap: 10 },
+    sentMain: { flex: 2 },
     title: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.textMain },
     sub: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 1 },
     label: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, letterSpacing: 0.4, marginTop: 6 },

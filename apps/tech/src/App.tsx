@@ -84,7 +84,7 @@ function AppShell() {
       firstRender.current = false;
       return;
     }
-    setFadeColor(isDark ? '#f1f5f9' : '#07090e');
+    setFadeColor(isDark ? '#f0f0f0' : '#07090e');
     fade.setValue(0.75);
     Animated.timing(fade, { toValue: 0, duration: 450, useNativeDriver: true }).start();
   }, [isDark, fade]);
