@@ -666,7 +666,7 @@ export const GarageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       later(() => {
         if (findDispatch(id)?.stage !== 'awaitingCustomer') return;
         patch(id, { stage: 'assign' });
-        notify({ icon: '🤝', title: 'පාරිභෝගිකයා ඔබව තෝරා ගත්තා!', body: 'යාන්ත්‍රිකයෙකු සහ වාහනයක් පවරන්න.', tone: 'success' });
+        notify({ icon: '🤝', title: 'පාරිභෝගිකයා ඔබව තෝරා ගත්තා!', body: 'කාර්මිකයෙකු සහ වාහනයක් පවරන්න.', tone: 'success' });
       }, CUSTOMER_REPLY_MS);
       return true;
     },

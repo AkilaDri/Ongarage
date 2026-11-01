@@ -211,8 +211,8 @@ export const SOSMapPickerScreen: React.FC<SOSMapPickerScreenProps> = ({ initialL
 
       <View style={styles.bottomSheet}>
         <View style={styles.handle} />
-        <Text style={styles.sheetTitle}>වාහනය නැවතී ඇති තැන තෝරන්න</Text>
-        <Text style={styles.sheetSub}>සිතියම මත ස්පර්ශ කර හෝ සොයා පින් එක නිවැරදි තැනට ගෙන එන්න</Text>
+        <Text style={styles.sheetTitle}>වාහනය Breakdown වූ ස්ථානය තෝරන්න</Text>
+        <Text style={styles.sheetSub}>සිතියම මත touch කර හෝ search කර පින් එක නිවැරදි තැනට ගෙන එන්න</Text>
         <View style={styles.locationRow}>
           <View style={styles.locationDisc}>
             <Text style={styles.locationIcon}>📍</Text>
@@ -275,7 +275,7 @@ const styles = themedStyles(() => StyleSheet.create({
   bottomSheet: { marginTop: -24, backgroundColor: Colors.bgCard, paddingHorizontal: 24, paddingTop: 12, paddingBottom: 20, gap: 12, borderTopLeftRadius: 28, borderTopRightRadius: 28, shadowColor: '#3c4043', shadowOffset: { width: 0, height: -2 }, shadowOpacity: 0.14, shadowRadius: 8, elevation: 8 },
   handle: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: Colors.subtleBorder, marginBottom: 4 },
   sheetTitle: { fontSize: 20, lineHeight: 28, fontFamily: FONTS.titleBold, color: Colors.textMain },
-  sheetSub: { fontSize: 13.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: -4 },
+  sheetSub: { fontSize: 12.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: -4 },
   locationRow: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 12, borderWidth: 1, borderColor: outline(), backgroundColor: Colors.bgCard },
   locationDisc: { width: 40, height: 40, borderRadius: 20, backgroundColor: getThemeMode() === 'dark' ? 'rgba(239, 68, 68, 0.18)' : '#fee2e2', justifyContent: 'center', alignItems: 'center' },
   locationIcon: { fontSize: 18 },

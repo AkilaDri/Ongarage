@@ -287,7 +287,7 @@ function AppShell() {
           )}
         </View>
         {/* The chat icon stays put at the top right however the header folds away while the page scrolls. */}
-        <Animated.View style={[styles.floatChat, { transform: [{ translateY: Animated.multiply(Animated.multiply(martShift, 1 / HEADER_SCROLL), chatDockDrop) }] }]} pointerEvents="box-none">
+        <Animated.View style={[styles.floatChat, { opacity: martShift.interpolate({ inputRange: [0, 4], outputRange: [1, 0.4], extrapolate: 'clamp' }), transform: [{ translateY: Animated.multiply(Animated.multiply(martShift, 1 / HEADER_SCROLL), chatDockDrop) }] }]} pointerEvents="box-none">
           <ChatHeaderButton />
         </Animated.View>
         {/* A technician's repair charge waits for the owner during an SOS job: it follows the owner to every screen until answered. */}

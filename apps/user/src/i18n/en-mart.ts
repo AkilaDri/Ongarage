@@ -97,7 +97,7 @@ export const EN_MART: Record<string, string> = {
   'වාහනය තවමත් සාමාන්‍ය ලෙස ධාවනය වේද?': 'Does the vehicle still drive normally?',
   'නැත, අපහසුවෙන්': 'No, with difficulty',
   'නැත, කිසිසේත් නැත': 'No, not at all',
-  'සාමාන්‍ය යාන්ත්‍රිකයා': 'General mechanic',
+  'සාමාන්‍ය කාර්මිකයා': 'General mechanic',
   'සාමාන්‍ය කාර්මිකයෙකු ඔබගේ වාහනය පරීක්ෂා කරනු ඇත.': 'A general technician will check your vehicle.',
   'එන්ජින් කොටසින් ගැටෙන ශබ්දයක් ධාවනය කරන විට ඇසේ.': 'A knocking noise comes from the engine bay when driving.',
   'ඉදිරි ටයරය පන්චර් වෙලා ස්ටියරින් එක පැත්තකට අදිනවා.': 'The front tyre is punctured and the steering pulls to one side.',

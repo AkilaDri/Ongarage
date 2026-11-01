@@ -1,6 +1,6 @@
 // SOS breakdown kinds: the owner picks one, the garage sees it on the request.
 export const BREAKDOWN_TYPES = [
-  { id: 'mechanical', icon: '⚙️', label: 'එන්ජින්' },
+  { id: 'mechanical', icon: '⚙️', label: 'මැකනිකල්' },
   { id: 'battery', icon: '🔋', label: 'බැටරි' },
   { id: 'tire', icon: '🛞', label: 'ටයර්' },
   { id: 'fuel', icon: '⛽', label: 'ඉන්ධන' },
@@ -8,7 +8,7 @@ export const BREAKDOWN_TYPES = [
   { id: 'lockout', icon: '🔑', label: 'අගුල' },
   { id: 'overheating', icon: '🌡️', label: 'රත්වීම' },
   { id: 'winching', icon: '⛓️', label: 'වින්ච්' },
-  { id: 'accident', icon: '🚑', label: 'අනතුර' },
+  { id: 'accident', icon: '🚑', label: 'අනතුරු' },
 ] as const;
 
 export type BreakdownId = (typeof BREAKDOWN_TYPES)[number]['id'];

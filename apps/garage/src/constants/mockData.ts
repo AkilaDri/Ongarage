@@ -24,13 +24,13 @@ export const GARAGE: GarageProfile = {
 };
 
 export const TEAM: TeamMember[] = [
-  { id: 'm1', name: 'රොෂාන් පෙරේරා', role: 'ප්‍රධාන යාන්ත්‍රික', phone: '0771234501', hasApp: true },
+  { id: 'm1', name: 'රොෂාන් පෙරේරා', role: 'ප්‍රධාන කාර්මික', phone: '0771234501', hasApp: true },
   // The technician app's user (apps/tech).
   { id: 'm2', name: 'කසුන් ජයසිංහ', role: 'ඔටෝ ඉලෙක්ට්‍රීෂියන්', phone: '0771234502', hasApp: true },
   { id: 'm3', name: 'නිමල් සිල්වා', role: 'මාර්ග සහාය', phone: '0771234503' },
 ];
 
-export const MEMBER_ROLES = ['ප්‍රධාන යාන්ත්‍රික', 'යාන්ත්‍රික', 'ඔටෝ ඉලෙක්ට්‍රීෂියන්', 'මාර්ග සහාය', 'ආධුනික'];
+export const MEMBER_ROLES = ['ප්‍රධාන කාර්මික', 'කාර්මික', 'ඔටෝ ඉලෙක්ට්‍රීෂියන්', 'මාර්ග සහාය', 'ආධුනික'];
 
 export const VANS: ServiceVan[] = [
   { id: 'v1', name: 'Toyota Hiace සේවා වෑන්', plate: 'SP-PH-4521' },

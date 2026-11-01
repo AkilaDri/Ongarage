@@ -149,10 +149,11 @@ export const ModalCard: React.FC<{
   tone: ModalTone;
   title: string;
   body: string;
+  bodySuffix?: string;
   children: React.ReactNode;
   /** The Google Material dialog: a 28px card, a centred icon and headline, left-aligned text and right-aligned buttons (opt-in). */
   material?: boolean;
-}> = ({ icon, tone, title, body, children, material }) => {
+}> = ({ icon, tone, title, body, bodySuffix, children, material }) => {
   const anim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     Animated.timing(anim, { toValue: 1, duration: 280, easing: Easing.bezier(0.16, 1, 0.3, 1), useNativeDriver: true }).start();
@@ -164,7 +165,10 @@ export const ModalCard: React.FC<{
           <Text style={[styles.modalIconText, material && styles.modalIconTextMaterial]}>{icon}</Text>
         </View>
         <Text style={[styles.modalTitle, material && styles.modalTitleMaterial]}>{title}</Text>
-        <Text style={[styles.modalBody, material && styles.modalBodyMaterial]}>{body}</Text>
+        <Text style={[styles.modalBody, material && styles.modalBodyMaterial]}>
+          {body}
+          {bodySuffix && <Text style={styles.modalBodySuffix}>{`\n\n${bodySuffix}`}</Text>}
+        </Text>
         <View style={[styles.modalActions, material && styles.modalActionsMaterial]}>{children}</View>
       </Animated.View>
     </View>
@@ -238,6 +242,7 @@ const styles = themedStyles(() => StyleSheet.create({
   modalIconText: { fontSize: 28 },
   modalTitle: { fontSize: 17, fontFamily: FONTS.titleBold, color: Colors.textMain, textAlign: 'center' },
   modalBody: { fontSize: 12.5, fontFamily: FONTS.bodyRegular, color: Colors.textSoft, textAlign: 'center', lineHeight: 19, marginBottom: 10 },
+  modalBodySuffix: { fontSize: 10.5, color: Colors.red },
   modalActions: { flexDirection: 'row', gap: 10, alignSelf: 'stretch' },
 
   // Material dialog: elevation 3, a small tonal icon, a 20px headline, 14px supporting text and right-aligned buttons.
