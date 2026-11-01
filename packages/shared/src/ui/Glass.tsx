@@ -12,10 +12,10 @@ import { Gradient, GRADIENTS } from './Visuals';
 export const softShadow = () =>
   ({
     shadowColor: '#0f172a',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: getThemeMode() === 'dark' ? 0.3 : 0.1,
-    shadowRadius: 16,
-    elevation: 3,
+    shadowOffset: { width: 0, height: getThemeMode() === 'dark' ? 6 : 3 },
+    shadowOpacity: getThemeMode() === 'dark' ? 0.5 : 0.09,
+    shadowRadius: getThemeMode() === 'dark' ? 18 : 12,
+    elevation: getThemeMode() === 'dark' ? 5 : 3,
   }) as const;
 
 /** The outline colour of a soft surface: none on light, faint on dark. A variant may still set its own borderColor. */

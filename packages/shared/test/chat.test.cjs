@@ -23,3 +23,15 @@ test('simulated replies follow the question and the side that answers', () => {
   assert.ok(chat.simulatedChatReply('garage', 'abc').length > 0);
   assert.ok(chat.simulatedChatReply('owner', 'abc').length > 0);
 });
+
+test('a finished job\'s conversation shows only under the done chip, never under all or the others', () => {
+  const live = { kind: 'job' };
+  const over = { kind: 'job', done: true };
+  assert.equal(chat.inInboxFilter(live, 'all'), true);
+  assert.equal(chat.inInboxFilter(over, 'all'), false);
+  assert.equal(chat.inInboxFilter(live, 'job'), true);
+  assert.equal(chat.inInboxFilter(over, 'job'), false);
+  assert.equal(chat.inInboxFilter(live, 'done'), false);
+  assert.equal(chat.inInboxFilter(over, 'done'), true);
+  assert.equal(chat.inInboxFilter(over, 'sos'), false);
+});

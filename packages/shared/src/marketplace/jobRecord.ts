@@ -1,7 +1,10 @@
-import { formatDate, formatTime } from '../../utils/format';
-import { vehicleIcon } from '../../constants/vehicles';
+import { formatDate, formatTime } from '../utils/format';
+import { vehicleIcon } from '../constants/vehicles';
 
 const PART_LABEL: Record<string, string> = { Genuine: 'Genuine', OEM: 'OEM', Recon: 'Recon', GarageChoice: 'ගරාජයේ තේරීම' };
+
+/** A number plate with spaces round its hyphen: CBD-4585 reads "CBD - 4585". */
+const plateLabel = (plate?: string) => (plate ?? '').replace(/\s*-\s*/g, ' - ').trim();
 
 type RecordVehicle = { name: string; plate: string; type: string; registrationNo?: string; make?: string; model?: string; color?: string; chassisNo?: string; engineNo?: string };
 
@@ -29,15 +32,15 @@ export const jobRecordText = (job: {
   notes?: string[];
 }) => {
   const v = job.vehicle;
-  const details = v ? [v.make && v.model ? `${v.make} ${v.model}` : '', v.color].filter(Boolean).join(' · ') : '';
-  const numbers = v ? [v.chassisNo ? `Chassis ${v.chassisNo}` : '', v.engineNo ? `Engine No ${v.engineNo}` : ''].filter(Boolean).join(' · ') : '';
+  // The vehicle in two lines: "Toyota Aqua | CBD - 4585 | Pearl White" and "Chassis : NHP1000 | Engine : INV-4657" (a part that is not known is left out).
+  const vehicleLine = v ? [v.make && v.model ? `${v.make} ${v.model}` : v.name, plateLabel(v.registrationNo || v.plate), v.color].filter(Boolean).join(' | ') : '';
+  const numbers = v ? [v.chassisNo ? `Chassis : ${v.chassisNo}` : '', v.engineNo ? `Engine : ${v.engineNo}` : ''].filter(Boolean).join(' | ') : '';
   const attached = [job.photos ? `📷 ඡායාරූප ${job.photos}` : '', job.voiceNotes ? `🎙️ හඬ පටිගත ${job.voiceNotes}` : ''].filter(Boolean).join('  ');
   return [
-    '📋 Job Info',
+    '📋 OnJob Info',
     job.title,
     job.who ? `👤 ${job.who.label}: ${job.who.name}${job.who.phone ? ' · ' + job.who.phone : ''}` : '',
-    v ? `${v.name} · ${v.registrationNo || v.plate}` : '',
-    details,
+    vehicleLine,
     numbers,
     job.description ? `📝 ${job.description}` : '',
     job.partType ? `⚙️ කොටස් වර්ගය: ${PART_LABEL[job.partType] ?? job.partType}` : '',

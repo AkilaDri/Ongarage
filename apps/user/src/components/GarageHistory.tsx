@@ -31,7 +31,7 @@ export const useGarageHistory = (garage: GarageRef) => {
  * A line shown wherever the owner is about to choose a garage (a booking, a bid): whether they have used this garage before. With earlier jobs it
  * opens their record with that garage; with none it says this would be the first time.
  */
-export const GarageHistoryTag: React.FC<{ garage: GarageRef; /** Without the line about the last job under the tag (in a card's header). */ compact?: boolean }> = ({ garage, compact }) => {
+export const GarageHistoryTag: React.FC<{ garage: GarageRef; /** Without the line about the last job under the tag (in a card's header). */ compact?: boolean; /** Only the tag, or only the line about the last job (the booking form puts the tag in front of the garage's name and the line under the card). */ part?: 'tag' | 'line' }> = ({ garage, compact, part }) => {
   const { done, running, level } = useGarageHistory(garage);
   const [open, setOpen] = useState(false);
   const used = done.length > 0 || running > 0;
@@ -39,10 +39,10 @@ export const GarageHistoryTag: React.FC<{ garage: GarageRef; /** Without the lin
   const lastJob = done[0] ? (done[0].title ?? categoryInfo(done[0].categoryId).name) : undefined;
   return (
     <>
-      <RelationTag level={level} count={done.length} onPress={used ? () => setOpen(true) : undefined} accessibilityLabel={used ? `${RELATION_LABEL[level]}: your record with ${garage.name}` : `First time with ${garage.name}`} />
+      {part !== 'line' && <RelationTag level={level} count={done.length} onPress={used ? () => setOpen(true) : undefined} accessibilityLabel={used ? `${RELATION_LABEL[level]}: your record with ${garage.name}` : `First time with ${garage.name}`} />}
       {/* More than the tag: what the last job was, and when. */}
-      {!compact && !!lastJob && !!last && <Text style={styles.lastLine} numberOfLines={1}>අවසන් වතාව: {lastJob} · {formatDate(last)}</Text>}
-      <GarageHistorySheet visible={open} onClose={() => setOpen(false)} garage={garage} />
+      {part !== 'tag' && !compact && !!lastJob && !!last && <Text style={styles.lastLine} numberOfLines={1}>අවසන් වතාව: {lastJob} · {formatDate(last)}</Text>}
+      {part !== 'line' && <GarageHistorySheet visible={open} onClose={() => setOpen(false)} garage={garage} />}
     </>
   );
 };

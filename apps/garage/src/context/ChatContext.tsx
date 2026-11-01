@@ -16,7 +16,7 @@ export type ChatTarget = { id: string; title: string; subtitle?: string; phone?:
 
 /** What a conversation is about: a customer's direct request, a booked (won) job, an accepted SOS, or a parts shop in OnMart. */
 export type ChatKind = 'direct' | 'job' | 'sos' | 'mart' | 'inquiry';
-export type ChatThreadInfo = ChatTarget & { kind: ChatKind; icon: string; last?: ChatMessage; unread: number; /** OnMart: the shop's conversation, which opens in OnMart's own chat. */ mart?: ThreadTarget };
+export type ChatThreadInfo = ChatTarget & { kind: ChatKind; icon: string; /** The job is over: the inbox keeps the chat under "අවසන්". */ done?: boolean; last?: ChatMessage; unread: number; /** OnMart: the shop's conversation, which opens in OnMart's own chat. */ mart?: ThreadTarget };
 
 /**
  * A job keeps the same conversation from the first request to the booking: a booking's id is "b-" plus the request's, so
@@ -96,9 +96,11 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       list.set(chatKey(d.id), { id: chatKey(d.id), kind: 'direct', icon: '📅', title: d.customer.name, subtitle: `ඍජු ඉල්ලීම · ${categoryInfo(d.categoryId).name} · ${d.vehicle.plate}`, phone: d.customer.phone, vehicle: d.vehicle, record: jobRecordText({ title: `${categoryInfo(d.categoryId).name}${d.service ? ' · ' + d.service : ''} (ඍජු ඉල්ලීම)`, who: { label: 'Customer', name: d.customer.name, phone: d.customer.phone }, vehicle: d.vehicle, description: d.description, partType: d.sparePart, at: d.preferredAt, doorstep: d.doorstep, place: d.location.address, photos: d.photos?.length, voiceNotes: d.voiceNotes?.length }) });
     }
     for (const b of bookings) {
-      if (b.status === 'completed' || b.status === 'cancelled') continue;
+      // A finished or cancelled job keeps its conversation (under the "අවසන්" chip), if anything was ever written in it.
+      const over = b.status === 'completed' || b.status === 'cancelled';
+      if (over && !store.messages(chatKey(b.id)).length) continue;
       const sos = b.source === 'sos';
-      list.set(chatKey(b.id), { id: chatKey(b.id), kind: sos ? 'sos' : 'job', icon: sos ? '🚨' : b.icon, title: b.customer.name, subtitle: `${sos ? 'SOS' : b.source === 'direct' ? 'ඍජු වෙන්කිරීම' : 'ලංසු'} · ${b.title} · ${b.vehicle.plate}`, phone: b.customer.phone, vehicle: b.vehicle, record: jobRecordText({ title: b.title, who: { label: 'Customer', name: b.customer.name, phone: b.customer.phone }, vehicle: b.vehicle, description: b.job?.description, partType: b.job?.sparePart, at: b.scheduledAt, doorstep: b.doorstep, place: b.address, price: b.price, priceLabel: b.calloutOnly ? 'ඇමතුම් ගාස්තුව' : 'එකඟ වූ මිල', photos: b.job?.photos?.length, voiceNotes: b.job?.voiceNotes?.length, notes: b.note ? [`ගරාජයේ සටහන: ${b.note}`] : undefined }) });
+      list.set(chatKey(b.id), { id: chatKey(b.id), done: over, kind: sos ? 'sos' : 'job', icon: sos ? '🚨' : b.icon, title: b.customer.name, subtitle: `${sos ? 'SOS' : b.source === 'direct' ? 'ඍජු වෙන්කිරීම' : 'ලංසු'} · ${b.title} · ${b.vehicle.plate}`, phone: b.customer.phone, vehicle: b.vehicle, record: jobRecordText({ title: b.title, who: { label: 'Customer', name: b.customer.name, phone: b.customer.phone }, vehicle: b.vehicle, description: b.job?.description, partType: b.job?.sparePart, at: b.scheduledAt, doorstep: b.doorstep, place: b.address, price: b.price, priceLabel: b.calloutOnly ? 'ඇමතුම් ගාස්තුව' : 'එකඟ වූ මිල', photos: b.job?.photos?.length, voiceNotes: b.job?.voiceNotes?.length, notes: b.note ? [`ගරාජයේ සටහන: ${b.note}`] : undefined }) });
     }
     for (const j of activeJobs) {
       const r = j.request;
