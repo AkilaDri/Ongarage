@@ -153,7 +153,12 @@ export const ModalCard: React.FC<{
   children: React.ReactNode;
   /** The Google Material dialog: a 28px card, a centred icon and headline, left-aligned text and right-aligned buttons (opt-in). */
   material?: boolean;
-}> = ({ icon, tone, title, body, bodySuffix, children, material }) => {
+  /** Label / value lines under the title, with the colons lined up in one column. */
+  rows?: { label: string; value: string }[];
+  /** A part of the body to set in a subtle bold (matched text is shown as written). */
+  highlight?: string;
+}> = ({ icon, tone, title, body, bodySuffix, children, material, rows, highlight }) => {
+  const parts = highlight && body.includes(highlight) ? body.split(highlight) : [body];
   const anim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     Animated.timing(anim, { toValue: 1, duration: 280, easing: Easing.bezier(0.16, 1, 0.3, 1), useNativeDriver: true }).start();
@@ -165,8 +170,24 @@ export const ModalCard: React.FC<{
           <Text style={[styles.modalIconText, material && styles.modalIconTextMaterial]}>{icon}</Text>
         </View>
         <Text style={[styles.modalTitle, material && styles.modalTitleMaterial]}>{title}</Text>
+        {!!rows && rows.length > 0 && (
+          <View style={styles.modalRows}>
+            {rows.map((r) => (
+              <View key={r.label} style={styles.modalRow}>
+                <Text style={styles.modalRowLabel}>{r.label}</Text>
+                <Text style={styles.modalRowColon}>:</Text>
+                <Text style={styles.modalRowValue}>{r.value}</Text>
+              </View>
+            ))}
+          </View>
+        )}
         <Text style={[styles.modalBody, material && styles.modalBodyMaterial]}>
-          {body}
+          {parts.map((part, i) => (
+            <React.Fragment key={i}>
+              {i > 0 && <Text style={styles.modalBodyStrong}>{highlight}</Text>}
+              {part}
+            </React.Fragment>
+          ))}
           {bodySuffix && <Text style={styles.modalBodySuffix}>{`\n\n${bodySuffix}`}</Text>}
         </Text>
         <View style={[styles.modalActions, material && styles.modalActionsMaterial]}>{children}</View>
@@ -220,7 +241,7 @@ const styles = themedStyles(() => StyleSheet.create({
   infoChipText: { fontSize: 11, fontFamily: FONTS.bodySemiBold, flexShrink: 1, lineHeight: 15 },
   actionBtnGhost: { borderWidth: 1, borderColor: softEdge(), backgroundColor: softFill() },
   actionBtnDisabled: { backgroundColor: softFill(), borderWidth: 1, borderColor: softEdge() },
-  actionBtnText: { fontSize: 13, fontFamily: FONTS.bodyBold, color: '#fff' },
+  actionBtnText: { fontSize: 13, fontFamily: FONTS.bodyBold, color: '#fff', textAlign: 'center', flexShrink: 1 },
   actionBtnTextDisabled: { color: Colors.textMuted },
 
   modalOverlay: { ...StyleSheet.absoluteFill, backgroundColor: Colors.overlay, justifyContent: 'center', alignItems: 'center', padding: 24, zIndex: 100 },
@@ -242,7 +263,13 @@ const styles = themedStyles(() => StyleSheet.create({
   modalIconText: { fontSize: 28 },
   modalTitle: { fontSize: 17, fontFamily: FONTS.titleBold, color: Colors.textMain, textAlign: 'center' },
   modalBody: { fontSize: 12.5, fontFamily: FONTS.bodyRegular, color: Colors.textSoft, textAlign: 'center', lineHeight: 19, marginBottom: 10 },
-  modalBodySuffix: { fontSize: 10.5, color: Colors.red },
+  modalRows: { alignSelf: 'center', gap: 4 },
+  modalRow: { flexDirection: 'row', alignItems: 'flex-start' },
+  modalRowLabel: { width: 56, fontSize: 12.5, fontFamily: FONTS.bodyRegular, color: Colors.textSoft, lineHeight: 19, textAlign: 'right' },
+  modalRowColon: { width: 14, fontSize: 12.5, fontFamily: FONTS.bodyRegular, color: Colors.textSoft, lineHeight: 19, textAlign: 'center' },
+  modalRowValue: { fontSize: 12.5, fontFamily: FONTS.bodyRegular, color: Colors.textSoft, lineHeight: 19, textAlign: 'left' },
+  modalBodySuffix: { fontSize: 9, color: Colors.red },
+  modalBodyStrong: { fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
   modalActions: { flexDirection: 'row', gap: 10, alignSelf: 'stretch' },
 
   // Material dialog: elevation 3, a small tonal icon, a 20px headline, 14px supporting text and right-aligned buttons.

@@ -917,7 +917,7 @@ const wa = themedStyles(() => {
 /** The round 💬 button on a job card: opens the chat; a red dot with a count shows unread messages. */
 export const ChatIconButton: React.FC<{ onPress: () => void; unread?: number; label?: string; /** The button's diameter (34 by default). */ size?: number; /** A tab on the card's top right corner instead of a round button. */ tag?: boolean; /** Just the icon, without the round tinted background. */ plain?: boolean }> = ({ onPress, unread = 0, label = 'Chat', size = 34, tag, plain }) => (
   <Pressable style={tag ? btn.tag : [btn.btn, size !== 34 && { width: size, height: size, borderRadius: size / 2 }, plain && { backgroundColor: 'transparent' }]} onPress={onPress} hitSlop={6} accessibilityLabel={label}>
-    <OnChatIcon width={tag || plain ? 40 : Math.round(size * 0.85)} color={getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8'} />
+    <OnChatIcon width={tag || plain ? 40 : Math.round(size * 1.1)} color="#ffffff" fill={getThemeMode() === 'dark' ? '#3b6fd4' : '#1a73e8'} short />
     {unread > 0 && (
       <View style={[btn.badge, tag && { top: 1, right: 1 }]}>
         <Text style={btn.badgeText}>{unread > 9 ? '9+' : unread}</Text>

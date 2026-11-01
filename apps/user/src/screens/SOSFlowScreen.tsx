@@ -123,7 +123,7 @@ type TechnicianSeed = {
 
 // Technicians registered in the OnGarage app (they take roadside jobs on their own).
 const SOS_TECHNICIANS: TechnicianSeed[] = [
-  { id: 't1', name: 'කසුන් ජයසිංහ', skill: 'ඉංජින් සහ විදුලි දෝෂ', van: 'සේවා යතුරුපැදිය', phone: '0712223344', rating: 4.8, reviews: 96, jobs: 412, years: 9, languages: 'සිංහල · English', responseMin: 6, distanceKm: 4.1, bearing: 70 },
+  { id: 't1', name: 'කසුන් ජයසිංහ', skill: 'එන්ජින් සහ විදුලි දෝෂ', van: 'සේවා යතුරුපැදිය', phone: '0712223344', rating: 4.8, reviews: 96, jobs: 412, years: 9, languages: 'සිංහල · English', responseMin: 6, distanceKm: 4.1, bearing: 70 },
   { id: 't2', name: 'චමින්ද සිල්වා', skill: 'ටයර්, බැටරි සහ ජම්ප් ස්ටාට්', van: 'Suzuki Every සේවා වෑන්', phone: '0773334455', rating: 4.7, reviews: 128, jobs: 530, years: 12, languages: 'සිංහල · தமிழ்', responseMin: 8, distanceKm: 5.2, bearing: 200 },
   { id: 't3', name: 'රුවන් පෙරේරා', skill: 'බ්‍රේක්, ක්ලච් සහ ටෝවිං', van: 'Toyota Dyna ටෝ ට්‍රක්', phone: '0764445566', rating: 4.9, reviews: 74, jobs: 301, years: 7, languages: 'සිංහල · English', responseMin: 10, distanceKm: 6.4, bearing: 330 },
 ];
@@ -142,7 +142,7 @@ const SOS_WORKSHOPS: WorkshopSeed[] = [
     reviews: 142,
     jobs: 618,
     years: 11,
-    skill: 'ඉංජින්, විදුලි සහ ඔයිල් සේවා',
+    skill: 'එන්ජින්, විදුලි සහ ඔයිල් සේවා',
   },
   {
     id: 'w2',
@@ -1068,13 +1068,13 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
           </View>
           <Text style={styles.cardSub}>කොටස ලැබෙන තුරු අලුත්වැඩියාව රැඳී සිටී. කොටස OnMart හරහා ලබාගන්න — ක්‍රමයක් තෝරන්න:</Text>
           <ActionButton
-            label="OnMart වෙත ගොස් මමම ගන්නම්"
+            label="OnMart වෙත ගොස් මම ගන්නම්"
             icon="🛍️"
             variant="primary"
             onPress={chooseOwnerBuys}
           />
           <ActionButton label="කාර්මිකයාට OnMart හරහා ඇණවුම් කිරීමට අවසර දෙන්න (බිල ඔබට)" icon="📦" variant="ghost" onPress={chooseTechnicianOrders} />
-          <ActionButton label="දැනට නැහැ — පසුවට දමන්න" icon="🕓" variant="ghost" onPress={() => setDeferAsk(true)} />
+          <ActionButton label="අනවශ්‍යයි — පසුව මාරු කර ගන්නම්" icon="🕓" variant="ghost" onPress={() => setDeferAsk(true)} />
         </View>
       );
     if (partState === 'deferred')
@@ -1083,7 +1083,7 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
           <View style={styles.rowCenter}>
             <GlassIcon emoji="🕓" />
             <View style={styles.flex1}>
-              <Text style={styles.cardTitle}>කොටස පසුවට දමා ඇත</Text>
+              <Text style={styles.cardTitle}>කොටස පසුව මාරු කරගනී</Text>
               <Text style={styles.cardSub}>
                 {partName} · ~{money(partPrice)} · වාහනයට අවශ්‍යයි
               </Text>
@@ -1271,7 +1271,7 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
         <Text style={styles.heroTitle}>QR කේතය ස්කෑන් කරන්න</Text>
         <Text style={styles.heroText}>රැකියාව අවසන් කිරීමට ගරාජ කාර්මිකයාගේ දුරකතනයෙන් මෙම QR කේතය ස්කෑන් කරන්න.</Text>
       </View>
-      <CloseCode code={closeCode} size={190} caption="ස්කෑන් කළ නොහැකි නම් මෙම ඉලක්කම් 6 කාර්මිකයාට කියන්න." />
+      <CloseCode code={closeCode} size={190} caption="ස්කෑන් කළ නොහැකි නම් මෙම කේතය කාර්මිකයාට කියන්න." />
       <View style={styles.card}>
         <Text style={styles.label}>බිල්පත් සාරාංශය</Text>
         <TxnTag kind="SOS" source={`sos-${closeCode}`} />
@@ -1429,13 +1429,13 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
         {baseStep === 'tracking' && (
           <View style={styles.etaBar} accessibilityLabel="Distance and time to arrive">
             <View style={styles.etaItem}>
+              <Text style={styles.etaLabel}>ඉතිරි දුර</Text>
               <Text style={styles.etaValue}>{remainingKm.toFixed(2)} km</Text>
-              <Text style={styles.statLabel}>ඉතිරි දුර</Text>
             </View>
             <View style={styles.etaDivider} />
             <View style={styles.etaItem}>
-              <Text style={styles.etaValue}>මිනි. {Math.max(1, etaMinutes(remainingKm) - 2)}</Text>
-              <Text style={styles.statLabel}>Breakdown ස්ථානයට පැමිණීමට</Text>
+              <Text style={styles.etaLabel}>Breakdown ස්ථානයට පැමිණීමට</Text>
+              <Text style={styles.etaValueSinhala}>මිනි. {Math.max(1, etaMinutes(remainingKm) - 2)}</Text>
             </View>
           </View>
         )}
@@ -1547,11 +1547,17 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
           icon="🔩"
           tone="primary"
           title="කාර්මිකයාට කොටසක් අවශ්‍යයි"
-          body={`${job.mechanic} ඔහුගේ app එකෙන් දැනුම් දුන්නා: ${partName} × 1 (~${money(partPrice)}) අවශ්‍යයි.\n\nOnMart හි ඇණවුම් කර කොටස රැගෙන ඒම ඔබට පහසු නම් එසේ කරන්න. නැතහොත් ඔහුට OnMart හරහා ඇණවුම් කිරීමට අවසර දෙන්න (බිල ඔබට එයි).`}
+          rows={[
+            { label: 'කොටස', value: `${partName} × 1` },
+            { label: 'මිල', value: `${money(partPrice)} ක් පමණ` },
+          ]}
+          body={`\nOnMart හි ඇණවුම් කර කොටස රැගෙන ඒම ඔබට පහසු නම් එසේ කරන්න. නැතහොත් ඔහුට OnMart හරහා ඇණවුම් කිරීමට අවසර දෙන්න (බිල ඔබට එයි).`}
         >
-          <ActionButton label="පසුවට දමන්නම්" variant="ghost" compact onPress={() => { setPartPopup(false); setDeferAsk(true); }} />
-          <ActionButton label="කාර්මිකයාට අවසර" variant="ghost" compact onPress={chooseTechnicianOrders} />
-          <ActionButton label="මමම ගන්නම්" variant="primary" compact onPress={chooseOwnerBuys} />
+          <View style={styles.partActions}>
+            <ActionButton label="පසුව මාරු කරගන්නම්" variant="ghost" compact onPress={() => { setPartPopup(false); setDeferAsk(true); }} />
+            <ActionButton label="කාර්මිකයාට අවසර" variant="ghost" compact onPress={chooseTechnicianOrders} />
+            <ActionButton label="මම ගන්නම්" variant="primary" compact onPress={chooseOwnerBuys} />
+          </View>
         </ModalCard>
       )}
 
@@ -1559,15 +1565,15 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
         <ModalCard
           icon={SAFETY_PARTS.has(partName) ? '⚠️' : '🕓'}
           tone={SAFETY_PARTS.has(partName) ? 'danger' : 'primary'}
-          title="කොටස පසුවට දමන්නද?"
+          title="කොටස පසුව මාරු කරනව ද ?"
           body={
             SAFETY_PARTS.has(partName)
-              ? `${partName} වාහනයේ ආරක්ෂාවට අදාළ කොටසකි. මෙය පසුවට දැමුවහොත් වාහනය ධාවනය කිරීමට පෙර කාර්මිකයා සමග නැවත පරීක්ෂා කරන්න. ගරාජය මෙම තීරණය වාර්තා කරගනී.`
-              : `${partName} දැනට ගැනීමට නොහැකි නම් පසුවට දමන්න. කාර්මිකයාගේ අනුමැතිය මත වාහනය ආරක්ෂිතව ධාවනය කළ හැකි නම් පමණක් මෙය සිදු කරන්න.\n\nවාහනයට මෙම කොටස අවශ්‍ය බව Ongarage වාර්තාවේ සටහන් කර ගනී.`
+              ? `\n${partName} වාහනයේ ආරක්ෂාවට අදාළ කොටසකි. මෙය පසුවට දැමුවහොත් වාහනය ධාවනය කිරීමට පෙර කාර්මිකයා සමග නැවත පරීක්ෂා කරන්න. ගරාජය මෙම තීරණය වාර්තා කරගනී.`
+              : `\n${partName} දැනට ගැනීමට නොහැකි නම් පසුව මාරු කර ගන්න. කාර්මිකයාගේ අනුමැතිය මත වාහනය ආරක්ෂිතව ධාවනය කළ හැකි නම් පමණක් මෙය සිදු කරන්න.\nවාහනයට මෙම කොටස අවශ්‍ය බව Ongarage වාර්තාවේ සටහන් කර ගනී.`
           }
         >
           <ActionButton label="අවලංගු" variant="ghost" compact onPress={() => setDeferAsk(false)} />
-          <ActionButton label={SAFETY_PARTS.has(partName) ? 'මම දනිමි, පසුවට' : 'පසුවට දමන්නම්'} variant="primary" compact onPress={deferPart} />
+          <ActionButton label={SAFETY_PARTS.has(partName) ? 'මම දනිමි, පසුවට' : 'ඔව්, පසුව මාරු කරන්නම්'} variant="primary" compact onPress={deferPart} />
         </ModalCard>
       )}
 
@@ -1576,7 +1582,7 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
           icon="⚠️"
           tone="danger"
           title="SOS ඉල්ලීම තහවුරු කරන්න"
-          body={`ඔබගේ ස්ථානයේ සිට කි.මී. ${INITIAL_RADIUS_KM} ක් ඇතුළත ලියාපදිංචි ගරාජ වෙත දැනුම් දෙනු ලැබේ. ඔබ වෙත පැමිණීමේ ගමන් වියදම වෙනුවෙන් OnGarage අනුමත ${money(BASE_FEE)} ක පැමිණීමේ ගාස්තුවක් කාර්මිකයාට ගෙවිය යුතුය.`}
+          body={`\nඔබගේ ස්ථානයේ සිට කි.මී. ${INITIAL_RADIUS_KM} ක් ඇතුළත ලියාපදිංචි ගරාජ වෙත දැනුම් දෙනු ලැබේ.\nඔබ වෙත පැමිණීමේ ගමන් වියදම වෙනුවෙන් OnGarage අනුමත ${money(BASE_FEE)} ක පැමිණීමේ ගාස්තුවක් කාර්මිකයාට ගෙවිය යුතුය.`}
           bodySuffix="(අලුත්වැඩියාවක් අවශ්‍ය නොවුණත් මෙය අදාළ වේ.)"
         >
           <ActionButton label="අවලංගු" variant="ghost" compact onPress={() => setStep('confirm')} />
@@ -1589,7 +1595,8 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
           icon="📡"
           tone="primary"
           title="සෙවුම් කලාපය පුළුල් කරමින්"
-          body={`මෙම කලාපය තුළ තවම ගරාජයක් හෝ කාර්මිකයෙක් හමු වී නැත. සෙවුම් කලාපය කි.මී. ${radius + RADIUS_STEP_KM} දක්වා වැඩි කෙරේ.\n\nවැඩි දුරක් පැමිනීමට සිදුවීම හේතුවෙන් කාර්මිකයාට පැමිණීමේ ගාස්තුවට ${money(SURCHARGE_STEP)} ක් එකතු වේ.`}
+          highlight={`${money(SURCHARGE_STEP)} ක් එකතු වේ.`}
+          body={`\nමෙම කලාපය තුළ තවම ගරාජයක් හෝ කාර්මිකයෙක් හමු වී නැත. සෙවුම් කලාපය කි.මී. ${radius + RADIUS_STEP_KM} දක්වා වැඩි කෙරේ.\nවැඩි දුරක් පැමිනීමට සිදුවීම හේතුවෙන් කාර්මිකයාගේ පැමිණීමේ ගාස්තුවට\n${money(SURCHARGE_STEP)} ක් එකතු වේ.`}
         >
           <ActionButton label="අවලංගු" variant="ghost" compact onPress={() => setShowCancel(true)} />
           <ActionButton
@@ -1609,7 +1616,7 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
           icon="✅"
           tone="success"
           title="අලුත්වැඩියාව අවසන්"
-          body={`${job.mechanic} අලුත්වැඩියාව අවසන් බව සලකුණු කර ඇත.\n\nකරුණාකර ඔබගේ වාහනය පරීක්ෂා කර තහවුරු කරන්න.`}
+          body={`\n${job.mechanic} අලුත්වැඩියාව අවසන් බව සලකුණු කර ඇත.\nකරුණාකර ඔබගේ වාහනය පරීක්ෂා කර තහවුරු කරන්න.`}
         >
           <ActionButton label="හරි, මම පරීක්ෂා කළා" icon="✓" variant="success" compact onPress={() => setStep('qrScan')} />
         </ModalCard>
@@ -1672,6 +1679,7 @@ const styles = themedStyles(() => StyleSheet.create({
   },
   closeBtnText: { fontSize: 14, color: '#fff' },
   stepper: { flexDirection: 'row', gap: 4, paddingHorizontal: 16, paddingTop: 10, paddingBottom: 4 },
+  partActions: { flex: 1, gap: 8 },
   stepSeg: { flex: 1, height: 4, borderRadius: 2, backgroundColor: Colors.subtleBorder },
   stepSegDone: { backgroundColor: 'rgba(239, 68, 68, 0.6)' },
   stepSegActive: { backgroundColor: '#ef4444' },
@@ -1832,6 +1840,9 @@ const styles = themedStyles(() => StyleSheet.create({
   etaRow: { flexDirection: 'row', alignItems: 'center' },
   etaItem: { flex: 1, alignItems: 'center' },
   etaValue: { fontSize: 18, fontFamily: FONTS.titleBold, color: Colors.textMain },
+  // The Sinhala minutes draw larger than the Latin km at the same size, so they get a smaller size to look the same.
+  etaValueSinhala: { fontSize: 14, fontFamily: FONTS.titleBold, color: Colors.textMain },
+  etaLabel: { fontSize: 11, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 2, textAlign: 'center' },
   etaDivider: { width: 1, height: 34, backgroundColor: Colors.borderColor },
   callBtn: { width: 42, height: 42, borderRadius: 21, backgroundColor: Colors.success, justifyContent: 'center', alignItems: 'center' },
   callBtnText: { fontSize: 18 },

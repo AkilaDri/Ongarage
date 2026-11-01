@@ -19,7 +19,7 @@ export const PayablesCard: React.FC = () => {
   return (
     <View style={styles.card} accessibilityLabel="Payments owed">
       <View style={styles.head}>
-        <Text style={styles.title}>💳 ගෙවිය යුතු මුදල්</Text>
+        <Text style={styles.title}>💳 ගෙවිය යුතු හිඟ මුදල</Text>
         <Text style={styles.total}>{money(total)}</Text>
       </View>
       <Text style={styles.sub}>ගරාජ {owed.length}ක්{late ? ` · ප්‍රමාද ${late}` : ''}</Text>

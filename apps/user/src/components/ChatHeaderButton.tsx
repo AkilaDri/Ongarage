@@ -1,19 +1,38 @@
-import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import React, { useRef } from 'react';
+import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import { FONTS, OnChatIcon, getThemeMode, themedStyles } from '@ongarage/shared';
 import { useChat } from '../context/ChatContext';
 
-/** The chat icon in the top bar: opens the list of every conversation; a red count shows the unread messages. */
-export const ChatHeaderButton: React.FC = () => {
+/**
+ * The chat icon in the top bar: opens the list of every conversation; a red count shows the unread messages.
+ * `scrolled` (0 = top of the page, 1 = scrolled): the full ONCHAT icon fades into the short ON one.
+ */
+export const ChatHeaderButton: React.FC<{ scrolled?: Animated.Value }> = ({ scrolled }) => {
   const { openInbox, totalUnread } = useChat();
+  const fill = getThemeMode() === 'dark' ? '#3b6fd4' : '#1a73e8';
+  const fallback = useRef(new Animated.Value(0)).current;
+  const progress = scrolled ?? fallback;
   return (
     <Pressable style={styles.btn} onPress={openInbox} hitSlop={6} accessibilityLabel="Messages">
-      <OnChatIcon width={64} color="#ffffff" fill={getThemeMode() === 'dark' ? '#3b6fd4' : '#1a73e8'} />
-      {totalUnread > 0 && (
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>{totalUnread > 9 ? '9+' : totalUnread}</Text>
+      <Animated.View style={{ opacity: progress.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }) }}>
+        <OnChatIcon width={64} color="#ffffff" fill={fill} />
+        {totalUnread > 0 && (
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>{totalUnread > 9 ? '9+' : totalUnread}</Text>
+          </View>
+        )}
+      </Animated.View>
+      <Animated.View style={[StyleSheet.absoluteFill, styles.shortWrap, { opacity: progress.interpolate({ inputRange: [0, 1], outputRange: [0, 1] }) }]}>
+        <View>
+          <OnChatIcon width={40} color="#ffffff" fill={fill} short />
+          {/* Half over the bubble's top right corner, so it sits on the edge. */}
+          {totalUnread > 0 && (
+            <View style={styles.badgeInBubble}>
+              <Text style={styles.badgeInBubbleText}>{totalUnread > 9 ? '9+' : totalUnread}</Text>
+            </View>
+          )}
         </View>
-      )}
+      </Animated.View>
     </Pressable>
   );
 };
@@ -29,7 +48,10 @@ const styles = themedStyles(() =>
       // In front of the sky, so the sun / moon never covers the button.
       zIndex: 3,
     },
-    badge: { position: 'absolute', top: -4, right: -4, minWidth: 20, height: 20, paddingHorizontal: 5, borderRadius: 10, borderWidth: 2, borderColor: getThemeMode() === 'dark' ? '#12161c' : '#ffffff', backgroundColor: '#ef4444', alignItems: 'center', justifyContent: 'center' },
+    shortWrap: { alignItems: 'flex-end', justifyContent: 'center' },
+    badge: { position: 'absolute', top: -12, right: -10, zIndex: 2, minWidth: 20, height: 20, paddingHorizontal: 5, borderRadius: 10, borderWidth: 2, borderColor: getThemeMode() === 'dark' ? '#12161c' : '#ffffff', backgroundColor: '#ef4444', alignItems: 'center', justifyContent: 'center' },
     badgeText: { fontSize: 11, fontFamily: FONTS.bodyBold, color: '#ffffff' },
+    badgeInBubble: { position: 'absolute', top: -7, right: -7, minWidth: 20, height: 20, paddingHorizontal: 5, borderRadius: 10, borderWidth: 2, borderColor: getThemeMode() === 'dark' ? '#12161c' : '#ffffff', backgroundColor: '#ef4444', alignItems: 'center', justifyContent: 'center' },
+    badgeInBubbleText: { fontSize: 11, fontFamily: FONTS.bodyBold, color: '#ffffff' },
   })
 );

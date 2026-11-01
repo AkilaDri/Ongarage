@@ -38,7 +38,7 @@ export const PayReliabilityCard: React.FC = () => {
       )}
       {s.limited && (
         <View style={styles.limit}>
-          <Text style={styles.limitTitle}>⛔ අලුත් රැකියා දැනට නවතා ඇත</Text>
+          <Text style={styles.limitTitle}>⛔ එතෙක් quotes සහ bookings නවතා ඇත</Text>
           <Text style={styles.limitText}>
             {s.reason}. ගෙවා අවසන් වූ විගස සියල්ල නැවත විවෘත වේ. (SOS, OnChat, OnMart සහ ගෙවීම් සැමවිටම විවෘතයි.)
           </Text>
@@ -62,7 +62,7 @@ export const PayStandingBanner: React.FC<{ onPress: () => void }> = ({ onPress }
   return (
     <Pressable style={[styles.banner, s.limited && styles.bannerLimited]} onPress={onPress} accessibilityLabel="Payment balance reminder">
       <Text style={styles.bannerText} numberOfLines={2}>
-        {s.limited ? `⛔ ${s.reason} — අලුත් රැකියා නවතා ඇත. ගෙවීම් බලන්න ›` : `⚠️ ගෙවිය යුතු ${money(s.owed)} ${s.overdueDays ? 'ප්‍රමාදයි' : 'අද දිනයයි'} — බලන්න ›`}
+        {s.limited ? `⛔ දින ${s.overdueDays} කින් හිඟ මුදල් ගෙවීමක් ප්‍රමාදවී ඇත — අලුත් රැකියා නවතා ඇත. ගෙවීම් බලන්න ›` : `⚠️ ගෙවිය යුතු ${money(s.owed)} ${s.overdueDays ? 'ප්‍රමාදයි' : 'අද දිනයයි'} — බලන්න ›`}
       </Text>
     </Pressable>
   );
@@ -74,12 +74,12 @@ export const PayFirstSheet: React.FC<{ visible: boolean; onClose: () => void; on
   return (
     <Sheet
       visible={visible}
-      title="පළමුව ඉතිරි ගෙවීම"
-      subtitle="අලුත් රැකියා දැනට නවතා ඇත"
+      title="පළමුව ඉතිරි හිඟ මුදල ගෙවන්න"
+      subtitle="එතෙක් quotes සහ bookings නවතා ඇත"
       onClose={onClose}
       footer={
         <ActionButton
-          label="ගෙවිය යුතු මුදල් බලන්න"
+          label="ගෙවිය යුතු හිඟ මුදල බලන්න"
           icon="💳"
           variant="primary"
           onPress={() => {
@@ -90,7 +90,7 @@ export const PayFirstSheet: React.FC<{ visible: boolean; onClose: () => void; on
       }
     >
       <Text style={styles.text}>
-        {s.reason ?? 'ඉතිරි ගෙවීමක් ප්‍රමාදයි'}. ඉතිරි මුදල් රු. {s.owed.toLocaleString('en-US')}. එය ගරාජයට ගෙවා “ගෙව්වා” ලෙස දැනුම් දුන් විට (ගරාජය තහවුරු කළ පසු) අලුත් රැකියා පළ කිරීම, ලංසු පිළිගැනීම සහ සෘජු වෙන් කිරීම නැවත විවෘත වේ.
+        දින {s.overdueDays}ක් ප්‍රමාද වූ රු. {s.owed.toLocaleString('en-US')} ක හිඟ මුදල් ගෙවීමක් ඇත. එය ගරාජයට ගෙවා ගරාජය මගින්ද සහතික කළ පසු අලුත් රැකියා පළ කිරීම, ලංසු පිළිගැනීම සහ සෘජු වෙන් කිරීම නැවත විවෘත වේ.
       </Text>
       <Text style={styles.fine}>SOS, OnChat, OnMart සහ ගෙවීම් සැමවිටම විවෘතයි.</Text>
     </Sheet>

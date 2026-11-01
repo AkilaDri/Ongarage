@@ -3,16 +3,34 @@ import { StyleSheet, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { FONTS } from '../theme/fonts';
 
-/** The OnChat icon: a speech bubble outline with its tail at the bottom left and the word ONCHAT inside it. */
-export const OnChatIcon: React.FC<{ width?: number; color: string; /** A colour to fill the bubble with; the word and outline are then `color` on it. */ fill?: string }> = ({ width = 44, color, fill }) => {
+/**
+ * The OnChat icon, the standard long form: a solid speech bubble with its tail at the bottom left and the word ONCHAT in white inside it.
+ * `short`: the compact mark for a bar, a solid bubble (its fill, or `color`) with a big white ON in it.
+ */
+export const OnChatIcon: React.FC<{ width?: number; color: string; /** A colour to fill the bubble with; the word and outline are then `color` on it. */ fill?: string; short?: boolean }> = ({ width = 44, color, fill, short }) => {
+  if (short) {
+    // A rounder, chunkier bubble than the full mark: the body takes three quarters of the height, the tail hangs below its left side.
+    const height = Math.round((width * 48) / 46);
+    return (
+      <View style={{ width, height }}>
+        <Svg width={width} height={height} viewBox="0 0 46 48" style={StyleSheet.absoluteFill}>
+          <Path d="M10 0h26a10 10 0 0 1 10 10v16a10 10 0 0 1-10 10H20l-10 10v-10H10A10 10 0 0 1 0 26V10A10 10 0 0 1 10 0z" fill={fill ?? color} />
+        </Svg>
+        <View style={{ height: (height * 36) / 48, alignItems: 'center', justifyContent: 'center' }}>
+          {/* Written inline: a theme style would scale a size this small up. */}
+          <Text style={{ color, fontSize: 13.4, lineHeight: 16, fontFamily: FONTS.bodyBold, includeFontPadding: false }}>ON</Text>
+        </View>
+      </View>
+    );
+  }
   const height = Math.round((width * 26) / 44);
   return (
     <View style={{ width, height, alignItems: 'center', justifyContent: 'center' }}>
       <Svg width={width} height={height} viewBox="0 0 68 40" style={StyleSheet.absoluteFill}>
-        <Path d="M10 2h48a8 8 0 0 1 8 8v13a8 8 0 0 1-8 8H26l-10 7v-7h-6a8 8 0 0 1-8-8V10a8 8 0 0 1 8-8z" stroke={fill ?? color} strokeWidth={2} strokeLinejoin="round" fill={fill ?? 'none'} />
+        <Path d="M10 2h48a8 8 0 0 1 8 8v13a8 8 0 0 1-8 8H26l-10 7v-7h-6a8 8 0 0 1-8-8V10a8 8 0 0 1 8-8z" fill={fill ?? color} />
       </Svg>
       {/* Written inline: a theme style would scale a size this small up. */}
-      <Text style={{ color, fontSize: (width * 8.5) / 44, lineHeight: (width * 10) / 44, fontFamily: FONTS.bodyBold, letterSpacing: 0.1, marginTop: -(width * 2) / 44 }}>ONCHAT</Text>
+      <Text style={{ color: '#ffffff', fontSize: (width * 8.5) / 44, lineHeight: (width * 10) / 44, fontFamily: FONTS.bodyBold, letterSpacing: 0.1, marginTop: -(width * 2) / 44 }}>ONCHAT</Text>
     </View>
   );
 };

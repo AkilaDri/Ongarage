@@ -96,7 +96,7 @@ const inSideScroller = (e: { nativeEvent?: unknown }) => {
   return false;
 };
 
-const TAB_TITLES: Partial<Record<TabId, string>> = { bids: 'Your Bids', activity: 'Activity', mart: 'OnMart', profile: 'ඔබගේ ගිණුම' };
+const TAB_TITLES: Partial<Record<TabId, string>> = { bids: 'Your Bids', activity: 'Activity', mart: 'OnMart' };
 /** The title bar of every tab but Home: a plain line of text at the top of the screen. */
 
 // Banner sizes: stacked cards at the top of Home, one compact row once the page is scrolled.
@@ -619,10 +619,10 @@ function AppShell() {
         <PaymentReminders />
         {/* The chat icon stays put at the top right however the header folds away while the page scrolls. */}
         <Animated.View
-          style={[styles.floatChat, { opacity: Animated.multiply(chatHide.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }), (activeTab === 'home' ? sheetScroll : martHeaderCollapse).interpolate({ inputRange: [0, 0.02], outputRange: [1, 0.4], extrapolate: 'clamp' })), transform: [{ translateY: Animated.multiply(activeTab === 'home' ? sheetScroll : martHeaderCollapse, chatDockDrop) }, { translateY: chatHide.interpolate({ inputRange: [0, 1], outputRange: [0, -24] }) }] }]}
+          style={[styles.floatChat, { opacity: chatHide.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }), transform: [{ translateY: Animated.multiply(activeTab === 'home' ? sheetScroll : martHeaderCollapse, chatDockDrop) }, { translateY: chatHide.interpolate({ inputRange: [0, 1], outputRange: [0, -24] }) }] }]}
           pointerEvents={chatBlocked ? 'none' : 'box-none'}
         >
-          <ChatHeaderButton />
+          <ChatHeaderButton scrolled={activeTab === 'home' ? sheetScroll : martHeaderCollapse} />
         </Animated.View>
       </SafeAreaView>
 
