@@ -1,0 +1,17 @@
+
+> parts
+> npm run start --workspace @ongarage/parts
+
+
+> @ongarage/parts@0.1.0 start
+> expo start --port 8093
+
+Starting project at C:\Users\Top Code\Desktop\topongarage\Ongarage\apps\parts
+Using src/app as the root directory for Expo Router.
+Expo Autolinking module resolution enabled
+Metro is running in CI mode, reloads are disabled. Remove CI=true to enable watch mode.
+Starting Metro Bundler
+
+Waiting on http://localhost:8093
+
+Logs for your project will appear below.

@@ -21,6 +21,8 @@ export const Sheet: React.FC<{
   hero?: React.ReactNode;
   /** Tighter spacing between the blocks under the hero. */
   compact?: boolean;
+  /** No thin line between one block of the body and the next (the caller spaces its sections itself). */
+  noDividers?: boolean;
   /** Covers the whole window with a back-arrow app bar (a chat), instead of rising from the bottom. */
   fullScreen?: boolean;
   /** Full screen only: the caller scrolls its own body, so the children fill the space between the bar and the footer. */
@@ -32,7 +34,7 @@ export const Sheet: React.FC<{
   /** Each time this number changes the body scrolls back to its top (a form that starts again, like "add another part"). */
   scrollToTopKey?: number;
   children: React.ReactNode;
-}> = ({ visible, title, subtitle, onClose, footer, overlay, hero, compact, fullScreen, bare, headerRight, titleIcon, scrollToTopKey, children }) => {
+}> = ({ visible, title, subtitle, onClose, footer, overlay, hero, compact, noDividers, fullScreen, bare, headerRight, titleIcon, scrollToTopKey, children }) => {
   const bodyRef = useRef<ScrollView>(null);
   useEffect(() => {
     if (scrollToTopKey) bodyRef.current?.scrollTo({ y: 0, animated: true });
@@ -78,7 +80,7 @@ export const Sheet: React.FC<{
   const divided = (kids: React.ReactNode) =>
     blocks(kids).map((c, i) => (
       <React.Fragment key={i}>
-        {i > 0 && <View style={styles.blockLine} />}
+        {i > 0 && !noDividers && <View style={styles.blockLine} />}
         {c}
       </React.Fragment>
     ));

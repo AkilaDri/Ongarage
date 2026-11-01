@@ -1,4 +1,4 @@
-import { registerFlyTarget } from '../utils/fly';
+import { onFly, registerFlyTarget } from '../utils/fly';
 import { JobsLineIcon, OrdersLineIcon } from '@ongarage/shared';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import { CustomerHistoryTag } from '../components/CustomerHistory';
@@ -37,6 +37,41 @@ const STATUS: Record<BidStatus, { label: string; color: () => string }> = {
 /** One quiet line of facts instead of a wall of chips. */
 const meta = (...parts: (string | false | undefined | 0 | null)[]) => parts.filter(Boolean).join('   ·   ');
 
+/**
+ * A card that has been turned down: it tints red, slides off to the left tilting and fading, then the gap it leaves folds shut, so the cards
+ * below move up smoothly instead of jumping.
+ */
+const LeavingCard: React.FC<{ onDone: () => void; children: React.ReactNode }> = ({ onDone, children }) => {
+  const out = React.useRef(new Animated.Value(0)).current;
+  const fold = React.useRef(new Animated.Value(1)).current;
+  const [h, setH] = useState<number | null>(null);
+  useEffect(() => {
+    if (h === null) return;
+    Animated.sequence([
+      Animated.timing(out, { toValue: 1, duration: 380, easing: Easing.in(Easing.cubic), useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(fold, { toValue: 0, duration: 260, easing: Easing.out(Easing.cubic), useNativeDriver: false }),
+    ]).start(() => onDone());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [h]);
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={h === null ? undefined : { height: fold.interpolate({ inputRange: [0, 1], outputRange: [0, h] }), marginBottom: fold.interpolate({ inputRange: [0, 1], outputRange: [-12, 0] }), overflow: 'hidden' }}
+    >
+      <Animated.View
+        onLayout={(e) => h === null && setH(Math.round(e.nativeEvent.layout.height))}
+        style={{
+          opacity: out.interpolate({ inputRange: [0, 0.8, 1], outputRange: [1, 0.4, 0] }),
+          transform: [{ translateX: out.interpolate({ inputRange: [0, 1], outputRange: [0, -140] }) }, { rotate: out.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '-6deg'] }) }],
+        }}
+      >
+        {children}
+        <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { borderRadius: 12, backgroundColor: 'rgba(217, 48, 37, 0.16)', opacity: out.interpolate({ inputRange: [0, 0.25], outputRange: [0, 1], extrapolate: 'clamp' }) }]} />
+      </Animated.View>
+    </Animated.View>
+  );
+};
+
 /** `onOpenSos`: the SOS chip opens the SOS screen full screen (App swaps this page for it). */
 export const JobFeedScreen: React.FC<{ shift: Animated.Value; onScrollY: (y: number) => void; onOpenSos: () => void }> = ({ shift, onScrollY, onOpenSos }) => {
   const { progress: edge, scrollProps } = usePinnedEdge();
@@ -72,12 +107,27 @@ export const JobFeedScreen: React.FC<{ shift: Animated.Value; onScrollY: (y: num
     swap.setValue(0);
     Animated.spring(swap, { toValue: 1, stiffness: 220, damping: 18, useNativeDriver: Platform.OS !== 'web' }).start();
   }, [segment, swap]);
+  // Whatever the list shows changing (ලංසු රැකියා, Booking, MyBids) brings the new list in with a short fade and rise.
+  const listIn = React.useRef(new Animated.Value(1)).current;
+  const listSeg = React.useRef<Segment>(segment);
+  useEffect(() => {
+    if (listSeg.current === segment) return;
+    listSeg.current = segment;
+    listIn.setValue(0);
+    Animated.timing(listIn, { toValue: 1, duration: 240, easing: Easing.out(Easing.cubic), useNativeDriver: Platform.OS !== 'web' }).start();
+  }, [segment, listIn]);
   const goesUp = { opacity: swap, transform: [{ translateY: swap.interpolate({ inputRange: [0, 1], outputRange: [28, 0] }) }] };
   const comesDown = { opacity: swap, transform: [{ translateY: swap.interpolate({ inputRange: [0, 1], outputRange: [-28, 0] }) }] };
   // The "My bids" chip: where a bid just sent flies to (its place is measured when the token lands).
   const myBidsChip = React.useRef<View>(null);
+  // While My bids is open the chip stands in the top bar instead (the filter-row one is gone), so a bid sent from elsewhere can still land on it.
+  const myBidsTopChip = React.useRef<View>(null);
   useEffect(() => {
-    registerFlyTarget('bid', () => new Promise((resolve) => (myBidsChip.current ? myBidsChip.current.measureInWindow((x, y, w, h) => resolve({ x: x + w / 2, y: y + h / 2 })) : resolve(null))));
+    registerFlyTarget('bid', () => new Promise((resolve) => {
+      const chip = myBidsChip.current ?? myBidsTopChip.current;
+      if (chip) chip.measureInWindow((x, y, w, h) => resolve({ x: x + w / 2, y: y + h / 2 }));
+      else resolve(null);
+    }));
     return () => registerFlyTarget('bid', null);
   }, []);
   // The icon after "All": every open job as one row (to see them all at once and bid quickly) instead of a full card each.
@@ -109,7 +159,26 @@ export const JobFeedScreen: React.FC<{ shift: Animated.Value; onScrollY: (y: num
     .filter((j) => !nearest || j.distanceKm <= NEAR_KM)
     .sort((a, b) => (nearest && a.distanceKm !== b.distanceKm ? a.distanceKm - b.distanceKm : fewBids && a.otherBids !== b.otherBids ? a.otherBids - b.otherBids : bidDeadline(a) - bidDeadline(b)));
   // Waiting on this garage first, soonest deadline first.
-  const directList = [...directs].sort((a, b) => (a.status === b.status ? a.respondBy - b.respondBy : a.status === 'new' ? -1 : 1));
+  const sortDirects = (list: DirectRequest[]) => [...list].sort((a, b) => (a.status === b.status ? a.respondBy - b.respondBy : a.status === 'new' ? -1 : 1));
+  const directList = sortDirects(directs);
+  // A request the garage turns down does not just vanish: its card is kept for a moment (at the same place in the list) and leaves with an animation.
+  const rejectedIds = React.useRef(new Set<string>());
+  useEffect(
+    () =>
+      onFly((k, id) => {
+        if (k === 'reject' && id) rejectedIds.current.add(id);
+      }),
+    []
+  );
+  const lastList = React.useRef<DirectRequest[]>(directList);
+  const [leaving, setLeaving] = useState<{ d: DirectRequest; at: number }[]>([]);
+  useEffect(() => {
+    const before = lastList.current;
+    lastList.current = sortDirects(directs);
+    const gone = before.map((d, at) => ({ d, at })).filter(({ d }) => rejectedIds.current.has(d.id) && !directs.some((x) => x.id === d.id));
+    if (gone.length) setLeaving((l) => [...l, ...gone.filter((g) => !l.some((x) => x.d.id === g.d.id))]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [directs]);
   const newDirects = directs.filter((d) => d.status === 'new').length;
 
   // The detail view follows the live record, and closes if it goes away (won, booked, expired).
@@ -499,17 +568,20 @@ export const JobFeedScreen: React.FC<{ shift: Animated.Value; onScrollY: (y: num
         )}
       </Pressable>
       </Animated.View>
-      {(
-        [
-          ['services', JobsLineIcon],
-          ['all', OrdersLineIcon],
-        ] as [Scope, React.ComponentType<{ active: boolean; size?: number }>][]
-      ).map(([id, FilterIcon]) => (
-        <Pressable key={id} style={[styles.filter, scope === id && styles.filterActive]} onPress={() => setScope(id)} accessibilityLabel={id === 'services' ? 'My services' : 'All jobs'} accessibilityState={{ selected: scope === id }}>
-          <FilterIcon active={scope === id} size={20} />
-          {id === 'all' && <Text style={[styles.filterText, scope === id && styles.filterTextActive]}>All</Text>}
-        </Pressable>
-      ))}
+      {/* "My services" and "All" are one chip holding both icons: touching it anywhere switches to the other option, and the chosen option's icon lights up. */}
+      <Pressable style={styles.scopeChip} onPress={() => setScope(scope === 'services' ? 'all' : 'services')} accessibilityRole="button" accessibilityLabel={scope === 'services' ? 'My services (touch for all jobs)' : 'All jobs (touch for my services)'}>
+        {(
+          [
+            ['services', JobsLineIcon],
+            ['all', OrdersLineIcon],
+          ] as [Scope, React.ComponentType<{ active: boolean; size?: number }>][]
+        ).map(([id, FilterIcon]) => (
+          <View key={id} style={[styles.scopeOption, scope === id && styles.filterActive]} accessibilityState={{ selected: scope === id }}>
+            <FilterIcon active={scope === id} size={20} />
+            {id === 'all' && <Text style={[styles.filterText, scope === id && styles.filterTextActive]}>All</Text>}
+          </View>
+        ))}
+      </Pressable>
     </>
   );
 
@@ -522,7 +594,7 @@ export const JobFeedScreen: React.FC<{ shift: Animated.Value; onScrollY: (y: num
             const active = segment === t.id;
             const flashing = t.id === 'sos' && t.alert;
             const chip = (
-              <Pressable key={t.id} style={[styles.segChip, active && styles.segChipOn, flashing && styles.segChipSos]} onPress={() => (t.id === 'sos' ? onOpenSos() : setSegment(t.id))} accessibilityLabel={t.label}>
+              <Pressable key={t.id} ref={t.id === 'mine' ? myBidsTopChip : undefined} style={[styles.segChip, active && styles.segChipOn, flashing && styles.segChipSos]} onPress={() => (t.id === 'sos' ? onOpenSos() : setSegment(t.id))} accessibilityLabel={t.label}>
                 {flashing && (
                   <>
                     <Animated.View pointerEvents="none" style={[styles.sosRing, { opacity: sosPulse.interpolate({ inputRange: [0, 1], outputRange: [0.8, 0] }), transform: [{ scaleX: sosPulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.18] }) }, { scaleY: sosPulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.45] }) }] }]} />
@@ -555,7 +627,6 @@ export const JobFeedScreen: React.FC<{ shift: Animated.Value; onScrollY: (y: num
               <View style={[styles.filters, styles.barFilters]}>
                 {scopeButtons}
                 {/* From here the icons sit at the right-hand end of the row: fewest bids first, then the rows icon, then the rest. */}
-                <View style={styles.flex1} />
                 <Pressable style={[styles.filter, fewBids && styles.filterActive]} onPress={() => setFewBids((v) => !v)} accessibilityRole="button" accessibilityState={{ selected: fewBids }} accessibilityLabel={fewBids ? 'Show all the jobs' : 'Only the jobs with the fewest bids'}>
                   <Svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke={fewBids ? (getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8') : Colors.textMuted} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
                     <Path d="M7 4v15M7 19l-3-3.5M7 19l3-3.5" />
@@ -600,7 +671,7 @@ export const JobFeedScreen: React.FC<{ shift: Animated.Value; onScrollY: (y: num
         )}
       </Animated.View>
 
-      <Animated.View style={[styles.listLayer, { top: barH, bottom: 0 }]}>
+      <Animated.View style={[styles.listLayer, { top: barH, bottom: 0, opacity: listIn, transform: [{ translateY: listIn.interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) }] }]}>
       <ScrollView
         style={styles.flex1}
         {...scrollProps}
@@ -627,10 +698,24 @@ export const JobFeedScreen: React.FC<{ shift: Animated.Value; onScrollY: (y: num
 
         {segment === 'direct' && (
           <>
-            {directList.length === 0 ? (
+            {directList.length === 0 && leaving.length === 0 ? (
               <EmptyState icon="📅" title="ඍජු ඉල්ලීම් නැත" text="හිමියන් ඔබගේ ගරාජය ඍජුවම වෙන් කළ විට ඒවා මෙහි පෙන්වනු ඇත." />
             ) : (
-              directList.map(directCard)
+              (() => {
+                const out: React.ReactNode[] = directList.map(directCard);
+                [...leaving]
+                  .sort((a, b) => a.at - b.at)
+                  .forEach(({ d, at }) => {
+                    out.splice(
+                      Math.min(at, out.length),
+                      0,
+                      <LeavingCard key={`leaving-${d.id}`} onDone={() => setLeaving((l) => l.filter((x) => x.d.id !== d.id))}>
+                        {directCard(d)}
+                      </LeavingCard>
+                    );
+                  });
+                return out;
+              })()
             )}
           </>
         )}
@@ -671,7 +756,7 @@ const styles = themedStyles(() =>
     // One soft track with a raised active segment, instead of separate pills and badges.
     // The bar sits on top of the list layer, which starts under it and reaches one bar-height past the bottom.
     listLayer: { position: 'absolute', left: 0, right: 0 },
-    tabBar: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 5, paddingHorizontal: 6, paddingTop: 12, paddingBottom: 2, backgroundColor: pageBg() },
+    tabBar: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 5, paddingHorizontal: 6, paddingTop: 14, paddingBottom: 2, backgroundColor: pageBg() },
     // The three views are three separate chips: each its own outlined chip, the selected one tonal blue, the count a badge in it.
     segRow: { flexDirection: 'row', gap: 8 },
     segChip: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, height: 44, paddingHorizontal: 6, borderRadius: 12, borderWidth: 1, borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#dadce0', backgroundColor: Colors.bgCard, shadowColor: '#3c4043', shadowOffset: { width: 0, height: 1 }, shadowOpacity: getThemeMode() === 'dark' ? 0.4 : 0.15, shadowRadius: 3, elevation: 1 },
@@ -690,8 +775,11 @@ const styles = themedStyles(() =>
 
     body: { paddingVertical: 16, paddingHorizontal: 6, paddingTop: 4, gap: 14, paddingBottom: 250 },
     filters: { flexDirection: 'row', gap: 8 },
-    barFilters: { paddingTop: 10, paddingBottom: 4, paddingRight: 2 },
+    // The chips and icons are spread over the row with the same space between each.
+    barFilters: { justifyContent: 'space-between', paddingTop: 10, paddingBottom: 4, paddingRight: 2 },
     filter: { minWidth: 40, flexDirection: 'row', gap: 5, paddingHorizontal: 10, height: 28, alignItems: 'center', justifyContent: 'center', borderRadius: 14, borderWidth: 1, borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#dadce0', backgroundColor: Colors.bgCard },
+    scopeChip: { flexDirection: 'row', alignItems: 'center', height: 28, padding: 2, gap: 2, borderRadius: 14, borderWidth: 1, borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#dadce0', backgroundColor: Colors.bgCard },
+    scopeOption: { minWidth: 34, flexDirection: 'row', gap: 5, paddingHorizontal: 8, height: 22, alignItems: 'center', justifyContent: 'center', borderRadius: 11, borderWidth: 1, borderColor: 'transparent' },
     filterActive: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe', borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#d2e3fc' },
     filterText: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.textSoft },
     filterTextActive: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },

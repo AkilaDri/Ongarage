@@ -2,11 +2,12 @@
  * A small token that flies to where the thing now lives: a bid just sent flies to "My bids" (Jobs), a booking just taken (or a won bid) flies to the Schedule,
  * a job just finished flies to the completed ones (also in the Schedule). `flyTo` is called where the thing happens (the context); the FlyLayer in App draws it.
  */
-export type FlyKind = 'bid' | 'schedule' | 'done';
-type Listener = (kind: FlyKind) => void;
+/** 'reject' has no place to land: a request the garage turned down. Its card leaves the list and a red token drops away (`id` is the request). */
+export type FlyKind = 'bid' | 'schedule' | 'done' | 'reject';
+type Listener = (kind: FlyKind, id?: string) => void;
 const listeners = new Set<Listener>();
 
-export const flyTo = (kind: FlyKind) => listeners.forEach((l) => l(kind));
+export const flyTo = (kind: FlyKind, id?: string) => listeners.forEach((l) => l(kind, id));
 
 export const onFly = (l: Listener) => {
   listeners.add(l);

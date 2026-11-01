@@ -180,7 +180,7 @@ export const Header: React.FC = () => {
 
   return (
     <View style={styles.header}>
-      <WeatherAnimation hour={hour} />
+      <WeatherAnimation hour={hour} fadeBottom />
       <View style={styles.greetingRow}>
         <View style={styles.greetingText}>
           <Text {...KEEP_EMOJI} style={[styles.city, night ? styles.cityNight : styles.cityDay]}>📍 {MOCK_USER.city}</Text>

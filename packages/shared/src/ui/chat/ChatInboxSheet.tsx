@@ -11,6 +11,7 @@ import { Icon } from '../Icons';
 import { vehicleIcon } from '../../constants/vehicles';
 import { Sheet } from '../Sheet';
 import type { ChatMessage, ChatSide } from '../../types';
+import { inInboxFilter } from '../../marketplace/chat';
 
 /** One row of the inbox: a conversation, what it is about and its last message. */
 export type InboxThread = {
@@ -28,6 +29,8 @@ export type InboxThread = {
   vehicle?: { name: string; plate: string; type: string; registrationNo?: string };
   /** The job's record, put in the chat when it first appears. */
   record?: string;
+  /** The job this conversation is about is over (closed, completed or cancelled): it is kept under the "අවසන්" chip and left out of every other chip, "සියල්ල" too. */
+  done?: boolean;
 };
 
 const KIND: Record<InboxThread['kind'], { label: string; color: () => string; bg: () => string }> = {
@@ -41,7 +44,7 @@ const KIND: Record<InboxThread['kind'], { label: string; color: () => string; bg
   mart: { label: 'OnMart', color: () => (getThemeMode() === 'dark' ? '#fdd663' : '#8a4b00'), bg: () => (getThemeMode() === 'dark' ? 'rgba(253, 214, 99, 0.16)' : '#fef7e0') },
 };
 
-type Filter = 'all' | InboxThread['kind'];
+type Filter = 'all' | 'done' | InboxThread['kind'];
 /** A small "new" tag that blinks until the conversation is opened. */
 const NewBadge: React.FC = () => {
   const blink = useRef(new Animated.Value(1)).current;
@@ -71,6 +74,7 @@ export const DEFAULT_INBOX_FILTERS: InboxFilter[] = [
   { id: 'job', label: 'ලංසු' },
   { id: 'mart', label: 'OnMart' },
   { id: 'sos', label: 'SOS' },
+  { id: 'done', label: 'අවසන්' },
 ];
 
 /**
@@ -82,7 +86,7 @@ export function ChatInboxSheet<T extends InboxThread>({ visible, onClose, overla
   const [filter, setFilter] = useState<Filter>('all');
   const [query, setQuery] = useState('');
   const q = query.trim().toLowerCase();
-  const threads = all.filter((t) => (filter === 'all' || t.kind === filter) && (!q || t.title.toLowerCase().includes(q) || (t.last?.text ?? '').toLowerCase().includes(q)));
+  const threads = all.filter((t) => inInboxFilter(t, filter) && (!q || t.title.toLowerCase().includes(q) || (t.last?.text ?? '').toLowerCase().includes(q)));
   return (
     <Sheet visible={visible} title="OnChat" titleIcon={<View style={styles.mark}><OnChatIcon width={28} color="#ffffff" /></View>} onClose={onClose} overlay={overlay} fullScreen>
       <View style={styles.search}>
@@ -92,7 +96,7 @@ export function ChatInboxSheet<T extends InboxThread>({ visible, onClose, overla
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filters}>
         {filters.map((f) => {
           const on = filter === f.id;
-          const unread = all.filter((t) => (f.id === 'all' || t.kind === f.id) && t.unread > 0).length;
+          const unread = all.filter((t) => inInboxFilter(t, f.id) && t.unread > 0).length;
           return (
             <Pressable key={f.id} style={[styles.filter, on && styles.filterOn]} onPress={() => setFilter(f.id)} accessibilityLabel={`Show ${f.label}`} accessibilityState={{ selected: on }}>
               {on && <Text style={styles.filterTextOn}>✓</Text>}
@@ -106,7 +110,9 @@ export function ChatInboxSheet<T extends InboxThread>({ visible, onClose, overla
           );
         })}
       </ScrollView>
-      {threads.length === 0 ? (
+      {threads.length === 0 && filter === 'done' ? (
+        <EmptyState icon="✅" title="අවසන් වූ රැකියා නැත" text="රැකියාවක් අවසන් වූ පසු (වසා දැමූ, සම්පූර්ණ කළ හෝ අවලංගු කළ) එහි කතාබහ මෙහි තබා ගනී. එය 'සියල්ල' හි නොපෙන්වයි." />
+      ) : threads.length === 0 ? (
         <EmptyState icon="💬" title="පණිවිඩ නැත" text="ඍජු ඉල්ලීමක්, දිනූ ලංසුවක් හෝ පිළිගත් SOS එකක් ඇති විට එහි පාරිභෝගිකයා සමඟත්, OnMart හි ඔබගේ ඉල්ලීම්වලට පිළිතුරු දුන් වෙළඳසැල් සමඟත් මෙහි කතා කළ හැක." />
       ) : (
         threads.map((t) => {

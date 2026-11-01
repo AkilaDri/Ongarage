@@ -20,7 +20,10 @@ export const DotScroll: React.FC<{ contentContainerStyle?: StyleProp<ViewStyle>;
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={contentContainerStyle}
+        // A scroll view cuts off whatever is drawn outside it, which sliced the cards' shadows into a hard band under them. The row gets padding as room for the
+        // shadows and the same amount of negative margin, so the layout stays as it was.
+        style={styles.scroller}
+        contentContainerStyle={[contentContainerStyle, styles.shadowRoom]}
         onLayout={(e) => setViewW(e.nativeEvent.layout.width)}
         onContentSizeChange={(w) => setContentW(w)}
         onScroll={(e) => setX(e.nativeEvent.contentOffset.x)}
@@ -42,6 +45,8 @@ export const DotScroll: React.FC<{ contentContainerStyle?: StyleProp<ViewStyle>;
 const styles = themedStyles(() =>
   StyleSheet.create({
     wrap: { gap: 8 },
+    scroller: { marginTop: -8, marginLeft: -8, marginBottom: -20, marginRight: -8 },
+    shadowRoom: { paddingTop: 8, paddingLeft: 8, paddingBottom: 28, paddingRight: 16 },
     dots: { flexDirection: 'row', justifyContent: 'center', gap: 5 },
     dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: Colors.subtleBorder },
     dotOn: { width: 16, backgroundColor: Colors.primary },

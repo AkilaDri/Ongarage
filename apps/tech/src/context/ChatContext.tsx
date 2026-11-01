@@ -34,6 +34,7 @@ const FILTERS: InboxFilter[] = [
   { id: 'all', label: 'සියල්ල' },
   { id: 'customer', label: 'පාරිභෝගික' },
   { id: 'garage', label: 'ගරාජ' },
+  { id: 'done', label: 'අවසන්' },
 ];
 
 const SOS_STAGE_TEXT: Partial<Record<TechJob['stage'], string>> = {
@@ -96,6 +97,8 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const messages = store.messages(id);
         list.push({
           id,
+          // The job is finished: both of its chats move to the "අවසන්" chip.
+          done: j.stage === 'done',
           kind: side,
           icon: j.icon,
           title: side === 'customer' ? j.customer.name : j.garage.name,
