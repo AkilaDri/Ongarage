@@ -58,13 +58,18 @@ export const CustomerRatingView: React.FC<{ workshop: OwnerWorkshop }> = ({ work
 
   return (
     <View style={styles.box} accessibilityLabel="Garage's rating of you">
-      <Text style={styles.title}>
-        ⭐ {w.garageName} ඔබව ★{r.stars} ලෙස ශ්‍රේණිගත කළා
-      </Text>
-      {r.tags.length > 0 && <Text style={styles.text}>{r.tags.map(tagLabel).join(' · ')}</Text>}
-      {!!r.note && <Text style={styles.text}>“{r.note}”</Text>}
-      {!!r.reply && <Text style={styles.text}>💬 ඔබගේ පිළිතුර: “{r.reply.text}”</Text>}
-      {open && <Text style={[styles.text, { color: Colors.warning }]}>⚠️ ඔබ ගැටලුවක් ඉදිරිපත් කළා: “{r.dispute!.note}” — OnGarage සලකා බලයි; එතෙක් මෙය ඔබගේ පොදු වාර්තාවට ගණන් නොගනී.</Text>}
+      <View style={styles.head}>
+        <View style={[styles.stars, r.stars >= 4 ? styles.starsGood : styles.starsLow]}>
+          <Text style={[styles.starsText, { color: r.stars >= 4 ? Colors.successText : Colors.warning }]}>★{r.stars}</Text>
+        </View>
+        <View style={styles.flex1}>
+          <Text style={styles.title}>{w.garageName}</Text>
+          {r.tags.length > 0 && <Text style={styles.tags}>{r.tags.map(tagLabel).join(' · ')}</Text>}
+        </View>
+      </View>
+      {!!r.note && <Text style={styles.quote}>“{r.note}”</Text>}
+      {!!r.reply && <Text style={styles.reply}>↳ ඔබ: {r.reply.text}</Text>}
+      {open && <Text style={styles.warn}>⚠️ ගැටලුව විසඳෙන තෙක් බලා සිටින්න</Text>}
       {!r.dispute && (
         <View style={styles.row}>
           {!r.reply && (
@@ -77,7 +82,7 @@ export const CustomerRatingView: React.FC<{ workshop: OwnerWorkshop }> = ({ work
           </View>
         </View>
       )}
-      <Text style={styles.fine}>මාස {RATING_EXPIRY_MONTHS}කට පසු මෙය ගණන් නොගනී. ඉතිරි මුදල ගෙවූ විට “ගෙවුවේ නැහැ” “ප්‍රමාදව ගෙවුවා” බවට පත් වේ.</Text>
+      <Text style={styles.fine}>මාස {RATING_EXPIRY_MONTHS}කට පසු ගණන් නොගනී.</Text>
       <AnswerSheet workshop={mode ? w : null} mode={mode} onClose={() => setMode(null)} />
     </View>
   );
@@ -87,9 +92,17 @@ const styles = themedStyles(() =>
   StyleSheet.create({
     flex1: { flex: 1 },
     row: { flexDirection: 'row', gap: 8 },
-    box: { gap: 6, padding: 12, borderRadius: 12, backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.08)' : '#f1f6fe', borderWidth: 1, borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#d2e3fc' },
+    box: { gap: 8, padding: 12, borderRadius: 14, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.borderColor },
+    head: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    stars: { minWidth: 48, paddingHorizontal: 8, paddingVertical: 5, borderRadius: 12, alignItems: 'center' },
+    starsGood: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(129, 201, 149, 0.16)' : '#e6f4ea' },
+    starsLow: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(245, 158, 11, 0.16)' : '#fef7e0' },
+    starsText: { fontSize: 13, fontFamily: FONTS.titleBold },
     title: { fontSize: 13, fontFamily: FONTS.bodyBold, color: Colors.textMain },
-    text: { fontSize: 12, fontFamily: FONTS.bodyRegular, color: Colors.textMain, lineHeight: 18 },
+    tags: { fontSize: 11.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 2 },
+    quote: { fontSize: 12, fontFamily: FONTS.bodyRegular, color: Colors.textMain, lineHeight: 17, fontStyle: 'italic' },
+    reply: { fontSize: 11.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 17 },
+    warn: { fontSize: 11.5, fontFamily: FONTS.bodyBold, color: Colors.warning },
     fine: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 15 },
     hint: { fontSize: 11.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 17 },
     input: { minHeight: 80, padding: 12, borderRadius: 12, borderWidth: 1, borderColor: Colors.borderColor, backgroundColor: Colors.bgCard, color: Colors.textMain, fontSize: 13, fontFamily: FONTS.bodyRegular, textAlignVertical: 'top' },

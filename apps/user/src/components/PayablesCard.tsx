@@ -28,7 +28,7 @@ export const PayablesCard: React.FC = () => {
           <Text style={styles.who}>
             {w.garageName} · {w.title ?? categoryInfo(w.categoryId).name}
           </Text>
-          <PaymentStatus workshop={w} />
+          <PaymentStatus workshop={w} compact />
         </View>
       ))}
     </View>

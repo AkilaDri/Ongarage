@@ -25,7 +25,8 @@ import { useSOSRecords } from '../context/SOSRecordsContext';
 import { TxnTag } from '../components/TxnTag';
 import { useMart } from '../context/MartContext';
 import { DirectBookingCard } from '../components/DirectBookingCard';
-import { chatDockOffset } from '../utils/chatDock';
+import { chatDockOffset, chatHide } from '../utils/chatDock';
+import { ChatHeaderButton } from '../components/ChatHeaderButton';
 import { VehicleBlock } from '../components/VehicleBlock';
 import { MOCK_GARAGES } from '../constants/mockData';
 import { OrdersList } from '../components/mart/OrdersList';
@@ -109,6 +110,9 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
   const { findVehicle, vehicles } = useVehicles();
   // 0 to 1 as the summary tiles pin at the top; fades the edge shadow in.
   const edge = useRef(new Animated.Value(0)).current;
+  // The chat icon in the pinned filter card is always the short one; the floating icon hides while the page is scrolled.
+  const shortChat = useRef(new Animated.Value(1)).current;
+  useEffect(() => () => { chatHide.setValue(0); }, []);
   // The chat icon sits under the pinned tiles while this screen is shown.
   const pinnedH = useRef(0);
   useEffect(() => {
@@ -252,6 +256,7 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
         onScroll={(e) => {
           const y = e.nativeEvent.contentOffset.y;
           edge.setValue(Math.min(1, Math.max(0, (y - 8) / 30)));
+          chatHide.setValue(y > 8 ? 1 : 0);
           // The title band folds away in step with the scroll (the first PAGE_TITLE_H px) and comes back the same way, straight from the offset: no thresholds or
           // timers, so nothing shakes.
           onHeaderProgress?.(Math.min(1, Math.max(0, y / PAGE_TITLE_H)));
@@ -344,6 +349,9 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
             })}
           </ScrollView>
         )}
+          <Animated.View pointerEvents="box-none" style={[styles.pinnedChat, { opacity: edge }]}>
+            <ChatHeaderButton scrolled={shortChat} />
+          </Animated.View>
           <PinnedEdge progress={edge} />
         </View>
 
@@ -518,6 +526,8 @@ const styles = themedStyles(() => StyleSheet.create({
   body: { paddingHorizontal: 6, paddingTop: 8, gap: 12, paddingBottom: 100 },
   // Opaque and full width (the negative margin cancels the body padding), so the lists scroll underneath it.
   statsPinned: { marginHorizontal: -6, paddingHorizontal: 6, paddingTop: 8, paddingBottom: 8, backgroundColor: pageBg() },
+  // The short OnChat icon inside the filter card, on its right side.
+  pinnedChat: { position: 'absolute', right: 8, bottom: -12 },
   statsRow: { flexDirection: 'row', gap: 8 },
   stat: {
     flex: 1,

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { ActionButton, Colors, dayText, FONTS, getThemeMode, paymentDue, promiseAt, PROMISE_PRESETS, themedStyles } from '@ongarage/shared';
+import { ActionButton, Colors, dayText, FONTS, getThemeMode, MAX_PROMISE_DAYS, paymentDue, promiseAt, PROMISE_PRESETS, themedStyles } from '@ongarage/shared';
 import { useWorkshops, type OwnerWorkshop } from '../../context/WorkshopContext';
 import { money } from '../../utils/format';
 import { Sheet } from '../Sheet';
@@ -48,15 +48,76 @@ const DisputeSheet: React.FC<{ workshop: OwnerWorkshop | null; onClose: () => vo
  * and follows up: "I paid" (the garage confirms), and, once the garage says the promised day passed without payment, a new day to pay by.
  * Shown on the job's card (the tracker), in its chat and in the owner's list of what is owed.
  */
-export const PaymentStatus: React.FC<{ workshop: OwnerWorkshop }> = ({ workshop: w }) => {
+export const PaymentStatus: React.FC<{ workshop: OwnerWorkshop; /** The short form for the owed list: the amount, when it is due, and the buttons. */ compact?: boolean }> = ({ workshop: w, compact }) => {
   const { confirmPayment, claimPayment, reschedulePayment } = useWorkshops();
   const [disputing, setDisputing] = useState(false);
+  // The owner's own day, picked with the stepper (the presets are the quick ones).
+  const [pickOwn, setPickOwn] = useState(false);
+  const [ownDays, setOwnDays] = useState(5);
   const pay = w.progress.payment;
   if (!pay) return null;
 
   if (pay.status === 'paid') return <Text style={[styles.text, { color: Colors.successText }]}>💰 ගෙවීම සම්පූර්ණයි — {money(pay.total)}</Text>;
 
   const due = paymentDue(pay);
+  if (compact) {
+    const tag = due === 'overdue' ? { text: 'ප්‍රමාදයි', color: Colors.errorText } : due === 'today' ? { text: 'අද', color: Colors.warning } : { text: dayText(pay.promisedAt ?? pay.recordedAt), color: Colors.textMuted };
+    return (
+      <View style={[styles.box, due === 'overdue' && styles.late]} accessibilityLabel="Payment balance">
+        <View style={styles.compactHead}>
+          <Text style={styles.title}>ඉතිරි {money(pay.balance)}</Text>
+          <Text style={[styles.tag, { color: tag.color }]}>{tag.text}</Text>
+        </View>
+
+        {pay.confirm === 'pending' ? (
+          <View style={styles.row}>
+            <View style={styles.flex1}>
+              <ActionButton label="එකඟයි" icon="✓" variant="success" compact onPress={() => confirmPayment(w.id, true)} />
+            </View>
+            <View style={styles.flex1}>
+              <ActionButton label="එකඟ නොවේ" icon="⚠️" variant="ghost" compact onPress={() => setDisputing(true)} />
+            </View>
+          </View>
+        ) : pay.confirm === 'disputed' ? (
+          <Text style={[styles.text, { color: Colors.errorText }]}>⚠️ ඔබ එකඟ නොවේ</Text>
+        ) : (
+          <>
+            {!!pay.missedAt && (
+              <>
+                <Text style={styles.text}>ගෙවන නව දිනය:</Text>
+                <View style={styles.chips}>
+                {PROMISE_PRESETS.map((p) => (
+                  <Pressable key={p.id} style={styles.chip} onPress={() => reschedulePayment(w.id, promiseAt(p.days))} accessibilityLabel={`Pay ${p.label}`}>
+                    <Text style={styles.chipText}>{p.label}</Text>
+                  </Pressable>
+                ))}
+                  <Pressable style={[styles.chip, pickOwn && styles.chipOn]} onPress={() => setPickOwn((v) => !v)} accessibilityLabel="Pick my own day">
+                    <Text style={styles.chipText}>🗓️ වෙනත් දිනයක්</Text>
+                  </Pressable>
+                </View>
+                {pickOwn && (
+                  <View style={styles.ownBox} accessibilityLabel="Custom payment day">
+                    <View style={styles.stepper}>
+                      <Pressable style={styles.stepBtn} onPress={() => setOwnDays((d) => Math.max(1, d - 1))} accessibilityLabel="Earlier day"><Text style={styles.stepText}>−</Text></Pressable>
+                      <Text style={styles.stepValue}>{dayText(promiseAt(ownDays))}</Text>
+                      <Pressable style={styles.stepBtn} onPress={() => setOwnDays((d) => Math.min(MAX_PROMISE_DAYS, d + 1))} accessibilityLabel="Later day"><Text style={styles.stepText}>＋</Text></Pressable>
+                    </View>
+                    <ActionButton label="මෙම දිනට ගෙවන්නම්" icon="📅" variant="primary" compact onPress={() => reschedulePayment(w.id, promiseAt(ownDays))} />
+                  </View>
+                )}
+              </>
+            )}
+            {pay.claim?.status === 'pending' ? (
+              <Text style={styles.text}>🧾 ගෙවූ බව දැනුම් දුන්නා — {w.garageName} තහවුරු කරයි.</Text>
+            ) : (
+              <ActionButton label="මම ගෙව්වා" icon="🧾" variant="primary" compact onPress={() => claimPayment(w.id)} />
+            )}
+          </>
+        )}
+        <DisputeSheet workshop={disputing ? w : null} onClose={() => setDisputing(false)} />
+      </View>
+    );
+  }
   return (
     <View style={[styles.box, due === 'overdue' && styles.late]} accessibilityLabel="Payment balance">
       <Text style={styles.title}>💰 ඉතිරි {money(pay.balance)} ගෙවිය යුතුයි</Text>
@@ -121,7 +182,15 @@ const styles = themedStyles(() =>
     chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
     chip: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 16, borderWidth: 1, borderColor: Colors.borderColor, backgroundColor: Colors.bgCard },
     chipText: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
+    chipOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#d2e3fc' },
+    ownBox: { gap: 8 },
+    stepper: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+    stepBtn: { width: 36, height: 36, borderRadius: 18, borderWidth: 1, borderColor: Colors.borderColor, backgroundColor: Colors.bgCard, alignItems: 'center', justifyContent: 'center' },
+    stepText: { fontSize: 18, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
+    stepValue: { flex: 1, textAlign: 'center', fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
     title: { fontSize: 13, fontFamily: FONTS.bodyBold, color: Colors.textMain },
+    compactHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    tag: { fontSize: 12, fontFamily: FONTS.bodyBold },
     text: { fontSize: 12, fontFamily: FONTS.bodyRegular, color: Colors.textMain, lineHeight: 18 },
     input: { minHeight: 70, padding: 12, borderRadius: 12, borderWidth: 1, borderColor: Colors.borderColor, backgroundColor: Colors.bgCard, color: Colors.textMain, fontSize: 13, fontFamily: FONTS.bodyRegular, textAlignVertical: 'top' },
   })

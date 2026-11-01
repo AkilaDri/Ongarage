@@ -25,32 +25,37 @@ export const PayReliabilityCard: React.FC = () => {
       <View style={styles.row}>
         <Text style={styles.badge}>{t.icon}</Text>
         <View style={styles.flex1}>
-          <Text style={styles.title}>ගෙවීම් වාර්තාව · {t.label}</Text>
-          <Text style={styles.sub}>{t.hint}</Text>
+          <Text style={styles.title}>ගෙවීම් වාර්තාව</Text>
+          <Text style={styles.level}>{t.label}</Text>
         </View>
       </View>
-      {rec.rated > 0 && <Text style={styles.sub}>ගරාජවල ශ්‍රේණිය ★{rec.avgStars} ({rec.rated})</Text>}
       {s.jobs > 0 && (
-        <Text style={styles.sub}>
-          රැකියා {s.jobs} · සම්පූර්ණයෙන් ගෙවූ {s.paidInFull}
-          {s.paidLate ? ` (ප්‍රමාදව ${s.paidLate})` : ''} · ඉතිරි {s.unpaid ? `${money(s.owed)}` : 'නැත'}
-        </Text>
+        <View style={styles.tiles}>
+          <View style={styles.tile}>
+            <Text style={styles.tileValue}>{s.jobs}</Text>
+            <Text style={styles.tileLabel}>රැකියා</Text>
+          </View>
+          <View style={styles.tile}>
+            <Text style={[styles.tileValue, { color: Colors.successText }]}>{s.paidInFull}</Text>
+            <Text style={styles.tileLabel}>කාලයට ගෙවූ</Text>
+          </View>
+          <View style={styles.tile}>
+            <Text style={[styles.tileValue, { color: s.unpaid ? Colors.errorText : Colors.successText }]}>{s.unpaid ? money(s.owed) : '✓'}</Text>
+            <Text style={styles.tileLabel}>ඉතිරි</Text>
+          </View>
+        </View>
       )}
       {s.limited && (
         <View style={styles.limit}>
-          <Text style={styles.limitTitle}>⛔ එතෙක් quotes සහ bookings නවතා ඇත</Text>
-          <Text style={styles.limitText}>
-            {s.reason}. ගෙවා අවසන් වූ විගස සියල්ල නැවත විවෘත වේ. (SOS, OnChat, OnMart සහ ගෙවීම් සැමවිටම විවෘතයි.)
-          </Text>
+          <Text style={styles.limitTitle}>⛔ නව වැඩ නවතා ඇත</Text>
+          <Text style={styles.limitText}>{s.reason}. ගෙවූ විගස නැවත විවෘත වේ.</Text>
         </View>
       )}
       {rated.length > 0 && <Text style={styles.heading}>ගරාජ ඔබ ගැන කියූ දේ</Text>}
       {rated.map((w) => (
         <CustomerRatingView key={w.id} workshop={w} />
       ))}
-      <Text style={styles.fine}>
-        දින {OVERDUE_LIMIT_DAYS}කට වඩා ඉතිරි මුදලක් ප්‍රමාද වුවහොත්, හෝ රු. {OWED_LIMIT.toLocaleString('en-US')} ට වැඩි මුදලක් ප්‍රමාද වුවහොත්, ගෙවන තුරු අලුත් රැකියා පළ කිරීම, ලංසු පිළිගැනීම සහ සෘජු වෙන් කිරීම නවතී.
-      </Text>
+      <Text style={styles.fine}>දින {OVERDUE_LIMIT_DAYS}ක් හෝ රු. {OWED_LIMIT.toLocaleString('en-US')} ක් ප්‍රමාද වුවහොත් නව වැඩ නවතී.</Text>
     </View>
   );
 };
@@ -106,6 +111,11 @@ const styles = themedStyles(() =>
     title: { fontSize: 14, fontFamily: FONTS.titleBold, color: Colors.textMain },
     heading: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.textMain, marginTop: 4 },
     sub: { fontSize: 12, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 18 },
+    level: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, marginTop: 1 },
+    tiles: { flexDirection: 'row', gap: 8, marginTop: 2 },
+    tile: { flex: 1, alignItems: 'center', paddingVertical: 10, borderRadius: 12, backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.08)' : '#f1f6fe' },
+    tileValue: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textMain },
+    tileLabel: { fontSize: 11, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 2 },
     fine: { fontSize: 11, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 16 },
     text: { fontSize: 13, fontFamily: FONTS.bodyRegular, color: Colors.textMain, lineHeight: 20 },
     limit: { gap: 2, padding: 10, borderRadius: 10, backgroundColor: getThemeMode() === 'dark' ? 'rgba(239, 68, 68, 0.1)' : '#fce8e6', borderWidth: 1, borderColor: 'rgba(239, 68, 68, 0.4)' },

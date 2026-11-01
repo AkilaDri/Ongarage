@@ -619,7 +619,7 @@ function AppShell() {
         <PaymentReminders />
         {/* The chat icon stays put at the top right however the header folds away while the page scrolls. */}
         <Animated.View
-          style={[styles.floatChat, { opacity: chatHide.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }), transform: [{ translateY: Animated.multiply(activeTab === 'home' ? sheetScroll : martHeaderCollapse, chatDockDrop) }, { translateY: chatHide.interpolate({ inputRange: [0, 1], outputRange: [0, -24] }) }] }]}
+          style={[styles.floatChat, activeTab !== 'home' && { top: -2 }, { opacity: chatHide.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }), transform: [{ translateY: Animated.multiply(activeTab === 'home' ? sheetScroll : martHeaderCollapse, chatDockDrop) }, { translateY: chatHide.interpolate({ inputRange: [0, 1], outputRange: [0, -24] }) }] }]}
           pointerEvents={chatBlocked ? 'none' : 'box-none'}
         >
           <ChatHeaderButton scrolled={activeTab === 'home' ? sheetScroll : martHeaderCollapse} />
