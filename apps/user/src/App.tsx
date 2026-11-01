@@ -32,6 +32,7 @@ import { NoticeProvider, useNotice } from './context/NoticeContext';
 import { ChatProvider } from './context/ChatContext';
 import { BookingsProvider } from './context/BookingsContext';
 import { SOSRecordsProvider } from './context/SOSRecordsContext';
+import { PendingRepairsProvider } from './context/PendingRepairsContext';
 import { WorkshopProvider } from './context/WorkshopContext';
 import { ProfileProvider } from './context/ProfileContext';
 import { Header, HEADER_BAND_H, TitleBand } from './components/Header';
@@ -137,7 +138,9 @@ export default function App() {
           <VehiclesProvider>
             <BookingsProvider>
               <SOSRecordsProvider>
-                <AppShell />
+                <PendingRepairsProvider>
+                  <AppShell />
+                </PendingRepairsProvider>
               </SOSRecordsProvider>
             </BookingsProvider>
           </VehiclesProvider>
@@ -616,7 +619,7 @@ function AppShell() {
         <PaymentReminders />
         {/* The chat icon stays put at the top right however the header folds away while the page scrolls. */}
         <Animated.View
-          style={[styles.floatChat, { opacity: chatHide.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }), transform: [{ translateY: Animated.multiply(activeTab === 'home' ? sheetScroll : martHeaderCollapse, chatDockDrop) }, { translateY: chatHide.interpolate({ inputRange: [0, 1], outputRange: [0, -24] }) }] }]}
+          style={[styles.floatChat, { opacity: Animated.multiply(chatHide.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }), (activeTab === 'home' ? sheetScroll : martHeaderCollapse).interpolate({ inputRange: [0, 0.02], outputRange: [1, 0.4], extrapolate: 'clamp' })), transform: [{ translateY: Animated.multiply(activeTab === 'home' ? sheetScroll : martHeaderCollapse, chatDockDrop) }, { translateY: chatHide.interpolate({ inputRange: [0, 1], outputRange: [0, -24] }) }] }]}
           pointerEvents={chatBlocked ? 'none' : 'box-none'}
         >
           <ChatHeaderButton />

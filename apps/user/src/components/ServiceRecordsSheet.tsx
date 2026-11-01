@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { categoryInfo, Colors, EmptyState, FONTS, getThemeMode, SERVICE_FLUIDS, SERVICE_KINDS, serviceReminder, themedStyles, vehicleIcon, type ServiceDetails, type Vehicle } from '@ongarage/shared';
 import { useWorkshops } from '../context/WorkshopContext';
 import { useSOSRecords } from '../context/SOSRecordsContext';
+import { pendingRepairsOf, usePendingRepairs } from '../context/PendingRepairsContext';
 import { formatDate, money } from '../utils/format';
 import { elevation1, outline } from '../utils/material';
 import { Sheet } from './Sheet';
@@ -70,9 +71,25 @@ export const ServiceRecordsSheet: React.FC<{ vehicle: Vehicle | null; onClose: (
 
 const Body: React.FC<{ vehicle: Vehicle; onClose: () => void }> = ({ vehicle, onClose }) => {
   const list = useServiceRecords(vehicle);
+  const { repairs } = usePendingRepairs();
+  const pending = pendingRepairsOf(repairs, vehicle.id);
   const spent = list.reduce((s, r) => s + r.amount, 0);
   return (
     <Sheet visible title="සේවා වාර්තා" subtitle={`${vehicle.name} · ${vehicle.plate}`} onClose={onClose}>
+      {pending.length > 0 && (
+        <View style={styles.pendingBox} accessibilityLabel="Parts this vehicle still needs">
+          <Text style={styles.pendingTitle}>🕓 වාහනයට අවශ්‍ය, පසුවට දමා ඇති කොටස්</Text>
+          {pending.map((p) => (
+            <View key={p.id} style={styles.pendingRow}>
+              <View style={styles.flex1}>
+                <Text style={styles.title} numberOfLines={2}>{p.part}{p.safety ? '  ⚠️ ආරක්ෂාව' : ''}</Text>
+                <Text style={styles.sub} numberOfLines={2}>{p.reason} · {formatDate(p.noticedAt)} · SOS</Text>
+              </View>
+              <Text style={styles.amount}>~{money(p.price)}</Text>
+            </View>
+          ))}
+        </View>
+      )}
       {list.length === 0 ? (
         <EmptyState icon="🧾" title="සේවා වාර්තා නැත" text="ගරාජයක් මගින් මෙම වාහනයේ රැකියාවක් අවසන් කළ විට (ඔබගේ කේතයෙන් වසා දැමූ පසු) එහි වාර්තාව මෙහි එකතු වේ." />
       ) : (
@@ -132,6 +149,9 @@ const Body: React.FC<{ vehicle: Vehicle; onClose: () => void }> = ({ vehicle, on
 const styles = themedStyles(() =>
   StyleSheet.create({
     flex1: { flex: 1 },
+    pendingBox: { borderRadius: 12, backgroundColor: getThemeMode() === 'dark' ? 'rgba(224, 162, 67, 0.12)' : '#fef7e0', padding: 14, gap: 10 },
+    pendingTitle: { fontSize: 13, fontFamily: FONTS.titleBold, color: getThemeMode() === 'dark' ? '#f2c46d' : '#b06000' },
+    pendingRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
     summary: { flexDirection: 'row', alignItems: 'center', borderRadius: 12, backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.12)' : '#e8f0fe', paddingVertical: 12 },
     sumCol: { flex: 1, alignItems: 'center', gap: 2 },
     sumDivider: { width: 1, height: 30, backgroundColor: getThemeMode() === 'dark' ? Colors.borderColor : '#d2e3fc' },

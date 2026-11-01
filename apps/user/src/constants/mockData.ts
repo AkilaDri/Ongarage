@@ -130,7 +130,7 @@ export const MOCK_GARAGES: Garage[] = [
     phone: '077 456 7890',
     address: 'බද්දේගම පාර, අම්බලන්ගොඩ',
     coords: { latitude: 6.0489, longitude: 80.1987 },
-    reviews_text: 'ඉතාම දක්ෂ යාන්ත්‍රිකයන් පිරිසක් ඉන්න විශ්වාසවන්ත තැනක්.',
+    reviews_text: 'ඉතාම දක්ෂ කාර්මිකයන් පිරිසක් ඉන්න විශ්වාසවන්ත තැනක්.',
     photos: GARAGE_PHOTOS,
   },
 

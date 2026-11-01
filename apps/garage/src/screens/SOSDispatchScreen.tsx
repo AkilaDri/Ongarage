@@ -348,7 +348,7 @@ export const SOSDispatchScreen: React.FC = () => {
       case 'assign':
         return (
           <>
-            <Text style={styles.sectionLabel}>යාන්ත්‍රිකයා තෝරන්න</Text>
+            <Text style={styles.sectionLabel}>කාර්මිකයා තෝරන්න</Text>
             {team.map((m) => {
               const active = mechanicId === m.id;
               const status = memberStatus(m.id);

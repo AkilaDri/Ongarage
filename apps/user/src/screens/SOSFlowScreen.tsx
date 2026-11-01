@@ -25,6 +25,7 @@ import { useVehicles } from '../context/VehiclesContext';
 import { useNotice } from '../context/NoticeContext';
 import { MartIcon } from '../components/MartBagIcon';
 import { useSOSRecords } from '../context/SOSRecordsContext';
+import { usePendingRepairs } from '../context/PendingRepairsContext';
 import { useChat } from '../context/ChatContext';
 import { jobRecordText } from '@ongarage/shared';
 import { TxnTag } from '../components/TxnTag';
@@ -66,7 +67,7 @@ const STEPS: { key: Step; label: string }[] = [
   { key: 'searching', label: 'ළඟම ගරාජය සම්බන්ධ කරගැනීම' },
   // Choosing from the nearby list (when nobody answered) and being connected are the same segment of the stepper.
   // Being connected (and picking from the nearby list) and watching them come are one window: the map, their profile and the ETA.
-  { key: 'tracking', label: 'ගරාජය / යාන්ත්‍රිකයා සම්බන්ධ විය · පැමිණෙමින්' },
+  { key: 'tracking', label: 'ගරාජය / කාර්මිකයා සම්බන්ධ විය · පැමිණෙමින්' },
   { key: 'arrived', label: 'පැමිණියා' },
   { key: 'repairing', label: 'අලුත්වැඩියාව' },
   { key: 'repairCompleteNotice', label: 'අවසන් බව දැනුම්දීම' },
@@ -188,13 +189,13 @@ const EMERGENCY_NUMBERS = [
 
 // The SOS conditions the owner can read at any time.
 const SOS_TERMS = [
-  'ඔබගේ SOS ඉල්ලීම ඔබේ ස්ථානයේ සිට සෙවුම් කලාපය (කි.මී. 1 න් ආරම්භ වී, පුළුල් කරන සෑම වාරයකටම කි.මී. 1 බැගින් වැඩි වේ) ඇතුළත ලියාපදිංචි ගරාජ සහ යාන්ත්‍රිකයන් වෙත දැනුම් දෙයි.',
-  'පැමිණීමේ ගාස්තුව: OnGarage අනුමත රු. 500 ක්. කලාපය පුළුල් වන සෑම කි.මී. 1 කටම රු. 250 ක් එකතු වේ. අලුත්වැඩියාවක් අවශ්‍ය නොවුණත් මෙය යාන්ත්‍රිකයාට ගෙවිය යුතුය.',
-  'අලුත්වැඩියා ගාස්තුව: යාන්ත්‍රිකයා ඇස්තමේන්තුව ඉදිරිපත් කර ඔබ අනුමත කළ පසු පමණක් අලුත්වැඩියාව ආරම්භ වේ. අනුමැතියෙන් ඔබ්බට වැඩ හෝ ගාස්තු කෙරෙන්නේ නැත.',
-  'යාන්ත්‍රිකයා පැමිණි බව ඔහුගේ app එකෙන් තහවුරු කරයි. එතැන් සිට මෙම SOS රැකියාව ඔහුට සම්බන්ධ වේ.',
-  'රැකියාව අවසන් වන්නේ ඔබගේ ඉලක්කම් 6 ක කේතය (හෝ QR) යාන්ත්‍රිකයා ඇතුළත් කළ පසුවය. කේතය වෙනත් අයට නොදෙන්න.',
-  'යාන්ත්‍රිකයා පිටත් වූ පසු ඉල්ලීම අවලංගු කළහොත් පැමිණීමේ ගාස්තුව අය කෙරේ.',
-  'ඔබගේ දුරකථන අංකය මෙම රැකියාව සඳහා පමණක් යාන්ත්‍රිකයාට පෙන්වයි. ගෙවීම් සහ සන්නිවේදනය යෙදුම තුළම සිදු කිරීමෙන් OnGarage ආරක්ෂිත රැකියා වගකීම ඔබට හිමි වේ.',
+  'ඔබගේ SOS ඉල්ලීම ඔබේ ස්ථානයේ සිට සෙවුම් කලාපය (කි.මී. 1 න් ආරම්භ වී, පුළුල් කරන සෑම වාරයකටම කි.මී. 1 බැගින් වැඩි වේ) ඇතුළත ලියාපදිංචි ගරාජ සහ කාර්මිකයන් වෙත දැනුම් දෙයි.',
+  'පැමිණීමේ ගාස්තුව: OnGarage අනුමත රු. 500 ක්. කලාපය පුළුල් වන සෑම කි.මී. 1 කටම රු. 250 ක් එකතු වේ. අලුත්වැඩියාවක් අවශ්‍ය නොවුණත් මෙය කාර්මිකයාට ගෙවිය යුතුය.',
+  'අලුත්වැඩියා ගාස්තුව: කාර්මිකයා ඇස්තමේන්තුව ඉදිරිපත් කර ඔබ අනුමත කළ පසු පමණක් අලුත්වැඩියාව ආරම්භ වේ. අනුමැතියෙන් ඔබ්බට වැඩ හෝ ගාස්තු කෙරෙන්නේ නැත.',
+  'කාර්මිකයා පැමිණි බව ඔහුගේ app එකෙන් තහවුරු කරයි. එතැන් සිට මෙම SOS රැකියාව ඔහුට සම්බන්ධ වේ.',
+  'රැකියාව අවසන් වන්නේ ඔබගේ ඉලක්කම් 6 ක කේතය (හෝ QR) කාර්මිකයා ඇතුළත් කළ පසුවය. කේතය වෙනත් අයට නොදෙන්න.',
+  'කාර්මිකයා පිටත් වූ පසු ඉල්ලීම අවලංගු කළහොත් පැමිණීමේ ගාස්තුව අය කෙරේ.',
+  'ඔබගේ දුරකථන අංකය මෙම රැකියාව සඳහා පමණක් කාර්මිකයාට පෙන්වයි. ගෙවීම් සහ සන්නිවේදනය යෙදුම තුළම සිදු කිරීමෙන් OnGarage ආරක්ෂිත රැකියා වගකීම ඔබට හිමි වේ.',
 ];
 
 // The spare part a technician typically needs for each kind of breakdown (simulated request mid-repair).
@@ -207,8 +208,10 @@ const PART_FOR_BREAKDOWN: Record<string, string> = {
   accident: 'Headlamp',
 };
 const DEFAULT_PART = 'Brake pad (front)';
+// Parts that keep the car safe to drive: the owner is warned before they are put aside.
+const SAFETY_PARTS = new Set<string>([DEFAULT_PART, 'Tyre (tubeless)', 'Headlamp']);
 
-type PartState = 'none' | 'requested' | 'ownerBuying' | 'techOrdering' | 'ordered' | 'got';
+type PartState = 'none' | 'requested' | 'ownerBuying' | 'techOrdering' | 'ordered' | 'got' | 'deferred';
 
 const INITIAL_RADIUS_KM = 1;
 const RADIUS_STEP_KM = 1;
@@ -301,6 +304,9 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
   const [partState, setPartState] = useState<PartState>('none');
   // The technician's "I need a part" notice from their app, shown to the owner as a pop-up message.
   const [partPopup, setPartPopup] = useState(false);
+  // "Not now" asks once more before the part is put aside (a warning for the safety parts).
+  const [deferAsk, setDeferAsk] = useState(false);
+  const { addRepair } = usePendingRepairs();
   // When the technician's OnMart order went through (for the order record).
   const [partOrderedAt, setPartOrderedAt] = useState(0);
   const partBlocked = useRef(false);
@@ -467,7 +473,7 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
     // Simulated: the technician taps "arrived" in their app, the job is attached to them, the owner is told.
     const confirm = setTimeout(() => {
       setTechConfirmed(true);
-      notify({ icon: '✅', title: 'යාන්ත්‍රිකයා පැමිණීම තහවුරු කළා', body: `${job.mechanic} ඔහුගේ app එකෙන් පැමිණීම තහවුරු කර ඇත. රැකියාව ඔහුට සම්බන්ධ විය.`, tone: 'success' });
+      notify({ icon: '✅', title: 'කාර්මිකයා පැමිණීම තහවුරු කළා', body: `${job.mechanic} ඔහුගේ app එකෙන් පැමිණීම තහවුරු කර ඇත. රැකියාව ඔහුට සම්බන්ධ විය.`, tone: 'success' });
     }, 3500);
     const next = setTimeout(() => setStep('repairing'), 8000);
     return () => {
@@ -500,7 +506,7 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
     const t = setTimeout(() => {
       setPartState('ordered');
       setPartOrderedAt(Date.now());
-      notify({ icon: '🧾', title: 'OnMart බිල්පත ලැබුණා', body: 'යාන්ත්‍රිකයා ඇණවුම් කළ කොටසේ බිල්පත ඔබගේ යෙදුමට එක් විය.', tone: 'success' });
+      notify({ icon: '🧾', title: 'OnMart බිල්පත ලැබුණා', body: 'කාර්මිකයා ඇණවුම් කළ කොටසේ බිල්පත ඔබගේ යෙදුමට එක් විය.', tone: 'success' });
     }, 3500);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -597,7 +603,7 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
   const remainingKm = job.distanceKm * (1 - trackP);
   const baseStep: Step = step === 'consent' ? 'confirm' : step === 'repairCompleteNotice' ? 'repairing' : step;
   const stepIndex = STEPS.findIndex((x) => x.key === (step === 'nearby' ? 'tracking' : step));
-  const stepLabel = step === 'nearby' ? 'ළඟම ගරාජ සහ යාන්ත්‍රිකයන් අතරින් තෝරන්න' : STEPS[stepIndex].label;
+  const stepLabel = step === 'nearby' ? 'ළඟම ගරාජ සහ කාර්මිකයන් අතරින් තෝරන්න' : STEPS[stepIndex].label;
 
   // ---------- Shared map overlays ----------
 
@@ -767,7 +773,7 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
         <Pressable style={styles.selectRow} onPress={onChangeLocation}>
           <GlassIcon emoji="📍" />
           <View style={styles.flex1}>
-            <Text style={styles.label}>බ්‍රේක්ඩවුන් ස්ථානය</Text>
+            <Text style={styles.label}>Breakdown වූ ස්ථානය</Text>
             <Text style={styles.cardTitle} numberOfLines={2}>
               {location.address}
             </Text>
@@ -776,7 +782,7 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
         </Pressable>
       </View>
 
-      <Text style={styles.sectionLabel}>බ්‍රේක්ඩවුන් වර්ගය තෝරන්න</Text>
+      <Text style={styles.sectionLabel}>Breakdown වර්ගය කුමක් ද ?</Text>
       {/* Four to a row, three rows: a big illustration on a soft pastel tile, the name under it. */}
       <View style={styles.breakGrid}>
         {BREAKDOWN_TYPES.map((t) => {
@@ -806,7 +812,7 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
           </Animated.View>
         </View>
         <View style={styles.flex1}>
-          <Text style={styles.cardTitle}>ළඟම ගරාජය / යාන්ත්‍රිකයා සොයමින්...</Text>
+          <Text style={styles.cardTitle}>ළඟම ගරාජය / කාර්මිකයා සොයමින්...</Text>
           <Text style={styles.cardSub}>කි.මී. {radius} ක් ඇතුළත සොයා ඔබව සම්බන්ධ කරගනිමින් පවතී</Text>
         </View>
       </View>
@@ -880,7 +886,7 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
               {c.name}
             </Text>
             <Text style={styles.cardSub}>
-              {c.kind === 'garage' ? 'ගරාජය' : 'යාන්ත්‍රිකයා'} · 📍 කි.මී. {c.distanceKm} · ⏱️ මිනි. ~{c.eta}
+              {c.kind === 'garage' ? 'ගරාජය' : 'කාර්මිකයා'} · 📍 කි.මී. {c.distanceKm} · ⏱️ මිනි. ~{c.eta}
             </Text>
           </View>
           <View style={styles.ratingPill}>
@@ -930,12 +936,12 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
         <GlassIcon emoji="📍" />
         <Text style={styles.heroTitle}>කි.මී. {radius} ක් ඇතුළත පිළිතුරක් නැත</Text>
         <Text style={styles.heroText}>
-          මෙම කලාපය තුළ කිසිදු ගරාජයක් හෝ යාන්ත්‍රිකයෙක් ප්‍රතිචාර දැක්වූයේ නැත. ඔබට ළඟම ඇති OnGarage හි ලියාපදිංචි ගරාජ සහ යාන්ත්‍රිකයන් පහත ඇත — ඔවුන්ගේ ප්‍රොෆයිල් බලා කැමති කෙනෙකු සම්බන්ධ කරගන්න.
+          මෙම කලාපය තුළ කිසිදු ගරාජයක් හෝ කාර්මිකයෙක් ප්‍රතිචාර දැක්වූයේ නැත. ඔබට ළඟම ඇති OnGarage හි ලියාපදිංචි ගරාජ සහ කාර්මිකයන් පහත ඇත — ඔවුන්ගේ ප්‍රොෆයිල් බලා කැමති කෙනෙකු සම්බන්ධ කරගන්න.
         </Text>
       </View>
       <Text style={styles.sectionLabel}>ළඟම ගරාජ</Text>
       {nearbyGarages.map(profileCard)}
-      <Text style={styles.sectionLabel}>ළඟම යාන්ත්‍රිකයන්</Text>
+      <Text style={styles.sectionLabel}>ළඟම කාර්මිකයන්</Text>
       {nearbyTechnicians.map(profileCard)}
     </>
   );
@@ -967,7 +973,7 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
           <Text style={styles.detailText}>ඇස්තමේන්තුගත ගාස්තුව: {money(job.bid)}</Text>
         </View>
         <View style={[styles.statusPill, styles.statusPillOn, styles.selfCenter]}>
-          <Text style={[styles.statusPillText, { color: Colors.success }]}>🛣️ යාන්ත්‍රිකයා පැමිණෙමින් සිටී</Text>
+          <Text style={[styles.statusPillText, { color: Colors.success }]}>🛣️ කාර්මිකයා පැමිණෙමින් සිටී</Text>
         </View>
       </View>
     </>
@@ -979,7 +985,7 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
         <Animated.View style={[styles.heroCircle, styles.heroCircleSuccess, { opacity: popAnim, transform: [{ scale: popAnim }] }]}>
           <Text style={styles.heroCircleIcon}>{techConfirmed ? '✓' : '🚐'}</Text>
         </Animated.View>
-        <Text style={styles.heroTitle}>{techConfirmed ? 'පැමිණීම තහවුරු විය!' : 'යාන්ත්‍රිකයා ළඟා වෙමින්...'}</Text>
+        <Text style={styles.heroTitle}>{techConfirmed ? 'පැමිණීම තහවුරු විය!' : 'කාර්මිකයා ළඟා වෙමින්...'}</Text>
         <Text style={styles.heroText}>
           {techConfirmed
             ? `${job.mechanic} ඔහුගේ app එකෙන් පැමිණීම තහවුරු කළා. මෙම SOS රැකියාව දැන් ඔහුට සම්බන්ධ කර ඇත.`
@@ -989,7 +995,7 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
       <View style={styles.card}>
         <View style={styles.detailRow}>
           <Text style={styles.detailIcon}>{techConfirmed ? '✅' : '⏳'}</Text>
-          <Text style={styles.detailText}>{techConfirmed ? 'යාන්ත්‍රිකයාගේ app එකෙන් පැමිණීම තහවුරු විය' : 'යාන්ත්‍රිකයාගේ app එකෙන් තහවුරු කරන තෙක් රැඳී සිටී…'}</Text>
+          <Text style={styles.detailText}>{techConfirmed ? 'කාර්මිකයාගේ app එකෙන් පැමිණීම තහවුරු විය' : 'කාර්මිකයාගේ app එකෙන් තහවුරු කරන තෙක් රැඳී සිටී…'}</Text>
         </View>
         <View style={styles.detailRow}>
           <Text style={styles.detailIcon}>{techConfirmed ? '🔗' : '⏳'}</Text>
@@ -1011,6 +1017,25 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
   const chooseTechnicianOrders = () => {
     setPartPopup(false);
     setPartState('techOrdering');
+  };
+  /** Not now: the job goes on without the part, and the vehicle remembers it until it is fitted. */
+  const deferPart = () => {
+    setDeferAsk(false);
+    setPartPopup(false);
+    setPartState('deferred');
+    addRepair({
+      id: `pr-${closeCode}`,
+      vehicleId: vehicle.id,
+      vehiclePlate: vehicle.plate,
+      vehicleName: vehicle.name,
+      sosId: `sos-${closeCode}`,
+      part: partName,
+      price: partPrice,
+      safety: SAFETY_PARTS.has(partName),
+      reason: 'මුදල් දැනට නැහැ',
+      noticedAt: Date.now(),
+    });
+    notify({ icon: '🕓', title: 'කොටස වාහනයේ වාර්තාවට එකතු විය', body: `${partName} පසුවට දමා ඇත. වාහනයට එය අවශ්‍ය බව ඔබට මතක් කරන්නෙමු.`, tone: 'success' });
   };
 
   /** The spare-part function of the repair: what the technician needs, and the two ways to get it through OnMart. */
@@ -1035,7 +1060,7 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
           <View style={styles.rowCenter}>
             <GlassIcon emoji="🔩" />
             <View style={styles.flex1}>
-              <Text style={styles.cardTitle}>යාන්ත්‍රිකයාට කොටසක් අවශ්‍යයි</Text>
+              <Text style={styles.cardTitle}>කාර්මිකයාට කොටසක් අවශ්‍යයි</Text>
               <Text style={styles.cardSub}>
                 {partName} × 1 · ~{money(partPrice)}
               </Text>
@@ -1048,7 +1073,24 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
             variant="primary"
             onPress={chooseOwnerBuys}
           />
-          <ActionButton label="යාන්ත්‍රිකයාට OnMart හරහා ඇණවුම් කිරීමට අවසර දෙන්න (බිල ඔබට)" icon="📦" variant="ghost" onPress={chooseTechnicianOrders} />
+          <ActionButton label="කාර්මිකයාට OnMart හරහා ඇණවුම් කිරීමට අවසර දෙන්න (බිල ඔබට)" icon="📦" variant="ghost" onPress={chooseTechnicianOrders} />
+          <ActionButton label="දැනට නැහැ — පසුවට දමන්න" icon="🕓" variant="ghost" onPress={() => setDeferAsk(true)} />
+        </View>
+      );
+    if (partState === 'deferred')
+      return (
+        <View style={[styles.card, styles.partCard]}>
+          <View style={styles.rowCenter}>
+            <GlassIcon emoji="🕓" />
+            <View style={styles.flex1}>
+              <Text style={styles.cardTitle}>කොටස පසුවට දමා ඇත</Text>
+              <Text style={styles.cardSub}>
+                {partName} · ~{money(partPrice)} · වාහනයට අවශ්‍යයි
+              </Text>
+            </View>
+          </View>
+          <Text style={styles.cardSub}>අලුත්වැඩියාව ඉදිරියට සිදු කරගෙන යයි. මෙම කොටස බිල්පතට එකතු නොවේ.{`\n\n`}Ongarage සේවා වාර්තාවේ එය update වෙයි.</Text>
+          <ActionButton label="OnMart වෙත යන්න" icon="🛍️" variant="ghost" onPress={() => onOpenMart?.(partName)} />
         </View>
       );
     if (partState === 'ownerBuying')
@@ -1062,7 +1104,7 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
             </View>
           </View>
           <ActionButton label="OnMart වෙත යන්න" icon="🛍️" variant="ghost" onPress={() => onOpenMart?.(partName)} />
-          <ActionButton label="කොටස ලැබුණා, යාන්ත්‍රිකයාට දුන්නා" icon="✓" variant="success" onPress={() => setPartState('got')} />
+          <ActionButton label="කොටස ලැබුණා, කාර්මිකයාට දුන්නා" icon="✓" variant="success" onPress={() => setPartState('got')} />
         </View>
       );
     if (partState === 'techOrdering')
@@ -1071,7 +1113,7 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
           <View style={styles.rowCenter}>
             <GlassIcon emoji="📦" />
             <View style={styles.flex1}>
-              <Text style={styles.cardTitle}>යාන්ත්‍රිකයා OnMart හි ඇණවුම් කරමින්…</Text>
+              <Text style={styles.cardTitle}>කාර්මිකයා OnMart හි ඇණවුම් කරමින්…</Text>
               <Text style={styles.cardSub}>{partName} · බිල්පත ඔබගේ යෙදුමට එවයි.</Text>
             </View>
           </View>
@@ -1122,7 +1164,7 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
             <View style={styles.detailRow}>
               <Text style={styles.detailIcon}>🕒</Text>
               <Text style={styles.detailText}>
-                ඇණවුම් කළේ {new Date(partOrderedAt || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · යාන්ත්‍රිකයා විසින් · OnMart හරහා
+                ඇණවුම් කළේ {new Date(partOrderedAt || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · කාර්මිකයා විසින් · OnMart හරහා
               </Text>
             </View>
             <View style={styles.detailRow}>
@@ -1175,7 +1217,7 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
 
         {renderPartCard()}
 
-        <Text style={styles.sectionLabel}>ඔබේ {profileOf(job).kind === 'garage' ? 'ගරාජය' : 'යාන්ත්‍රිකයා'}</Text>
+        <Text style={styles.sectionLabel}>ඔබේ {profileOf(job).kind === 'garage' ? 'ගරාජය' : 'කාර්මිකයා'}</Text>
         <View style={styles.card}>
           {profileBody(profileOf(job))}
           <View style={styles.divider} />
@@ -1227,7 +1269,7 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
           <Text style={styles.heroCircleIcon}>🔳</Text>
         </View>
         <Text style={styles.heroTitle}>QR කේතය ස්කෑන් කරන්න</Text>
-        <Text style={styles.heroText}>රැකියාව අවසන් කිරීමට ගරාජ කාර්මිකයාගේ උපාංගයෙන් මෙම QR කේතය ස්කෑන් කරන්න.</Text>
+        <Text style={styles.heroText}>රැකියාව අවසන් කිරීමට ගරාජ කාර්මිකයාගේ දුරකතනයෙන් මෙම QR කේතය ස්කෑන් කරන්න.</Text>
       </View>
       <CloseCode code={closeCode} size={190} caption="ස්කෑන් කළ නොහැකි නම් මෙම ඉලක්කම් 6 කාර්මිකයාට කියන්න." />
       <View style={styles.card}>
@@ -1238,7 +1280,7 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
           <Text style={styles.detailText}>{money(job.bid)}</Text>
         </View>
         <View style={styles.rowBetween}>
-          <Text style={styles.detailText}>යාන්ත්‍රිකයාගේ පැමිණීමේ ගාස්තුව</Text>
+          <Text style={styles.detailText}>කාර්මිකයාගේ පැමිණීමේ ගාස්තුව</Text>
           <Text style={styles.detailText}>{money(surcharge)}</Text>
         </View>
         {partCharge > 0 && (
@@ -1276,7 +1318,7 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
             </Pressable>
           ))}
         </View>
-        <Text style={[styles.detailStrong, { color: rating >= 4 ? Colors.success : Colors.textMuted }]}>{ratingLabel(rating)}</Text>
+        {rating > 0 && <Text style={[styles.detailStrong, { color: rating >= 4 ? Colors.success : Colors.textMuted }]}>{ratingLabel(rating)}</Text>}
 
         {rating > 0 && !submitted && (
           <View style={styles.tagWrap}>
@@ -1366,7 +1408,7 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
               <Text style={styles.headerIconText}>🚨</Text>
             </View>
             <View style={styles.flex1}>
-              <Text style={styles.stepPillTitle} numberOfLines={1}>හදිසි මාර්ග ආධාර (SOS)</Text>
+              <Text style={styles.stepPillTitle} numberOfLines={1}>Ongarage මාර්ග ආධාර (SOS)</Text>
               <Text style={styles.stepPillSub} numberOfLines={1}>
                 පියවර {stepIndex + 1}/{STEPS.length} · {stepLabel}
               </Text>
@@ -1393,7 +1435,7 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
             <View style={styles.etaDivider} />
             <View style={styles.etaItem}>
               <Text style={styles.etaValue}>මිනි. {Math.max(1, etaMinutes(remainingKm) - 2)}</Text>
-              <Text style={styles.statLabel}>බ්‍රේක්ඩවුන් ස්ථානයට පැමිණීමට</Text>
+              <Text style={styles.statLabel}>Breakdown ස්ථානයට පැමිණීමට</Text>
             </View>
           </View>
         )}
@@ -1410,7 +1452,7 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
                   {selected.name}
                 </Text>
                 <Text style={styles.cardSub} numberOfLines={1}>
-                  {profileOf(selected).kind === 'garage' ? 'ගරාජය' : 'යාන්ත්‍රිකයා'} · {selected.mechanic} · ප්‍රොෆයිලය බලන්න ›
+                  {profileOf(selected).kind === 'garage' ? 'ගරාජය' : 'කාර්මිකයා'} · {selected.mechanic} · ප්‍රොෆයිලය බලන්න ›
                 </Text>
               </View>
               <View style={styles.ratingPill}>
@@ -1504,12 +1546,28 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
         <ModalCard
           icon="🔩"
           tone="primary"
-          title="යාන්ත්‍රිකයාට කොටසක් අවශ්‍යයි"
-          body={`${job.mechanic} ඔහුගේ app එකෙන් දැනුම් දුන්නා: ${partName} × 1 (~${money(partPrice)}) අවශ්‍යයි. ඔහු සමඟ කතා කළ නොහැකි නම් කොටස ඔබම OnMart හි ඇණවුම් කරන්න, නැතහොත් ඔහුට OnMart හරහා ඇණවුම් කිරීමට අවසර දෙන්න (බිල ඔබට එයි).`}
+          title="කාර්මිකයාට කොටසක් අවශ්‍යයි"
+          body={`${job.mechanic} ඔහුගේ app එකෙන් දැනුම් දුන්නා: ${partName} × 1 (~${money(partPrice)}) අවශ්‍යයි.\n\nOnMart හි ඇණවුම් කර කොටස රැගෙන ඒම ඔබට පහසු නම් එසේ කරන්න. නැතහොත් ඔහුට OnMart හරහා ඇණවුම් කිරීමට අවසර දෙන්න (බිල ඔබට එයි).`}
         >
-          <ActionButton label="පසුව" variant="ghost" compact onPress={() => setPartPopup(false)} />
-          <ActionButton label="යාන්ත්‍රිකයාට අවසර" variant="ghost" compact onPress={chooseTechnicianOrders} />
+          <ActionButton label="පසුවට දමන්නම්" variant="ghost" compact onPress={() => { setPartPopup(false); setDeferAsk(true); }} />
+          <ActionButton label="කාර්මිකයාට අවසර" variant="ghost" compact onPress={chooseTechnicianOrders} />
           <ActionButton label="මමම ගන්නම්" variant="primary" compact onPress={chooseOwnerBuys} />
+        </ModalCard>
+      )}
+
+      {step === 'repairing' && deferAsk && (
+        <ModalCard
+          icon={SAFETY_PARTS.has(partName) ? '⚠️' : '🕓'}
+          tone={SAFETY_PARTS.has(partName) ? 'danger' : 'primary'}
+          title="කොටස පසුවට දමන්නද?"
+          body={
+            SAFETY_PARTS.has(partName)
+              ? `${partName} වාහනයේ ආරක්ෂාවට අදාළ කොටසකි. මෙය පසුවට දැමුවහොත් වාහනය ධාවනය කිරීමට පෙර කාර්මිකයා සමග නැවත පරීක්ෂා කරන්න. ගරාජය මෙම තීරණය වාර්තා කරගනී.`
+              : `${partName} දැනට ගැනීමට නොහැකි නම් පසුවට දමන්න. කාර්මිකයාගේ අනුමැතිය මත වාහනය ආරක්ෂිතව ධාවනය කළ හැකි නම් පමණක් මෙය සිදු කරන්න.\n\nවාහනයට මෙම කොටස අවශ්‍ය බව Ongarage වාර්තාවේ සටහන් කර ගනී.`
+          }
+        >
+          <ActionButton label="අවලංගු" variant="ghost" compact onPress={() => setDeferAsk(false)} />
+          <ActionButton label={SAFETY_PARTS.has(partName) ? 'මම දනිමි, පසුවට' : 'පසුවට දමන්නම්'} variant="primary" compact onPress={deferPart} />
         </ModalCard>
       )}
 
@@ -1518,7 +1576,8 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
           icon="⚠️"
           tone="danger"
           title="SOS ඉල්ලීම තහවුරු කරන්න"
-          body={`ඔබගේ ස්ථානයේ සිට කි.මී. ${INITIAL_RADIUS_KM} ක් ඇතුළත ලියාපදිංචි ගරාජ වෙත දැනුම් දෙනු ලැබේ. ඔබ වෙත පැමිණීමේ ගමන් වියදම වෙනුවෙන් OnGarage අනුමත ${money(BASE_FEE)} ක පැමිණීමේ ගාස්තුවක් යාන්ත්‍රිකයාට ගෙවිය යුතුය — අලුත්වැඩියාවක් අවශ්‍ය නොවුණත් මෙය අදාළ වේ.`}
+          body={`ඔබගේ ස්ථානයේ සිට කි.මී. ${INITIAL_RADIUS_KM} ක් ඇතුළත ලියාපදිංචි ගරාජ වෙත දැනුම් දෙනු ලැබේ. ඔබ වෙත පැමිණීමේ ගමන් වියදම වෙනුවෙන් OnGarage අනුමත ${money(BASE_FEE)} ක පැමිණීමේ ගාස්තුවක් කාර්මිකයාට ගෙවිය යුතුය.`}
+          bodySuffix="(අලුත්වැඩියාවක් අවශ්‍ය නොවුණත් මෙය අදාළ වේ.)"
         >
           <ActionButton label="අවලංගු" variant="ghost" compact onPress={() => setStep('confirm')} />
           <ActionButton label="මම එකඟයි" variant="sos" compact onPress={startSearch} />
@@ -1530,7 +1589,7 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
           icon="📡"
           tone="primary"
           title="සෙවුම් කලාපය පුළුල් කරමින්"
-          body={`මෙම කලාපය තුළ තවම ගරාජයක් හෝ යාන්ත්‍රිකයෙක් හමු වී නැත. සෙවුම් කලාපය කි.මී. ${radius + RADIUS_STEP_KM} දක්වා වැඩි කෙරේ. වැඩි දුරක් ගමන් කරන යාන්ත්‍රිකයාට පැමිණීමේ ගාස්තුවට ${money(SURCHARGE_STEP)} ක් එකතු වේ.`}
+          body={`මෙම කලාපය තුළ තවම ගරාජයක් හෝ කාර්මිකයෙක් හමු වී නැත. සෙවුම් කලාපය කි.මී. ${radius + RADIUS_STEP_KM} දක්වා වැඩි කෙරේ.\n\nවැඩි දුරක් පැමිනීමට සිදුවීම හේතුවෙන් කාර්මිකයාට පැමිණීමේ ගාස්තුවට ${money(SURCHARGE_STEP)} ක් එකතු වේ.`}
         >
           <ActionButton label="අවලංගු" variant="ghost" compact onPress={() => setShowCancel(true)} />
           <ActionButton
@@ -1550,7 +1609,7 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
           icon="✅"
           tone="success"
           title="අලුත්වැඩියාව අවසන්"
-          body={`${job.mechanic} අලුත්වැඩියාව අවසන් බව සලකුණු කර ඇත. කරුණාකර ඔබගේ වාහනය පරීක්ෂා කර තහවුරු කරන්න.`}
+          body={`${job.mechanic} අලුත්වැඩියාව අවසන් බව සලකුණු කර ඇත.\n\nකරුණාකර ඔබගේ වාහනය පරීක්ෂා කර තහවුරු කරන්න.`}
         >
           <ActionButton label="හරි, මම පරීක්ෂා කළා" icon="✓" variant="success" compact onPress={() => setStep('qrScan')} />
         </ModalCard>

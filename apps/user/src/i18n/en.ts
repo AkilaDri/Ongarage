@@ -193,12 +193,12 @@ const EN_BASE: Record<string, string> = {
   'වෙනත් ගරාජයක්': 'Another garage',
   'වෙනත් ගරාජයක් ›': 'Another garage ›',
   // SOS breakdown names
-  'එන්ජින්': 'Engine',
+  'මැකනිකල්': 'Mechanical',
   'ටෝ': 'Tow',
   'අගුල': 'Lock',
   'රත්වීම': 'Overheat',
   'වින්ච්': 'Winch',
-  'අනතුර': 'Accident',
+  'අනතුරු': 'Accident',
   'ඉන්ධන': 'Fuel',
   // OnMart bar
   'වෙළඳසැල්': 'Shops',
