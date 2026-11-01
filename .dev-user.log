@@ -1,0 +1,33 @@
+
+> user
+> npm run start --workspace @ongarage/user
+
+
+> @ongarage/user@1.0.0 start
+> expo start --port 8091
+
+Starting project at C:\Users\Top Code\Desktop\topongarage\Ongarage\apps\user
+Using src/app as the root directory for Expo Router.
+Expo Autolinking module resolution enabled
+Metro is running in CI mode, reloads are disabled. Remove CI=true to enable watch mode.
+Starting Metro Bundler
+
+Waiting on http://localhost:8091
+
+Logs for your project will appear below.
+Web Bundled 14018ms node_modules\expo-router\entry.js (1217 modules)
+λ Bundled 14096ms node_modules\expo\node_modules\@expo\cli\node_modules\@expo\router-server\node\render.js (1357 modules)
+"shadow*" style props are deprecated. Use "boxShadow".
+Web Bundled 6029ms node_modules\expo-router\entry.js (1261 modules)
+Web  INFO  %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+Web  LOG  Running application "main" with appParams:
+ {"hydrate": undefined, "rootTag": "#root"} 
+Development-level warnings: ON.
+Performance optimizations: OFF.
+Web  WARN  "shadow*" style props are deprecated. Use "boxShadow".
+Web  WARN  Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md
+Web  WARN  props.pointerEvents is deprecated. Use style.pointerEvents
+Web  WARN  "textShadow*" style props are deprecated. Use "textShadow".
+λ Bundled 110ms node_modules\expo\node_modules\@expo\cli\node_modules\@expo\router-server\node\render.js (1 module)
+"shadow*" style props are deprecated. Use "boxShadow".
+Web Bundled 868ms node_modules\expo-router\entry.js (1 module)

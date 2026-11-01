@@ -1,0 +1,42 @@
+
+> garage
+> npm run start --workspace @ongarage/garage
+
+
+> @ongarage/garage@0.1.0 start
+> expo start --port 8092
+
+Starting project at C:\Users\Top Code\Desktop\topongarage\Ongarage\apps\garage
+Using src/app as the root directory for Expo Router.
+Expo Autolinking module resolution enabled
+Metro is running in CI mode, reloads are disabled. Remove CI=true to enable watch mode.
+Starting Metro Bundler
+
+Waiting on http://localhost:8092
+
+Logs for your project will appear below.
+λ Bundled 12625ms node_modules\expo\node_modules\@expo\cli\node_modules\@expo\router-server\node\render.js (1293 modules)
+"shadow*" style props are deprecated. Use "boxShadow".
+Require cycle: src/context/ChatContext.tsx -> src/components/ChatJobActions.tsx -> src/context/ChatContext.tsx
+
+Require cycles are allowed, but can result in uninitialized values. Consider refactoring to remove the need for a cycle.
+Web Bundled 14279ms node_modules\expo-router\entry.js (1197 modules)
+Web Bundled 5613ms node_modules\expo-router\entry.js (1197 modules)
+Web  INFO  %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+Web  LOG  Running application "main" with appParams:
+ {"hydrate": undefined, "rootTag": "#root"} 
+Development-level warnings: ON.
+Performance optimizations: OFF.
+Web  WARN  "shadow*" style props are deprecated. Use "boxShadow".
+Web  WARN  Require cycle: src/context/ChatContext.tsx -> src/components/ChatJobActions.tsx -> src/context/ChatContext.tsx
+
+Require cycles are allowed, but can result in uninitialized values. Consider refactoring to remove the need for a cycle.
+Web  WARN  Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md
+Web  WARN  props.pointerEvents is deprecated. Use style.pointerEvents
+λ Bundled 124ms node_modules\expo\node_modules\@expo\cli\node_modules\@expo\router-server\node\render.js (1 module)
+"shadow*" style props are deprecated. Use "boxShadow".
+Require cycle: src/context/ChatContext.tsx -> src/components/ChatJobActions.tsx -> src/context/ChatContext.tsx
+
+Require cycles are allowed, but can result in uninitialized values. Consider refactoring to remove the need for a cycle.
+Web Bundled 1051ms node_modules\expo-router\entry.js (1 module)
+Web Bundled 104ms node_modules\expo-router\entry.js (1 module)
