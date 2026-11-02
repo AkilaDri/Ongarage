@@ -104,7 +104,7 @@ export const EN_MART: Record<string, string> = {
   'බැටරිය බැහැලා වාහනය පණගන්නේ නැහැ.': 'The battery is flat and the vehicle will not start.',
   'එන්ජිම රත් වෙලා බොනට් එකෙන් හුමාලය එනවා.': 'The engine is overheating and steam is coming from the bonnet.',
   'අවශ්‍යයි': 'Required',
-  'ONGARAGE BUDDY ගෙන් අසන්න': 'Ask ONGARAGE BUDDY',
+  'OnBuddy සේවාව ලබාගන්න': 'Get service from OnBuddy',
   'වසන්න': 'Close',
   'උදා: "ධාවනය කරන විට එන්ජින් කොටසින් ගැටෙන ශබ්දයක් ඇසේ"': 'e.g. "A knocking noise from the engine bay when driving"',
   'සවන් දෙමින්...': 'Listening...',

@@ -196,7 +196,7 @@ const EN_BASE: Record<string, string> = {
   'මැකනිකල්': 'Mechanical',
   'ටෝ': 'Tow',
   'අගුල': 'Lock',
-  'රත්වීම': 'Overheat',
+  'හීට් වීම': 'Overheat',
   'වින්ච්': 'Winch',
   'අනතුරු': 'Accident',
   'ඉන්ධන': 'Fuel',

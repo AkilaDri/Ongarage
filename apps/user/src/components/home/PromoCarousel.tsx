@@ -67,7 +67,7 @@ const styles = themedStyles(() =>
     title: { fontSize: 17, fontFamily: FONTS.titleBold, color: '#fff' },
     subtitle: { fontSize: 11, fontFamily: FONTS.bodyMedium, color: '#e2e8f0' },
     cta: { alignSelf: 'flex-start', marginTop: 6, paddingHorizontal: 12, height: 28, justifyContent: 'center', borderRadius: 14, backgroundColor: '#f59e0b' },
-    ctaText: { fontSize: 11, fontFamily: FONTS.bodyBold, color: '#fff' },
+    ctaText: { fontSize: 11, fontFamily: FONTS.bodyBold, color: '#1f2937' },
     dots: { flexDirection: 'row', justifyContent: 'center', gap: 5 },
     dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: Colors.subtleBorder },
     dotOn: { width: 16, backgroundColor: Colors.primary },

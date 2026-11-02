@@ -272,7 +272,7 @@ const styles = themedStyles(() => StyleSheet.create({
   modalBody: { fontSize: 12.5, fontFamily: FONTS.bodyRegular, color: Colors.textSoft, textAlign: 'center', lineHeight: 19, marginBottom: 10 },
   modalRows: { alignSelf: 'center', gap: 4 },
   modalRow: { flexDirection: 'row', alignItems: 'flex-start' },
-  modalRowLabel: { width: 56, fontSize: 12.5, fontFamily: FONTS.bodyRegular, color: Colors.textSoft, lineHeight: 19, textAlign: 'right' },
+  modalRowLabel: { width: 56, fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain, lineHeight: 19, textAlign: 'right' },
   modalRowColon: { width: 14, fontSize: 12.5, fontFamily: FONTS.bodyRegular, color: Colors.textSoft, lineHeight: 19, textAlign: 'center' },
   modalRowValue: { fontSize: 12.5, fontFamily: FONTS.bodyRegular, color: Colors.textSoft, lineHeight: 19, textAlign: 'left' },
   modalBodySuffix: { fontSize: 9, color: Colors.red },

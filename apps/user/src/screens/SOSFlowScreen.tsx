@@ -1611,7 +1611,8 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
           icon="⚠️"
           tone="danger"
           title="SOS ඉල්ලීම තහවුරු කරන්න"
-          body={`\nඔබගේ ස්ථානයේ සිට km ${INITIAL_RADIUS_KM} ක් ඇතුළත ලියාපදිංචි ගරාජ වෙත දැනුම් දෙනු ලැබේ.\nඔබ වෙත පැමිණීමේ ගමන් වියදම වෙනුවෙන් OnGarage අනුමත ${money(BASE_FEE)} ක පැමිණීමේ ගාස්තුවක් කාර්මිකයාට ගෙවිය යුතුය.`}
+          highlight={`${money(BASE_FEE)} ක`}
+          body={`\nඔබගේ ස්ථානයේ සිට km ${INITIAL_RADIUS_KM} ක් ඇතුළත ලියාපදිංචි ගරාජ වෙත දැනුම් දෙනු ලැබේ.\nOnGarage අනුමත ${money(BASE_FEE)} ක පැමිණීමේ ගාස්තුවක් ඔබ වෙත පැමිණීමේ ගමන් වියදම වෙනුවෙන් කාර්මිකයාට ගෙවිය යුතුය.`}
           bodySuffix="(අලුත්වැඩියාවක් අවශ්‍ය නොවුණත් මෙය අදාළ වේ.)"
         >
           <ActionButton label="අවලංගු" variant="ghost" compact onPress={() => setStep('confirm')} />
@@ -1624,8 +1625,8 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
           icon="📡"
           tone="primary"
           title="සෙවුම් කලාපය පුළුල් කරමින්"
-          highlight={`${money(SURCHARGE_STEP)} ක් එකතු වේ.`}
-          body={`\nමෙම කලාපය තුළ තවම ගරාජයක් හෝ කාර්මිකයෙක් හමු වී නැත. සෙවුම් කලාපය km ${radius + RADIUS_STEP_KM} දක්වා වැඩි කෙරේ.\nවැඩි දුරක් පැමිනීමට සිදුවීම හේතුවෙන් කාර්මිකයාගේ පැමිණීමේ ගාස්තුවට\n${money(SURCHARGE_STEP)} ක් එකතු වේ.`}
+          highlight={`තව ${money(SURCHARGE_STEP)} ක් එකතු වේ.`}
+          body={`\nමෙම කලාපය තුළ තවම ගරාජයක් හෝ කාර්මිකයෙක් හමු වී නැත. සෙවුම් කලාපය km ${radius + RADIUS_STEP_KM} දක්වා වැඩි කෙරේ.\nවැඩි දුරක් පැමිනීමට සිදුවීම හේතුවෙන් කාර්මිකයාගේ පැමිණීමේ ගාස්තුවට\nතව ${money(SURCHARGE_STEP)} ක් එකතු වේ.`}
         >
           <ActionButton label="අවලංගු" variant="ghost" compact onPress={() => setShowCancel(true)} />
           <ActionButton

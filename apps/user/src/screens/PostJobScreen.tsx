@@ -141,6 +141,16 @@ function diagnose(input: string): { profile: Profile; confidence: number } {
   return { profile: best, confidence: bestHits ? Math.min(0.95, 0.45 + bestHits * 0.2) : 0.3 };
 }
 
+/** Latin words inside Sinhala text (recording, OnGarage) are set a step larger, so they read at the same visual size as the Sinhala. */
+const MixedText: React.FC<{ text: string; style: any }> = ({ text, style }) => {
+  const size = StyleSheet.flatten(style)?.fontSize ?? 12;
+  return (
+    <Text style={style}>
+      {text.split(/([A-Za-z]+)/).map((piece, i) => (i % 2 ? <Text key={i} style={{ fontSize: size * 1.2 }}>{piece}</Text> : piece))}
+    </Text>
+  );
+};
+
 /** One numbered step of the form: a rounded card with a step badge that turns into a tick once the step is filled in. */
 const StepCard: React.FC<{ step: number; title: string; done: boolean; hint?: string; optional?: boolean; children: React.ReactNode }> = ({ step, title, done, hint, optional, children }) => (
   <View style={styles.stepCard}>
@@ -152,7 +162,11 @@ const StepCard: React.FC<{ step: number; title: string; done: boolean; hint?: st
         <Text style={styles.stepTitle}>{title}</Text>
         {!!hint && <Text style={styles.cardSub}>{hint}</Text>}
       </View>
-      {!done && !optional && <Text style={styles.required}>අවශ්‍යයි</Text>}
+      {!optional && (
+        <View style={[styles.requiredPill, done && styles.requiredPillDone]} accessibilityLabel={done ? 'Required, done' : 'Required'}>
+          <Text style={[styles.requiredText, done && styles.requiredTextDone]}>{done ? '✓ අත්‍යවශ්‍ය' : '* අත්‍යවශ්‍යයි'}</Text>
+        </View>
+      )}
     </View>
     {children}
   </View>
@@ -303,10 +317,10 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, defaultVehi
             <Animated.Text style={[styles.buddyEmoji, { transform: [{ translateY: buddyFloat.interpolate({ inputRange: [0, 1], outputRange: [-2, 2] }) }] }]}>
               🤖
             </Animated.Text>
-            <Text style={styles.buddyTitle}>ONGARAGE BUDDY ගෙන් අසන්න</Text>
+            <Text style={styles.buddyTitle}>OnBuddy සේවාව ලබාගන්න</Text>
           </View>
           <Text style={styles.buddySub}>
-            ඔබගේ වාහනයේ ඇති ගැටලුව පවසන්න. Buddy බුද්ධිමත් ප්‍රශ්න කිහිපයක් අසා ඔබට ගැලපෙන සේවාව සොයා දෙනු ඇත.
+            ඔබගේ අලුත්වැඩියාව අයත්වන සේවා අංශය නොදනී නම්, OnBuddy ගේ සහයෙන් ඔබගේ සේවා අංශය සොයා ගන්න.
           </Text>
         </Pressable>
       );
@@ -518,7 +532,7 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, defaultVehi
         )}
         {tab === 'vehicle' && (
           <>
-        <Text style={styles.eyebrow}>ඔබගේ වාහනය තෝරන්න</Text>
+        <Text style={styles.sectionHeading}>ඔබගේ වාහනය තෝරන්න</Text>
         <VehicleOptions value={vehicleId} onChange={setVehicleId} />
 
           </>
@@ -551,7 +565,13 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, defaultVehi
               </View>
             </View>
           )}
-          <Text style={styles.eyebrow}>ඡායාරූප සහ හඬ සටහන් (ඡායාරූප විකල්ප — විස්තරයක් නැත්නම් හඬ සටහනක් ප්‍රමාණවත්)</Text>
+          <View style={{ gap: 2 }}>
+            <Text style={styles.eyebrow}>ඡායාරූප සහ හඬ සටහන්</Text>
+            <View style={{ gap: 2 }}>
+              <Text style={styles.hint}>• ඡායාරූප විකල්පයි</Text>
+              <MixedText text="• විස්තරයක් නැති විට recording එකක් ප්‍රමාණවත්ය" style={styles.hint} />
+            </View>
+          </View>
           <MediaAttachments photos={photos} voiceNotes={voiceNotes} onPhotos={setPhotos} onVoiceNotes={setVoiceNotes} />
         </StepCard>
 
@@ -559,7 +579,7 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, defaultVehi
         )}
         {tab === 'parts' && (
           <>
-        <StepCard step={3} title="කැමති අමතර කොටස් වර්ගය" done={sparePart !== null}>
+        <StepCard step={3} title="කැමති අමතර කොටස් වර්ගය" done={sparePart !== null} hint="එක් වර්ගයක් තෝරන්න">
           <View style={styles.choiceGrid}>
             {SPARE_PARTS.map((p) => {
               const active = sparePart === p.id;
@@ -587,7 +607,7 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, defaultVehi
             <GlassIcon emoji="🚛" small />
             <View style={styles.flex1}>
               <Text style={styles.cardTitle}>නිවසටම පැමිණ රැගෙන යාම</Text>
-              <Text style={styles.cardSub}>අපි ඔබගේ වාහනය රැගෙන ගොස් අලුත්වැඩියා කර නැවත ඔබ වෙත ගෙනැවිත් දෙන්නෙමු.</Text>
+              <Text style={styles.cardSub}>ගරාජයෙන් පැමිණ වාහනය රැගෙන ගොස් අලුත්වැඩියා කර නැවත ගෙනැවිත් දෙයි.</Text>
             </View>
             <View style={[styles.check, doorstep && styles.checkOn]}>{doorstep && <Text style={styles.checkMark}>✓</Text>}</View>
           </Pressable>
@@ -598,13 +618,15 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, defaultVehi
         {tab === 'timer' && (
           <>
         <StepCard step={5} title="⏱️ ලංසු කාලය" done={biddingHours !== null} hint="උපරිම පැය 24">
+          {/* The chosen time leads, large, above the slider; the two ends of the scale sit small under it. */}
+          <View style={styles.timerHead}>
+            <Text style={styles.cardSub}>ලංසු ලැබෙන කාලය</Text>
+            <Text style={styles.timerBig}>{biddingHours === null ? 'තෝරන්න' : `පැය ${biddingHours}`}</Text>
+          </View>
           <Slider min={1} max={24} value={biddingHours} onChange={setBiddingHours} />
           <View style={styles.rowBetween}>
-            <Text style={styles.cardSub}>පැය 1</Text>
-            <View style={styles.timerValue}>
-              <Text style={styles.timerValueText}>{biddingHours === null ? 'තෝරන්න' : `පැය ${biddingHours}`}</Text>
-            </View>
-            <Text style={styles.cardSub}>පැය 24</Text>
+            <Text style={styles.scaleText}>පැය 1</Text>
+            <Text style={styles.scaleText}>පැය 24</Text>
           </View>
         </StepCard>
           </>
@@ -670,8 +692,8 @@ const styles = themedStyles(() => StyleSheet.create({
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
   },
-  headerTitle: { fontSize: 15, fontFamily: FONTS.titleBold, color: '#fff' },
-  headerSub: { fontSize: 10.5, fontFamily: FONTS.bodyMedium, color: '#93c5fd' },
+  headerTitle: { fontSize: 16, fontFamily: FONTS.titleBold, color: '#fff', lineHeight: 21 },
+  headerSub: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: '#dbeafe', marginTop: 2 },
   closeBtn: {
     width: 32,
     height: 32,
@@ -688,7 +710,7 @@ const styles = themedStyles(() => StyleSheet.create({
   subChip: { paddingHorizontal: 9, paddingVertical: 5, borderRadius: 12, borderWidth: 1 },
   subChipText: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
   subChipTextOn: { color: '#ffffff' },
-  eyebrow: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, letterSpacing: 0.3 },
+  eyebrow: { fontSize: 12.5, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? Colors.textMuted : '#475569', letterSpacing: 0.2 },
   changePill: { paddingHorizontal: 12, height: 30, borderRadius: 8, justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe' },
   changePillText: { fontSize: 12, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
   stepCard: { backgroundColor: Colors.bgCard, borderRadius: 12, borderWidth: 1, borderColor: outline(), ...elevation1(), padding: 16, gap: 12 },
@@ -698,11 +720,19 @@ const styles = themedStyles(() => StyleSheet.create({
   stepBadgeText: { fontSize: 17, fontFamily: FONTS.titleBold, color: '#ffffff' },
   stepBadgeTextDone: { color: '#ffffff', fontSize: 18 },
   stepTitle: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textMain },
+  timerHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
+  timerBig: { fontSize: 22, fontFamily: FONTS.titleBold, color: Colors.textMain },
+  scaleText: { fontSize: 11.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
+  sectionHeading: { fontSize: 15, fontFamily: FONTS.titleBold, color: Colors.textMain, marginBottom: 4 },
   toggleRow: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 8, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline() },
   toggleRowOn: { borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#d2e3fc', backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe' },
   // Same heading style as the Home screen's sections.
   sectionLabel: { fontSize: 14, fontFamily: FONTS.bodyBold, color: Colors.primary, letterSpacing: 0.2, marginTop: 6 },
-  required: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: Colors.warning, marginTop: 4 },
+  // A mandatory field: a tinted pill with an asterisk, which turns into a green tick once the step is filled in.
+  requiredPill: { alignSelf: 'flex-start', paddingHorizontal: 9, paddingVertical: 3, borderRadius: 10, backgroundColor: getThemeMode() === 'dark' ? 'rgba(245, 158, 11, 0.16)' : '#fef3c7', borderWidth: 1, borderColor: getThemeMode() === 'dark' ? 'rgba(245, 158, 11, 0.4)' : '#f59e0b' },
+  requiredPillDone: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(74, 222, 128, 0.14)' : '#dcfce7', borderColor: '#16a34a' },
+  requiredText: { fontSize: 12, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? Colors.warning : '#92400e' },
+  requiredTextDone: { color: getThemeMode() === 'dark' ? '#4ade80' : '#166534' },
   hint: { fontSize: 12, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 18 },
   card: { backgroundColor: Colors.bgCard, borderRadius: 12, borderWidth: 1, borderColor: outline(), ...elevation1(), padding: 16, gap: 12 },
   cardActive: { borderWidth: 1, borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#d2e3fc', backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe' },
@@ -710,11 +740,11 @@ const styles = themedStyles(() => StyleSheet.create({
   cardSub: { fontSize: 12.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 2 },
   link: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
 
-  buddyBanner: { borderRadius: 12, padding: 16, gap: 8, overflow: 'hidden', backgroundColor: '#0ea5e9' },
+  buddyBanner: { borderRadius: 12, padding: 16, gap: 8, overflow: 'hidden', backgroundColor: '#0369a1' },
   buddyOpen: { borderColor: 'rgba(56, 189, 248, 0.5)', backgroundColor: 'rgba(14, 165, 233, 0.08)' },
   buddyEmoji: { fontSize: 22 },
-  buddyTitle: { fontSize: 12.5, fontFamily: FONTS.bodyBold, color: '#fff', letterSpacing: 0.5 },
-  buddySub: { fontSize: 11.5, fontFamily: FONTS.bodyRegular, color: 'rgba(255, 255, 255, 0.9)', lineHeight: 17 },
+  buddyTitle: { fontSize: 14, fontFamily: FONTS.bodyBold, color: '#fff', letterSpacing: 0.3 },
+  buddySub: { fontSize: 12.5, fontFamily: FONTS.bodyRegular, color: '#ffffff', lineHeight: 19 },
   pill: { paddingHorizontal: 12, height: 28, justifyContent: 'center', borderRadius: 8, backgroundColor: Colors.subtleFill },
   pillText: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
   buddyInput: { minHeight: 56, color: Colors.textMain, fontSize: 14, fontFamily: FONTS.bodyRegular, textAlignVertical: 'top', paddingVertical: 4 },
@@ -751,7 +781,7 @@ const styles = themedStyles(() => StyleSheet.create({
   // No box: the artwork stands on the page; the chosen category sits on a soft sky-blue disc.
   tile: { width: 58, height: 58, borderRadius: 29, justifyContent: 'center', alignItems: 'center' },
   tileActive: { backgroundColor: 'rgba(76, 161, 209, 0.22)', borderWidth: 2, borderColor: Colors.primary },
-  tileLabel: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain, textAlign: 'center', lineHeight: 14, minHeight: 28 },
+  tileLabel: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain, textAlign: 'center', lineHeight: 16, minHeight: 32 },
   tileLabelActive: { color: Colors.primary, fontFamily: FONTS.bodyBold },
 
   textArea: { minHeight: 88, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), borderRadius: 8, padding: 16, color: Colors.textMain, fontSize: 14, fontFamily: FONTS.bodyRegular, textAlignVertical: 'top' },

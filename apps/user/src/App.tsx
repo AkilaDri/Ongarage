@@ -173,6 +173,12 @@ function AppShell() {
   const lerpB = (a: number, b: number) => bannerFold.interpolate({ inputRange: [0, 1], outputRange: [a, b] });
   const fadeOut = bannerFold.interpolate({ inputRange: [0, 0.4], outputRange: [1, 0], extrapolate: 'clamp' });
   const fadeIn = bannerFold.interpolate({ inputRange: [0.6, 1], outputRange: [0, 1], extrapolate: 'clamp' });
+  // Once the card is folded to its compact row, the search and its touch zone must not take taps meant for the Quotes button.
+  const [searchLive, setSearchLive] = useState(true);
+  useEffect(() => {
+    const id = bannerFold.addListener(({ value }) => setSearchLive(value < 0.5));
+    return () => bannerFold.removeListener(id);
+  }, [bannerFold]);
 
   useEffect(() => {
     if (firstRender.current) {
@@ -437,7 +443,7 @@ function AppShell() {
                       <View style={styles.sosLeft}>
                         <View style={styles.sosBadge}>
                           <Pulse style={styles.pulseDot} />
-                          <Text style={styles.badgeText}>24/7 SOS</Text>
+                          <Text style={[styles.badgeText, styles.badgeTextSos]}>24/7 SOS</Text>
                         </View>
                         <Text style={styles.heroTitle}>වාහනය Breakdown ද ?</Text>
                         <Text style={styles.heroSub}>ළගම OnGarage උදව් ඉල්ලන්න</Text>
@@ -466,7 +472,7 @@ function AppShell() {
                     <Animated.View style={[styles.jobBannerContent, styles.bannerFull, HOME_FLOW === 'search' && { bottom: undefined, height: JOB_TOP_H }, { width: bannerW, opacity: fadeOut }]}>
                       <View style={styles.jobLeft}>
                         <View style={styles.jobBadge}>
-                          <Text style={styles.badgeText}>නොමිලේ Quotes</Text>
+                          <Text style={[styles.badgeText, styles.badgeTextJob]}>නොමිලේ Quotes</Text>
                         </View>
                         <Text style={styles.jobBannerTitle}>වාහනයේ Repair එකක්ද?</Text>
                         <Text style={styles.jobBannerSub}>OnGarage වලින් Quotes ගන්න</Text>
@@ -475,12 +481,14 @@ function AppShell() {
                         <Text style={styles.jobCtaText}>＋</Text>
                       </View>
                     </Animated.View>
-                    <Animated.View style={[styles.compactRow, { opacity: fadeIn }]} pointerEvents="none">
-                      <View style={styles.compactPlus}>
-                        <View style={styles.plusBarH} />
-                        <View style={styles.plusBarV} />
-                      </View>
-                      <Text style={styles.compactJob}>Quotes ඉල්ලන්න</Text>
+                    <Animated.View style={[styles.compactRow, { opacity: fadeIn }]} pointerEvents="box-none">
+                      <Pressable style={styles.compactRow} onPress={() => openPost(null)} accessibilityLabel="Post a repair job">
+                        <View style={styles.compactPlus}>
+                          <View style={styles.plusBarH} />
+                          <View style={styles.plusBarV} />
+                        </View>
+                        <Text style={styles.compactJob}>Quotes ඉල්ලන්න</Text>
+                      </Pressable>
                     </Animated.View>
                   </Pressable>
                   {/* The search part of the card has its own deeper blue, fading in from where the free-quotes text ends down to the card's bottom edge. */}
@@ -490,10 +498,10 @@ function AppShell() {
                     </Animated.View>
                   )}
                   {/* The search part of the card is its own touch zone: touching the search bar or the space round it never reaches the post-a-job press behind it. */}
-                  {HOME_FLOW === 'search' && <View style={{ position: 'absolute', left: 0, right: 0, top: JOB_TOP_H, bottom: 0 }} onStartShouldSetResponder={() => true} />}
+                  {HOME_FLOW === 'search' && searchLive && <View style={{ position: 'absolute', left: 0, right: 0, top: JOB_TOP_H, bottom: 0 }} onStartShouldSetResponder={() => true} />}
                   {/* The search bar inside the blue card, under the free-quotes text; the ＋ above still posts a job. */}
                   {HOME_FLOW === 'search' && (
-                    <Animated.View style={{ position: 'absolute', left: 12, bottom: 12, width: Math.max(0, bannerW - 24), opacity: fadeOut }}>
+                    <Animated.View pointerEvents={searchLive ? 'auto' : 'none'} style={{ position: 'absolute', left: 12, bottom: 12, width: Math.max(0, bannerW - 24), opacity: fadeOut }}>
                       <HomeSearch
                         inCard
                         onService={(c, sub) => {
@@ -790,12 +798,15 @@ const styles = themedStyles(() => StyleSheet.create({
   sheen: { position: 'absolute', top: -70, right: -40, width: 190, height: 190, borderRadius: 95, backgroundColor: 'rgba(255, 255, 255, 0.07)' },
   sosBannerContent: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 18, paddingVertical: 16, gap: 12 },
   sosLeft: { flex: 1, gap: 3 },
-  sosBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'flex-start', paddingHorizontal: 9, paddingVertical: 3, borderRadius: 11, backgroundColor: 'rgba(255, 255, 255, 0.16)', marginBottom: 3 },
-  jobBadge: { alignSelf: 'flex-start', paddingHorizontal: 9, paddingVertical: 3, borderRadius: 11, backgroundColor: 'rgba(255, 255, 255, 0.16)', marginBottom: 3 },
+  sosBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'flex-start', paddingHorizontal: 9, paddingVertical: 3, borderRadius: 11, backgroundColor: '#ffffff', marginBottom: 3 },
+  jobBadge: { alignSelf: 'flex-start', paddingHorizontal: 9, paddingVertical: 3, borderRadius: 11, backgroundColor: '#ffffff', marginBottom: 3 },
   pulseDot: { width: 6, height: 6, backgroundColor: '#fff', borderRadius: 3 },
   badgeText: { fontSize: 10.5, fontWeight: '800', color: '#fff', letterSpacing: 0.4 },
+  // Solid white badges carry their colour in the text, so the small label reads on the white.
+  badgeTextSos: { color: '#b91c1c' },
+  badgeTextJob: { color: '#1b3a96' },
   heroTitle: { fontSize: 17, fontFamily: FONTS.titleBold, color: '#fff', letterSpacing: 0.2 },
-  heroSub: { fontSize: 12, fontFamily: FONTS.bodyMedium, color: 'rgba(255, 255, 255, 0.82)' },
+  heroSub: { fontSize: 12, fontFamily: FONTS.bodyMedium, color: '#ffffff' },
   sosButton: { width: 70, height: 70, borderRadius: 35, backgroundColor: '#ffffff', borderWidth: 5, borderColor: 'rgba(255, 255, 255, 0.35)', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   sosButtonText: { fontSize: 17, fontWeight: '900', color: '#c81e2b', letterSpacing: 1 },
   // No shadow keys at all (the app's PickMe shape adds a soft shadow to any style that has one): its shadow showed as a pale streak between this card and the search bar.
@@ -805,13 +816,13 @@ const styles = themedStyles(() => StyleSheet.create({
   jobBannerContent: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 18, paddingVertical: 16, gap: 12 },
   jobLeft: { flex: 1, gap: 2 },
   jobBannerTitle: { fontSize: 17, fontFamily: FONTS.titleBold, color: '#fff', letterSpacing: 0.2 },
-  jobBannerSub: { fontSize: 12, fontFamily: FONTS.bodyMedium, color: 'rgba(255, 255, 255, 0.82)' },
+  jobBannerSub: { fontSize: 12, fontFamily: FONTS.bodyMedium, color: '#ffffff' },
   jobCta: { width: 60, height: 60, borderRadius: 30, backgroundColor: '#ffffff', borderWidth: 4, borderColor: 'rgba(255, 255, 255, 0.35)', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   bannerAbs: { position: 'absolute' },
   bannerFull: { position: 'absolute', left: 0, top: 0, bottom: 0 },
   compactRow: { ...StyleSheet.absoluteFill, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   compactSos: { fontSize: 17, fontWeight: '900', color: '#fff', letterSpacing: 1 },
-  compactSmall: { fontSize: 11, fontWeight: '700', color: 'rgba(255,255,255,0.8)' },
+  compactSmall: { fontSize: 11, fontWeight: '700', color: '#ffffff' },
   compactPlus: { width: 28, height: 28, borderRadius: 14, borderWidth: 2, borderColor: 'rgba(255,255,255,0.85)', alignItems: 'center', justifyContent: 'center' },
   compactDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: '#fff' },
   // The plus is drawn (not a glyph) so its stroke weight matches the dot's.

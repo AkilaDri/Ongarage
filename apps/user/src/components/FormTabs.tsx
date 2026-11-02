@@ -10,22 +10,31 @@ export type FormTab = { id: string; label: string; /** The part of the form is f
  */
 export const FormTabs: React.FC<{ tabs: FormTab[]; active: string; onChange: (id: string) => void }> = ({ tabs, active, onChange }) => {
   const at = tabs.findIndex((t) => t.id === active);
+  const n = tabs.length;
+  // The track runs from the centre of the first circle to the centre of the last one; the filled part reaches the open step, like the SOS stepper.
+  const half = 100 / n / 2;
+  const fill = n > 1 ? (Math.max(0, at) / (n - 1)) * 100 : 0;
   return (
-    <View style={styles.row} accessibilityRole="tablist">
-      {tabs.map((t, i) => {
-        const on = t.id === active;
-        const ticked = !on && t.done && i < at;
-        return (
-          <Pressable key={t.id} style={styles.tab} onPress={() => onChange(t.id)} accessibilityRole="tab" accessibilityLabel={`Step ${i + 1} ${t.label}`} accessibilityState={{ selected: on }}>
-            <View style={[styles.circle, on && styles.circleOn, ticked && styles.circleDone]}>
-              <Text style={[styles.circleText, (on || ticked) && styles.circleTextOn]}>{ticked ? '✓' : i + 1}</Text>
-            </View>
-            <Text style={[styles.label, on && styles.labelOn]} numberOfLines={1}>
-              {t.label}
-            </Text>
-          </Pressable>
-        );
-      })}
+    <View accessibilityRole="tablist" accessibilityLabel={`Step ${at + 1} of ${n}: ${tabs[at]?.label ?? ''}`}>
+      <View style={[styles.track, { left: `${half}%`, right: `${half}%` }]}>
+        <View style={[styles.trackFill, { width: `${fill}%` }]} />
+      </View>
+      <View style={styles.row}>
+        {tabs.map((t, i) => {
+          const on = t.id === active;
+          const ticked = !on && t.done && i < at;
+          return (
+            <Pressable key={t.id} style={styles.tab} onPress={() => onChange(t.id)} accessibilityRole="tab" accessibilityLabel={`Step ${i + 1} ${t.label}`} accessibilityState={{ selected: on }}>
+              <View style={[styles.circle, on && styles.circleOn, ticked && styles.circleDone]}>
+                <Text style={[styles.circleText, (on || ticked) && styles.circleTextOn]}>{ticked ? '✓' : i + 1}</Text>
+              </View>
+              <Text style={[styles.label, on && styles.labelOn]} numberOfLines={1}>
+                {t.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
     </View>
   );
 };
@@ -35,13 +44,16 @@ const dark = () => getThemeMode() === 'dark';
 const styles = themedStyles(() =>
   StyleSheet.create({
     row: { flexDirection: 'row', alignItems: 'flex-start', paddingVertical: 4 },
-    tab: { flex: 1, alignItems: 'center', gap: 5 },
+    // The line behind the circles: grey track, blue up to the open step (the circles are 28px, so the line is centred on them).
+    track: { position: 'absolute', top: 16.5, height: 3, borderRadius: 2, backgroundColor: dark() ? 'rgba(255, 255, 255, 0.1)' : '#d6dde8' },
+    trackFill: { height: 3, borderRadius: 2, backgroundColor: '#1a73e8' },
+    tab: { flex: 1, alignItems: 'center', gap: 5, minHeight: 44, justifyContent: 'flex-start' },
     circle: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: dark() ? 'rgba(255, 255, 255, 0.08)' : '#eaeff6' },
     circleOn: { backgroundColor: '#1a73e8' },
-    circleDone: { backgroundColor: '#16a34a' },
-    circleText: { fontSize: 12.5, fontFamily: FONTS.bodyBold, color: Colors.textMuted },
+    circleDone: { backgroundColor: '#15803d' },
+    circleText: { fontSize: 13, fontFamily: FONTS.bodyBold, color: dark() ? Colors.textMuted : '#475569' },
     circleTextOn: { color: '#ffffff' },
-    label: { fontSize: 10.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, textAlign: 'center' },
+    label: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: dark() ? Colors.textMuted : '#475569', textAlign: 'center' },
     labelOn: { color: dark() ? '#8db1ff' : '#1a73e8', fontFamily: FONTS.bodyBold },
   })
 );

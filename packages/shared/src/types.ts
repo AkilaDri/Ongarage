@@ -35,6 +35,8 @@ export type Garage = {
   photos?: string[];
   /** The garage's level (trust ladder), shown as a badge to owners. */
   level?: LevelId;
+  /** The sub-services the garage ticked at registration, per service category id (only these garages answer a search for that sub-service). */
+  subServices?: Record<string, string[]>;
   /** Per-dimension averages from owners' reviews. */
   dimensions?: DimensionRating;
   /** Latest reviews, with the garage's public replies. */

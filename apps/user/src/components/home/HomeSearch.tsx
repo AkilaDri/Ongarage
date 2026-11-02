@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Easing, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Colors, distanceKm, FONTS, Icon, POPULAR_SERVICES, SERVICE_CATEGORIES, themedStyles, type Garage, type ServiceCategory } from '@ongarage/shared';
+import { Colors, distanceKm, FONTS, getThemeMode, Icon, POPULAR_SERVICES, SERVICE_CATEGORIES, themedStyles, type Garage, type ServiceCategory } from '@ongarage/shared';
 import { MOCK_GARAGES } from '../../constants/mockData';
 import { useUserLocation } from '../../context/LocationContext';
 import { CategoryPhoto } from './CategoryPhoto';
@@ -24,7 +24,15 @@ const AnimatedHint: React.FC = () => {
   }, [t]);
   const prev = POPULAR_SERVICES[(i + POPULAR_SERVICES.length - 1) % POPULAR_SERVICES.length];
   const now = POPULAR_SERVICES[i];
-  const colorOf = (id: string) => SERVICE_CATEGORIES.find((c) => c.id === id)?.color ?? Colors.primary;
+  // The example words sit on white: each category colour is darkened so the small text keeps a readable contrast.
+  const colorOf = (id: string) => {
+    const hex = SERVICE_CATEGORIES.find((c) => c.id === id)?.color ?? Colors.primary;
+    const m = /^#([0-9a-f]{6})$/i.exec(hex);
+    if (!m) return hex;
+    const n = parseInt(m[1], 16);
+    const ch = (shift: number) => Math.round(((n >> shift) & 255) * 0.65).toString(16).padStart(2, '0');
+    return `#${ch(16)}${ch(8)}${ch(0)}`;
+  };
   return (
     <View style={styles.hintRow}>
       <Text style={styles.hintLabel} numberOfLines={1}>අවශ්‍ය සේවාව?</Text>
@@ -116,13 +124,14 @@ export const HomeSearch: React.FC<{
                 </Pressable>
               )}
             </View>
-            <Pressable onPress={close} hitSlop={8} accessibilityLabel="Close search">
+            <Pressable onPress={close} hitSlop={14} style={styles.cancelHit} accessibilityLabel="Close search">
               <Text style={styles.cancel}>අවලංගු</Text>
             </Pressable>
           </View>
 
-          <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.list}>
-            {!!services.length && <Text style={styles.section}>සේවා</Text>}
+          {/* The first child is the sticky heading: it stays under the search field while the results scroll beneath it. */}
+          <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.list} stickyHeaderIndices={[0]}>
+            <View style={styles.stickyHead}>{!!services.length && <Text style={styles.section}>සේවා</Text>}</View>
             {services.map((s) => (
               <Pressable
                 key={s.key}
@@ -142,7 +151,7 @@ export const HomeSearch: React.FC<{
                     {s.sub ? s.category.name : `${s.category.subcategories.length} උප සේවා`}
                   </Text>
                 </View>
-                <Text style={styles.chev}>›</Text>
+                <Text style={styles.chev} accessibilityElementsHidden importantForAccessibility="no">›</Text>
               </Pressable>
             ))}
 
@@ -168,7 +177,7 @@ export const HomeSearch: React.FC<{
                     ★ {g.rating} · km {g.distance} · {g.specialization}
                   </Text>
                 </View>
-                <Text style={styles.chev}>›</Text>
+                <Text style={styles.chev} accessibilityElementsHidden importantForAccessibility="no">›</Text>
               </Pressable>
             ))}
 
@@ -186,7 +195,17 @@ export const HomeSearch: React.FC<{
               }}
               accessibilityLabel="Ask all nearby garages for bids"
             >
-              <Text style={styles.postCtaText}>＋  ගරාජ ගොඩක්ද? සියල්ලන්ගෙන් ලංසු ඉල්ලන්න</Text>
+              {/* The same card as the Home Quotes banner: a badge, the question, what it does, and a round plus. */}
+              <View style={styles.postCtaText}>
+                <View style={styles.postCtaBadge}>
+                  <Text style={styles.postCtaBadgeText}>නොමිලේ Quotes</Text>
+                </View>
+                <Text style={styles.postCtaTitle}>තෝරගන්න අපහසුයි ද ?</Text>
+                <Text style={styles.postCtaSub}>සියල්ලන්ගෙන් ලංසු ඉල්ලන්න</Text>
+              </View>
+              <View style={styles.postCtaPlus}>
+                <Text style={styles.postCtaPlusText}>+</Text>
+              </View>
             </Pressable>
           )}
         </SafeAreaView>
@@ -207,18 +226,26 @@ const styles = themedStyles(() =>
     hintClip: { flex: 1, height: 22, overflow: 'hidden', justifyContent: 'center' },
     hintWord: { fontSize: 12.5, fontFamily: FONTS.bodyBold },
     hintIn: { position: 'absolute', left: 0, right: 0 },
-    postCta: { marginHorizontal: 16, marginBottom: 12, paddingVertical: 14, alignItems: 'center', borderRadius: 14, backgroundColor: '#1b3a96' },
-    postCtaText: { fontSize: 13, fontFamily: FONTS.bodyBold, color: '#ffffff' },
+    postCta: { marginHorizontal: 16, marginTop: 8, marginBottom: 14, paddingVertical: 16, paddingHorizontal: 18, flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 22, backgroundColor: '#1b3a96', borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.2)', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.14, shadowRadius: 8, elevation: 5 },
+    postCtaText: { flex: 1, gap: 3 },
+    postCtaBadge: { alignSelf: 'flex-start', paddingHorizontal: 9, paddingVertical: 3, borderRadius: 11, backgroundColor: '#ffffff', marginBottom: 2 },
+    postCtaBadgeText: { fontSize: 10.5, fontFamily: FONTS.bodyBold, color: '#1b3a96' },
+    postCtaTitle: { fontSize: 16, fontFamily: FONTS.titleBold, color: '#ffffff' },
+    postCtaSub: { fontSize: 12, fontFamily: FONTS.bodyMedium, color: '#ffffff' },
+    postCtaPlus: { width: 52, height: 52, borderRadius: 26, backgroundColor: '#ffffff', alignItems: 'center', justifyContent: 'center' },
+    postCtaPlusText: { fontSize: 30, fontFamily: FONTS.bodyBold, color: '#1b3a96', lineHeight: 34 },
     page: { flex: 1, backgroundColor: Colors.bgBody },
     top: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 10 },
     field: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8, height: 44, paddingHorizontal: 14, borderRadius: 22, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.borderColor },
     input: { flex: 1, fontSize: 14, fontFamily: FONTS.bodyRegular, color: Colors.textMain, paddingVertical: 0 },
-    cancel: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
+    cancelHit: { minHeight: 44, justifyContent: 'center' },
+    cancel: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: getThemeMode() === 'dark' ? Colors.primary : '#0369a1' },
     list: { paddingHorizontal: 16, paddingBottom: 30 },
-    section: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, letterSpacing: 0.5, marginTop: 14, marginBottom: 6 },
+    stickyHead: { backgroundColor: Colors.bgBody, paddingBottom: 2 },
+    section: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: getThemeMode() === 'dark' ? Colors.textMuted : '#525f73', letterSpacing: 0.5, marginTop: 14, marginBottom: 6 },
     row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 9 },
     rowTitle: { fontSize: 14, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
-    rowSub: { fontSize: 11.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 1 },
+    rowSub: { fontSize: 11.5, fontFamily: FONTS.bodyRegular, color: getThemeMode() === 'dark' ? Colors.textMuted : '#525f73', marginTop: 1 },
     chev: { fontSize: 20, color: Colors.textMuted },
     garageIcon: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.borderColor },
     garageEmoji: { fontSize: 16 },

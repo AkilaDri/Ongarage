@@ -5,6 +5,7 @@ import { Colors, FONTS, getThemeMode, themedStyles } from '@ongarage/shared';
 import { MOCK_GARAGES } from '../constants/mockData';
 import { GarageTile } from '../components/home/GarageTile';
 import { GARAGE_INFO } from '../constants/home';
+import { GARAGE_SUB_SERVICES } from '../constants/garageSubServices';
 import { CategoryPhoto } from '../components/home/CategoryPhoto';
 import { GoogleMap } from '@ongarage/shared';
 import { Icon, Gradient } from '@ongarage/shared';
@@ -295,8 +296,12 @@ export const ServiceBrowseScreen: React.FC<ServiceBrowseScreenProps> = ({ servic
   const barTrackH = Math.min(150, Math.max(70, sheetTopY - 14 - LOC_ROOM - 150 - BAR_CHROME));
   const barTop = Math.max(150, sheetTopY - 14 - LOC_ROOM - (barTrackH + BAR_CHROME)) - 108;
   const query = searchText.trim().toLowerCase();
+  // The picked sub-service narrows the garages to the ones that ticked it at registration (places keep their own sub-service filter).
+  const pickedSub = service.subcategories[selectedSub];
+  const isPlaceService = serviceModeOf(service.id, pickedSub) === 'place';
+  const ticksSub = (g: Garage) => !pickedSub || !!(g.subServices ?? GARAGE_SUB_SERVICES[g.id])?.[service.id]?.includes(pickedSub);
   const found = MOCK_GARAGES.filter(
-    (g) => !query || g.name.toLowerCase().includes(query) || g.specialization.toLowerCase().includes(query)
+    (g) => (!query || g.name.toLowerCase().includes(query) || g.specialization.toLowerCase().includes(query)) && (isPlaceService || ticksSub(g))
   )
     .map((g) => ({ ...g, distance: Number(distanceKm(center, g.coords).toFixed(1)) }))
     .filter((g) => g.distance <= radiusKm)
@@ -467,38 +472,31 @@ export const ServiceBrowseScreen: React.FC<ServiceBrowseScreenProps> = ({ servic
               <View style={styles.rangeTouch} {...radiusPan.panHandlers} accessibilityLabel="Search range" accessibilityRole="adjustable" />
             </View>
           </Animated.View>
-          {/* My location: a round button directly under the range bar, drawn as the blue "you are here" dot with its soft halo (grey once another spot has been
-              picked). It brings the search back to where the owner is. */}
-          <Animated.View
-            style={[styles.myLoc, { top: barTop + barTrackH + BAR_CHROME + 10, opacity: sheetHeight.interpolate({ inputRange: [peekHeight, peekHeight + 40], outputRange: [1, 0], extrapolate: 'clamp' }) }]}
-            pointerEvents={sheet === 'peek' ? 'auto' : 'none'}
-          >
-            <Pressable
-              style={styles.myLocBtn}
-              onPress={() => {
-                setOrigin(null);
-                setPickMode(false);
-              }}
-              accessibilityLabel="My location"
-              accessibilityState={{ selected: !origin }}
-            >
-              <View style={[styles.locHalo, origin ? styles.locHaloOff : styles.locHaloOn]}>
-                <View style={[styles.locCore, origin ? styles.locCoreOff : styles.locCoreOn]} />
-              </View>
-            </Pressable>
-          </Animated.View>
-          {/* How many of these (garages, stations or chargers) are open right now, in the map's top right corner. */}
-          <View style={styles.mapOpen} pointerEvents="none" accessibilityLabel={`${placeMode ? placeOpenCount : openCount} open`}>
-            <View style={styles.openDot} />
-            <Text style={styles.openStickerText}>විවෘත {placeMode ? placeOpenCount : openCount}</Text>
+          {/* How many garages (or places) in the search do this exact sub-service: the ones that ticked it, within the radius. */}
+          <View style={styles.mapOpen} pointerEvents="none" accessibilityLabel={placeMode ? `${placesList.length} places offer this` : `${found.length} garages offer this`}>
+            <Text style={styles.openStickerText}>{placeMode ? `මෙම සේවාව දෙන ස්ථාන ${placesList.length}` : `මෙම සේවාව කරන ගරාජ ${found.length}`}</Text>
           </View>
           <View style={styles.spotRow}>
-            <Pressable style={[styles.spotChip, pickMode && styles.spotChipOn]} onPress={() => setPickMode((m) => !m)} accessibilityLabel="Pick the search location on the map">
-              <Text style={[styles.spotChipText, pickMode && styles.spotChipTextOn]}>{pickMode ? 'සිතියමේ ස්ථානයක් ඔබන්න…' : '📍 ස්ථානය තෝරන්න'}</Text>
+            <Pressable
+              style={[styles.spotChip, pickMode && styles.spotChipOn]}
+              onPress={() => setPickMode((m) => !m)}
+              accessibilityLabel={pickMode ? 'Cancel choosing a place on the map' : origin ? 'Search centre: another place. Tap to choose on the map' : 'Search centre: my location. Tap to choose another place'}
+              accessibilityState={{ selected: pickMode }}
+            >
+              <Text style={[styles.spotChipText, pickMode && styles.spotChipTextOn]}>
+                {pickMode ? '🗺️ සිතියමේ ස්ථානයක් ඔබන්න' : origin ? '📍 වෙනත් ස්ථානයක්' : '📍 ඔබේ ස්ථානය'}
+              </Text>
             </Pressable>
-            {!!origin && (
-              <Pressable style={styles.spotChip} onPress={() => { setOrigin(null); setPickMode(false); }} accessibilityLabel="Use my own location">
-                <Text style={styles.spotChipText}>◎ මගේ ස්ථානය</Text>
+            {(!!origin || pickMode) && (
+              <Pressable
+                style={styles.spotChip}
+                onPress={() => {
+                  setOrigin(null);
+                  setPickMode(false);
+                }}
+                accessibilityLabel="Back to my location"
+              >
+                <Text style={styles.spotChipText}>✕</Text>
               </Pressable>
             )}
           </View>
@@ -785,7 +783,7 @@ const styles = themedStyles(() => StyleSheet.create({
   rangeFill: { position: 'absolute', bottom: 0, width: 4, borderRadius: 2, backgroundColor: '#1a73e8' },
   rangeThumb: { position: 'absolute', width: 20, height: 20, borderRadius: 10, marginBottom: -10, backgroundColor: '#ffffff', borderWidth: 3, borderColor: '#1a73e8', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 4, elevation: 4 },
   rangeTouch: { ...StyleSheet.absoluteFill, ...(Platform.OS === 'web' ? ({ touchAction: 'none', cursor: 'pointer' } as object) : null) },
-  spotRow: { flexDirection: 'row', gap: 8, paddingRight: 52 },
+  spotRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, maxWidth: '62%' },
   // The my-location button, under the range bar: a white disc as wide as the bar with the blue "you are here" dot (a soft halo round a dot with a white rim).
   myLoc: { position: 'absolute', right: 0 },
   // The garage filter chips: in a row at the left, ending before the my-location button.
@@ -800,9 +798,9 @@ const styles = themedStyles(() => StyleSheet.create({
   locCore: { width: 14, height: 14, borderRadius: 7, borderWidth: 2.5, borderColor: '#ffffff', shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.35, shadowRadius: 2, elevation: 2 },
   locCoreOn: { backgroundColor: '#1a73e8' },
   locCoreOff: { backgroundColor: '#5f6368' },
-  spotChip: { alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 7, borderRadius: 8, backgroundColor: '#ffffff', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 6, elevation: 3 },
+  spotChip: { alignSelf: 'flex-start', minHeight: 40, justifyContent: 'center', paddingHorizontal: 12, paddingVertical: 7, borderRadius: 8, backgroundColor: '#ffffff', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 6, elevation: 3 },
   spotChipOn: { backgroundColor: '#1a73e8' },
-  spotChipText: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: '#0f2a3d' },
+  spotChipText: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: '#0f2a3d' },
   spotChipTextOn: { color: '#ffffff' },
   rangeRing: { position: 'absolute', borderWidth: 2, borderColor: 'rgba(26, 115, 232, 0.85)', backgroundColor: 'rgba(26, 115, 232, 0.07)' },
   originPin: { position: 'absolute', transform: [{ translateX: '-50%' }, { translateY: '-100%' }] },
@@ -823,7 +821,7 @@ const styles = themedStyles(() => StyleSheet.create({
   fChipOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe', borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#d2e3fc' },
   fChipText: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
   fChipTextOn: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
-  offerChip: { flex: 1, height: 38, paddingHorizontal: 6, borderRadius: 19, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: Colors.borderColor, backgroundColor: Colors.bgCard },
+  offerChip: { flex: 1, height: 44, paddingHorizontal: 6, borderRadius: 19, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: Colors.borderColor, backgroundColor: Colors.bgCard },
   tagRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8 },
   pickedChip: { alignSelf: 'center', paddingHorizontal: 12, height: 28, borderRadius: 15, justifyContent: 'center', borderWidth: 1, borderColor: Colors.borderColor, backgroundColor: Colors.bgCard },
   // Tag-sized: it is only as wide as its words and the little white circle.
@@ -832,16 +830,16 @@ const styles = themedStyles(() => StyleSheet.create({
   freeQuotePlus: { width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: '#ffffff' },
   freeQuotePlusText: { fontSize: 17, lineHeight: 19, color: '#1b3a96', fontFamily: FONTS.bodyBold, marginTop: -1 },
   offerChipOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe', borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#d2e3fc' },
-  offerChipText: { fontSize: 12.5, fontWeight: '700', color: Colors.textMuted },
+  offerChipText: { fontSize: 13, fontWeight: '700', color: getThemeMode() === 'dark' ? Colors.textMuted : '#475569' },
   offerChipTextOn: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
   // The open count over the map, with no background of its own, at the right end of the line of the location chip.
   mapOpen: { position: 'absolute', right: 0, top: 0, flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 6, backgroundColor: 'transparent' },
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 },
   freeQuoteHead: { alignSelf: 'center', gap: 6, paddingLeft: 10 },
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  openSticker: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, height: 26, borderRadius: 13, backgroundColor: getThemeMode() === 'dark' ? 'rgba(129, 201, 149, 0.18)' : '#e6f4ea' },
+  openSticker: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, height: 26, borderRadius: 13, backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.18)' : '#e8f0fe' },
   openDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#16a34a' },
-  openStickerText: { fontSize: 12, fontWeight: '800', color: getThemeMode() === 'dark' ? '#81c995' : '#137333' },
+  openStickerText: { fontSize: 12, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a56b0' },
   sheetTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   sheetIcon: { fontSize: 18 },
   sheetTitle: { fontSize: 15, fontWeight: '800', color: Colors.textMain },

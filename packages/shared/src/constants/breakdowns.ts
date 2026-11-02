@@ -6,7 +6,7 @@ export const BREAKDOWN_TYPES = [
   { id: 'fuel', icon: '⛽', label: 'ඉන්ධන' },
   { id: 'towing', icon: '🛻', label: 'ටෝ' },
   { id: 'lockout', icon: '🔑', label: 'අගුල' },
-  { id: 'overheating', icon: '🌡️', label: 'රත්වීම' },
+  { id: 'overheating', icon: '🌡️', label: 'හීට් වීම' },
   { id: 'winching', icon: '⛓️', label: 'වින්ච්' },
   { id: 'accident', icon: '🚑', label: 'අනතුරු' },
 ] as const;
