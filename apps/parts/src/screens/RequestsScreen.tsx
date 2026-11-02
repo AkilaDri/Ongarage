@@ -78,7 +78,7 @@ export const RequestsScreen: React.FC = () => {
                 </Text>
               </View>
               <Text style={styles.postMeta} numberOfLines={1}>
-                {ago(now - r.receivedAt)} · ★ {r.garage.rating} · කි.මී. {r.distanceKm}
+                {ago(now - r.receivedAt)} · ★ {r.garage.rating} · km {r.distanceKm}
               </Text>
             </View>
             <CountdownPill ms={left} urgent={left < 30 * 60 * 1000} />
@@ -177,7 +177,7 @@ export const RequestsScreen: React.FC = () => {
               {buyerLabel(r)}
             </Text>
             <Text style={styles.sub}>
-              කි.මී. {r.distanceKm} · {ago(now - r.receivedAt)}
+              km {r.distanceKm} · {ago(now - r.receivedAt)}
             </Text>
           </View>
           <View style={[styles.badge, urgent && styles.badgeUrgent]}>
@@ -323,11 +323,11 @@ export const RequestsScreen: React.FC = () => {
           !isOpen ? (
             <View style={styles.closed}>
               <Text style={styles.closedTitle}>🔒 වෙළඳසැල වසා ඇත</Text>
-              <Text style={styles.sub}>විවෘත කළ විට කි.මී. {profile.deliveryRadiusKm} ඇතුළත ගරාජවලින් කොටස් ඉල්ලීම් ලැබේ.</Text>
+              <Text style={styles.sub}>විවෘත කළ විට km {profile.deliveryRadiusKm} ඇතුළත ගරාජවලින් කොටස් ඉල්ලීම් ලැබේ.</Text>
               <ActionButton label="වෙළඳසැල විවෘත කරන්න" icon="🔓" variant="success" compact onPress={() => setOpen(true)} />
             </View>
           ) : newRequests.length === 0 ? (
-            <EmptyState icon="📭" title="නව ඉල්ලීම් නැත" text={`කි.මී. ${profile.deliveryRadiusKm} ඇතුළත ගරාජ කොටස් ඉල්ලූ විට ඒවා මෙහි පෙන්වනු ඇත.`} />
+            <EmptyState icon="📭" title="නව ඉල්ලීම් නැත" text={`km ${profile.deliveryRadiusKm} ඇතුළත ගරාජ කොටස් ඉල්ලූ විට ඒවා මෙහි පෙන්වනු ඇත.`} />
           ) : (
             <>
               <Text style={styles.hint}>⇆ ඡායාරූපය, සිතියම සහ සම්පූර්ණ විස්තර සඳහා කාඩ්පතක් පැත්තට ස්වයිප් කරන්න</Text>

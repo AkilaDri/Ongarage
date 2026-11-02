@@ -10,8 +10,8 @@ import { BROADCAST_LIMIT, ANSWER_WINDOW_MIN, broadcastTargets, matchScore, query
 // ---------- Search reach ----------
 
 export const SEARCH_RINGS: { ring: SearchRing; km: number; label: string }[] = [
-  { ring: 'nearby', km: 10, label: 'ළඟම වෙළඳසැල් (කි.මී. 10)' },
-  { ring: 'wider', km: 50, label: 'කි.මී. 50 ඇතුළත' },
+  { ring: 'nearby', km: 10, label: 'ළඟම වෙළඳසැල් (km 10)' },
+  { ring: 'wider', km: 50, label: 'km 50 ඇතුළත' },
   { ring: 'nationwide', km: Infinity, label: 'මුළු ලංකාවම' },
 ];
 

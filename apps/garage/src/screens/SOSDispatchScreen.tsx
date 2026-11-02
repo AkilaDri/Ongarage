@@ -221,7 +221,7 @@ export const SOSDispatchScreen: React.FC = () => {
       {!!request.note && <Text style={styles.note}>“{request.note}”</Text>}
       <View style={styles.divider} />
       <Detail icon="👤" text={request.customer.name} />
-      <Detail icon="📍" text={`${request.location.address} · කි.මී. ${request.distanceKm}`} />
+      <Detail icon="📍" text={`${request.location.address} · km ${request.distanceKm}`} />
       <Detail icon="🚐" text={`ඔබට ලැබෙන පැමිණීමේ ගාස්තුව (OnGarage අනුමත): ${money(request.calloutFee)}`} />
       <Text style={styles.feeNote}>ගමන් වියදම වෙනුවෙන් — අලුත්වැඩියාවක් අවශ්‍ය නොවුණත් ලැබේ.</Text>
     </View>

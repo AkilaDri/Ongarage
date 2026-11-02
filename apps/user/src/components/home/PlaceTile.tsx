@@ -41,7 +41,7 @@ export const PlaceTile: React.FC<{ place: Place; distance: number; from?: { lati
             {p.name}
           </Text>
           <Text style={styles.meta} numberOfLines={1}>
-            {p.address} · කි.මී. {distance}
+            {p.address} · km {distance}
           </Text>
         </View>
         <View style={[styles.state, p.open ? styles.stateOpen : styles.stateClosed]}>

@@ -233,7 +233,7 @@ export const SOSInboxScreen: React.FC = () => {
           </Pressable>
         </View>
         <View style={styles.chips}>
-          <InfoChip text={`📍 කි.මී. ${r.distanceKm} · මිනි. ~${etaMinutes(r.distanceKm)}`} />
+          <InfoChip text={`📍 km ${r.distanceKm} · මිනි. ~${etaMinutes(r.distanceKm)}`} />
           <InfoChip text={`🚐 පැමිණීමේ ගාස්තුව ${money(r.calloutFee)}`} earn />
           <InfoChip text={`⏱️ ${ago(now - r.requestedAt)}`} />
         </View>
@@ -300,7 +300,7 @@ export const SOSInboxScreen: React.FC = () => {
         {!!r.note && <Text style={styles.note}>“{r.note}”</Text>}
         <View style={styles.chips}>
           <InfoChip text={`👤 ${r.customer.name}`} />
-          <InfoChip text={`📍 කි.මී. ${r.distanceKm} · මිනි. ~${etaMinutes(r.distanceKm)}`} />
+          <InfoChip text={`📍 km ${r.distanceKm} · මිනි. ~${etaMinutes(r.distanceKm)}`} />
           <InfoChip text={`🚐 ඔබට පැමිණීමේ ගාස්තුව ${money(r.calloutFee)}`} earn />
         </View>
         <Text style={styles.address} numberOfLines={1}>

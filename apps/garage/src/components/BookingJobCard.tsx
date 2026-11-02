@@ -231,7 +231,7 @@ export const BookingJobCard: React.FC<{ booking: Booking }> = ({ booking: b }) =
         }}
       />
       <Text style={styles.empty}>
-        📍 {job.location.address} · ගරාජයේ සිට කි.මී. {job.distanceKm}
+        📍 {job.location.address} · ගරාජයේ සිට km {job.distanceKm}
       </Text>
       {walkIn && <Text style={styles.empty}>🏠 පාරිභෝගිකයා පැමිණෙන්නේ: {profile.address}</Text>}
     </>

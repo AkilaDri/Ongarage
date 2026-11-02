@@ -158,7 +158,7 @@ const ReachPanel: React.FC<{ coords: LatLng; status: Record<string, 'good' | 'ba
   const wider = km === 'all' ? current !== 'all' : current === 'all' ? false : km > current;
   const less = () => setKm((k) => (k === 'all' ? REACH_MAX : k > 50 ? Math.max(50, k - 25) : Math.max(REACH_STEP, k - REACH_STEP)));
   const more = () => setKm((k) => (k === 'all' ? 'all' : k >= REACH_MAX ? 'all' : k >= 50 ? k + 25 : k + REACH_STEP));
-  const label = km === 'all' ? 'මුළු ලංකාව' : `කි.මී. ${km}`;
+  const label = km === 'all' ? 'මුළු ලංකාව' : `km ${km}`;
   const can = searchCount > 0 && wider;
   return (
     <View style={styles.reach} accessibilityLabel="Search range map">
@@ -170,7 +170,7 @@ const ReachPanel: React.FC<{ coords: LatLng; status: Record<string, 'good' | 'ba
         <Pressable style={styles.reachStep} onPress={more} accessibilityLabel="Bigger range"><Text style={styles.reachStepText}>+</Text></Pressable>
       </View>
       <Text style={styles.small}>
-        මෙම පරාසයේ වෙළඳසැල් {inRange.length}ක් · ඉල්ලීම නොලැබුණු අලුත් {fresh.length}ක්{km === 'all' ? ' · කි.මී. 200ට වඩා වැඩි නිසා මුළු ලංකාවේම වෙළඳසැල් වලට පණිවිඩය යයි' : ''}
+        මෙම පරාසයේ වෙළඳසැල් {inRange.length}ක් · ඉල්ලීම නොලැබුණු අලුත් {fresh.length}ක්{km === 'all' ? ' · km 200ට වඩා වැඩි නිසා මුළු ලංකාවේම වෙළඳසැල් වලට පණිවිඩය යයි' : ''}
       </Text>
       <Text style={styles.small}>● කොළ: ඇත · ● රතු: නැත · ● කහ: සොයමින් · ● අළු: පිළිතුරු බලා සිටී · ● නිල්: අලුතින් අසන</Text>
       <Pressable style={[styles.reachChip, !can && { opacity: 0.45 }]} disabled={!can} onPress={() => onApply(km)} accessibilityLabel="Search this range">
@@ -183,7 +183,7 @@ const ReachPanel: React.FC<{ coords: LatLng; status: Record<string, 'good' | 'ba
 /** In the card: a small preview of the search range. Touching it opens the window where the range is changed and searched. */
 const ReachMap: React.FC<React.ComponentProps<typeof ReachPanel>> = (props) => {
   const [open, setOpen] = useState(false);
-  const label = props.current === 'all' ? 'මුළු ලංකාව' : `කි.මී. ${props.current}`;
+  const label = props.current === 'all' ? 'මුළු ලංකාව' : `km ${props.current}`;
   return (
     <>
       <Pressable style={styles.reach} onPress={() => setOpen(true)} accessibilityLabel="Open the search range">
@@ -491,7 +491,7 @@ export const RequestCard: React.FC<{ items: MartEnquiry[]; renderFull: (m: MartE
             ))}
           </View>
         )}
-        {lockedWall && <Text style={styles.small}>📣 කි.මී. 100 දක්වා සෙවුවොත් මේ කොටස දුර්ලභ කොටස් පෝස්ට් එකට දාන්න පුළුවන් — සෙවුම් පරාසය විශාල කරන්න.</Text>}
+        {lockedWall && <Text style={styles.small}>📣 km 100 දක්වා සෙවුවොත් මේ කොටස දුර්ලභ කොටස් පෝස්ට් එකට දාන්න පුළුවන් — සෙවුම් පරාසය විශාල කරන්න.</Text>}
         {canPost && (
           <View style={styles.wall}>
             <Text style={styles.label}>📣 දුර්ලභ කොටස් පෝස්ට් එකට දමන්න</Text>
@@ -751,7 +751,7 @@ export const RequestCard: React.FC<{ items: MartEnquiry[]; renderFull: (m: MartE
         })}
       </Sheet>
 
-      {many && wallLocked && <Text style={styles.small}>📣 නැති කොටස් {wallableAll.length} ක් — කි.මී. 100 දක්වා සෙවුවාම දුර්ලභ කොටස් පෝස්ට් එකට දාන chip එක විවෘත වෙයි.</Text>}
+      {many && wallLocked && <Text style={styles.small}>📣 නැති කොටස් {wallableAll.length} ක් — km 100 දක්වා සෙවුවාම දුර්ලභ කොටස් පෝස්ට් එකට දාන chip එක විවෘත වෙයි.</Text>}
 
       {many && wallable.length > 0 && (
         <View style={styles.reachBox} accessibilityLabel="Reach and the open wall">

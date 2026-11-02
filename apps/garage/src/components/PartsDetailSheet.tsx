@@ -84,7 +84,7 @@ export const PartsDetailSheet: React.FC<{ requestId: string | null; onClose: () 
       {r.status === 'open' && (
         <View style={styles.statusRow}>
           <Text style={styles.statusText}>
-            {r.searching ? `⏳ කි.මී. ${r.radiusKm} ඇතුළත වෙළඳසැල් පිළිතුරු දෙමින්…` : `මිල ගණන් ${mine.length} ක්`}
+            {r.searching ? `⏳ km ${r.radiusKm} ඇතුළත වෙළඳසැල් පිළිතුරු දෙමින්…` : `මිල ගණන් ${mine.length} ක්`}
           </Text>
           <Text style={[styles.statusText, { color: windowOpen ? Colors.primary : Colors.textMuted }]}>{windowOpen ? countdown(r.quoteUntil - now) : 'කාලය අවසන්'}</Text>
         </View>
@@ -168,7 +168,7 @@ const QuoteCard: React.FC<{
       <View style={styles.flex1}>
         <Text style={styles.title}>{q.shop.name}</Text>
         <Text style={styles.sub}>
-          ★ {q.shop.rating} ({q.shop.ratingCount}) · කි.මී. {q.shop.distanceKm}
+          ★ {q.shop.rating} ({q.shop.ratingCount}) · km {q.shop.distanceKm}
         </Text>
         {!!q.tradeDiscountPercent && <Text style={[styles.sub, { color: Colors.primary }]}>🤝 ගිවිසුම් මිල −{q.tradeDiscountPercent}%</Text>}
       </View>

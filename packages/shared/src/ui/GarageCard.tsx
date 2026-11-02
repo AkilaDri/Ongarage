@@ -49,7 +49,7 @@ export const GarageCard: React.FC<GarageCardProps> = ({ garage, variant, thumbCo
               </Text>
               <Text style={styles.openBadge}>{isHome ? '● දැන් විවෘතයි' : '● විවෘතයි'}</Text>
               <Text style={styles.distanceLabel}>
-                {isHome ? `📍 කි.මී. ${garage.distance} යි` : `📍 ${garage.distance} කි.මී.`}
+                {isHome ? `📍 km ${garage.distance} යි` : `📍 ${garage.distance} km`}
               </Text>
             </View>
           </View>

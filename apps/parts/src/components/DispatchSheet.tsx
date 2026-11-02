@@ -33,7 +33,7 @@ export const DispatchSheet: React.FC<{ order: ShopOrder | null; onClose: () => v
     <Sheet
       visible={!!order}
       title="බෙදාහැරීමට යවන්න"
-      subtitle={`${r.garage.name} · කි.මී. ${r.distanceKm} · ${r.garage.address}`}
+      subtitle={`${r.garage.name} · km ${r.distanceKm} · ${r.garage.address}`}
       onClose={onClose}
       footer={
         <ActionButton

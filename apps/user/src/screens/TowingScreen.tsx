@@ -51,7 +51,7 @@ const STAGE_TEXT: Record<TowStage, string> = {
 const QuoteLines: React.FC<{ q: TowQuote }> = ({ q }) => (
   <View style={styles.lines}>
     <Line label="මූලික ගාස්තුව" value={q.baseFee} />
-    <Line label={`ගමන (කි.මී. ${q.tripKm})`} value={q.tripFee} />
+    <Line label={`ගමන (km ${q.tripKm})`} value={q.tripFee} />
     {q.pickupFee > 0 && <Line label="Truck එක ඔබ වෙත එන දුර" value={q.pickupFee} />}
     {q.recoveryFee > 0 && <Line label="ගොඩ ගැනීමේ (recovery) ගාස්තුව" value={q.recoveryFee} />}
     {q.nightFee > 0 && <Line label="රාත්‍රී අමතර ගාස්තුව" value={q.nightFee} />}
@@ -236,7 +236,7 @@ export const TowingScreen: React.FC<{ vehicleId?: string; onClose: () => void }>
           <Pressable key={g.id} style={[styles.option, destId === g.id && styles.optionOn]} onPress={() => { setDestId(g.id); setOptionId(null); }} accessibilityLabel={`Tow to ${g.name}`}>
             <Text style={styles.optionTitle}>{g.name}</Text>
             <Text style={styles.sub}>
-              {g.address} · කි.මී. {roadKm(user.coords, g.coords)}
+              {g.address} · km {roadKm(user.coords, g.coords)}
             </Text>
           </Pressable>
         ))}
@@ -258,7 +258,7 @@ export const TowingScreen: React.FC<{ vehicleId?: string; onClose: () => void }>
                     {i === 0 ? '  · අඩුම මිල' : ''}
                   </Text>
                   <Text style={styles.sub}>
-                    ★ {o.op.rating} ({o.op.reviews}) · මිනි. {o.etaMin}කින් · කි.මී. {o.pickupKm}
+                    ★ {o.op.rating} ({o.op.reviews}) · මිනි. {o.etaMin}කින් · km {o.pickupKm}
                   </Text>
                 </View>
                 <Text style={styles.price}>රු. {o.quote.total}</Text>

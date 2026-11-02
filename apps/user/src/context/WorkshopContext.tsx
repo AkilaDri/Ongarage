@@ -304,7 +304,7 @@ const HISTORY: OwnerWorkshop[] = [
     daysAgo: 24, warrantyMonths: 3, protectedJob: true, labour: 4650, parts: [{ name: 'Engine oil 4L', type: 'Genuine', price: 8200 }, { name: 'Oil filter', type: 'Genuine', price: 1650 }],
     review: {
       id: 'rv-h1', customer: 'Akila Drishan', rating: 4.6, dimensions: { quality: 5, pricing: 4, onTime: 5, communication: 4 }, technician: { name: 'චමින්ද සිල්වා', rating: 5 },
-      text: 'ඉක්මනින් කළා, පරණ ෆිල්ටරය පෙන්නුවා.', at: Date.now() - 23 * DAY, reply: { text: 'ස්තූතියි! ඊළඟ සේවාව කි.මී. 5,000න්.', at: Date.now() - 22 * DAY },
+      text: 'ඉක්මනින් කළා, පරණ ෆිල්ටරය පෙන්නුවා.', at: Date.now() - 23 * DAY, reply: { text: 'ස්තූතියි! ඊළඟ සේවාව km 5,000න්.', at: Date.now() - 22 * DAY },
     },
   }),
   pastJob({

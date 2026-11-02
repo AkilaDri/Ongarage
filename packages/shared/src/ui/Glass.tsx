@@ -143,6 +143,13 @@ const modalTint = (tone: ModalTone) =>
     success: 'rgba(16, 185, 129, 0.16)',
   })[tone];
 
+/**
+ * Latin words inside Sinhala text (km, OnGarage, Car battery): Latin letters sit smaller than Sinhala ones at the same size, so they are set a little larger
+ * to read at the same weight. Splits on letter runs; the odd pieces are the Latin words.
+ */
+const withLatin = (text: string) =>
+  text.split(/([A-Za-z]+)/).map((piece, i) => (i % 2 ? <Text key={i} style={styles.modalLatin}>{piece}</Text> : piece));
+
 /** A pop-up in the middle of the screen: a borderless rounded card with a wide shadow, a tinted icon disc and pill buttons. */
 export const ModalCard: React.FC<{
   icon: string;
@@ -185,7 +192,7 @@ export const ModalCard: React.FC<{
           {parts.map((part, i) => (
             <React.Fragment key={i}>
               {i > 0 && <Text style={styles.modalBodyStrong}>{highlight}</Text>}
-              {part}
+              {withLatin(part)}
             </React.Fragment>
           ))}
           {bodySuffix && <Text style={styles.modalBodySuffix}>{`\n\n${bodySuffix}`}</Text>}
@@ -270,6 +277,8 @@ const styles = themedStyles(() => StyleSheet.create({
   modalRowValue: { fontSize: 12.5, fontFamily: FONTS.bodyRegular, color: Colors.textSoft, lineHeight: 19, textAlign: 'left' },
   modalBodySuffix: { fontSize: 9, color: Colors.red },
   modalBodyStrong: { fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
+  // The Latin letters beside the Sinhala body: a step larger, so they match the Sinhala visually.
+  modalLatin: { fontSize: 14.9 },
   modalActions: { flexDirection: 'row', gap: 10, alignSelf: 'stretch' },
 
   // Material dialog: elevation 3, a small tonal icon, a 20px headline, 14px supporting text and right-aligned buttons.

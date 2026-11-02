@@ -430,7 +430,7 @@ export const GarageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         if (prev.length >= MAX_PENDING_REQUESTS) return prev;
         const next = makeRequest(poolIndex.current++, p, Date.now());
         if (next.distanceKm > p.coverageKm) return prev;
-        notify({ icon: '🚨', title: 'නව SOS ඉල්ලීමක්', body: `${breakdownInfo(next.breakdownId).label} · කි.මී. ${next.distanceKm}`, tone: 'danger' });
+        notify({ icon: '🚨', title: 'නව SOS ඉල්ලීමක්', body: `${breakdownInfo(next.breakdownId).label} · km ${next.distanceKm}`, tone: 'danger' });
         return [next, ...prev];
       });
     }, SOS_ARRIVAL_MS);
@@ -454,7 +454,7 @@ export const GarageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (live.current.feed.some((j) => j.id === job.id)) return;
       setFeed((prev) => (prev.some((j) => j.id === job.id) ? prev : [job, ...prev]));
       if (live.current.profile.services.includes(job.categoryId)) {
-        notify({ icon: '🔨', title: 'නව රැකියාවක් පළ විය', body: `${categoryInfo(job.categoryId).name} · කි.මී. ${job.distanceKm}`, tone: 'primary' });
+        notify({ icon: '🔨', title: 'නව රැකියාවක් පළ විය', body: `${categoryInfo(job.categoryId).name} · km ${job.distanceKm}`, tone: 'primary' });
       }
     }, FEED_ARRIVAL_MS);
     return () => clearTimeout(t);

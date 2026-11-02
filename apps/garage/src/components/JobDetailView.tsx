@@ -359,7 +359,7 @@ export const JobDetailView: React.FC<{
               }}
             />
             <Text style={styles.sub}>
-              📍 {job.location.address} · ගරාජයේ සිට කි.මී. {job.distanceKm}
+              📍 {job.location.address} · ගරාජයේ සිට km {job.distanceKm}
             </Text>
 
             {/* Customer */}

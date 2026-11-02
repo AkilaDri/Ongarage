@@ -686,7 +686,7 @@ export const JobFeedScreen: React.FC<{ shift: Animated.Value; onScrollY: (y: num
           <>
             {shown.length === 0 ? (
               fewBids || republishedOnly || nearest ? (
-                <EmptyState icon="🔎" title={nearest ? 'ළඟම රැකියා නැත' : republishedOnly ? 'නැවත පළ කළ රැකියා නැත' : 'අඩු ලංසු සහිත රැකියා නැත'} text={nearest ? `ගරාජයේ සිට කි.මී. ${NEAR_KM} ඇතුළත රැකියා නැත. පෙරහන ඉවත් කර සියල්ල බලන්න.` : republishedOnly ? 'ලංසු කාලය අවසන් වී හිමියන් නැවත පළ කළ රැකියා මෙහි පෙන්වයි.' : 'සියලු රැකියාවලට දැනටමත් ලංසු කිහිපයක් ඇත. පෙරහන ඉවත් කර සියල්ල බලන්න.'} />
+                <EmptyState icon="🔎" title={nearest ? 'ළඟම රැකියා නැත' : republishedOnly ? 'නැවත පළ කළ රැකියා නැත' : 'අඩු ලංසු සහිත රැකියා නැත'} text={nearest ? `ගරාජයේ සිට km ${NEAR_KM} ඇතුළත රැකියා නැත. පෙරහන ඉවත් කර සියල්ල බලන්න.` : republishedOnly ? 'ලංසු කාලය අවසන් වී හිමියන් නැවත පළ කළ රැකියා මෙහි පෙන්වයි.' : 'සියලු රැකියාවලට දැනටමත් ලංසු කිහිපයක් ඇත. පෙරහන ඉවත් කර සියල්ල බලන්න.'} />
               ) : (
               <EmptyState icon="📭" title="නව රැකියා නැත" text="වාහන හිමියන් ඔබගේ සේවා සඳහා රැකියා පළ කළ විට ඒවා මෙහි පෙන්වනු ඇත." />
               )

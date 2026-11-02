@@ -153,7 +153,7 @@ export const PlaceSheet: React.FC<{ place: Place | null; distance?: number; from
           </View>
         </View>
         <Text style={styles.placeType} numberOfLines={2}>
-          {[isEv ? 'EV Charging station' : 'ඉන්ධන පිරවුම්හල', p.brand, distance !== undefined ? `කි.මී. ${distance}` : ''].filter(Boolean).join(' · ')}
+          {[isEv ? 'EV Charging station' : 'ඉන්ධන පිරවුම්හල', p.brand, distance !== undefined ? `km ${distance}` : ''].filter(Boolean).join(' · ')}
         </Text>
         <Text style={styles.placeStatus}>
           <Text style={p.open ? styles.placeOpen : styles.placeClosed}>{p.open ? 'විවෘතයි' : 'වසා ඇත'}</Text>

@@ -47,7 +47,7 @@ export const ShopRecommender: React.FC<{
                 {s.name}
               </Text>
               <Text style={styles.sub} numberOfLines={1}>
-                ★ {s.rating.toFixed(1)} · {s.distanceKm < 10 ? s.distanceKm.toFixed(1) : Math.round(s.distanceKm)} කි.මී.
+                ★ {s.rating.toFixed(1)} · {s.distanceKm < 10 ? s.distanceKm.toFixed(1) : Math.round(s.distanceKm)} km
                 {showCommission && s.referralPercent ? ` · කොමිස් ${s.referralPercent}%` : ''}
               </Text>
             </View>

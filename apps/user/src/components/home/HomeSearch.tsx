@@ -165,7 +165,7 @@ export const HomeSearch: React.FC<{
                     {g.name}
                   </Text>
                   <Text style={styles.rowSub} numberOfLines={1}>
-                    ★ {g.rating} · කි.මී. {g.distance} · {g.specialization}
+                    ★ {g.rating} · km {g.distance} · {g.specialization}
                   </Text>
                 </View>
                 <Text style={styles.chev}>›</Text>

@@ -35,7 +35,7 @@ export const ShopTile: React.FC<{ shop: ShopListing; ad?: boolean; tagline?: str
         {shop.name}
       </Text>
       <Text style={styles.meta} numberOfLines={1}>
-        ★ {shop.rating.toFixed(1)} ({shop.ratingCount}) · {shop.distanceKm < 10 ? shop.distanceKm.toFixed(1) : Math.round(shop.distanceKm)} කි.මී. · ⏱ {shop.stats.avgResponseMin}මි.
+        ★ {shop.rating.toFixed(1)} ({shop.ratingCount}) · {shop.distanceKm < 10 ? shop.distanceKm.toFixed(1) : Math.round(shop.distanceKm)} km · ⏱ {shop.stats.avgResponseMin}මි.
       </Text>
       <View style={styles.chips}>
         {shop.liveStock && (

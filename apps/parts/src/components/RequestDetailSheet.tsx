@@ -32,7 +32,7 @@ export const RequestDetailSheet: React.FC<{ request: IncomingRequest | null; onC
     <Sheet
       visible={!!r}
       title={r.garage.name}
-      subtitle={`★ ${r.garage.rating} · කි.මී. ${r.distanceKm} · ${cat ? cat.name : 'කොටස්'}`}
+      subtitle={`★ ${r.garage.rating} · km ${r.distanceKm} · ${cat ? cat.name : 'කොටස්'}`}
       onClose={onClose}
       footer={
         quoted ? undefined : types.length ? (

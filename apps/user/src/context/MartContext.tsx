@@ -344,7 +344,7 @@ export const MartProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const line: PartsMessage = { id: `m-${Date.now()}-${shop.id}`, from: 'shop', text: replyMessage(offer, names), at: Date.now() };
           setThreads((prev) => (prev.some((t) => t.id === key) ? prev.map((t) => (t.id === key ? { ...t, messages: [...t.messages, line] } : t)) : [...prev, { id: key, enquiryId: e.id, shopId: shop.id, messages: [line] }]));
           if (!announce) return;
-          const where = `${shop.distanceKm < 10 ? shop.distanceKm.toFixed(1) : Math.round(shop.distanceKm)} කි.මී.`;
+          const where = `${shop.distanceKm < 10 ? shop.distanceKm.toFixed(1) : Math.round(shop.distanceKm)} km`;
           if (p.kind === 'have') notify({ icon: '📨', title: `${shop.name} සතුව ${brief.name} ඇත`, body: `${offer.unitPrice ? `රු. ${offer.unitPrice.toLocaleString()}` : 'මිල කවුන්ටරයේදී'} · ${where}`, tone: 'success' });
           else if (p.kind === 'check') notify({ icon: '⏳', title: `${shop.name} පරීක්ෂා කර දන්වයි`, body: `${brief.name} · ${where}`, tone: 'primary' });
         };
@@ -452,7 +452,7 @@ export const MartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
       notify({
         icon: '🔭',
-        title: nation ? 'මුළු ලංකාවේම වෙළඳසැල් වලට පණිවිඩය යැව්වා' : `කි.මී. ${km} ඇතුළත වෙළඳසැල් වලට පණිවිඩය යැව්වා`,
+        title: nation ? 'මුළු ලංකාවේම වෙළඳසැල් වලට පණිවිඩය යැව්වා' : `km ${km} ඇතුළත වෙළඳසැල් වලට පණිවිඩය යැව්වා`,
         body: `කොටස් ${enquiryIds.length} ක් සඳහා — අලුතින් ලැබෙන වෙළඳසැල් වල පිළිතුරු මෙහි පෙනේ.`,
         tone: 'primary',
       });

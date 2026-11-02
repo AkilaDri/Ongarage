@@ -76,10 +76,13 @@ export const GarageTile: React.FC<{
           {level ? `${level.icon} ` : ''}
           {g.name}
         </Text>
-        <Text style={styles.meta} numberOfLines={1}>
-          <Text style={styles.star}>★ {g.rating.toFixed(1)}</Text> ({g.reviews}) • කි.මී. {g.distance}
-          {info ? ` • ~මිනි. ${info.replyMin}` : ''}
-        </Text>
+        <View style={styles.metaRow}>
+          <Text style={styles.meta}>
+            <Text style={styles.star}>★ {g.rating.toFixed(1)}</Text> ({g.reviews})
+          </Text>
+          <Text style={styles.meta}>📍 {g.distance} km</Text>
+          {info && <Text style={styles.meta}>⏱️ ~මිනි. {info.replyMin}</Text>}
+        </View>
         {content && (
           <View style={styles.details}>
             <InfoChip text={today?.open ? `🕒 ${today.open}` : '🕒 අද වසා ඇත'} />
@@ -136,6 +139,7 @@ const styles = themedStyles(() =>
     body: { paddingHorizontal: 14, paddingVertical: 12, gap: 4 },
     name: { fontSize: 15, fontFamily: FONTS.titleBold, color: Colors.textMain },
     meta: { fontSize: 12, fontFamily: FONTS.bodyMedium, color: Colors.textMuted },
+    metaRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: 10, rowGap: 2 },
     star: { color: Colors.warning, fontFamily: FONTS.bodyBold },
   })
 );

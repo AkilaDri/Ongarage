@@ -88,7 +88,7 @@ export const GarageProfileScreen: React.FC<{ shift: Animated.Value; onScrollY: (
             >
               <Text style={styles.stepText}>−</Text>
             </Pressable>
-            <Text style={styles.stepValue}>කි.මී. {profile.coverageKm}</Text>
+            <Text style={styles.stepValue}>km {profile.coverageKm}</Text>
             <Pressable
               style={[styles.stepBtn, profile.coverageKm >= RADIUS_MAX && styles.stepOff]}
               disabled={profile.coverageKm >= RADIUS_MAX}

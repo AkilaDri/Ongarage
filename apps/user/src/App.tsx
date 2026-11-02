@@ -306,11 +306,13 @@ function AppShell() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [standing.limited]);
 
+  // However the job ends, the owner lands on Home: a job that stepped aside to OnMart (and came back) must not leave them on the OnMart tab.
   const closeSOS = useCallback(() => {
     setSOSStage('closed');
     setSosHidden(false);
     setMartSeed('');
     setMartShopReq(null);
+    setActiveTab('home');
   }, []);
   const setMartHeaderVisible = useCallback((visible: boolean) => {
     Animated.timing(martHeaderCollapse, { toValue: visible ? 0 : 1, duration: 280, easing: Easing.out(Easing.cubic), useNativeDriver: false }).start();

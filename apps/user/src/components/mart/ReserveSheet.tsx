@@ -85,9 +85,18 @@ export const ReserveSheet: React.FC<{ offer: ShopOffer | null; brief: PartBrief 
       )}
 
       <View style={styles.note}>
-        <Text style={styles.sub}>• ගෙවීම යෙදුමෙන් කෙරෙන්නේ නැත — කවුන්ටරයේදී හෝ භාරදෙන විටදී.</Text>
-        <Text style={styles.sub}>• කොටස පරීක්ෂා කර ගැළපෙන්නේ නැත්නම් ප්‍රතික්ෂේප කළ හැක — ඔබ ගෙවන්නේ නැත.</Text>
-        <Text style={styles.sub}>• මිලදී ගත් පසු දින 7ක් ඇතුළත ආපසු දිය හැක.</Text>
+        <View style={styles.noteRow}>
+          <Text style={styles.noteIcon}>💳</Text>
+          <Text style={styles.sub}>ගෙවීම යෙදුමෙන් නොව කවුන්ටරයේදී හෝ භාරදෙන විට.</Text>
+        </View>
+        <View style={styles.noteRow}>
+          <Text style={styles.noteIcon}>🔍</Text>
+          <Text style={styles.sub}>පරීක්ෂා කර නොගැළපේ නම් ප්‍රතික්ෂේප කළ හැක — ගෙවන්නේ නැත.</Text>
+        </View>
+        <View style={styles.noteRow}>
+          <Text style={styles.noteIcon}>↩️</Text>
+          <Text style={styles.sub}>මිලදී ගත් පසු දින 7ක් ඇතුළත ආපසු දිය හැක.</Text>
+        </View>
       </View>
     </Sheet>
   );
@@ -100,7 +109,9 @@ const styles = themedStyles(() =>
     card: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), borderRadius: 12, padding: 16, gap: 8, ...elevation1() },
     title: { fontSize: 15, fontFamily: FONTS.titleBold, color: Colors.textMain },
     price: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.successText },
-    sub: { fontSize: 12.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 19 },
+    sub: { flex: 1, fontSize: 12.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 19 },
+    noteRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
+    noteIcon: { fontSize: 13, lineHeight: 19 },
     chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
     label: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, marginTop: 4 },
     option: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 8, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline() },

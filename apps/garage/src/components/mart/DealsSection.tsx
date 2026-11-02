@@ -29,7 +29,7 @@ const DealCard: React.FC<{ d: DealView; now: number; onOpen: (d: DealView) => vo
           {d.deal.partType} · {d.shop.name}
         </Text>
         <Text style={styles.meta}>
-          {d.shop.distanceKm < 10 ? d.shop.distanceKm.toFixed(1) : Math.round(d.shop.distanceKm)} කි.මී.
+          {d.shop.distanceKm < 10 ? d.shop.distanceKm.toFixed(1) : Math.round(d.shop.distanceKm)} km
           {d.left <= 3 ? ` · ⚠ ${d.left} ක් පමණි` : ''}
         </Text>
         <View style={styles.prices}>

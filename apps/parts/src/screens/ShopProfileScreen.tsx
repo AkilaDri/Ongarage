@@ -53,7 +53,7 @@ export const ShopProfileScreen: React.FC = () => {
             <Pressable style={styles.stepBtn} onPress={() => setRadius(profile.deliveryRadiusKm - 1)} accessibilityLabel="Decrease radius">
               <Text style={styles.stepText}>−</Text>
             </Pressable>
-            <Text style={styles.stepValue}>කි.මී. {profile.deliveryRadiusKm}</Text>
+            <Text style={styles.stepValue}>km {profile.deliveryRadiusKm}</Text>
             <Pressable style={styles.stepBtn} onPress={() => setRadius(profile.deliveryRadiusKm + 1)} accessibilityLabel="Increase radius">
               <Text style={styles.stepText}>+</Text>
             </Pressable>

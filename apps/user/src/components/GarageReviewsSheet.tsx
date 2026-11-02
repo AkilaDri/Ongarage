@@ -208,7 +208,7 @@ export const GarageReviewsSheet: React.FC<{
           </View>
         </View>
         <Text style={styles.placeType} numberOfLines={2}>
-          {[g.specialization || 'වාහන අලුත්වැඩියා ගරාජය', `කි.මී. ${g.distance}`].filter(Boolean).join(' · ')}
+          {[g.specialization || 'වාහන අලුත්වැඩියා ගරාජය', `km ${g.distance}`].filter(Boolean).join(' · ')}
         </Text>
         <Text style={styles.placeStatus}>
           <Text style={open ? styles.placeOpen : styles.placeClosed}>{open ? 'විවෘතයි' : 'වසා ඇත'}</Text>
@@ -280,7 +280,7 @@ export const GarageReviewsSheet: React.FC<{
               <Text style={styles.bidHeroChipText}>⏱️ පැය {bid.estHours}</Text>
             </View>
             <View style={styles.bidHeroChip}>
-              <Text style={styles.bidHeroChipText}>📍 කි.මී. {bid.distanceKm}</Text>
+              <Text style={styles.bidHeroChipText}>📍 km {bid.distanceKm}</Text>
             </View>
             {!!bid.travelFee && (
               <View style={[styles.bidHeroChip, { backgroundColor: 'rgba(245, 158, 11, 0.25)' }]} accessibilityLabel="Bid includes travel fee">
@@ -439,7 +439,7 @@ export const GarageReviewsSheet: React.FC<{
             <Text style={styles.serviceName} numberOfLines={1}>
               {g.address || g.name}
             </Text>
-            <Text style={styles.sub}>ඔබගෙන් කි.මී. {g.distance}</Text>
+            <Text style={styles.sub}>ඔබගෙන් km {g.distance}</Text>
           </View>
           <Pressable style={styles.dirBtn} onPress={() => Linking.openURL(directionsUrl(g.coords, user.coords))} accessibilityLabel="Directions to the garage">
             <Text style={styles.dirBtnText}>🗺️ දිශාවන්</Text>

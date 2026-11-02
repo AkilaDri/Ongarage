@@ -61,14 +61,27 @@ type Step =
   | 'qrScan'
   | 'rating';
 
+// The KITT sweep is sampled at these points of one cycle; the trail lights lag the head by these fractions of a cycle.
+const KITT_STEPS = 40;
+const KITT_T = Array.from({ length: KITT_STEPS + 1 }, (_, i) => i / KITT_STEPS);
+const KITT_LAGS = [0, 0.03, 0.06, 0.09, 0.12];
+
+/** A label with its value set apart on the right: the label muted, the value in bold. */
+const FactValue: React.FC<{ label: string; value: string }> = ({ label, value }) => (
+  <View style={styles.factRow}>
+    <Text style={styles.factLabel}>{label}</Text>
+    <Text style={styles.factValue}>{value}</Text>
+  </View>
+);
+
 const STEPS: { key: Step; label: string }[] = [
   { key: 'confirm', label: 'විස්තර තහවුරු කිරීම' },
   { key: 'consent', label: 'අනුමැතිය' },
-  { key: 'searching', label: 'ළඟම ගරාජය සම්බන්ධ කරගැනීම' },
+  { key: 'searching', label: 'ළඟම ගරාජ සෙවීම' },
   // Choosing from the nearby list (when nobody answered) and being connected are the same segment of the stepper.
   // Being connected (and picking from the nearby list) and watching them come are one window: the map, their profile and the ETA.
-  { key: 'tracking', label: 'ගරාජය / කාර්මිකයා සම්බන්ධ විය · පැමිණෙමින්' },
-  { key: 'arrived', label: 'පැමිණියා' },
+  { key: 'tracking', label: 'කාර්මිකයා පැමිණිමින්' },
+  { key: 'arrived', label: 'කාර්මිකයා පැමිණියා' },
   { key: 'repairing', label: 'අලුත්වැඩියාව' },
   { key: 'repairCompleteNotice', label: 'අවසන් බව දැනුම්දීම' },
   { key: 'qrScan', label: 'QR ස්කෑන්' },
@@ -189,8 +202,8 @@ const EMERGENCY_NUMBERS = [
 
 // The SOS conditions the owner can read at any time.
 const SOS_TERMS = [
-  'ඔබගේ SOS ඉල්ලීම ඔබේ ස්ථානයේ සිට සෙවුම් කලාපය (කි.මී. 1 න් ආරම්භ වී, පුළුල් කරන සෑම වාරයකටම කි.මී. 1 බැගින් වැඩි වේ) ඇතුළත ලියාපදිංචි ගරාජ සහ කාර්මිකයන් වෙත දැනුම් දෙයි.',
-  'පැමිණීමේ ගාස්තුව: OnGarage අනුමත රු. 500 ක්. කලාපය පුළුල් වන සෑම කි.මී. 1 කටම රු. 250 ක් එකතු වේ. අලුත්වැඩියාවක් අවශ්‍ය නොවුණත් මෙය කාර්මිකයාට ගෙවිය යුතුය.',
+  'ඔබගේ SOS ඉල්ලීම ඔබේ ස්ථානයේ සිට සෙවුම් කලාපය (km 1 න් ආරම්භ වී, පුළුල් කරන සෑම වාරයකටම km 1 බැගින් වැඩි වේ) ඇතුළත ලියාපදිංචි ගරාජ සහ කාර්මිකයන් වෙත දැනුම් දෙයි.',
+  'පැමිණීමේ ගාස්තුව: OnGarage අනුමත රු. 500 ක්. කලාපය පුළුල් වන සෑම km 1 කටම රු. 250 ක් එකතු වේ. අලුත්වැඩියාවක් අවශ්‍ය නොවුණත් මෙය කාර්මිකයාට ගෙවිය යුතුය.',
   'අලුත්වැඩියා ගාස්තුව: කාර්මිකයා ඇස්තමේන්තුව ඉදිරිපත් කර ඔබ අනුමත කළ පසු පමණක් අලුත්වැඩියාව ආරම්භ වේ. අනුමැතියෙන් ඔබ්බට වැඩ හෝ ගාස්තු කෙරෙන්නේ නැත.',
   'කාර්මිකයා පැමිණි බව ඔහුගේ app එකෙන් තහවුරු කරයි. එතැන් සිට මෙම SOS රැකියාව ඔහුට සම්බන්ධ වේ.',
   'රැකියාව අවසන් වන්නේ ඔබගේ ඉලක්කම් 6 ක කේතය (හෝ QR) කාර්මිකයා ඇතුළත් කළ පසුවය. කේතය වෙනත් අයට නොදෙන්න.',
@@ -382,7 +395,7 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
       kind: 'technician' as const,
       reviews: t.reviews,
       verified: true,
-      facts: [t.skill, `රැකියා ${t.jobs} ක් සම්පූර්ණ කර ඇත · අත්දැකීම් වසර ${t.years}`, `භාෂා: ${t.languages} · සාමාන්‍යයෙන් මිනි. ${t.responseMin} කින් පිළිතුරු දෙයි`],
+      facts: [t.skill, `රැකියා ${t.jobs} · අත්දැකීම් වසර ${t.years}`],
     })).sort((a, b) => a.distanceKm - b.distanceKm);
     return { nearbyGarages: garages, nearbyTechnicians: technicians };
   }, [location.coords]);
@@ -491,7 +504,8 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
       setPartState('requested');
       setPartPopup(true);
     }, 9000);
-    const loop = Animated.loop(Animated.timing(waitAnim, { toValue: 1, duration: 1800, easing: Easing.linear, useNativeDriver: true }), { iterations: -1 });
+    // JS-driven, not native: the scanner's parts are rebuilt when the part popup appears, and a native-driven loop stopped following them.
+    const loop = Animated.loop(Animated.timing(waitAnim, { toValue: 1, duration: 1800, easing: Easing.linear, useNativeDriver: false }), { iterations: -1 });
     loop.start();
     return () => {
       loop.stop();
@@ -730,7 +744,7 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
     );
   };
 
-  const mechanicCard = (lines: { icon: string; text: string }[]) => (
+  const mechanicCard = (lines: { icon: string; text: string; value?: string }[]) => (
     <View style={styles.card}>
       <View style={styles.rowCenter}>
         <View style={styles.avatar}>
@@ -750,7 +764,7 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
       {lines.map((l) => (
         <View key={l.text} style={styles.detailRow}>
           <Text style={styles.detailIcon}>{l.icon}</Text>
-          <Text style={styles.detailText}>{l.text}</Text>
+          {l.value ? <FactValue label={l.text} value={l.value} /> : <Text style={styles.detailText}>{l.text}</Text>}
         </View>
       ))}
     </View>
@@ -813,13 +827,13 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
         </View>
         <View style={styles.flex1}>
           <Text style={styles.cardTitle}>ළඟම ගරාජය / කාර්මිකයා සොයමින්...</Text>
-          <Text style={styles.cardSub}>කි.මී. {radius} ක් ඇතුළත සොයා ඔබව සම්බන්ධ කරගනිමින් පවතී</Text>
+          <Text style={styles.cardSub}>km {radius} ක් ඇතුළත සොයා ඔබව සම්බන්ධ කරගනිමින් පවතී</Text>
         </View>
       </View>
 
       <View style={styles.statsRow}>
         <View style={styles.statBox}>
-          <Text style={styles.statValue}>කි.මී. {radius}</Text>
+          <Text style={styles.statValue}>km {radius}</Text>
           <Text style={styles.statLabel}>සෙවුම් කලාපය</Text>
         </View>
         <View style={styles.statBox}>
@@ -847,7 +861,7 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
             <View style={styles.flex1}>
               <Text style={styles.cardTitle}>{w.name}</Text>
               <Text style={styles.cardSub}>
-                කි.මී. {w.distanceKm} · මිනි. {w.eta}
+                {w.distanceKm} km · {w.eta} min
               </Text>
             </View>
             <View style={[styles.statusPill, responded ? styles.statusPillOn : styles.statusPillOff]}>
@@ -869,7 +883,7 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
           ...w,
           kind: 'technician',
           verified: true,
-          facts: [w.skill, `රැකියා ${w.jobs} ක් සම්පූර්ණ කර ඇත · අත්දැකීම් වසර ${w.years}`, w.van],
+          facts: [w.skill, `රැකියා ${w.jobs} · අත්දැකීම් වසර ${w.years}`, w.van],
         };
 
   const profileBody = (c: Candidate) => {
@@ -886,7 +900,7 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
               {c.name}
             </Text>
             <Text style={styles.cardSub}>
-              {c.kind === 'garage' ? 'ගරාජය' : 'කාර්මිකයා'} · 📍 කි.මී. {c.distanceKm} · ⏱️ මිනි. ~{c.eta}
+              {c.kind === 'garage' ? 'ගරාජය' : 'කාර්මිකයා'} · 📍 {c.distanceKm} km · ⏱️ ~{c.eta} min
             </Text>
           </View>
           <View style={styles.ratingPill}>
@@ -905,11 +919,15 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
             <Text style={[styles.statusPillText, { color: Colors.textMuted }]}>පැමිණීමේ ගාස්තුව {money(calloutFeeFor(c.distanceKm))}</Text>
           </View>
         </View>
-        {c.facts.map((f) => (
-          <Text key={f} style={styles.cardSub}>
-            • {f}
-          </Text>
-        ))}
+        {c.facts.length > 0 && (
+          <View style={styles.factList}>
+            {c.facts.map((f) => (
+              <Text key={f} style={styles.factText}>
+                {f}
+              </Text>
+            ))}
+          </View>
+        )}
       </>
     );
   };
@@ -934,10 +952,9 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
     <>
       <View style={[styles.card, styles.centerCard]}>
         <GlassIcon emoji="📍" />
-        <Text style={styles.heroTitle}>කි.මී. {radius} ක් ඇතුළත පිළිතුරක් නැත</Text>
-        <Text style={styles.heroText}>
-          මෙම කලාපය තුළ කිසිදු ගරාජයක් හෝ කාර්මිකයෙක් ප්‍රතිචාර දැක්වූයේ නැත. ඔබට ළඟම ඇති OnGarage හි ලියාපදිංචි ගරාජ සහ කාර්මිකයන් පහත ඇත — ඔවුන්ගේ ප්‍රොෆයිල් බලා කැමති කෙනෙකු සම්බන්ධ කරගන්න.
-        </Text>
+        <Text style={styles.heroTitle}>km {radius} ක් ඇතුළත පිළිතුරක් නැත</Text>
+        <Text style={styles.heroText}>මෙම කලාපයේ කිසිවෙක් ප්‍රතිචාර දැක්වූයේ නැත.</Text>
+        <Text style={styles.heroNote}>ළඟම OnGarage ලියාපදිංචි ගරාජ සහ කාර්මිකයන් පහතින්. ප්‍රොෆයිල් බලා කැමති කෙනෙකු සම්බන්ධ කරගන්න.</Text>
       </View>
       <Text style={styles.sectionLabel}>ළඟම ගරාජ</Text>
       {nearbyGarages.map(profileCard)}
@@ -970,7 +987,7 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
         </View>
         <View style={styles.detailRow}>
           <Text style={styles.detailIcon}>💰</Text>
-          <Text style={styles.detailText}>ඇස්තමේන්තුගත ගාස්තුව: {money(job.bid)}</Text>
+          <FactValue label="ඇස්තමේන්තුගත ගාස්තුව" value={money(job.bid)} />
         </View>
         <View style={[styles.statusPill, styles.statusPillOn, styles.selfCenter]}>
           <Text style={[styles.statusPillText, { color: Colors.success }]}>🛣️ කාර්මිකයා පැමිණෙමින් සිටී</Text>
@@ -995,7 +1012,17 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
       <View style={styles.card}>
         <View style={styles.detailRow}>
           <Text style={styles.detailIcon}>{techConfirmed ? '✅' : '⏳'}</Text>
-          <Text style={styles.detailText}>{techConfirmed ? 'කාර්මිකයාගේ app එකෙන් පැමිණීම තහවුරු විය' : 'කාර්මිකයාගේ app එකෙන් තහවුරු කරන තෙක් රැඳී සිටී…'}</Text>
+          {techConfirmed ? (
+            <View style={styles.flex1}>
+              <Text style={styles.detailTitle}>පැමිණීම තහවුරු විය</Text>
+              <Text style={styles.detailSub}>කාර්මිකයාගේ app එකෙන්</Text>
+            </View>
+          ) : (
+            <View style={styles.flex1}>
+              <Text style={styles.detailTitle}>තහවුරු කරන තෙක් රැඳී සිටී…</Text>
+              <Text style={styles.detailSub}>කාර්මිකයාගේ app එකෙන්</Text>
+            </View>
+          )}
         </View>
         <View style={styles.detailRow}>
           <Text style={styles.detailIcon}>{techConfirmed ? '🔗' : '⏳'}</Text>
@@ -1004,7 +1031,7 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
       </View>
       {mechanicCard([
         { icon: '📞', text: job.phone },
-        { icon: '💰', text: `එකඟ වූ ගාස්තුව: ${money(job.bid)}` },
+        { icon: '💰', text: 'එකඟ වූ ගාස්තුව', value: money(job.bid) },
       ])}
     </>
   );
@@ -1085,11 +1112,14 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
             <View style={styles.flex1}>
               <Text style={styles.cardTitle}>කොටස පසුව මාරු කරගනී</Text>
               <Text style={styles.cardSub}>
-                {partName} · ~{money(partPrice)} · වාහනයට අවශ්‍යයි
+                {partName} · ~{money(partPrice)}
               </Text>
             </View>
           </View>
-          <Text style={styles.cardSub}>අලුත්වැඩියාව ඉදිරියට සිදු කරගෙන යයි. මෙම කොටස බිල්පතට එකතු නොවේ.{`\n\n`}Ongarage සේවා වාර්තාවේ එය update වෙයි.</Text>
+          <View style={styles.attention}>
+            <Text style={styles.attentionText}>⚠️ මෙම කොටස තවමත් වාහනයට අවශ්‍යයි</Text>
+          </View>
+          <Text style={styles.cardSub}>අලුත්වැඩියාව ඉදිරියට සිදු කරගෙන යයි. මෙම කොටස බිල්පතට එකතු නොවේ.</Text>
           <ActionButton label="OnMart වෙත යන්න" icon="🛍️" variant="ghost" onPress={() => onOpenMart?.(partName)} />
         </View>
       );
@@ -1182,12 +1212,14 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
     // Soft rings pulse out of a glowing core, two dots orbit it and the wrench rocks: the "work is happening" scene.
     const rock = spinAnim.interpolate({ inputRange: [0, 0.25, 0.5, 0.75, 1], outputRange: ['-18deg', '18deg', '-18deg', '18deg', '-18deg'] });
     const breathe = spinAnim.interpolate({ inputRange: [0, 0.5, 1], outputRange: [1, 1.08, 1] });
-    // Two highlights half a pass apart, so the bar is always moving and never empties between passes.
-    const from = -waitBarW * 0.4;
-    const to = waitBarW;
-    const mid = (from + to) / 2;
-    const slide = waitAnim.interpolate({ inputRange: [0, 1], outputRange: [from, to] });
-    const slideB = waitAnim.interpolate({ inputRange: [0, 0.5, 0.5, 1], outputRange: [mid, to, from, mid] });
+    // KITT's scanner: one red light sweeps to the end and back with eased turns, and a fading trail follows it.
+    // Each trail light is the same sweep, a little behind the one before it (cosine phase, so the ends ease in and out).
+    const segW = waitBarW * 0.16;
+    const sweepX = (lag: number) =>
+      waitAnim.interpolate({
+        inputRange: KITT_T,
+        outputRange: KITT_T.map((t) => ((1 - Math.cos(2 * Math.PI * (t - lag))) / 2) * (waitBarW - segW)),
+      });
     return (
       <>
         <View style={styles.hero}>
@@ -1208,16 +1240,23 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
           </Text>
         </View>
         <View style={styles.card}>
-          <Text style={styles.waitText}>රැඳී සිටින්න… වැඩේ අවසන් වූ විට අපි ඔබට දැනුම් දෙන්නෙමු</Text>
+          <View style={styles.waitHead}>
+            <Text style={styles.waitTitle}>රැඳී සිටින්න…</Text>
+            <Text style={styles.waitSub}>වැඩේ අවසන් වූ විට අපි ඔබට දැනුම් දෙන්නෙමු</Text>
+          </View>
           <View style={styles.waitTrack} onLayout={(e) => setWaitBarW(e.nativeEvent.layout.width)}>
-            <Animated.View style={[styles.waitFill, { width: waitBarW * 0.4, transform: [{ translateX: slide }] }]} />
-            <Animated.View style={[styles.waitFill, styles.waitFillB, { width: waitBarW * 0.4, transform: [{ translateX: slideB }] }]} />
+            {KITT_LAGS.map((lag, i) => (
+              <Animated.View
+                key={i}
+                style={[styles.kittLight, i === 0 && styles.kittHead, { width: segW, opacity: 1 - i * 0.22, transform: [{ translateX: sweepX(lag) }] }]}
+              />
+            ))}
           </View>
         </View>
 
         {renderPartCard()}
 
-        <Text style={styles.sectionLabel}>ඔබේ {profileOf(job).kind === 'garage' ? 'ගරාජය' : 'කාර්මිකයා'}</Text>
+        <Text style={styles.sectionLabel}>{profileOf(job).kind === 'garage' ? 'ඔබේ ගරාජයේ විස්තර' : 'ඔබේ කාර්මිකයාගේ විස්තර'}</Text>
         <View style={styles.card}>
           {profileBody(profileOf(job))}
           <View style={styles.divider} />
@@ -1275,20 +1314,9 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
       <View style={styles.card}>
         <Text style={styles.label}>බිල්පත් සාරාංශය</Text>
         <TxnTag kind="SOS" source={`sos-${closeCode}`} />
-        <View style={styles.rowBetween}>
-          <Text style={styles.detailText}>අලුත්වැඩියා ගාස්තුව</Text>
-          <Text style={styles.detailText}>{money(job.bid)}</Text>
-        </View>
-        <View style={styles.rowBetween}>
-          <Text style={styles.detailText}>කාර්මිකයාගේ පැමිණීමේ ගාස්තුව</Text>
-          <Text style={styles.detailText}>{money(surcharge)}</Text>
-        </View>
-        {partCharge > 0 && (
-          <View style={styles.rowBetween}>
-            <Text style={styles.detailText}>OnMart කොටස ({partName}) · {partBill.shop}</Text>
-            <Text style={styles.detailText}>{money(partCharge)}</Text>
-          </View>
-        )}
+        <FactValue label="අලුත්වැඩියා ගාස්තුව" value={money(job.bid)} />
+        <FactValue label="කාර්මිකයාගේ පැමිණීමේ ගාස්තුව" value={money(surcharge)} />
+        {partCharge > 0 && <FactValue label={`OnMart කොටස (${partName}) · ${partBill.shop}`} value={money(partCharge)} />}
         <View style={styles.divider} />
         <View style={styles.rowBetween}>
           <Text style={styles.cardTitle}>මුළු එකතුව</Text>
@@ -1409,9 +1437,10 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
             </View>
             <View style={styles.flex1}>
               <Text style={styles.stepPillTitle} numberOfLines={1}>Ongarage මාර්ග ආධාර (SOS)</Text>
-              <Text style={styles.stepPillSub} numberOfLines={1}>
-                පියවර {stepIndex + 1}/{STEPS.length} · {stepLabel}
-              </Text>
+              <View style={styles.stepPillRow}>
+                <Text style={styles.stepPillCount}>පියවර {stepIndex + 1}/{STEPS.length}</Text>
+                <Text style={styles.stepPillSub} numberOfLines={1}>{stepLabel}</Text>
+              </View>
             </View>
           </View>
         </View>
@@ -1429,13 +1458,13 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
         {baseStep === 'tracking' && (
           <View style={styles.etaBar} accessibilityLabel="Distance and time to arrive">
             <View style={styles.etaItem}>
-              <Text style={styles.etaLabel}>ඉතිරි දුර</Text>
+              <Text style={styles.etaLabel}>ඉතිරි වී ඇති දුර</Text>
               <Text style={styles.etaValue}>{remainingKm.toFixed(2)} km</Text>
             </View>
             <View style={styles.etaDivider} />
             <View style={styles.etaItem}>
-              <Text style={styles.etaLabel}>Breakdown ස්ථානයට පැමිණීමට</Text>
-              <Text style={styles.etaValueSinhala}>මිනි. {Math.max(1, etaMinutes(remainingKm) - 2)}</Text>
+              <Text style={styles.etaLabel}>Breakdown ස්ථානයට තව</Text>
+              <Text style={styles.etaValue}>{Math.max(1, etaMinutes(remainingKm) - 2)} min</Text>
             </View>
           </View>
         )}
@@ -1573,7 +1602,7 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
           }
         >
           <ActionButton label="අවලංගු" variant="ghost" compact onPress={() => setDeferAsk(false)} />
-          <ActionButton label={SAFETY_PARTS.has(partName) ? 'මම දනිමි, පසුවට' : 'ඔව්, පසුව මාරු කරන්නම්'} variant="primary" compact onPress={deferPart} />
+          <ActionButton label={SAFETY_PARTS.has(partName) ? 'මම දනිමි, පසුවට' : 'ඔව්,\nපසුව මාරු\nකරන්නම්'} variant="primary" compact onPress={deferPart} />
         </ModalCard>
       )}
 
@@ -1582,7 +1611,7 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
           icon="⚠️"
           tone="danger"
           title="SOS ඉල්ලීම තහවුරු කරන්න"
-          body={`\nඔබගේ ස්ථානයේ සිට කි.මී. ${INITIAL_RADIUS_KM} ක් ඇතුළත ලියාපදිංචි ගරාජ වෙත දැනුම් දෙනු ලැබේ.\nඔබ වෙත පැමිණීමේ ගමන් වියදම වෙනුවෙන් OnGarage අනුමත ${money(BASE_FEE)} ක පැමිණීමේ ගාස්තුවක් කාර්මිකයාට ගෙවිය යුතුය.`}
+          body={`\nඔබගේ ස්ථානයේ සිට km ${INITIAL_RADIUS_KM} ක් ඇතුළත ලියාපදිංචි ගරාජ වෙත දැනුම් දෙනු ලැබේ.\nඔබ වෙත පැමිණීමේ ගමන් වියදම වෙනුවෙන් OnGarage අනුමත ${money(BASE_FEE)} ක පැමිණීමේ ගාස්තුවක් කාර්මිකයාට ගෙවිය යුතුය.`}
           bodySuffix="(අලුත්වැඩියාවක් අවශ්‍ය නොවුණත් මෙය අදාළ වේ.)"
         >
           <ActionButton label="අවලංගු" variant="ghost" compact onPress={() => setStep('confirm')} />
@@ -1596,7 +1625,7 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
           tone="primary"
           title="සෙවුම් කලාපය පුළුල් කරමින්"
           highlight={`${money(SURCHARGE_STEP)} ක් එකතු වේ.`}
-          body={`\nමෙම කලාපය තුළ තවම ගරාජයක් හෝ කාර්මිකයෙක් හමු වී නැත. සෙවුම් කලාපය කි.මී. ${radius + RADIUS_STEP_KM} දක්වා වැඩි කෙරේ.\nවැඩි දුරක් පැමිනීමට සිදුවීම හේතුවෙන් කාර්මිකයාගේ පැමිණීමේ ගාස්තුවට\n${money(SURCHARGE_STEP)} ක් එකතු වේ.`}
+          body={`\nමෙම කලාපය තුළ තවම ගරාජයක් හෝ කාර්මිකයෙක් හමු වී නැත. සෙවුම් කලාපය km ${radius + RADIUS_STEP_KM} දක්වා වැඩි කෙරේ.\nවැඩි දුරක් පැමිනීමට සිදුවීම හේතුවෙන් කාර්මිකයාගේ පැමිණීමේ ගාස්තුවට\n${money(SURCHARGE_STEP)} ක් එකතු වේ.`}
         >
           <ActionButton label="අවලංගු" variant="ghost" compact onPress={() => setShowCancel(true)} />
           <ActionButton
@@ -1693,8 +1722,11 @@ const styles = themedStyles(() => StyleSheet.create({
   roundBtnText: { fontSize: 16, fontWeight: '700', color: Colors.textMain },
   stepPill: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, height: 52, paddingLeft: 6, paddingRight: 16, borderRadius: 26, backgroundColor: Colors.bgCard, ...FLOAT_SHADOW },
   stepPillIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: getThemeMode() === 'dark' ? 'rgba(239, 68, 68, 0.18)' : '#fee2e2', justifyContent: 'center', alignItems: 'center' },
-  stepPillTitle: { fontSize: 14, fontFamily: FONTS.titleBold, color: Colors.textMain },
-  stepPillSub: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: '#dc2626' },
+  stepPillTitle: { fontSize: 13.5, fontFamily: FONTS.titleBold, color: Colors.textMain },
+  // The title sits on top; under it the step count as a small tinted tag, then the step's name in a calmer weight.
+  stepPillRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 },
+  stepPillCount: { fontSize: 10.5, fontFamily: FONTS.bodyBold, color: '#dc2626', paddingHorizontal: 7, paddingVertical: 1, borderRadius: 8, overflow: 'hidden', backgroundColor: getThemeMode() === 'dark' ? 'rgba(239, 68, 68, 0.18)' : '#fee2e2' },
+  stepPillSub: { flexShrink: 1, fontSize: 12, fontFamily: FONTS.bodyRegular, color: Colors.textSoft },
   // The step lives in a rounded sheet that overlaps the map, like the location picker's card.
   sheet: { flex: 1, marginTop: -24, backgroundColor: pageBg(), borderTopLeftRadius: 28, borderTopRightRadius: 28, overflow: 'hidden', shadowColor: '#3c4043', shadowOffset: { width: 0, height: -2 }, shadowOpacity: 0.14, shadowRadius: 8, elevation: 8 },
   handle: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: Colors.subtleBorder, marginTop: 10 },
@@ -1708,6 +1740,9 @@ const styles = themedStyles(() => StyleSheet.create({
   linkText: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
   cardTitle: { fontSize: 15, fontFamily: FONTS.titleBold, color: Colors.textMain },
   cardSub: { fontSize: 12.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 2 },
+  // The facts under a candidate: short lines, one per fact, set apart from the header above them.
+  factList: { gap: 4, paddingTop: 10, marginTop: 10, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: Colors.borderColor },
+  factText: { fontSize: 12.5, fontFamily: FONTS.bodyRegular, color: Colors.textMain, lineHeight: 18 },
   // Same heading style as the Home screen's sections.
   sectionLabel: { fontSize: 14, fontFamily: FONTS.bodyBold, color: Colors.primary, letterSpacing: 0.2, marginTop: 6 },
   hint: { fontSize: 12, fontFamily: FONTS.bodyMedium, color: Colors.textMuted, textAlign: 'center' },
@@ -1805,8 +1840,9 @@ const styles = themedStyles(() => StyleSheet.create({
   partCard: { gap: 10, borderColor: Colors.primary, borderWidth: 1 },
   waitText: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain, textAlign: 'center', marginBottom: 10 },
   waitTrack: { height: 8, borderRadius: 4, overflow: 'hidden', backgroundColor: Colors.subtleBorder },
-  waitFill: { position: 'absolute', left: 0, top: 0, height: 8, borderRadius: 4, backgroundColor: '#10b981' },
-  waitFillB: { backgroundColor: '#38bdf8' },
+  // KITT's light: red, with a glow on the head and a fading trail behind it.
+  kittLight: { position: 'absolute', left: 0, top: 0, height: 8, borderRadius: 4, backgroundColor: '#ff2a2a' },
+  kittHead: { backgroundColor: '#ff4d4d', shadowColor: '#ff2a2a', shadowOpacity: 0.9, shadowRadius: 6, shadowOffset: { width: 0, height: 0 }, elevation: 4 },
   emergencyIcon: { fontSize: 22, marginRight: 10 },
   emergencyNumber: { paddingHorizontal: 12, paddingVertical: 5, borderRadius: 8, backgroundColor: '#dc2626' },
   emergencyNumberText: { fontSize: 14, fontFamily: FONTS.titleBold, color: '#ffffff', letterSpacing: 0.5 },
@@ -1824,8 +1860,17 @@ const styles = themedStyles(() => StyleSheet.create({
   avatarEmojiSmall: { fontSize: 17 },
   avatarEmojiLarge: { fontSize: 36 },
   detailRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  factRow: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  factLabel: { flexShrink: 1, fontSize: 12.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
+  factValue: { fontSize: 14, fontFamily: FONTS.titleBold, color: Colors.textMain },
   detailIcon: { fontSize: 14, width: 20, textAlign: 'center' },
   detailText: { fontSize: 13.5, fontFamily: FONTS.bodyRegular, color: Colors.textMain },
+  // A status row: the state in bold, where it came from in a smaller muted line under it.
+  detailTitle: { fontSize: 13.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
+  waitHead: { alignItems: 'center', gap: 2, marginBottom: 14 },
+  waitTitle: { fontSize: 14, fontFamily: FONTS.bodySemiBold, color: Colors.textMain, textAlign: 'center' },
+  waitSub: { fontSize: 12, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, textAlign: 'center', lineHeight: 18 },
+  detailSub: { fontSize: 11.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 1 },
   detailStrong: { fontSize: 14, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
 
   hero: { alignItems: 'center', gap: 6, paddingVertical: 10 },
@@ -1835,14 +1880,18 @@ const styles = themedStyles(() => StyleSheet.create({
   heroCircleIcon: { fontSize: 36, color: '#fff', fontWeight: '900' },
   heroTitle: { fontSize: 20, lineHeight: 28, fontFamily: FONTS.titleBold, color: Colors.textMain, textAlign: 'center' },
   heroText: { fontSize: 14, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, textAlign: 'center', lineHeight: 21 },
+  heroNote: { fontSize: 12, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, textAlign: 'center', lineHeight: 18, marginTop: 6 },
 
   etaBar: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 6, marginTop: 6, marginBottom: 4, paddingVertical: 12, borderRadius: 12, borderWidth: 1, borderColor: outline(), backgroundColor: Colors.bgCard, ...elevation1() },
   etaRow: { flexDirection: 'row', alignItems: 'center' },
-  etaItem: { flex: 1, alignItems: 'center' },
+  etaItem: { flex: 1, alignItems: 'center', justifyContent: 'flex-end' },
   etaValue: { fontSize: 18, fontFamily: FONTS.titleBold, color: Colors.textMain },
   // The Sinhala minutes draw larger than the Latin km at the same size, so they get a smaller size to look the same.
   etaValueSinhala: { fontSize: 14, fontFamily: FONTS.titleBold, color: Colors.textMain },
-  etaLabel: { fontSize: 11, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 2, textAlign: 'center' },
+  attention: { padding: 10, borderRadius: 12, backgroundColor: getThemeMode() === 'dark' ? 'rgba(245, 158, 11, 0.12)' : '#fef7e0' },
+  attentionText: { fontSize: 13, fontFamily: FONTS.bodyBold, color: Colors.warning },
+  // A fixed two-line box, so the values of both columns sit on the same line whatever the label's length.
+  etaLabel: { fontSize: 11, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 2, textAlign: 'center', minHeight: 28, textAlignVertical: 'bottom' },
   etaDivider: { width: 1, height: 34, backgroundColor: Colors.borderColor },
   callBtn: { width: 42, height: 42, borderRadius: 21, backgroundColor: Colors.success, justifyContent: 'center', alignItems: 'center' },
   callBtnText: { fontSize: 18 },

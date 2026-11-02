@@ -107,7 +107,7 @@ export const OfferSheet: React.FC<{ request: CustomerRequest | null; onClose: ()
     <Sheet
       visible={!!request}
       title="ගනුදෙනුකරුට පිළිතුරු දෙන්න"
-      subtitle={`${buyerLabel(r)} · කි.මී. ${r.distanceKm}`}
+      subtitle={`${buyerLabel(r)} · km ${r.distanceKm}`}
       onClose={onClose}
       footer={<ActionButton label={anyHave && total > 0 ? `පිළිතුර යවන්න · ${money(total)}` : 'පිළිතුර යවන්න'} icon="📨" variant="primary" onPress={submit} />}
     >

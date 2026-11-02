@@ -221,15 +221,20 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, onRepu
               {bid.level ? `${LEVELS.find((l) => l.id === bid.level)?.icon} ` : ''}
               {bid.garageName}
             </Text>
-            <Text style={styles.cardSub} numberOfLines={1}>
-              <Text style={styles.star}>★ {bid.rating.toFixed(1)}</Text> ({bid.reviews}) • කි.මී. {bid.distanceKm} • මාස {bid.warrantyMonths} වගකීම • පැය {bid.estHours}
-            </Text>
+            <View style={styles.metaRow}>
+              <Text style={styles.metaItem}>
+                <Text style={styles.star}>★ {bid.rating.toFixed(1)}</Text> ({bid.reviews})
+              </Text>
+              <Text style={styles.metaItem}>📍 {bid.distanceKm} km</Text>
+              <Text style={styles.metaItem}>🛡️ මාස {bid.warrantyMonths}</Text>
+              <Text style={styles.metaItem}>⏱️ පැය {bid.estHours}</Text>
+            </View>
             <GarageHistoryTag garage={garage} />
             {!!bid.travelFee && (
               <View style={styles.travelNote} accessibilityLabel="Bid includes travel fee">
                 <Text style={styles.travelNoteTitle}>🚗 දුර ගමන් ගාස්තුව ඇතුළු ලංසුවකි</Text>
                 <Text style={styles.travelNoteText}>
-                  ගරාජය ඔබෙන් කි.මී. {bid.distanceKm} ක් ඈතයි · රැකියාව {money(bidWork(bid))} + ගමන් වන්දිය {money(bid.travelFee)}
+                  ගරාජය ඔබෙන් km {bid.distanceKm} ක් ඈතයි · රැකියාව {money(bidWork(bid))} + ගමන් වන්දිය {money(bid.travelFee)}
                 </Text>
               </View>
             )}
@@ -263,7 +268,7 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, onRepu
             {bid.garageName}
           </Text>
           <Text style={styles.bidRowSub} numberOfLines={1}>
-            ★ {bid.rating.toFixed(1)} ({bid.reviews}) · කි.මී. {bid.distanceKm} · මාස {bid.warrantyMonths}{isLowest && !job.acceptedBidId ? ' · 💰 අඩුම' : ''}
+            ★ {bid.rating.toFixed(1)} ({bid.reviews}) · km {bid.distanceKm} · මාස {bid.warrantyMonths}{isLowest && !job.acceptedBidId ? ' · 💰 අඩුම' : ''}
           </Text>
         </View>
         <Text style={styles.bidRowPrice}>{money(bid.price)}</Text>
@@ -446,7 +451,7 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, onRepu
           <View style={styles.pinCardRow}>
             <Text style={styles.pinCardPrice}>{money(pinBid.bid.price)}</Text>
             <Text style={styles.pinCardMeta}>
-              ★ {pinBid.bid.rating.toFixed(1)} ({pinBid.bid.reviews}) · කි.මී. {pinBid.bid.distanceKm}
+              ★ {pinBid.bid.rating.toFixed(1)} ({pinBid.bid.reviews}) · km {pinBid.bid.distanceKm}
             </Text>
           </View>
           <Text style={styles.pinCardMeta}>
@@ -709,6 +714,8 @@ const styles = themedStyles(() => StyleSheet.create({
   travelNoteTitle: { fontSize: 11.5, fontFamily: FONTS.bodyBold, color: Colors.warning },
   travelNoteText: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMain, lineHeight: 15 },
   cardSub: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 1 },
+  metaRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: 10, rowGap: 2, marginTop: 3 },
+  metaItem: { fontSize: 11.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
   desc: { fontSize: 11.5, fontFamily: FONTS.bodyRegular, color: Colors.textSoft, marginTop: 4 },
   jobHead: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   badge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 14, borderWidth: 1 },

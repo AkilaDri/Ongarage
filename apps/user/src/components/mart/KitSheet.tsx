@@ -62,7 +62,7 @@ export const KitSheet: React.FC<{ kit: ServiceKit | null; vehicleId: string; onC
               {o.shop.name}
             </Text>
             <Text style={styles.sub}>
-              ★ {o.shop.rating.toFixed(1)} · {o.shop.distanceKm < 10 ? o.shop.distanceKm.toFixed(1) : Math.round(o.shop.distanceKm)} කි.මී. · {o.have}/{o.need} තොගයේ
+              ★ {o.shop.rating.toFixed(1)} · {o.shop.distanceKm < 10 ? o.shop.distanceKm.toFixed(1) : Math.round(o.shop.distanceKm)} km · {o.have}/{o.need} තොගයේ
               {o.missing.length ? ` · නැත: ${o.missing.join(', ')}` : ''}
             </Text>
           </View>

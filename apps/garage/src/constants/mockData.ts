@@ -333,13 +333,13 @@ export const DIRECT_POOL: DirectSeed[] = [
     photos: [JOB_PHOTOS[0], JOB_PHOTOS[2]], address: 'ගාල්ල කොටුව', km: 1.6, bearing: 230, requestedMinAgo: 35, day: 0, hour: 16,
   },
   {
-    categoryId: '7', service: 'Brake Pads', description: 'ඉදිරිපස බ්‍රේක් පෑඩ් ගෙවිලා. සේවා පොතේ කියලා තියෙන්නේ කි.මී. 40,000 දී මාරු කරන්න.',
+    categoryId: '7', service: 'Brake Pads', description: 'ඉදිරිපස බ්‍රේක් පෑඩ් ගෙවිලා. සේවා පොතේ කියලා තියෙන්නේ km 40,000 දී මාරු කරන්න.',
     customer: c('මල්ෂා කරුණාරත්න', '0779876512'), vehicle: v('Wagon R', 'CAP-2045', 'Hatchback'), sparePart: 'OEM', doorstep: false,
     voiceNotes: [voice('vn5', 15)], address: 'කරාපිටිය', km: 2.9, bearing: 80, requestedMinAgo: 0, day: 2, hour: 11,
   },
   {
     // A routine service: the garage's handover form asks for what was done, the mileage and the next service.
-    categoryId: '14', service: 'Oil Change', description: 'කි.මී. 5,000ක් ධාවනය කර ඇත. එන්ජින් තෙල් සහ පෙරහන මාරු කරන්න.',
+    categoryId: '14', service: 'Oil Change', description: 'km 5,000ක් ධාවනය කර ඇත. එන්ජින් තෙල් සහ පෙරහන මාරු කරන්න.',
     customer: c('චමින්ද ප්‍රනාන්දු', '0779876516'), vehicle: v('Aqua', 'CBA-7712', 'Hatchback'), sparePart: 'OEM', doorstep: false,
     address: 'උණවටුන', km: 1.8, bearing: 150, requestedMinAgo: 0, day: 2, hour: 9,
   },

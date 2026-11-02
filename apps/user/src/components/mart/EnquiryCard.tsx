@@ -94,7 +94,7 @@ export const EnquiryCard: React.FC<{
                   {o.shop.name}
                 </Text>
                 <Text style={styles.sub}>
-                  ★ {o.shop.rating.toFixed(1)} · {o.shop.distanceKm < 10 ? o.shop.distanceKm.toFixed(1) : Math.round(o.shop.distanceKm)} කි.මී.
+                  ★ {o.shop.rating.toFixed(1)} · {o.shop.distanceKm < 10 ? o.shop.distanceKm.toFixed(1) : Math.round(o.shop.distanceKm)} km
                 </Text>
               </View>
               <View style={styles.priceBox}>

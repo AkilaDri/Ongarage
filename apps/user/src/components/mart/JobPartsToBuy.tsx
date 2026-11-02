@@ -70,7 +70,7 @@ export const JobPartsToBuy: React.FC<{ onBuy?: (item: JobPartItem) => void; onOp
                 return (
                   <Text key={id} style={styles.shop} numberOfLines={1}>
                     🤝 {shop?.name ?? id}
-                    {shop ? ` · ${shop.distanceKm < 10 ? shop.distanceKm.toFixed(1) : Math.round(shop.distanceKm)} කි.මී.` : ''}
+                    {shop ? ` · ${shop.distanceKm < 10 ? shop.distanceKm.toFixed(1) : Math.round(shop.distanceKm)} km` : ''}
                     {shop?.liveStock ? (a ? ` · ✓ ${money(a.price)}` : ' · තොගයේ නැත') : ''}
                   </Text>
                 );

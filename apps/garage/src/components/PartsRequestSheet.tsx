@@ -236,7 +236,7 @@ export const PartsRequestSheet: React.FC<{ booking: Booking | null; onClose: () 
       <View style={styles.chips}>
         {RADII.map((r) => (
           <Pressable key={r} style={[styles.chip, radiusKm === r && styles.chipOn]} onPress={() => setRadiusKm(r)}>
-            <Text style={[styles.chipText, radiusKm === r && styles.chipTextOn]}>කි.මී. {r}</Text>
+            <Text style={[styles.chipText, radiusKm === r && styles.chipTextOn]}>km {r}</Text>
           </Pressable>
         ))}
       </View>

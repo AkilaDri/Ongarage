@@ -166,7 +166,7 @@ export const OwnerDetailView: React.FC<{
                       <Text style={styles.title}>{b.garageName}</Text>
                       {!!b.level && <LevelBadge level={b.level} compact />}
                       <Text style={styles.sub}>
-                        ★ {b.rating.toFixed(1)} ({b.reviews}) · කි.මී. {b.distanceKm} · {ago(now - b.submittedAt)}
+                        ★ {b.rating.toFixed(1)} ({b.reviews}) · km {b.distanceKm} · {ago(now - b.submittedAt)}
                       </Text>
                     </View>
                     <Text style={styles.price}>{money(b.price)}</Text>

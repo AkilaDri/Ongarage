@@ -40,7 +40,7 @@ export const ShopCard: React.FC<{
               ★ {shop.rating.toFixed(1)} <Text style={styles.muted}>({shop.ratingCount})</Text>
             </Text>
             <Text style={[styles.open, !shop.isOpen && styles.closed]}>{shop.isOpen ? '● විවෘතයි' : '● වසා ඇත'}</Text>
-            <Text style={styles.muted}>📍 {shop.distanceKm < 10 ? shop.distanceKm.toFixed(1) : Math.round(shop.distanceKm)} කි.මී.</Text>
+            <Text style={styles.muted}>📍 {shop.distanceKm < 10 ? shop.distanceKm.toFixed(1) : Math.round(shop.distanceKm)} km</Text>
           </View>
           <Text style={styles.sub} numberOfLines={1}>
             {shop.district} · ⏱ මිනි. {shop.stats.avgResponseMin} · සේවාව {shopServiceScore(shop.stats).toFixed(1)}

@@ -48,7 +48,7 @@ export const MOCK_GARAGES: Garage[] = [
     level: 'premier',
     dimensions: { quality: 4.9, pricing: 4.7, onTime: 4.8, communication: 4.8 },
     recentReviews: [
-      review('at1', 'Akila Drishan', 4.6, 'ඉක්මනින් කළා, පරණ ෆිල්ටරය පෙන්නුවා.', 23, 'ස්තූතියි! ඊළඟ සේවාව කි.මී. 5,000න්.'),
+      review('at1', 'Akila Drishan', 4.6, 'ඉක්මනින් කළා, පරණ ෆිල්ටරය පෙන්නුවා.', 23, 'ස්තූතියි! ඊළඟ සේවාව km 5,000න්.'),
       review('at2', 'තරිඳු පීරිස්', 5, 'ආරක්ෂිත රැකියාවක් නිසා කිසිම කරදරයක් නැතිව කළා.', 30),
     ],
     specialization: 'Full Service & Hybrid Care',

@@ -75,7 +75,7 @@ export const QuoteSheet: React.FC<{ request: IncomingRequest | null; onClose: ()
     <Sheet
       visible={!!request}
       title="මිල ගණනක් යවන්න"
-      subtitle={`${shown.garage.name} · කි.මී. ${shown.distanceKm} · ලැබිය යුත්තේ ${formatTime(shown.needBy)}`}
+      subtitle={`${shown.garage.name} · km ${shown.distanceKm} · ලැබිය යුත්තේ ${formatTime(shown.needBy)}`}
       onClose={onClose}
       footer={<ActionButton label={`මිල ගණන යවන්න · ${money(total)}`} icon="📨" variant="primary" disabled={!valid} onPress={submit} />}
     >

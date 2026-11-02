@@ -28,7 +28,7 @@ export const PublicProfileSheet: React.FC<{ visible: boolean; onClose: () => voi
   };
 
   return (
-    <Sheet visible={visible} title="පාරිභෝගිකයන්ට පෙනෙන ආකාරය" subtitle={`උදාහරණය: කි.මී. ${PREVIEW_DISTANCE_KM} ක් දුරින් සිටින වාහන හිමියෙකුට`} onClose={onClose}>
+    <Sheet visible={visible} title="පාරිභෝගිකයන්ට පෙනෙන ආකාරය" subtitle={`උදාහරණය: km ${PREVIEW_DISTANCE_KM} ක් දුරින් සිටින වාහන හිමියෙකුට`} onClose={onClose}>
       <GarageCard garage={asSeenByOwners} variant="map" thumbColor="#10b981" onCall={() => {}} onDirections={() => {}} onBook={() => {}} />
       <Text style={styles.section}>ගරාජ තොරතුරු</Text>
       <View style={styles.card}>

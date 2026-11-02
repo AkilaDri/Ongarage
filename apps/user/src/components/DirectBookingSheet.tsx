@@ -209,7 +209,7 @@ export const DirectBookingSheet: React.FC<{ garage: Garage | null; categoryId?: 
             <GarageHistoryTag garage={shown} part="tag" />
           </View>
           <Text style={styles.sub}>
-            ★ {shown.rating} ({shown.reviews}) · කි.මී. {shown.distance} · {shown.address}
+            ★ {shown.rating} ({shown.reviews}) · km {shown.distance} · {shown.address}
           </Text>
         </View>
       </View>

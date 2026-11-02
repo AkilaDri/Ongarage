@@ -120,7 +120,7 @@ export const BidSheet: React.FC<BidSheetProps> = ({ job, existing, onClose }) =>
               <View style={styles.farBox} accessibilityLabel="Distant job warning">
                 <Text style={styles.farTitle}>🚗 මෙම රැකියාව ඈත ස්ථානයක!</Text>
                 <Text style={styles.farText}>
-                  රැකියාව ඔබගෙන් කි.මී. {shown.distanceKm} ක් ඈතයි (සාමාන්‍ය සීමාව කි.මී. {FAR_JOB_KM}). ගමන් ගාස්තුව රැකියා ගාස්තුවට එකතු කර මුළු ලංසුව ලෙස පාරිභෝගිකයාට යවයි; එය පාරිභෝගිකයාට විශේෂ ලෙස පෙන්වයි.
+                  රැකියාව ඔබගෙන් km {shown.distanceKm} ක් ඈතයි (සාමාන්‍ය සීමාව km {FAR_JOB_KM}). ගමන් ගාස්තුව රැකියා ගාස්තුවට එකතු කර මුළු ලංසුව ලෙස පාරිභෝගිකයාට යවයි; එය පාරිභෝගිකයාට විශේෂ ලෙස පෙන්වයි.
                 </Text>
                 <Text style={styles.farLabel}>ගමන් වන්දි ගාස්තුව</Text>
                 <View style={styles.priceBox}>
