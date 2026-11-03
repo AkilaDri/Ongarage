@@ -1590,7 +1590,7 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
             { label: 'කොටස', value: `${partName} × 1` },
             { label: 'මිල', value: `${money(partPrice)} ක් පමණ` },
           ]}
-          body={`\nඅලුත්වැඩියාව මෙම කොටස ලැබෙන තුරු රැඳී සිටී.\nමෙම කොටස ඔබට කෙසේ ලබාගැනීමට කැමතිද?`}
+          body={`\nකාර්මිකයා මෙම කොටස ලැබෙන තුරු රැඳී සිටී.\nඔබ මෙම කොටස කෙසේ ලබාගැනීමට කැමතිද?`}
         >
           <View style={styles.partActions}>
             <PartOption tone="primary" title="මම ගන්නම්" sub="OnMart හි ඔබම ඇණවුම් කරන්න" onPress={chooseOwnerBuys} />
