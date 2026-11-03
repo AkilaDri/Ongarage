@@ -148,7 +148,7 @@ export const HomeSearch: React.FC<{
                     {s.sub ?? s.category.name}
                   </Text>
                   <Text style={styles.rowSub} numberOfLines={1}>
-                    {s.sub ? s.category.name : `${s.category.subcategories.length} උප සේවා`}
+                    {s.sub ? s.category.name : `උප සේවා ${s.category.subcategories.length} කි`}
                   </Text>
                 </View>
                 <Text style={styles.chev} accessibilityElementsHidden importantForAccessibility="no">›</Text>

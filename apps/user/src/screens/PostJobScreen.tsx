@@ -506,7 +506,7 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, defaultVehi
           {/* The sub-services of the chosen category, in its colour, as in the booking form (optional). */}
           {!!categoryId && (
             <>
-              <Text style={styles.eyebrow}>උප සේවාව (විකල්ප)</Text>
+              <Text style={styles.eyebrow}>{`${SERVICE_CATEGORIES.find((c) => c.id === categoryId)?.name ?? ''} හි උප සේවා (විකල්ප තේරීමකි):`}</Text>
               <View style={styles.subWrap}>
                 {bidSubServices(categoryId).map((sub) => {
                   const color = SERVICE_CATEGORIES.find((c) => c.id === categoryId)?.color ?? Colors.primary;

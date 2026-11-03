@@ -66,6 +66,14 @@ const KITT_STEPS = 40;
 const KITT_T = Array.from({ length: KITT_STEPS + 1 }, (_, i) => i / KITT_STEPS);
 const KITT_LAGS = [0, 0.03, 0.06, 0.09, 0.12];
 
+/** One of the part decisions: a bold action with its result under it. Same size for all three; the recommended one is the filled blue. */
+const PartOption: React.FC<{ tone: 'primary' | 'secondary' | 'tertiary'; title: string; sub: string; onPress: () => void }> = ({ tone, title, sub, onPress }) => (
+  <Pressable style={[styles.partOption, styles[`partOption_${tone}`]]} onPress={onPress} accessibilityRole="button" accessibilityLabel={`${title}. ${sub}`}>
+    <Text style={[styles.partOptionTitle, styles[`partOptionTitle_${tone}`]]}>{title}</Text>
+    <Text style={[styles.partOptionSub, styles[`partOptionSub_${tone}`]]}>{sub}</Text>
+  </Pressable>
+);
+
 /** A label with its value set apart on the right: the label muted, the value in bold. */
 const FactValue: React.FC<{ label: string; value: string }> = ({ label, value }) => (
   <View style={styles.factRow}>
@@ -504,15 +512,19 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
       setPartState('requested');
       setPartPopup(true);
     }, 9000);
-    // JS-driven, not native: the scanner's parts are rebuilt when the part popup appears, and a native-driven loop stopped following them.
-    const loop = Animated.loop(Animated.timing(waitAnim, { toValue: 1, duration: 1800, easing: Easing.linear, useNativeDriver: false }), { iterations: -1 });
-    loop.start();
-    return () => {
-      loop.stop();
-      clearTimeout(partTimer);
-    };
+    return () => clearTimeout(partTimer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step, waitAnim]);
+
+  // The scanner runs while the job waits, and stops while the owner has a decision to make (UX 33: animation must not compete with a required choice).
+  const scannerPaused = step === 'repairing' && (partPopup || deferAsk);
+  // JS-driven, not native: the scanner's parts are rebuilt when the part popup appears, and a native-driven loop stopped following them.
+  useEffect(() => {
+    if (step !== 'repairing' || scannerPaused) return;
+    const loop = Animated.loop(Animated.timing(waitAnim, { toValue: 1, duration: 1800, easing: Easing.linear, useNativeDriver: false }), { iterations: -1 });
+    loop.start();
+    return () => loop.stop();
+  }, [step, scannerPaused, waitAnim]);
 
   // The technician orders in OnMart: the bill is sent to the owner's app.
   useEffect(() => {
@@ -1580,12 +1592,12 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
             { label: 'කොටස', value: `${partName} × 1` },
             { label: 'මිල', value: `${money(partPrice)} ක් පමණ` },
           ]}
-          body={`\nOnMart හි ඇණවුම් කර කොටස රැගෙන ඒම ඔබට පහසු නම් එසේ කරන්න. නැතහොත් ඔහුට OnMart හරහා ඇණවුම් කිරීමට අවසර දෙන්න (බිල ඔබට එයි).`}
+          body={`\nඅලුත්වැඩියාව මෙම කොටස ලැබෙන තුරු රැඳී සිටී.\nමෙම කොටස ඔබට කෙසේ ලබාගැනීමට කැමතිද?`}
         >
           <View style={styles.partActions}>
-            <ActionButton label="පසුව මාරු කරගන්නම්" variant="ghost" compact onPress={() => { setPartPopup(false); setDeferAsk(true); }} />
-            <ActionButton label="කාර්මිකයාට අවසර" variant="ghost" compact onPress={chooseTechnicianOrders} />
-            <ActionButton label="මම ගන්නම්" variant="primary" compact onPress={chooseOwnerBuys} />
+            <PartOption tone="primary" title="මම ගන්නම්" sub="OnMart හි ඔබම ඇණවුම් කරන්න" onPress={chooseOwnerBuys} />
+            <PartOption tone="secondary" title="කාර්මිකයා ඇණවුම් කරයි" sub="බිල ඔබට එයි" onPress={chooseTechnicianOrders} />
+            <PartOption tone="tertiary" title="පසුව ගන්නම්" sub="දැන් ඇණවුම් නැත · OnGarage සේවා වාර්තාවේ සටහන් වේ" onPress={() => { setPartPopup(false); setDeferAsk(true); }} />
           </View>
         </ModalCard>
       )}
@@ -1616,7 +1628,7 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
           bodySuffix="(අලුත්වැඩියාවක් අවශ්‍ය නොවුණත් මෙය අදාළ වේ.)"
         >
           <ActionButton label="අවලංගු" variant="ghost" compact onPress={() => setStep('confirm')} />
-          <ActionButton label="මම එකඟයි" variant="sos" compact onPress={startSearch} />
+          <ActionButton label={`SOS යවන්න · රු. ${money(BASE_FEE)}`} variant="sos" compact onPress={startSearch} />
         </ModalCard>
       )}
 
@@ -1889,6 +1901,19 @@ const styles = themedStyles(() => StyleSheet.create({
   etaValue: { fontSize: 18, fontFamily: FONTS.titleBold, color: Colors.textMain },
   // The Sinhala minutes draw larger than the Latin km at the same size, so they get a smaller size to look the same.
   etaValueSinhala: { fontSize: 14, fontFamily: FONTS.titleBold, color: Colors.textMain },
+  // The three part decisions share one size; only the recommended one is filled.
+  partOption: { width: '100%', minHeight: 58, paddingVertical: 10, paddingHorizontal: 16, borderRadius: 22, alignItems: 'center', justifyContent: 'center', gap: 2 },
+  partOption_primary: { backgroundColor: '#1a73e8' },
+  partOption_secondary: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(255, 255, 255, 0.06)' : '#eaf1fb' },
+  partOption_tertiary: { backgroundColor: 'transparent', borderWidth: 1, borderColor: outline() },
+  partOptionTitle: { fontSize: 14, fontFamily: FONTS.bodyBold },
+  partOptionTitle_primary: { color: '#ffffff' },
+  partOptionTitle_secondary: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a56b0' },
+  partOptionTitle_tertiary: { color: Colors.textMain },
+  partOptionSub: { fontSize: 11.5, fontFamily: FONTS.bodyRegular, textAlign: 'center' },
+  partOptionSub_primary: { color: 'rgba(255, 255, 255, 0.9)' },
+  partOptionSub_secondary: { color: Colors.textMuted },
+  partOptionSub_tertiary: { color: Colors.textMuted },
   attention: { padding: 10, borderRadius: 12, backgroundColor: getThemeMode() === 'dark' ? 'rgba(245, 158, 11, 0.12)' : '#fef7e0' },
   attentionText: { fontSize: 13, fontFamily: FONTS.bodyBold, color: Colors.warning },
   // A fixed two-line box, so the values of both columns sit on the same line whatever the label's length.

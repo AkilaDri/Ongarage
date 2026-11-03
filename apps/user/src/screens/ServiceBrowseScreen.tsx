@@ -48,6 +48,12 @@ interface ServiceBrowseScreenProps {
   initialSub?: string;
 }
 
+/** The colour of the chosen sub-service. */
+const SELECTED_GREEN = '#16a34a';
+
+/** How many sub-services show before "සියල්ල බලන්න". */
+const SUB_PREVIEW = 4;
+
 export const ServiceBrowseScreen: React.FC<ServiceBrowseScreenProps> = ({ service, onClose, onBook, initialSub, onPostJob, vehicleId }) => {
   const [searchText, setSearchText] = useState('');
   // A garage touched on the map: it is picked (its pin lights up and its card comes first in the list) until it is touched again or cleared.
@@ -65,10 +71,20 @@ export const ServiceBrowseScreen: React.FC<ServiceBrowseScreenProps> = ({ servic
   const { notify } = useNotice();
   // The sub-service chips: they slide in sideways whenever the category changes, and drift along the row by themselves (like the suggested services on
   // Home) until the owner touches the row; then they stay put for a while.
-  const subRef = useRef<ScrollView>(null);
+  // The sub-services show as a wrapping grid: a few first, the rest behind "සියල්ල බලන්න" (no sideways swiping, no sliding by itself).
+  const [subsOpen, setSubsOpen] = useState(false);
+  // The height of the sub-service grid, so the location row below it always starts under the last row of chips.
+  const [subGridH, setSubGridH] = useState(0);
   const subIn = useRef(new Animated.Value(1)).current;
   const subDims = useRef({ view: 0, content: 0, x: 0, pausedUntil: 0 });
   const [selectedSub, setSelectedSub] = useState(() => Math.max(0, service.subcategories.indexOf(initialSub ?? '')));
+  // When folded, the first few show, plus the picked one if it is further down the list, so the choice stays visible in green.
+  const pickedIndex = selectedSub;
+  const visibleSubs = subsOpen
+    ? service.subcategories
+    : pickedIndex >= SUB_PREVIEW
+      ? [...service.subcategories.slice(0, SUB_PREVIEW - 1), service.subcategories[pickedIndex]]
+      : service.subcategories.slice(0, SUB_PREVIEW);
   const [mapHeight, setMapHeight] = useState(0);
   const [mapW, setMapW] = useState(390);
   // Where the garages are searched from and how far: the owner's own spot by default, or a spot picked on the map (`origin`); the range is dragged on the bar over the map.
@@ -153,21 +169,8 @@ export const ServiceBrowseScreen: React.FC<ServiceBrowseScreenProps> = ({ servic
   useEffect(() => {
     subIn.setValue(0);
     Animated.timing(subIn, { toValue: 1, duration: 420, easing: Easing.out(Easing.cubic), useNativeDriver: Platform.OS !== 'web' }).start();
-    subDims.current.x = 0;
-    subRef.current?.scrollTo({ x: 0, animated: false });
+    setSubsOpen(false);
   }, [service.id, subIn]);
-  useEffect(() => {
-    const id = setInterval(() => {
-      const d = subDims.current;
-      if (Date.now() < d.pausedUntil || d.content <= d.view + 8) return;
-      const max = d.content - d.view;
-      // One screenful at a time; after the end it slides back to the start.
-      const next = d.x >= max - 4 ? 0 : Math.min(max, d.x + d.view * 0.75);
-      subRef.current?.scrollTo({ x: next, animated: true });
-      d.x = next;
-    }, 4000);
-    return () => clearInterval(id);
-  }, []);
 
   const tapHandle = () => animateTo(sheet === 'peek' ? 'collapsed' : sheet === 'collapsed' ? 'expanded' : 'collapsed');
 
@@ -417,46 +420,45 @@ export const ServiceBrowseScreen: React.FC<ServiceBrowseScreenProps> = ({ servic
 
         {/* The sub-services of the picked service (they slide by themselves to show there are more) float over the map right under the search bar, and fade out with it. */}
         <Animated.View
+          onLayout={(e) => setSubGridH(Math.round(e.nativeEvent.layout.height))}
           style={[styles.subFloat, { opacity: sheetHeight.interpolate({ inputRange: [collapsedHeight, collapsedHeight + 70], outputRange: [1, 0], extrapolate: 'clamp' }) }]}
           pointerEvents={sheet === 'expanded' ? 'none' : 'box-none'}
         >
           <Animated.View style={{ opacity: subIn, transform: [{ translateX: subIn.interpolate({ inputRange: [0, 1], outputRange: [60, 0] }) }] }}>
-            <ScrollView
-              ref={subRef}
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={styles.subScroll}
-              contentContainerStyle={styles.subRow}
-              scrollEventThrottle={32}
-              onLayout={(e) => (subDims.current.view = e.nativeEvent.layout.width)}
-              onContentSizeChange={(w) => (subDims.current.content = w)}
-              onScroll={(e) => (subDims.current.x = e.nativeEvent.contentOffset.x)}
-              onScrollBeginDrag={() => (subDims.current.pausedUntil = Date.now() + 10000)}
-            >
-              {service.subcategories.map((sub, i) => {
+            <View style={styles.subGrid} accessibilityRole="radiogroup" accessibilityLabel={`${service.name} හි උප සේවා`}>
+              {visibleSubs.map((sub) => {
+                const i = service.subcategories.indexOf(sub);
                 const active = i === selectedSub;
                 return (
                   <Pressable
                     key={sub}
-                    style={[styles.subChip, { backgroundColor: active ? service.color : '#ffffff', borderColor: active ? service.color : service.color + '8c' }]}
+                    style={[styles.subChip, { backgroundColor: active ? SELECTED_GREEN : '#ffffff', borderColor: active ? SELECTED_GREEN : service.color + '8c' }]}
                     onPress={() => {
-                      subDims.current.pausedUntil = Date.now() + 10000;
                       setSelectedSub(i);
+                      // Picking one from the full list folds the list back to its first few.
+                      setSubsOpen(false);
                     }}
+                    hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+                    accessibilityRole="radio"
                     accessibilityLabel={`Sub service ${sub}`}
                     accessibilityState={{ selected: active }}
                   >
                     <CategoryPhoto categoryId={service.id} size={22} />
-                    <Text style={[styles.subChipText, styles.subChipTextMap, active && styles.subChipTextActive]}>{sub}</Text>
+                    <Text style={[styles.subChipText, styles.subChipTextMap, active && styles.subChipTextActive]}>{active ? `✓ ${sub}` : sub}</Text>
                   </Pressable>
                 );
               })}
-            </ScrollView>
+              {service.subcategories.length > SUB_PREVIEW && (
+                <Pressable style={[styles.subChip, styles.subMore]} onPress={() => setSubsOpen((o) => !o)} hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }} accessibilityRole="button" accessibilityLabel={subsOpen ? 'Show fewer sub services' : `Show all ${service.subcategories.length} sub services`}>
+                  <Text style={styles.subMoreText}>{subsOpen ? 'අඩුවෙන් පෙන්වන්න' : `සියල්ල බලන්න (${service.subcategories.length})`}</Text>
+                </Pressable>
+              )}
+            </View>
           </Animated.View>
         </Animated.View>
 
         {/* Over the map: the range bar (drag it to change how far garages are searched) and the choice of where to search from. They fade out with the search bar. */}
-        <Animated.View style={[styles.mapControls, { opacity: sheetHeight.interpolate({ inputRange: [collapsedHeight, collapsedHeight + 70], outputRange: [1, 0], extrapolate: 'clamp' }) }]} pointerEvents="box-none">
+        <Animated.View style={[styles.mapControls, { top: 70 + subGridH + 8, opacity: sheetHeight.interpolate({ inputRange: [collapsedHeight, collapsedHeight + 70], outputRange: [1, 0], extrapolate: 'clamp' }) }]} pointerEvents="box-none">
           {/* Sits at the very bottom of the map, just above the peeking sheet. */}
           {/* It sits just above the peeking sheet, so it fades out as soon as the sheet starts to rise (and stops taking touches), instead of floating over the sheet. */}
           <Animated.View
@@ -472,10 +474,6 @@ export const ServiceBrowseScreen: React.FC<ServiceBrowseScreenProps> = ({ servic
               <View style={styles.rangeTouch} {...radiusPan.panHandlers} accessibilityLabel="Search range" accessibilityRole="adjustable" />
             </View>
           </Animated.View>
-          {/* How many garages (or places) in the search do this exact sub-service: the ones that ticked it, within the radius. */}
-          <View style={styles.mapOpen} pointerEvents="none" accessibilityLabel={placeMode ? `${placesList.length} places offer this` : `${found.length} garages offer this`}>
-            <Text style={styles.openStickerText}>{placeMode ? `මෙම සේවාව දෙන ස්ථාන ${placesList.length}` : `මෙම සේවාව කරන ගරාජ ${found.length}`}</Text>
-          </View>
           <View style={styles.spotRow}>
             <Pressable
               style={[styles.spotChip, pickMode && styles.spotChipOn]}
@@ -499,6 +497,9 @@ export const ServiceBrowseScreen: React.FC<ServiceBrowseScreenProps> = ({ servic
                 <Text style={styles.spotChipText}>✕</Text>
               </Pressable>
             )}
+            <View style={styles.countPill} accessibilityLabel={placeMode ? `${placesList.length} places offer this` : `${found.length} garages offer this`}>
+              <Text style={styles.openStickerText}>{placeMode ? `මෙම සේවාව දෙන ස්ථාන ${placesList.length}` : `මෙම සේවාව කරන ගරාජ ${found.length}`}</Text>
+            </View>
           </View>
         </Animated.View>
 
@@ -773,7 +774,7 @@ const styles = themedStyles(() => StyleSheet.create({
   },
   handleHitArea: { alignSelf: 'center', marginBottom: -2, flexShrink: 0, paddingVertical: 2 },
   // No background: just the dot and the words on the map (light words with a soft shadow so they read on any map).
-  mapControls: { position: 'absolute', top: 116, left: 14, right: 14, zIndex: 3, gap: 8 },
+  mapControls: { position: 'absolute', left: 14, right: 14, zIndex: 3, gap: 8 },
   // A vertical bar on the right side of the map: the km value on top, the track below it (top = widest range). No fill, only an outline round it.
   rangeBar: { position: 'absolute', right: 0, top: 96, width: 42, alignItems: 'center', paddingVertical: 10, borderRadius: 14, borderWidth: 1.5, borderColor: 'rgba(255, 255, 255, 0.85)' },
   rangeLabel: { fontSize: 12.5, fontFamily: FONTS.bodyBold, color: '#ffffff', textShadowColor: 'rgba(0, 0, 0, 0.6)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 3 },
@@ -783,7 +784,8 @@ const styles = themedStyles(() => StyleSheet.create({
   rangeFill: { position: 'absolute', bottom: 0, width: 4, borderRadius: 2, backgroundColor: '#1a73e8' },
   rangeThumb: { position: 'absolute', width: 20, height: 20, borderRadius: 10, marginBottom: -10, backgroundColor: '#ffffff', borderWidth: 3, borderColor: '#1a73e8', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 4, elevation: 4 },
   rangeTouch: { ...StyleSheet.absoluteFill, ...(Platform.OS === 'web' ? ({ touchAction: 'none', cursor: 'pointer' } as object) : null) },
-  spotRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, maxWidth: '62%' },
+  spotRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
+  countPill: { alignSelf: 'flex-start', paddingHorizontal: 10, height: 26, borderRadius: 13, justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.18)' : '#e8f0fe' },
   // The my-location button, under the range bar: a white disc as wide as the bar with the blue "you are here" dot (a soft halo round a dot with a white rim).
   myLoc: { position: 'absolute', right: 0 },
   // The garage filter chips: in a row at the left, ending before the my-location button.
@@ -859,8 +861,9 @@ const styles = themedStyles(() => StyleSheet.create({
   // Full width, so the chips slide edge to edge of the screen (the row's side margins are padding inside the scroller, not a clipping edge).
   subFloat: { position: 'absolute', top: 70, left: 0, right: 0, zIndex: 4 },
   subChipTextMap: { color: '#0f2a3d' },
-  subScroll: { flexGrow: 0, flexShrink: 0 },
-  subRow: { gap: 6, paddingBottom: 0, paddingHorizontal: 14 },
+  subGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, paddingHorizontal: 14, paddingVertical: 4 },
+  subMore: { backgroundColor: '#ffffff', borderColor: '#1a73e8' },
+  subMoreText: { fontSize: 12.5, fontWeight: '700', color: '#1a56b0' },
   // Each chip takes its category's colour (a tint, with a border of the same colour); the picked one is filled with it. Same look as the suggested services on Home.
   subChip: { flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, paddingLeft: 8, paddingRight: 12, height: 34, borderRadius: 17 },
   subChipText: { fontSize: 11.5, fontWeight: '700', color: Colors.textMain },
