@@ -1106,8 +1106,8 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
             </View>
           </View>
           <View style={{ gap: 2 }}>
-            <Text style={styles.cardSub}>කොටස ලැබෙන තුරු අලුත්වැඩියාව රැඳී සිටී.</Text>
-            <Text style={styles.cardSub}>කොටස ඔබට කෙසේ ලබාගැනීමට කැමතිද?</Text>
+            <Text style={styles.cardSub}>කාර්මිකයා මෙම කොටස ලැබෙන තුරු රැඳී සිටී.</Text>
+            <Text style={styles.cardSub}>ඔබ මෙම කොටස කෙසේ ලබාගැනීමට කැමතිද?</Text>
           </View>
           <PartOption tone="primary" title="මම ගන්නම්" sub="OnMart හි ඔබම ඇණවුම් කරන්න" onPress={chooseOwnerBuys} />
           <PartOption tone="secondary" title="කාර්මිකයා ඇණවුම් කරයි" sub="බිල ඔබට එයි" onPress={chooseTechnicianOrders} />
