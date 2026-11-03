@@ -50,6 +50,8 @@ export * from './marketplace/fitting';
 export * from './marketplace/payment';
 export * from './marketplace/reliability';
 export * from './marketplace/customerRating';
+export * from './marketplace/loyalty';
+export * from './marketplace/sosCancel';
 export * from './marketplace/inquiry';
 export * from './marketplace/partsBatch';
 export * from './marketplace/martAttention';

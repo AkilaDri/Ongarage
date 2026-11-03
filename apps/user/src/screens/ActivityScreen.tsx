@@ -4,7 +4,7 @@ import { elevation1, outline, pageBg } from '../utils/material';
 import { PAGE_TITLE_H } from '../constants/layout';
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Image, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Colors, getThemeMode, Gradient, themedStyles, ReceiptLineIcon, ScheduleLineIcon, SosLineIcon } from '@ongarage/shared';
+import { Colors, getThemeMode, Gradient, pointsBalance, themedStyles, ReceiptLineIcon, ScheduleLineIcon, SosLineIcon } from '@ongarage/shared';
 import { FONTS } from '@ongarage/shared';
 import { categoryInfo, SERVICE_CATEGORIES } from '@ongarage/shared';
 import { useVehicles } from '../context/VehiclesContext';
@@ -74,6 +74,11 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
   const { bookings } = useBookings();
   const { workshops } = useWorkshops();
   const { records: sosRecords } = useSOSRecords();
+  // The owner's OnGarage points: every finished SOS job's award that has not expired.
+  const sosPoints = pointsBalance(
+    sosRecords.filter((r) => r.points).map((r) => ({ jobId: r.id, base: r.points!.base, ratingBonus: r.points!.ratingBonus, at: r.completedAt })),
+    Date.now()
+  );
   const { purchases } = useMart();
   // A workshop job the owner stopped, or saw close, moves down to the completed list.
   const finished = (id: string) => {
@@ -420,6 +425,7 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
         )}
         {showDone('sos') && sosRecords.length > 0 && (
           <>
+            {sosPoints > 0 && <Text style={styles.sosPoints}>💎 OnGarage ලකුණු: {sosPoints}</Text>}
             {sosRecords.map((r) => (
               <SwipeCard key={r.id} style={[styles.card, styles.cardDone]} onOpen={() => setRecord({ kind: 'sos', record: r })}>
               <Pressable style={styles.cardInner} onPress={() => setRecord({ kind: 'sos', record: r })} accessibilityLabel={`SOS record ${r.breakdown.label}`}>
@@ -516,6 +522,7 @@ const Stat: React.FC<{ value: string; label: string; color: string }> = ({ value
 );
 
 const styles = themedStyles(() => StyleSheet.create({
+  sosPoints: { fontSize: 14, fontFamily: FONTS.bodyBold, color: Colors.textMain, marginBottom: 10 },
   // Transparent: the rounded sheet in App.tsx supplies the background.
   container: { flex: 1 },
   swipeWrap: { borderRadius: 12 },

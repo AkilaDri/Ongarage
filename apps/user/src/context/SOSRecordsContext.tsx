@@ -14,9 +14,11 @@ export type SOSRecord = {
   /** The repair charge, the call-out fee and (if one was ordered through OnMart) the part. */
   fees: { repair: number; callout: number; part?: { name: string; shop: string; amount: number } };
   total: number;
-  /** The owner's rating of the technician (1-5) and the reasons they ticked. */
+  /** The owner's rating of the technician (1-5, 0 when not rated) and the reasons they ticked. */
   rating: number;
   tags: string[];
+  /** OnGarage points this job earned (see marketplace/loyalty). */
+  points?: { base: number; ratingBonus: number };
 };
 
 type SOSRecordsState = {

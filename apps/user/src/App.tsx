@@ -256,6 +256,12 @@ function AppShell() {
   }, []);
   // The owner can leave a running SOS job for OnMart (to buy a part the technician needs) and come back to it.
   const [sosHidden, setSosHidden] = useState(false);
+  // What the SOS job is doing, for the status line while it is put away.
+  const [sosStatus, setSosStatus] = useState({ label: '', needsAction: false });
+  // A decision (a part, a price, the QR code) brings the owner back to the job without them looking for it.
+  useEffect(() => {
+    if (sosStatus.needsAction) setSosHidden(false);
+  }, [sosStatus.needsAction]);
   const [martSeed, setMartSeed] = useState('');
   const [martShopReq, setMartShopReq] = useState<{ id: string; at: number; ask?: boolean } | null>(null);
   const [sosLocation, setSOSLocation] = useState<PickedLocation | null>(null);
@@ -659,6 +665,8 @@ function AppShell() {
             onVehicleChange={setSelectedVehicle}
             onChangeLocation={() => setSOSStage('map')}
             onClose={closeSOS}
+            onMinimize={() => setSosHidden(true)}
+            onStatus={setSosStatus}
             onOpenShop={(shopId) => {
               setMartShopReq({ id: shopId, at: Date.now() });
               setMartSegment('shops');
@@ -677,7 +685,7 @@ function AppShell() {
       )}
       {sosStage === 'flow' && sosHidden && (
         <Pressable style={styles.sosReturn} onPress={() => setSosHidden(false)} accessibilityLabel="Back to the SOS job">
-          <Text style={styles.sosReturnText}>🚨 SOS රැකියාවට ආපසු ›</Text>
+          <Text style={styles.sosReturnText}>{sosStatus.label ? `🚨 ${sosStatus.label} ›` : '🚨 SOS රැකියාවට ආපසු ›'}</Text>
         </Pressable>
       )}
 
