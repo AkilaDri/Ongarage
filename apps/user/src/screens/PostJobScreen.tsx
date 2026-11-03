@@ -1,9 +1,9 @@
-import { CategoryStrip } from '../components/home/CategoryStrip';
+import { CategoryStrip, shortCategoryName } from '../components/home/CategoryStrip';
 import { VehicleLine } from '@ongarage/shared';
 import { elevation1, outline, pageBg } from '../utils/material';
 import { jobDescription, problemTold } from '../utils/jobText';
 import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Animated, Easing, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Animated, Easing, Modal, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, TextStyle, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, getThemeMode, themedStyles } from '@ongarage/shared';
 import { FONTS } from '@ongarage/shared';
@@ -18,7 +18,6 @@ import { Slider } from '@ongarage/shared';
 import { useUserLocation } from '../context/LocationContext';
 import { useBids } from '../context/BidsContext';
 import type { JobDraft, VoiceNote } from '@ongarage/shared';
-import { FormTabs } from '../components/FormTabs';
 import { MediaAttachments } from '../components/MediaAttachments';
 import { SPARE_PARTS } from '../constants/labels';
 import { CategoryPhoto } from '../components/home/CategoryPhoto';
@@ -152,21 +151,26 @@ const MixedText: React.FC<{ text: string; style: any }> = ({ text, style }) => {
 };
 
 /** One numbered step of the form: a rounded card with a step badge that turns into a tick once the step is filled in. */
-const StepCard: React.FC<{ step: number; title: string; done: boolean; hint?: string; optional?: boolean; children: React.ReactNode }> = ({ step, title, done, hint, optional, children }) => (
+const TAB_LABEL: Record<string, string> = { service: 'සේවාව', details: 'විස්තර', parts: 'කොටස්', vehicle: 'වාහනය', timer: 'කාලය' };
+
+const StepCard: React.FC<{ step: number; title: string; done: boolean; hint?: string; optional?: boolean; requiredNote?: string; children: React.ReactNode }> = ({ step, title, done, hint, optional, requiredNote, children }) => (
   <View style={styles.stepCard}>
     <View style={styles.stepHead}>
-      <View style={[styles.stepBadge, done && styles.stepBadgeDone]}>
-        <Text style={[styles.stepBadgeText, done && styles.stepBadgeTextDone]}>{done ? '✓' : step}</Text>
-      </View>
+      {/* The number is not needed: the progress bar shows the order, and a finished step shows a tick. */}
+      {done && (
+        <View style={[styles.stepBadge, styles.stepBadgeDone]}>
+          <Text style={[styles.stepBadgeText, styles.stepBadgeTextDone]}>✓</Text>
+        </View>
+      )}
       <View style={styles.flex1}>
         <Text style={styles.stepTitle}>{title}</Text>
         {!!hint && <Text style={styles.cardSub}>{hint}</Text>}
+        {!optional && !done && (
+          <View style={styles.requiredPill} accessibilityLabel={done ? 'Required, done' : 'Required'}>
+            <Text style={[styles.requiredText, done && styles.requiredTextDone]}>{done ? (requiredNote ? '✓ තෝරා ඇත' : '✓ අත්‍යවශ්‍ය') : requiredNote ?? '* අත්‍යවශ්‍යයි'}</Text>
+          </View>
+        )}
       </View>
-      {!optional && (
-        <View style={[styles.requiredPill, done && styles.requiredPillDone]} accessibilityLabel={done ? 'Required, done' : 'Required'}>
-          <Text style={[styles.requiredText, done && styles.requiredTextDone]}>{done ? '✓ අත්‍යවශ්‍ය' : '* අත්‍යවශ්‍යයි'}</Text>
-        </View>
-      )}
     </View>
     {children}
   </View>
@@ -205,10 +209,31 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, defaultVehi
 
   const [buddy, setBuddy] = useState<BuddyMode>('idle');
   const [buddyInput, setBuddyInput] = useState('');
+  const [buddyFocus, setBuddyFocus] = useState(false);
   const [listening, setListening] = useState(false);
+  // While recording, the mic sends out a slow ring, so the owner sees it is listening without any extra text.
+  const micPulse = useRef(new Animated.Value(0)).current;
+  // The sound wave beside the mic moves while recording: bars rise and fall out of step.
+  const wave = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (!listening) return;
+    micPulse.setValue(0);
+    wave.setValue(0);
+    const pulse = Animated.loop(Animated.timing(micPulse, { toValue: 1, duration: 1100, easing: Easing.out(Easing.ease), useNativeDriver: true }));
+    const bars = Animated.loop(Animated.timing(wave, { toValue: 1, duration: 800, easing: Easing.inOut(Easing.ease), useNativeDriver: true }));
+    pulse.start();
+    bars.start();
+    return () => {
+      pulse.stop();
+      bars.stop();
+    };
+  }, [listening, micPulse, wave]);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [confidence, setConfidence] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [qIndex, setQIndex] = useState(0);
+  // The description box grows with its text (derived from the text, so it cannot loop): about 38 characters and one line per row.
+  const descriptionH = Math.max(88, (Math.ceil(description.length / 38) + description.split('\n').length) * 21 + 32);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const buddyFloat = useRef(new Animated.Value(0)).current;
 
@@ -253,6 +278,7 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, defaultVehi
       setProfile(result.profile);
       setConfidence(result.confidence);
       setAnswers({});
+      setQIndex(0);
       setBuddy('questions');
     }, 900);
   };
@@ -263,7 +289,6 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, defaultVehi
       const sample = VOICE_SAMPLES[Math.floor(Math.random() * VOICE_SAMPLES.length)];
       setBuddyInput(sample);
       setListening(false);
-      analyze(sample);
     }, 1800);
   };
 
@@ -271,6 +296,7 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, defaultVehi
     setBuddy('idle');
     setProfile(null);
     setAnswers({});
+    setQIndex(0);
     setBuddyInput('');
     setListening(false);
   };
@@ -278,7 +304,7 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, defaultVehi
   const applyRecommendation = () => {
     if (!profile) return;
     setCategoryId(profile.categoryId);
-    setDescription(`${buddyInput.trim()}\n${profile.summary} (OnGarage Buddy මගින් හඳුනා ගන්නා ලදී)`);
+    setDescription(`${buddyInput.trim()}\n${profile.summary}\nඅවශ්‍ය කාර්මිකයා: ${profile.technician}\n(OnGarage Buddy මගින් හඳුනා ගන්නා ලදී)`);
     closeBuddy();
   };
 
@@ -306,7 +332,24 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, defaultVehi
   };
 
   const recommended = profile ? SERVICE_CATEGORIES.find((c) => c.id === profile.categoryId) : null;
+  // Confidence in words, not a percentage: this is a keyword match, not a measured probability.
+  const confidenceWord = confidence >= 0.8 ? 'හොඳ විශ්වාසය' : confidence >= 0.5 ? 'සාධාරණ විශ්වාසය' : 'අඩු විශ්වාසය';
+  const editDescription = () => {
+    setBuddy('input');
+    setProfile(null);
+    setAnswers({});
+    setQIndex(0);
+  };
+  const pickAnswer = (qid: string, opt: string, total: number) => {
+    setAnswers((a) => ({ ...a, [qid]: opt }));
+    // One question at a time: the next one comes on its own; after the last, the result.
+    if (qIndex < total - 1) setQIndex(qIndex + 1);
+    else setBuddy('result');
+  };
   const allAnswered = profile ? profile.questions.every((q) => answers[q.id]) : false;
+
+  // Analyse waits for something to analyse: typed text or a voice note.
+  const buddyReady = buddyInput.trim().length > 0 || voiceNotes.length > 0;
 
   const renderBuddy = () => {
     if (buddy === 'idle') {
@@ -322,6 +365,7 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, defaultVehi
           <Text style={styles.buddySub}>
             ඔබගේ අලුත්වැඩියාව අයත්වන සේවා අංශය නොදනී නම්, OnBuddy ගේ සහයෙන් ඔබගේ සේවා අංශය සොයා ගන්න.
           </Text>
+          <Text style={styles.buddyCta}>විස්තරය ලියන්න ›</Text>
         </Pressable>
       );
     }
@@ -330,105 +374,159 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, defaultVehi
         <View style={styles.rowBetween}>
           <View style={styles.rowCenter}>
             <Text style={styles.buddyEmoji}>🤖</Text>
-            <Text style={[styles.buddyTitle, { color: Colors.textMain }]}>ONGARAGE BUDDY</Text>
+            <Text style={[styles.buddyTitle, { color: Colors.textMain }]}>OnBuddy</Text>
           </View>
-          <Pressable style={styles.pill} onPress={closeBuddy}>
-            <Text style={styles.pillText}>වසන්න</Text>
+          <Pressable style={styles.buddyCollapse} onPress={closeBuddy} accessibilityLabel="Collapse OnBuddy">
+            <Text style={styles.buddyCollapseText}>⌃</Text>
           </Pressable>
         </View>
 
-        <TextInput
-          style={styles.buddyInput}
-          multiline
-          autoFocus={buddy === 'input'}
-          placeholder='උදා: "ධාවනය කරන විට එන්ජින් කොටසින් ගැටෙන ශබ්දයක් ඇසේ"'
-          placeholderTextColor={Colors.textMuted}
-          value={buddyInput}
-          onChangeText={setBuddyInput}
-        />
-        <View style={styles.rowBetween}>
-          <Pressable style={[styles.micBtn, listening && styles.micBtnOn]} onPress={listening ? () => setListening(false) : startVoice}>
-            <Text style={styles.micText}>🎙️</Text>
-          </Pressable>
+        {buddy === 'input' && (
+        <>
+        <Text style={styles.buddyHint}>AI සහායක: විස්තරය ලියන්න, අපි සේවා අංශය යෝජනා කරමු.</Text>
+        <Text style={styles.buddyExample}>උදා: "එන්ජින් ශබ්දයක්"</Text>
+        {/* One input: the text on top, and one toolbar under it: the voice on the left, the analyse button on the right, the same height. */}
+        <View style={[styles.buddyField, buddyFocus && styles.buddyFieldFocus]}>
+          <TextInput
+            style={[styles.buddyInput, NO_FOCUS_RING]}
+            multiline
+            autoFocus={buddy === 'input'}
+            placeholder="විස්තරය මෙහි ලියන්න"
+            placeholderTextColor={Colors.textSoft}
+            value={buddyInput}
+            onChangeText={setBuddyInput}
+            onFocus={() => setBuddyFocus(true)}
+            onBlur={() => setBuddyFocus(false)}
+          />
+          {/* The listening status has its own line, so the toolbar never has to fit it. */}
           {listening && (
-            <View style={styles.rowCenter}>
-              <ActivityIndicator size="small" color={Colors.error} />
-              <Text style={[styles.hint, { color: Colors.errorText }]}>සවන් දෙමින්...</Text>
+            <View style={styles.listenRow}>
+              <View style={styles.listenDot} />
+              <Text style={styles.listenText}>සවන් දෙමින්...</Text>
             </View>
           )}
-          <Pressable style={styles.analyzeBtn} onPress={() => analyze(buddyInput)}>
-            <Gradient stops={GRADIENTS.issue} />
-            <Text style={styles.analyzeText}>විශ්ලේෂණය කරන්න</Text>
-          </Pressable>
+          <View style={styles.buddyToolbar}>
+            <View style={styles.micWrap}>
+              {listening && (
+                <Animated.View
+                  pointerEvents="none"
+                  style={[
+                    styles.micRing,
+                    {
+                      transform: [{ scale: micPulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.7] }) }],
+                      opacity: micPulse.interpolate({ inputRange: [0, 1], outputRange: [0.6, 0] }),
+                    },
+                  ]}
+                />
+              )}
+              <Pressable
+                style={[styles.micBtn, listening && styles.micBtnOn]}
+                onPress={listening ? () => setListening(false) : startVoice}
+                accessibilityLabel={listening ? 'Stop recording' : 'Voice input'}
+              >
+                <Text style={[styles.micText, listening && styles.micStop]}>{listening ? '■' : '🎙️'}</Text>
+              </Pressable>
+            </View>
+            {listening && (
+              <View style={styles.waveRow}>
+                {[0, 1, 2, 3, 4].map((i) => (
+                  <Animated.View
+                    key={i}
+                    style={[
+                      styles.waveBar,
+                      {
+                        transform: [
+                          {
+                            scaleY: wave.interpolate(
+                              i % 2 === 0 ? { inputRange: [0, 0.5, 1], outputRange: [0.3, 1, 0.3] } : { inputRange: [0, 0.5, 1], outputRange: [1, 0.3, 1] }
+                            ),
+                          },
+                        ],
+                      },
+                    ]}
+                  />
+                ))}
+              </View>
+            )}
+            <View style={styles.flex1} />
+            <Pressable style={[styles.analyzeBtn, !buddyReady && styles.analyzeOff]} disabled={!buddyReady} onPress={() => analyze(buddyInput)} accessibilityState={{ disabled: !buddyReady }}>
+              {buddyReady && <Gradient stops={GRADIENTS.issue} />}
+              <Text style={[styles.analyzeText, !buddyReady && { color: Colors.textSoft }]}>{buddyReady ? 'විශ්ලේෂණය කරන්න' : 'විස්තරයක් ලියන්න'}</Text>
+            </Pressable>
+          </View>
         </View>
+        </>
+        )}
+        {buddy !== 'input' && (
+          <View style={styles.summaryBox}>
+            <Text style={styles.summaryText}>{buddyInput}</Text>
+            {buddy !== 'analyzing' && (
+              <Pressable style={styles.summaryEditPill} onPress={editDescription} accessibilityLabel="Edit the description">
+                <Text style={styles.summaryEdit}>✎ සංස්කරණය</Text>
+              </Pressable>
+            )}
+          </View>
+        )}
 
         {buddy === 'analyzing' && (
           <View style={[styles.rowCenter, styles.buddyStatus]}>
             <ActivityIndicator size="small" color={Colors.primary} />
-            <Text style={styles.hint}>OnGarage Buddy සිතමින් පවතී...</Text>
+            <Text style={styles.hint}>OnBuddy සිතමින් පවතී...</Text>
           </View>
         )}
 
-        {buddy === 'questions' && profile && (
-          <View style={styles.questions}>
-            <View style={styles.chipRow}>
-              <View style={[styles.metaChip, { backgroundColor: 'rgba(56, 189, 248, 0.15)' }]}>
-                <Text style={[styles.metaChipText, { color: Colors.primary }]}>
-                  {recommended?.icon} {recommended?.name}
-                </Text>
-              </View>
-              <View style={styles.metaChip}>
-                <Text style={styles.metaChipText}>Offline ගැලපීම · {Math.round(confidence * 100)}% විශ්වාසයි</Text>
-              </View>
-            </View>
-            {confidence < 0.5 && <Text style={[styles.hint, { color: Colors.warning }]}>තවම සම්පූර්ණයෙන් විශ්වාස නැත — ඔබගේ පිළිතුරු මගින් එය නිවැරදි වනු ඇත.</Text>}
-            {profile.unsafe && (
-              <View style={styles.safety}>
-                <Text style={styles.safetyTitle}>⚠️ මෙම තත්ත්වයෙන් වාහනය ධාවනය කිරීම අනාරක්ෂිත විය හැක.</Text>
-                <Pressable onPress={onOpenSOS}>
-                  <Text style={styles.safetyAction}>දැන්ම මාර්ග ආධාර (SOS) ලබා ගන්න →</Text>
-                </Pressable>
-              </View>
-            )}
-            {profile.questions.map((q, i) => (
-              <View key={q.id} style={styles.question}>
-                <Text style={styles.questionText}>
-                  {i + 1}. {q.question}
-                </Text>
-                <View style={styles.chipRow}>
-                  {q.options.map((opt) => {
-                    const active = answers[q.id] === opt;
-                    return (
-                      <Pressable key={opt} style={[styles.option, active && styles.optionActive]} onPress={() => setAnswers((a) => ({ ...a, [q.id]: opt }))}>
-                        <Text style={[styles.optionText, active && styles.optionTextActive]}>{opt}</Text>
-                      </Pressable>
-                    );
-                  })}
+        {buddy === 'questions' && profile && (() => {
+          const q = profile.questions[qIndex];
+          const total = profile.questions.length;
+          return (
+            <View style={styles.questions}>
+              {profile.unsafe && (
+                <View style={styles.safety}>
+                  <Text style={styles.safetyTitle}>⚠️ මෙම තත්ත්වයෙන් වාහනය ධාවනය කිරීම අනාරක්ෂිත විය හැක.</Text>
+                  <Pressable onPress={onOpenSOS}>
+                    <Text style={styles.safetyAction}>දැන්ම මාර්ග ආධාර (SOS) ලබා ගන්න →</Text>
+                  </Pressable>
                 </View>
+              )}
+              <Text style={styles.qProgress}>{`${qIndex + 1}/${total}`}</Text>
+              <Text style={styles.questionText}>{q.question}</Text>
+              <View style={styles.optionGrid}>
+                {q.options.map((opt) => {
+                  const active = answers[q.id] === opt;
+                  return (
+                    <Pressable key={opt} style={[styles.option, styles.optionCell, active && styles.optionActive]} onPress={() => pickAnswer(q.id, opt, total)}>
+                      <Text style={[styles.optionText, active && styles.optionTextActive]}>{opt}</Text>
+                    </Pressable>
+                  );
+                })}
               </View>
-            ))}
-            <ActionButton label="නිර්දේශිත සේවාව ලබා ගන්න" variant="primary" disabled={!allAnswered} onPress={() => setBuddy('result')} />
-          </View>
-        )}
+              {qIndex > 0 && (
+                <Pressable onPress={() => setQIndex(qIndex - 1)} accessibilityLabel="Previous question">
+                  <Text style={styles.summaryEdit}>‹ ආපසු</Text>
+                </Pressable>
+              )}
+            </View>
+          );
+        })()}
 
         {buddy === 'result' && profile && (
           <View style={styles.resultCard}>
-            <Gradient stops={GRADIENTS.brand} />
-            <Text style={styles.resultTitle}>✓ Buddy ගේ නිර්දේශය</Text>
+            <Text style={styles.resultTitle}>✓ OnBuddy ගේ නිර්දේශය</Text>
+            <Text style={styles.resultHead}>
+              {recommended?.icon} {(recommended && shortCategoryName(recommended.id)) ?? recommended?.name}
+            </Text>
             <Text style={styles.resultText}>{profile.summary}</Text>
-            <View style={styles.rowBetween}>
-              <Text style={styles.resultLabel}>නිර්දේශිත සේවාව</Text>
-              <Text style={styles.resultValue}>
-                {recommended?.icon} {recommended?.name}
-              </Text>
+            <View style={styles.resultMeta}>
+              <View style={styles.resultChip}>
+                <Text style={styles.resultChipText}>{confidenceWord}</Text>
+              </View>
             </View>
-            <View style={styles.rowBetween}>
-              <Text style={styles.resultLabel}>අවශ්‍ය කාර්මිකයා</Text>
-              <Text style={styles.resultValue}>{profile.technician}</Text>
+            {/* The technician needed gets its own line, so a long name wraps inside the card. */}
+            <View style={styles.resultTech}>
+              <Text style={styles.resultTechLabel}>අවශ්‍ය කාර්මිකයා</Text>
+              <Text style={styles.resultTechValue}>{profile.technician}</Text>
             </View>
-            <Pressable style={styles.resultBtn} onPress={applyRecommendation}>
-              <Text style={styles.resultBtnText}>මෙම සේවාව භාවිතා කරන්න</Text>
-            </Pressable>
+            {confidence < 0.5 && <Text style={[styles.hint, { color: '#92400e' }]}>තවම සම්පූර්ණයෙන් විශ්වාස නැත — ඔබගේ තේරීම සහතික කරන්න.</Text>}
           </View>
         )}
       </View>
@@ -464,38 +562,49 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, defaultVehi
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <View style={styles.header}>
-        <Gradient stops={GRADIENTS.bid} />
-        <GlassIcon emoji="🔨" small />
-        <View style={styles.flex1}>
-          <Text style={styles.headerTitle}>{draft?.replacesJobId ? 'රැකියාව නැවත පළ කරන්න' : 'අලුත්වැඩියා රැකියාවක් පළ කරන්න'}</Text>
-          <Text style={styles.headerSub}>රැකියා විස්තර</Text>
+        <View style={styles.topRow}>
+          <Pressable style={styles.topRoundBtn} onPress={onClose} accessibilityLabel="Close">
+            <Text style={styles.topRoundText}>✕</Text>
+          </Pressable>
+          <View style={styles.topPill}>
+            <View style={styles.topPillIcon}>
+              <Text style={styles.topPillEmoji}>🔨</Text>
+            </View>
+            <View style={styles.flex1}>
+              <Text style={styles.topPillTitle} numberOfLines={1}>{draft?.replacesJobId ? 'Ongarage රැකියාව නැවත පළ කරන්න' : 'Ongarage රැකියාව'}</Text>
+              <View style={styles.topPillRow}>
+                <Text style={styles.topPillCount}>{`${tabIndex + 1}/${ORDER.length}`}</Text>
+                <Text style={styles.topPillSub} numberOfLines={1}>{TAB_LABEL[tab]}</Text>
+              </View>
+            </View>
+          </View>
+          <View style={styles.topSlot} />
         </View>
-        <Pressable style={styles.closeBtn} onPress={onClose}>
-          <Text style={styles.closeText}>✕</Text>
-        </Pressable>
       </View>
 
+      <View style={styles.postSheet}>
+        <View style={styles.handle} />
+        <View style={styles.progressWrap}>
+          <View style={styles.progressRow}>
+            {/* Coloured by position, as in the SOS flow: the steps reached are red, the rest grey (a finished step does not change the colour). */}
+            {ORDER.map((id, i) => (
+              <Pressable key={id} style={styles.progressSeg} onPress={() => setTab(id)} accessibilityLabel={TAB_LABEL[id]}>
+                <View style={[styles.progressBar, i <= tabIndex && styles.progressBarOn]} />
+              </Pressable>
+            ))}
+          </View>
+        </View>
       <ScrollView style={styles.flex1} contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-        <FormTabs
-          active={tab}
-          onChange={(id) => setTab(id as typeof tab)}
-          tabs={[
-            { id: 'service', label: 'සේවාව', done: tabDone.service },
-            { id: 'details', label: 'විස්තර', done: tabDone.details },
-            { id: 'parts', label: 'කොටස්', done: tabDone.parts },
-            { id: 'vehicle', label: 'වාහනය', done: tabDone.vehicle },
-            { id: 'timer', label: 'කාලය', done: tabDone.timer },
-          ]}
-        />
 
         {tab === 'service' && (
           <>
         {renderBuddy()}
 
-        <StepCard step={1} title={`සේවා අංශය`} done={categoryId !== null} hint={`${SERVICE_CATEGORIES.length} අංශ`}>
+        <StepCard step={1} title={`සේවා අංශය`} done={categoryId !== null} hint={`${SERVICE_CATEGORIES.length} අංශ`} requiredNote="පහළින් තෝරන්න">
           {/* The same tiles as the Home screen's categories. */}
           {/* Only what can be bid for: not fuel stations, not towing (those are found and booked, see the service mode). */}
           <CategoryStrip
+            suggestedId={profile?.categoryId ?? null}
             include={(id) => bidSubServices(id).length > 0}
             onSelect={(c) => {
               setCategoryId(c.id);
@@ -541,7 +650,7 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, defaultVehi
           <>
         <StepCard step={2} title="ගැටලුව / සේවාව විස්තර කරන්න" done={problemTold(description, voiceNotes)}>
           <TextInput
-            style={styles.textArea}
+            style={[styles.textArea, { height: descriptionH }]}
             multiline
             placeholder="ඔබට අවශ්‍ය සේවාව හෝ ගැටලුව විස්තර කරන්න..."
             placeholderTextColor={Colors.textMuted}
@@ -566,10 +675,10 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, defaultVehi
             </View>
           )}
           <View style={{ gap: 2 }}>
-            <Text style={styles.eyebrow}>ඡායාරූප සහ හඬ සටහන්</Text>
+            <Text style={styles.eyebrow}>ඡායාරූප සහ හඬ සටහන් (විකල්පයි)</Text>
             <View style={{ gap: 2 }}>
-              <Text style={styles.hint}>• ඡායාරූප විකල්පයි</Text>
-              <MixedText text="• විස්තරයක් නැති විට recording එකක් ප්‍රමාණවත්ය" style={styles.hint} />
+              <Text style={[styles.hint, { color: Colors.textSoft }]}>• ඡායාරූප විකල්පයි</Text>
+              <Text style={[styles.hint, { color: Colors.textSoft }]}>• විස්තරයක් නැති විට හඬ සටහනක් ප්‍රමාණවත්ය</Text>
             </View>
           </View>
           <MediaAttachments photos={photos} voiceNotes={voiceNotes} onPhotos={setPhotos} onVoiceNotes={setVoiceNotes} />
@@ -590,8 +699,10 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, defaultVehi
               );
             })}
           </View>
+          <Text style={styles.partHelp}>මුල් = වාහන නිෂ්පාදකයාගේ කොටස · වෙළඳපල = වෙනත් නිෂ්පාදකයෙකුගේ කොටස</Text>
         </StepCard>
 
+        {/* The place the vehicle is repaired at: where it is, and the map to see it. */}
         <StepCard step={4} title="සේවා ස්ථානය" done optional>
           <View>
             {renderMap(styles.map, 14)}
@@ -603,14 +714,17 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, defaultVehi
           <Text style={styles.hint} numberOfLines={2}>
             📍 {user.address} · ආසන්නයේ ගරාජ {MOCK_GARAGES.length}ක්
           </Text>
-          <Pressable style={[styles.toggleRow, doorstep && styles.toggleRowOn]} onPress={() => setDoorstep((d) => !d)}>
+        </StepCard>
+
+        <StepCard step={5} title="පැමිණෙන ආකාරය" done optional>
+          <View style={[styles.toggleRow, doorstep && styles.toggleRowOn]}>
             <GlassIcon emoji="🚛" small />
             <View style={styles.flex1}>
               <Text style={styles.cardTitle}>නිවසටම පැමිණ රැගෙන යාම</Text>
               <Text style={styles.cardSub}>ගරාජයෙන් පැමිණ වාහනය රැගෙන ගොස් අලුත්වැඩියා කර නැවත ගෙනැවිත් දෙයි.</Text>
             </View>
-            <View style={[styles.check, doorstep && styles.checkOn]}>{doorstep && <Text style={styles.checkMark}>✓</Text>}</View>
-          </Pressable>
+            <Switch value={doorstep} onValueChange={setDoorstep} trackColor={{ false: Colors.subtleBorder, true: '#1a73e8' }} accessibilityLabel="Collect from my home" />
+          </View>
         </StepCard>
 
           </>
@@ -632,9 +746,12 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, defaultVehi
           </>
         )}
       </ScrollView>
+      </View>
 
       <View style={styles.footer}>
-        {lastTab ? (
+        {buddy === 'result' && profile && recommended ? (
+          <ActionButton label="මෙම සේවාව භාවිතා කරන්න" variant="primary" onPress={applyRecommendation} />
+        ) : lastTab ? (
           <ActionButton
             label={isComplete ? 'ඊළඟ: රැකියාව ගරාජ වෙත යොමු කරන්න →' : 'ඉතිරි තොරතුරු සම්පූර්ණ කරන්න ›'}
             variant="primary"
@@ -642,7 +759,12 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, defaultVehi
             onPress={() => (isComplete ? submit() : firstMissing && setTab(firstMissing))}
             />
         ) : (
-          <ActionButton label="ඊළඟ ›" variant="primary" disabled={!tabDone[tab]} onPress={next} />
+          <ActionButton
+            label={tabDone[tab] ? 'ඊළඟ ›' : tab === 'service' ? 'සේවා අංශයක් තෝරන්න' : 'අවශ්‍ය තොරතුරු පුරවන්න'}
+            variant="primary"
+            disabled={!tabDone[tab]}
+            onPress={next}
+          />
         )}
       </View>
 
@@ -670,6 +792,8 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, defaultVehi
 // Soft shadow in place of an outline, like Home and the other tabs.
 // Day theme: cards and fields get a visible edge so they stand out clearly on the light page.
 const isDay = () => getThemeMode() !== 'dark';
+// The browser draws its own focus ring on text fields; the field's blue border replaces it.
+const NO_FOCUS_RING = { outlineStyle: 'none' } as unknown as TextStyle;
 const cardEdge = () => (isDay() ? '#cfd8e3' : Colors.borderColor);
 const fieldFill = () => (isDay() ? '#f4f7fb' : Colors.subtleFill);
 const fieldEdge = () => (isDay() ? '#b9c6d6' : 'transparent');
@@ -677,23 +801,37 @@ const SOFT_SHADOW = { shadowColor: '#0f172a', shadowOffset: { width: 0, height: 
 
 const styles = themedStyles(() => StyleSheet.create({
   container: { flex: 1, backgroundColor: pageBg() },
+  postSheet: { flex: 1, marginTop: -24, backgroundColor: pageBg(), borderTopLeftRadius: 28, borderTopRightRadius: 28, overflow: 'hidden', shadowColor: '#3c4043', shadowOffset: { width: 0, height: -2 }, shadowOpacity: 0.14, shadowRadius: 8, elevation: 8 },
+  handle: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: Colors.subtleBorder, marginTop: 10 },
   flex1: { flex: 1 },
   rowCenter: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: 'column',
+    alignItems: 'stretch',
     gap: 10,
     paddingHorizontal: 16,
     paddingVertical: 9,
     overflow: 'hidden',
-    paddingTop: 14,
-    paddingBottom: 18,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
+    paddingTop: 12,
+    // The same room under the pill as the SOS band: the sheet rises about 42px below it.
+    paddingBottom: 68,
+    // The SOS band's red (#7f1d1d: saturation 63%, lightness 31%) carried over to blue, at the same saturation and lightness.
+    backgroundColor: '#1d367f',
   },
   headerTitle: { fontSize: 16, fontFamily: FONTS.titleBold, color: '#fff', lineHeight: 21 },
   headerSub: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: '#dbeafe', marginTop: 2 },
+  topRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  topRoundBtn: { width: 46, height: 46, borderRadius: 23, backgroundColor: Colors.bgCard, justifyContent: 'center', alignItems: 'center' },
+  topRoundText: { fontSize: 16, fontWeight: '700', color: Colors.textMain },
+  topSlot: { width: 46 },
+  topPill: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, height: 52, paddingLeft: 6, paddingRight: 16, borderRadius: 26, backgroundColor: Colors.bgCard },
+  topPillIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: getThemeMode() === 'dark' ? 'rgba(59, 130, 246, 0.18)' : '#dbeafe', justifyContent: 'center', alignItems: 'center' },
+  topPillEmoji: { fontSize: 18 },
+  topPillTitle: { fontSize: 13.5, fontFamily: FONTS.titleBold, color: Colors.textMain },
+  topPillRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 },
+  topPillCount: { fontSize: 10.5, fontFamily: FONTS.bodyBold, color: '#1d4ed8', paddingHorizontal: 7, paddingVertical: 1, borderRadius: 8, overflow: 'hidden', backgroundColor: '#dbeafe' },
+  topPillSub: { flexShrink: 1, fontSize: 12, fontFamily: FONTS.bodyRegular, color: Colors.textSoft },
   closeBtn: {
     width: 32,
     height: 32,
@@ -716,7 +854,7 @@ const styles = themedStyles(() => StyleSheet.create({
   stepCard: { backgroundColor: Colors.bgCard, borderRadius: 12, borderWidth: 1, borderColor: outline(), ...elevation1(), padding: 16, gap: 12 },
   stepHead: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   stepBadge: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.primary },
-  stepBadgeDone: { backgroundColor: Colors.success },
+  stepBadgeDone: { backgroundColor: '#1a73e8' },
   stepBadgeText: { fontSize: 17, fontFamily: FONTS.titleBold, color: '#ffffff' },
   stepBadgeTextDone: { color: '#ffffff', fontSize: 18 },
   stepTitle: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textMain },
@@ -730,9 +868,9 @@ const styles = themedStyles(() => StyleSheet.create({
   sectionLabel: { fontSize: 14, fontFamily: FONTS.bodyBold, color: Colors.primary, letterSpacing: 0.2, marginTop: 6 },
   // A mandatory field: a tinted pill with an asterisk, which turns into a green tick once the step is filled in.
   requiredPill: { alignSelf: 'flex-start', paddingHorizontal: 9, paddingVertical: 3, borderRadius: 10, backgroundColor: getThemeMode() === 'dark' ? 'rgba(245, 158, 11, 0.16)' : '#fef3c7', borderWidth: 1, borderColor: getThemeMode() === 'dark' ? 'rgba(245, 158, 11, 0.4)' : '#f59e0b' },
-  requiredPillDone: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(74, 222, 128, 0.14)' : '#dcfce7', borderColor: '#16a34a' },
+  requiredPillDone: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(59, 130, 246, 0.18)' : '#dbeafe', borderColor: '#1a73e8' },
   requiredText: { fontSize: 12, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? Colors.warning : '#92400e' },
-  requiredTextDone: { color: getThemeMode() === 'dark' ? '#4ade80' : '#166534' },
+  requiredTextDone: { color: getThemeMode() === 'dark' ? '#93c5fd' : '#1d4ed8' },
   hint: { fontSize: 12, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 18 },
   card: { backgroundColor: Colors.bgCard, borderRadius: 12, borderWidth: 1, borderColor: outline(), ...elevation1(), padding: 16, gap: 12 },
   cardActive: { borderWidth: 1, borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#d2e3fc', backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe' },
@@ -744,14 +882,48 @@ const styles = themedStyles(() => StyleSheet.create({
   buddyOpen: { borderColor: 'rgba(56, 189, 248, 0.5)', backgroundColor: 'rgba(14, 165, 233, 0.08)' },
   buddyEmoji: { fontSize: 22 },
   buddyTitle: { fontSize: 14, fontFamily: FONTS.bodyBold, color: '#fff', letterSpacing: 0.3 },
+  buddyCta: { alignSelf: 'flex-start', marginTop: 4, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14, overflow: 'hidden', backgroundColor: 'rgba(255, 255, 255, 0.2)', fontSize: 13, fontFamily: FONTS.bodyBold, color: '#fff' },
   buddySub: { fontSize: 12.5, fontFamily: FONTS.bodyRegular, color: '#ffffff', lineHeight: 19 },
   pill: { paddingHorizontal: 12, height: 28, justifyContent: 'center', borderRadius: 8, backgroundColor: Colors.subtleFill },
   pillText: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
+  buddyField: { position: 'relative', borderWidth: 1.5, borderColor: '#bfdbfe', borderRadius: 14, padding: 10, minHeight: 120, backgroundColor: Colors.bgCard },
+  buddyExample: { fontSize: 12.5, fontFamily: FONTS.bodyRegular, color: Colors.textSoft, marginTop: -4 },
+  buddyToolbar: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 },
+  // The toolbar's two actions keep their size; the spacer takes the rest, so nothing can push the button out of the box.
+  micWrap: { width: 40, height: 40, flexShrink: 0, justifyContent: 'center', alignItems: 'center' },
+  micRing: { position: 'absolute', width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(239, 68, 68, 0.35)' },
+  micStop: { fontSize: 14, color: Colors.error },
+  waveRow: { flexDirection: 'row', alignItems: 'center', gap: 3, height: 24 },
+  waveBar: { width: 3, height: 22, borderRadius: 2, backgroundColor: Colors.error },
+  listenRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 },
+  listenDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: Colors.error },
+  listenText: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.errorText },
+  analyzeOff: { backgroundColor: Colors.subtleBorder },
+  buddyFieldFocus: { borderColor: '#1a73e8' },
+  buddyCollapse: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(100, 116, 139, 0.14)' },
+  buddyCollapseText: { fontSize: 18, fontFamily: FONTS.bodyBold, color: Colors.textMain },
+  progressWrap: { gap: 6, paddingHorizontal: 4, marginBottom: 8 },
+  progressRow: { flexDirection: 'row', gap: 6 },
+  progressSeg: { flex: 1, paddingVertical: 6 },
+  progressBar: { height: 6, borderRadius: 3, backgroundColor: Colors.subtleBorder },
+  progressBarOn: { backgroundColor: '#1a73e8' },
+  progressText: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.textSoft, textAlign: 'center' },
+  buddyInputRoom: { minHeight: 72 },
   buddyInput: { minHeight: 56, color: Colors.textMain, fontSize: 14, fontFamily: FONTS.bodyRegular, textAlignVertical: 'top', paddingVertical: 4 },
   micBtn: { width: 40, height: 40, borderRadius: 20, ...glassStyle(), justifyContent: 'center', alignItems: 'center' },
   micBtnOn: { backgroundColor: 'rgba(239, 68, 68, 0.35)', borderColor: Colors.error },
   micText: { fontSize: 17 },
-  analyzeBtn: { paddingHorizontal: 18, paddingVertical: 10, borderRadius: 20, overflow: 'hidden' },
+  buddyHint: { fontSize: 12.5, fontFamily: FONTS.bodyRegular, color: Colors.textSoft, lineHeight: 18 },
+  qProgress: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.textSoft },
+  optionGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  optionCell: { width: '48%', justifyContent: 'center', alignItems: 'center', paddingVertical: 12, borderRadius: 12 },
+  summaryBox: { borderRadius: 14, padding: 12, gap: 6, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: '#bfdbfe' },
+  summaryText: { fontSize: 14, fontFamily: FONTS.bodyRegular, color: Colors.textMain, lineHeight: 20 },
+  summaryEdit: { fontSize: 13, fontFamily: FONTS.bodyBold, color: '#1d4ed8' },
+  summaryEditPill: { alignSelf: 'flex-end', minHeight: 36, paddingHorizontal: 14, justifyContent: 'center', borderRadius: 18, borderWidth: 1, borderColor: '#93c5fd', backgroundColor: '#eff6ff' },
+  resultHead: { fontSize: 22, fontFamily: FONTS.titleBold, color: Colors.textMain, marginTop: 4 },
+  resultMeta: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  analyzeBtn: { flexShrink: 0, paddingHorizontal: 18, paddingVertical: 10, borderRadius: 20, overflow: 'hidden' },
   analyzeText: { fontSize: 12, fontFamily: FONTS.bodyBold, color: '#fff' },
   buddyStatus: { paddingTop: 4 },
   questions: { gap: 12 },
@@ -764,12 +936,18 @@ const styles = themedStyles(() => StyleSheet.create({
   question: { gap: 6 },
   questionText: { fontSize: 14, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
   option: { paddingHorizontal: 14, height: 32, justifyContent: 'center', borderRadius: 8, borderWidth: 1, borderColor: outline(), backgroundColor: Colors.bgCard },
-  optionActive: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe', borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#d2e3fc' },
+  optionActive: { backgroundColor: '#1d4ed8', borderColor: '#1d4ed8' },
   optionText: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textSoft },
-  optionTextActive: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
-  resultCard: { borderRadius: 12, padding: 16, gap: 8, overflow: 'hidden', backgroundColor: '#059669' },
-  resultTitle: { fontSize: 14, fontFamily: FONTS.titleBold, color: '#fff' },
-  resultText: { fontSize: 12, fontFamily: FONTS.bodyRegular, color: 'rgba(255, 255, 255, 0.9)' },
+  optionTextActive: { color: '#ffffff' },
+  // A light card with a green edge: dark text on white reads clearly, where white on green did not.
+  resultCard: { borderRadius: 14, padding: 16, gap: 8, overflow: 'hidden', backgroundColor: Colors.bgCard, borderWidth: 1.5, borderColor: '#93c5fd' },
+  resultTitle: { fontSize: 14, fontFamily: FONTS.titleBold, color: '#1d4ed8' },
+  resultText: { fontSize: 13.5, lineHeight: 20, fontFamily: FONTS.bodyRegular, color: Colors.textMain },
+  resultChip: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, backgroundColor: '#dbeafe' },
+  resultTech: { gap: 2 },
+  resultTechLabel: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textSoft },
+  resultTechValue: { fontSize: 14, fontFamily: FONTS.bodyBold, color: Colors.textMain, lineHeight: 20 },
+  resultChipText: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: '#1e3a8a' },
   resultLabel: { fontSize: 11.5, fontFamily: FONTS.bodyRegular, color: 'rgba(255, 255, 255, 0.75)' },
   resultValue: { fontSize: 12, fontFamily: FONTS.bodyBold, color: '#fff', flexShrink: 1, textAlign: 'right' },
   resultBtn: { marginTop: 4, paddingVertical: 11, borderRadius: 12, alignItems: 'center', backgroundColor: 'rgba(255, 255, 255, 0.22)' },
@@ -787,10 +965,11 @@ const styles = themedStyles(() => StyleSheet.create({
   textArea: { minHeight: 88, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), borderRadius: 8, padding: 16, color: Colors.textMain, fontSize: 14, fontFamily: FONTS.bodyRegular, textAlignVertical: 'top' },
   choiceGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   choice: { width: '48.5%', flexGrow: 1, height: 44, justifyContent: 'center', borderRadius: 8, borderWidth: 1, borderColor: outline(), backgroundColor: Colors.bgCard, alignItems: 'center' },
-  choiceActive: { borderWidth: 1, borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#d2e3fc', backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe' },
+  choiceActive: { borderWidth: 1, borderColor: '#1d4ed8', backgroundColor: '#1d4ed8' },
   choiceText: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textSoft },
-  choiceTextActive: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8', fontFamily: FONTS.bodyBold },
-  map: { height: 96, borderRadius: 12, overflow: 'hidden', borderWidth: 1, borderColor: outline() },
+  choiceTextActive: { color: '#ffffff', fontFamily: FONTS.bodyBold },
+  partHelp: { fontSize: 12.5, fontFamily: FONTS.bodyRegular, color: Colors.textSoft, lineHeight: 18 },
+  map: { height: 72, borderRadius: 12, overflow: 'hidden', borderWidth: 1, borderColor: outline() },
   mapBig: { height: 360, borderRadius: 12, overflow: 'hidden' },
   mapHint: { position: 'absolute', right: 8, bottom: 8, paddingHorizontal: 10, height: 24, borderRadius: 12, justifyContent: 'center', backgroundColor: 'rgba(15, 23, 42, 0.7)' },
   mapHintText: { fontSize: 10.5, fontFamily: FONTS.bodyBold, color: '#fff' },

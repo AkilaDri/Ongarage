@@ -73,7 +73,7 @@ export const MediaAttachments: React.FC<{
         accessibilityLabel={recording ? 'Stop recording' : 'Record voice note'}
       >
         <Text style={[styles.recordText, recording && { color: '#fff' }]}>
-          {recording ? `⏹ නවත්වන්න · 0:${String(seconds).padStart(2, '0')} / 0:${MAX_VOICE_SEC}` : `🎙️ හඬ සටහනක් පටිගත කරන්න (තත්. ${MAX_VOICE_SEC} දක්වා)`}
+          {recording ? `⏹ නවත්වන්න · 0:${String(seconds).padStart(2, '0')} / 0:${MAX_VOICE_SEC}` : `🎙️ හඬ සටහනක් පටිගත කරන්න (තත්පර ${MAX_VOICE_SEC} දක්වා)`}
         </Text>
       </Pressable>
     </View>
@@ -88,8 +88,8 @@ const styles = themedStyles(() =>
     voiceRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     removeBtn: { width: 30, height: 30, borderRadius: 15, backgroundColor: Colors.subtleFill, borderWidth: 1, borderColor: Colors.borderColor, justifyContent: 'center', alignItems: 'center' },
     removeText: { fontSize: 11, color: Colors.textMuted },
-    record: { paddingVertical: 12, paddingHorizontal: 14, borderRadius: 14, borderWidth: 1, borderColor: 'rgba(239, 68, 68, 0.45)', backgroundColor: 'rgba(239, 68, 68, 0.08)', alignItems: 'center' },
+    record: { paddingVertical: 12, paddingHorizontal: 14, borderRadius: 14, borderWidth: 1, borderColor: 'rgba(29, 78, 216, 0.45)', backgroundColor: 'rgba(29, 78, 216, 0.08)', alignItems: 'center' },
     recording: { backgroundColor: '#ef4444', borderColor: '#ef4444' },
-    recordText: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.errorText },
+    recordText: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: '#1d4ed8' },
   })
 );

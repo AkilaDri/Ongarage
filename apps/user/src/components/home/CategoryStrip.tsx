@@ -6,23 +6,26 @@ import { useRankedCategories } from '../../utils/rankedCategories';
 
 /** Each category's short name and the colour of its tile. */
 const SHOWN: { id: string; label: string; tint: string }[] = [
-  { id: '1', label: 'Mechanic', tint: '#6fb0ea' },
+  { id: '1', label: 'මැකනිකල්', tint: '#6fb0ea' },
   { id: '2', label: 'විදුලි', tint: '#e5b04b' },
   { id: '3', label: 'හයිබ්‍රිඩ්', tint: '#59b08c' },
   { id: '4', label: 'AC', tint: '#7ec8e8' },
   { id: '8', label: 'පින්තාරු', tint: '#6a7fe0' },
   { id: '9', label: 'සේදීම', tint: '#75c5d6' },
-  { id: '10', label: 'Tuning', tint: '#4f9f86' },
+  { id: '10', label: 'ටියුනින්', tint: '#4f9f86' },
   { id: '11', label: 'බැටරි', tint: '#e0a243' },
   { id: '6', label: 'ටයර්', tint: '#8c95a6' },
   { id: '7', label: 'බ්‍රේක්', tint: '#e5675f' },
   { id: '5', label: 'ස්කෑන්', tint: '#a676e0' },
-  { id: '12', label: 'Towing', tint: '#f0a45a' },
-  { id: '13', label: 'EV', tint: '#5fc27a' },
+  { id: '12', label: 'ටෝ', tint: '#f0a45a' },
+  { id: '13', label: 'ඉලෙක්ට්‍රික්', tint: '#5fc27a' },
   { id: '15', label: 'සවි කිරීම', tint: '#3fb5a8' },
   { id: '14', label: 'සේවාව', tint: '#9aa7b8' },
-  { id: '16', label: 'Fuel Station', tint: '#ef6b5f' },
+  { id: '16', label: 'ඉන්ධන', tint: '#ef6b5f' },
 ];
+
+/** The short name a category shows in the strip (used wherever the category is named, so the owner sees one name). */
+export const shortCategoryName = (categoryId: string): string | undefined => SHOWN.find((x) => x.id === categoryId)?.label;
 
 /** All the categories in two rows that slide sideways, the way PickMe's home shows its services: a big illustration on a soft pastel tile, the name under it. */
 export const CategoryStrip: React.FC<{
@@ -33,7 +36,11 @@ export const CategoryStrip: React.FC<{
   scrollHint?: boolean;
   /** Only the categories this accepts are shown (the forms leave out what cannot be bid for or booked with a garage). */
   include?: (categoryId: string) => boolean;
-}> = ({ onSelect, selectedId, scrollHint = true, include }) => {
+  /** 'strip' slides sideways (Home); 'grid' shows every category in three columns (the forms). */
+  layout?: 'strip' | 'grid';
+  /** The category an assistant suggested (OnBuddy): marked, but the owner still chooses. */
+  suggestedId?: string | null;
+}> = ({ onSelect, selectedId, scrollHint = true, include, layout = 'strip', suggestedId }) => {
   const scroller = useRef<ScrollView>(null);
   const [dims, setDims] = useState({ view: 0, content: 0, x: 0 });
   const nudge = useRef(new Animated.Value(0)).current;
@@ -56,6 +63,27 @@ export const CategoryStrip: React.FC<{
   const half = Math.ceil(list.length / 2);
   const columns = list.slice(0, half).map((x, i) => [x, list[half + i]].filter(Boolean) as typeof list);
 
+  const tile = (x: (typeof list)[number], grid = false) => {
+    const c = SERVICE_CATEGORIES.find((k) => k.id === x.id)!;
+    return (
+      <Pressable key={x.id} style={({ pressed }) => [styles.item, grid && styles.gridItem, pressed && styles.pressed]} onPress={() => onSelect(c)} accessibilityLabel={`Service ${c.name}`}>
+                <View style={[styles.box, { backgroundColor: x.tint + '26', borderColor: 'transparent' }, selectedId === x.id && styles.boxOn, suggestedId === x.id && styles.boxSuggested]}>
+                  <CategoryPhoto categoryId={c.id} size={62} />
+                </View>
+                {suggestedId === x.id && (
+                  <View style={styles.suggestBadge} accessibilityLabel="Suggested by OnBuddy">
+                    <Text style={styles.suggestBadgeText}>✨</Text>
+                  </View>
+                )}
+                <Text style={[styles.label, selectedId === x.id && styles.labelOn]} numberOfLines={1}>
+                  {x.label}
+                </Text>
+      </Pressable>
+    );
+  };
+
+  if (layout === 'grid') return <View style={styles.gridWrap}>{list.map((x) => tile(x, true))}</View>;
+
   const strip = (
     <ScrollView
       ref={scroller}
@@ -69,19 +97,7 @@ export const CategoryStrip: React.FC<{
     >
       {columns.map((col) => (
         <View key={col[0].id} style={styles.column}>
-          {col.map((x) => {
-            const c = SERVICE_CATEGORIES.find((k) => k.id === x.id)!;
-            return (
-              <Pressable key={x.id} style={({ pressed }) => [styles.item, pressed && styles.pressed]} onPress={() => onSelect(c)} accessibilityLabel={`Service ${c.name}`}>
-                <View style={[styles.box, { backgroundColor: x.tint + '26', borderColor: 'transparent' }, selectedId === x.id && styles.boxOn]}>
-                  <CategoryPhoto categoryId={c.id} size={62} />
-                </View>
-                <Text style={[styles.label, selectedId === x.id && styles.labelOn]} numberOfLines={1}>
-                  {x.label}
-                </Text>
-              </Pressable>
-            );
-          })}
+          {col.map((x) => tile(x))}
         </View>
       ))}
     </ScrollView>
@@ -118,10 +134,16 @@ const styles = themedStyles(() =>
     hintLeft: { left: 2 },
     hintArrow: { fontSize: 40, lineHeight: 40, color: '#ffffff', fontFamily: FONTS.bodyRegular, fontWeight: '200', textShadowColor: 'rgba(0, 0, 0, 0.65)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 6 },
     column: { gap: 12 },
+    gridWrap: { flexDirection: 'row', flexWrap: 'wrap', rowGap: 14 },
+    gridItem: { width: '33.33%' },
     item: { width: 74, alignItems: 'center', gap: 4 },
     // A square box round the icon: a soft tint of the category's colour, rounded corners, no border (only the chosen one in a form gets a blue ring).
     box: { width: 72, height: 72, borderRadius: 8, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
     boxOn: { borderWidth: 3, borderColor: '#1a73e8' },
+    // The assistant's suggestion: a dashed amber edge and a sparkle, so it is not mistaken for the owner's own choice (the blue ring).
+    boxSuggested: { borderWidth: 2, borderColor: '#f59e0b', borderStyle: 'dashed' },
+    suggestBadge: { position: 'absolute', top: -4, right: 4, width: 22, height: 22, borderRadius: 11, backgroundColor: '#fef3c7', alignItems: 'center', justifyContent: 'center', zIndex: 2 },
+    suggestBadgeText: { fontSize: 12 },
     labelOn: { color: '#1a73e8' },
     pressed: { opacity: 0.7, transform: [{ scale: 0.96 }] },
     // A fixed two-line height keeps every tile the same size, so the rows line up whether a name wraps or not.
