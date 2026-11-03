@@ -1234,9 +1234,28 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
             {job.mechanic} ඔබගේ {vehicle.name} අලුත්වැඩියා කරමින් සිටී.
           </Text>
         </View>
+        <Text style={[styles.sectionLabel, { color: Colors.textMain }]}>{profileOf(job).kind === 'garage' ? 'ඔබේ ගරාජයේ විස්තර' : 'ඔබේ කාර්මිකයාගේ විස්තර'}</Text>
+        <View style={styles.card}>
+          {profileBody(profileOf(job))}
+          <View style={styles.divider} />
+          <View style={styles.detailRow}>
+            <Text style={styles.detailIcon}>📞</Text>
+            <Text style={[styles.detailText, styles.flex1]}>{job.phone}</Text>
+            <Pressable style={styles.callBtn} onPress={() => Linking.openURL(`tel:${job.phone.replace(/\s/g, '')}`)} accessibilityLabel="Call connected">
+              <Text style={styles.callBtnText}>📞</Text>
+            </Pressable>
+          </View>
+          <View style={styles.detailRow}>
+            <Text style={styles.detailIcon}>💰</Text>
+            <View style={styles.flex1}>
+              <Text style={styles.statLabel}>ඇස්තමේන්තුගත අලුත්වැඩියා ගාස්තුව</Text>
+              <Text style={styles.estimateValue}>{money(job.bid)}</Text>
+            </View>
+          </View>
+        </View>
+
         <View style={styles.card}>
           <View style={styles.waitHead}>
-            <Text style={styles.waitTitle}>රැඳී සිටින්න…</Text>
             <Text style={styles.waitSub}>වැඩේ අවසන් වූ විට අපි ඔබට දැනුම් දෙන්නෙමු</Text>
           </View>
           <View style={styles.waitTrack} onLayout={(e) => setWaitBarW(e.nativeEvent.layout.width)}>
@@ -1251,23 +1270,6 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
 
         {renderPartCard()}
 
-        <Text style={styles.sectionLabel}>{profileOf(job).kind === 'garage' ? 'ඔබේ ගරාජයේ විස්තර' : 'ඔබේ කාර්මිකයාගේ විස්තර'}</Text>
-        <View style={styles.card}>
-          {profileBody(profileOf(job))}
-          <View style={styles.divider} />
-          <View style={styles.detailRow}>
-            <Text style={styles.detailIcon}>📞</Text>
-            <Text style={[styles.detailText, styles.flex1]}>{job.phone}</Text>
-            <Pressable style={styles.callBtn} onPress={() => Linking.openURL(`tel:${job.phone.replace(/\s/g, '')}`)} accessibilityLabel="Call connected">
-              <Text style={styles.callBtnText}>📞</Text>
-            </Pressable>
-          </View>
-          <View style={styles.detailRow}>
-            <Text style={styles.detailIcon}>💰</Text>
-            <Text style={styles.detailText}>එකඟ වූ ගාස්තුව: {money(job.bid)}</Text>
-          </View>
-        </View>
-
         <Pressable style={[styles.card, styles.rowCenter]} onPress={() => setShowTerms(true)} accessibilityLabel="SOS conditions">
           <GlassIcon emoji="📄" small />
           <View style={styles.flex1}>
@@ -1277,7 +1279,7 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
           <Text style={styles.chevron}>›</Text>
         </Pressable>
 
-        <Text style={styles.sectionLabel}>🚨 හදිසි ඇමතුම් අංක</Text>
+        <Text style={[styles.sectionLabel, { color: Colors.textMain }]}>🚨 හදිසි ඇමතුම් අංක</Text>
         <View style={styles.card}>
           {EMERGENCY_NUMBERS.map((e, i) => (
             <React.Fragment key={e.number}>
@@ -1466,7 +1468,7 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
 
         <ScrollView ref={sheetScroll} style={styles.flex1} contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
           {/* Once connected, whoever took the SOS stays at the top, one tap from their full profile. */}
-          {selected && CONNECTED_STEPS.includes(baseStep) && baseStep !== 'tracking' && baseStep !== 'arrived' && (
+          {selected && CONNECTED_STEPS.includes(baseStep) && baseStep !== 'tracking' && baseStep !== 'arrived' && baseStep !== 'repairing' && (
             <Pressable style={styles.connectedBar} onPress={() => setShowProfile(true)} accessibilityLabel="Open connected profile">
               <View style={[styles.avatar, styles.avatarSmall]}>
                 <Text style={styles.avatarEmojiSmall}>{profileOf(selected).kind === 'garage' ? '🛠️' : '👨‍🔧'}</Text>
@@ -1875,8 +1877,8 @@ const styles = themedStyles(() => StyleSheet.create({
   kittLight: { position: 'absolute', left: 0, top: 0, height: 8, borderRadius: 4, backgroundColor: '#ff2a2a' },
   kittHead: { backgroundColor: '#ff4d4d', shadowColor: '#ff2a2a', shadowOpacity: 0.9, shadowRadius: 6, shadowOffset: { width: 0, height: 0 }, elevation: 4 },
   emergencyIcon: { fontSize: 22, marginRight: 10 },
-  emergencyNumber: { paddingHorizontal: 12, paddingVertical: 5, borderRadius: 8, backgroundColor: '#dc2626' },
-  emergencyNumberText: { fontSize: 14, fontFamily: FONTS.titleBold, color: '#ffffff', letterSpacing: 0.5 },
+  emergencyNumber: { paddingHorizontal: 12, paddingVertical: 5, borderRadius: 8, backgroundColor: 'rgba(100, 116, 139, 0.14)' },
+  emergencyNumberText: { fontSize: 14, fontFamily: FONTS.titleBold, color: Colors.textMain, letterSpacing: 0.5 },
   termsSheet: { maxHeight: '80%' },
   termsScroll: { flexGrow: 0 },
   termRow: { flexDirection: 'row', gap: 10, paddingVertical: 6 },
