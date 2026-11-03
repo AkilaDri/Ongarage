@@ -88,8 +88,8 @@ const STEPS: { key: Step; label: string }[] = [
   { key: 'searching', label: 'ළඟම ගරාජ සෙවීම' },
   // Choosing from the nearby list (when nobody answered) and being connected are the same segment of the stepper.
   // Being connected (and picking from the nearby list) and watching them come are one window: the map, their profile and the ETA.
+  // Arrival is a moment inside the same window (the card changes), not a step of its own.
   { key: 'tracking', label: 'කාර්මිකයා පැමිණිමින්' },
-  { key: 'arrived', label: 'කාර්මිකයා පැමිණියා' },
   { key: 'repairing', label: 'අලුත්වැඩියාව' },
   { key: 'repairCompleteNotice', label: 'අවසන් බව දැනුම්දීම' },
   { key: 'qrScan', label: 'QR ස්කෑන්' },
@@ -239,6 +239,8 @@ const RADIUS_STEP_KM = 1;
 // Call-out fee paid to the technician for travelling to the breakdown (OnGarage
 // approved); due even if no repair is needed. A wider search means farther travel.
 const BASE_FEE = 500;
+// "රු." and the amount stay on one line in running text (no break between them).
+const feeText = () => money(BASE_FEE).replace(' ', '\u00A0');
 const SURCHARGE_STEP = 250;
 /** The call-out fee for a helper that is `km` away: OnGarage's Rs. 500, plus Rs. 250 for every km the search had to be widened beyond the first one. */
 const calloutFeeFor = (km: number) => BASE_FEE + Math.max(0, Math.ceil(km) - INITIAL_RADIUS_KM) * SURCHARGE_STEP;
@@ -327,6 +329,8 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
   const [partPopup, setPartPopup] = useState(false);
   // "Not now" asks once more before the part is put aside (a warning for the safety parts).
   const [deferAsk, setDeferAsk] = useState(false);
+  // A safety part can be put aside only after the mechanic says the car is safe without it.
+  const [techCheck, setTechCheck] = useState(false);
   const { addRepair } = usePendingRepairs();
   // When the technician's OnMart order went through (for the order record).
   const [partOrderedAt, setPartOrderedAt] = useState(0);
@@ -437,6 +441,7 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
     // The call-out fee follows how far the technician travels.
     setRadius(Math.max(radius, Math.ceil(nearest.distanceKm)));
     setSelected(nearest);
+    notify({ icon: '✅', title: `${nearest.name} ඉල්ලීම පිළිගත්තා`, body: 'ඔබ වෙත පැමිණෙමින් සිටී.', tone: 'success' });
     setStep('tracking');
   };
 
@@ -494,7 +499,6 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
     // Simulated: the technician taps "arrived" in their app, the job is attached to them, the owner is told.
     const confirm = setTimeout(() => {
       setTechConfirmed(true);
-      notify({ icon: '✅', title: 'කාර්මිකයා පැමිණීම තහවුරු කළා', body: `${job.mechanic} ඔහුගේ app එකෙන් පැමිණීම තහවුරු කර ඇත. රැකියාව ඔහුට සම්බන්ධ විය.`, tone: 'success' });
     }, 3500);
     const next = setTimeout(() => setStep('repairing'), 8000);
     return () => {
@@ -628,8 +632,8 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
   };
   const remainingKm = job.distanceKm * (1 - trackP);
   const baseStep: Step = step === 'consent' ? 'confirm' : step === 'repairCompleteNotice' ? 'repairing' : step;
-  const stepIndex = STEPS.findIndex((x) => x.key === (step === 'nearby' ? 'tracking' : step));
-  const stepLabel = step === 'nearby' ? 'ළඟම ගරාජ සහ කාර්මිකයන් අතරින් තෝරන්න' : STEPS[stepIndex].label;
+  const stepIndex = STEPS.findIndex((x) => x.key === (step === 'nearby' || step === 'arrived' ? 'tracking' : step));
+  const stepLabel = step === 'nearby' ? 'ළඟම ගරාජ සහ කාර්මිකයන් අතරින් තෝරන්න' : step === 'arrived' ? 'කාර්මිකයා පැමිණියා' : STEPS[stepIndex].label;
 
   // ---------- Shared map overlays ----------
 
@@ -652,7 +656,7 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
       return (
         <View key={w.id} style={[styles.pinAnchor, { left: p.x, top: p.y }]} pointerEvents="none">
           <View style={[styles.workshopPin, dim && styles.workshopPinDim]}>
-            <Text style={styles.workshopPinText}>🛠️ {w.distanceKm}km</Text>
+            <Text style={styles.workshopPinText}>🛠️</Text>
           </View>
         </View>
       );
@@ -697,7 +701,6 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
                     />
                   </Svg>
                 )}
-                {workshopPins(project, workshops, (w) => w.distanceKm > radius)}
                 {userPin(project)}
               </>
             );
@@ -799,7 +802,7 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
         <Pressable style={styles.selectRow} onPress={onChangeLocation}>
           <GlassIcon emoji="📍" />
           <View style={styles.flex1}>
-            <Text style={styles.label}>Breakdown වූ ස්ථානය</Text>
+            <Text style={styles.label}>ස්ථානය</Text>
             <Text style={styles.cardTitle} numberOfLines={2}>
               {location.address}
             </Text>
@@ -808,8 +811,8 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
         </Pressable>
       </View>
 
-      <Text style={styles.sectionLabel}>Breakdown වර්ගය කුමක් ද ?</Text>
-      {/* Four to a row, three rows: a big illustration on a soft pastel tile, the name under it. */}
+      <Text style={[styles.sectionLabel, { color: Colors.textMain }]}>Breakdown වර්ගය කුමක් ද ?</Text>
+      {/* Three to a row, three rows: a big illustration on a soft pastel tile, the name under it. */}
       <View style={styles.breakGrid}>
         {BREAKDOWN_TYPES.map((t) => {
           const active = breakdown === t.id;
@@ -817,6 +820,11 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
             <Pressable key={t.id} style={({ pressed }) => [styles.breakItem, pressed && { transform: [{ scale: 0.96 }] }]} onPress={() => setBreakdown(t.id)} accessibilityLabel={`Breakdown ${t.id}`}>
               <View style={[styles.breakTile, { backgroundColor: (BREAKDOWN_TINT[t.id] ?? '#9aa7b8') + (active ? '55' : '33') }, active && styles.breakTileActive]}>
                 {BREAKDOWN_IMAGES[t.id] ? <Image source={BREAKDOWN_IMAGES[t.id]} style={styles.breakImage} resizeMode="contain" /> : <Text style={styles.gridEmoji}>{t.icon}</Text>}
+                {active && (
+                  <View style={styles.breakTick}>
+                    <Text style={styles.breakTickText}>✓</Text>
+                  </View>
+                )}
               </View>
               <Text style={[styles.breakLabel, active && { color: Colors.errorText }]} numberOfLines={1}>
                 {t.label}
@@ -839,7 +847,7 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
         </View>
         <View style={styles.flex1}>
           <Text style={styles.cardTitle}>ළඟම ගරාජය / කාර්මිකයා සොයමින්...</Text>
-          <Text style={styles.cardSub}>km {radius} ක් ඇතුළත සොයා ඔබව සම්බන්ධ කරගනිමින් පවතී</Text>
+          <Text style={styles.cardSub}>km {radius} ක් ඇතුළත සොයා ඔබව සම්බන්ධ කරනු ඇත.</Text>
         </View>
       </View>
 
@@ -853,22 +861,16 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
           <Text style={styles.statLabel}>පැමිණීමේ ගාස්තුව</Text>
         </View>
         <View style={styles.statBox}>
-          <Text style={[styles.statValue, { color: Colors.success }]}>{responders.length}</Text>
+          <Text style={styles.statValue}>{responders.length}</Text>
           <Text style={styles.statLabel}>ළඟ ඇති</Text>
         </View>
       </View>
 
-      <View style={styles.progressTrack}>
-        <Animated.View
-          style={[styles.progressFill, { width: cycleAnim.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] }) }]}
-        />
-      </View>
-
-      <Text style={styles.sectionLabel}>ළඟ ඇති ගරාජ</Text>
+      <Text style={[styles.sectionLabel, { color: Colors.textMain }]}>ළඟ ඇති ගරාජ</Text>
       {workshops.map((w) => {
         const responded = w.distanceKm <= radius;
         return (
-          <View key={w.id} style={[styles.card, styles.rowCenter, !responded && { opacity: 0.45 }]}>
+          <View key={w.id} style={[styles.card, styles.rowCenter]}>
             <GlassIcon emoji="🛠️" small />
             <View style={styles.flex1}>
               <Text style={styles.cardTitle}>{w.name}</Text>
@@ -907,7 +909,7 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
             <Text style={styles.avatarEmoji}>{c.kind === 'garage' ? '🛠️' : '👨‍🔧'}</Text>
           </View>
           <View style={styles.flex1}>
-            <Text style={styles.cardTitle} numberOfLines={1}>
+            <Text style={styles.cardTitle} numberOfLines={2}>
               {levelIcon ? `${levelIcon} ` : ''}
               {c.name}
             </Text>
@@ -975,78 +977,60 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
     </>
   );
 
-  const renderTracking = () => (
-    <>
-      <View style={[styles.card, styles.rowCenter]}>
-        <Animated.View style={[styles.heroCircle, styles.heroCircleSuccess, styles.heroCircleSmall, { opacity: popAnim, transform: [{ scale: popAnim }] }]}>
-          <Text style={styles.heroCircleIconSmall}>✓</Text>
-        </Animated.View>
-        <View style={styles.flex1}>
-          <Text style={styles.cardTitle}>ඉල්ලීම පිළිගත්තා!</Text>
-          <Text style={styles.cardSub}>{job.name} ඔබගේ SOS ඉල්ලීම පිළිගෙන ඔබ වෙත පැමිණෙමින් සිටී.</Text>
-          <TxnTag kind="SOS" source={`sos-${closeCode}`} />
-        </View>
-      </View>
-      <View style={styles.card}>
-        {profileBody(profileOf(job))}
-        <View style={styles.divider} />
-        <View style={styles.detailRow}>
-          <Text style={styles.detailIcon}>📞</Text>
-          <Text style={[styles.detailText, styles.flex1]}>{job.phone}</Text>
-          <Pressable style={styles.callBtn} onPress={() => Linking.openURL(`tel:${job.phone.replace(/\s/g, '')}`)} accessibilityLabel="Call connected">
-            <Text style={styles.callBtnText}>📞</Text>
-          </Pressable>
-        </View>
-        <View style={styles.detailRow}>
-          <Text style={styles.detailIcon}>💰</Text>
-          <FactValue label="ඇස්තමේන්තුගත ගාස්තුව" value={money(job.bid)} />
-        </View>
-        <View style={[styles.statusPill, styles.statusPillOn, styles.selfCenter]}>
-          <Text style={[styles.statusPillText, { color: Colors.success }]}>🛣️ කාර්මිකයා පැමිණෙමින් සිටී</Text>
-        </View>
-      </View>
-    </>
-  );
-
-  const renderArrived = () => (
-    <>
-      <View style={styles.hero}>
-        <Animated.View style={[styles.heroCircle, styles.heroCircleSuccess, { opacity: popAnim, transform: [{ scale: popAnim }] }]}>
-          <Text style={styles.heroCircleIcon}>{techConfirmed ? '✓' : '🚐'}</Text>
-        </Animated.View>
-        <Text style={styles.heroTitle}>{techConfirmed ? 'පැමිණීම තහවුරු විය!' : 'කාර්මිකයා ළඟා වෙමින්...'}</Text>
-        <Text style={styles.heroText}>
-          {techConfirmed
-            ? `${job.mechanic} ඔහුගේ app එකෙන් පැමිණීම තහවුරු කළා. මෙම SOS රැකියාව දැන් ඔහුට සම්බන්ධ කර ඇත.`
-            : `${job.name} හි ${job.mechanic} ඔබගේ ස්ථානයට ළඟා විය. ඔහු තමන්ගේ app එකෙන් පැමිණීම තහවුරු කරන තුරු රැඳී සිටින්න — ඔබට කිසිවක් කිරීමට අවශ්‍ය නැත.`}
-        </Text>
-      </View>
-      <View style={styles.card}>
-        <View style={styles.detailRow}>
-          <Text style={styles.detailIcon}>{techConfirmed ? '✅' : '⏳'}</Text>
-          {techConfirmed ? (
+  /** One window for the whole wait: on the way (the ETA sits above it), then arrived, waiting for the technician to confirm. */
+  const renderTracking = () => {
+    const arrived = baseStep === 'arrived';
+    return (
+      <>
+        {arrived ? (
+          <View style={styles.hero}>
+            <Animated.View style={[styles.heroCircle, styles.heroCircleSmall, styles.heroCircleSuccess, { opacity: popAnim, transform: [{ scale: popAnim }] }]}>
+              <Text style={styles.heroCircleIconSmall}>{techConfirmed ? '✓' : '📍'}</Text>
+            </Animated.View>
+            <Text style={styles.heroTitle}>{techConfirmed ? 'පැමිණීම තහවුරු විය!' : 'කාර්මිකයා ළඟා විය'}</Text>
+            <Text style={styles.arrivedLine}>
+              {techConfirmed
+                ? 'මෙම SOS රැකියාව දැන් ඔහුට සම්බන්ධ කර ඇත.'
+                : `${job.name} හි ${job.mechanic} ඔබගේ ස්ථානයට ළඟා විය.`}
+            </Text>
+          </View>
+        ) : (
+          <View style={styles.acceptedRow}>
+            <Text style={styles.acceptedIcon}>✓</Text>
+            <Text style={styles.acceptedText}>{job.name} ඉල්ලීම පිළිගත්තා</Text>
+          </View>
+        )}
+        <View style={styles.card}>
+          {profileBody(profileOf(job))}
+          <View style={styles.divider} />
+          <View style={styles.detailRow}>
+            <Text style={styles.detailIcon}>📞</Text>
+            <Text style={[styles.detailText, styles.flex1]}>{job.phone}</Text>
+            <Pressable style={styles.callBtn} onPress={() => Linking.openURL(`tel:${job.phone.replace(/\s/g, '')}`)} accessibilityLabel="Call connected">
+              <Text style={styles.callBtnText}>📞</Text>
+            </Pressable>
+          </View>
+          <View style={styles.detailRow}>
+            <Text style={styles.detailIcon}>💰</Text>
             <View style={styles.flex1}>
-              <Text style={styles.detailTitle}>පැමිණීම තහවුරු විය</Text>
-              <Text style={styles.detailSub}>කාර්මිකයාගේ app එකෙන්</Text>
+              <Text style={styles.statLabel}>ඇස්තමේන්තුගත අලුත්වැඩියා ගාස්තුව</Text>
+              <Text style={styles.estimateValue}>{money(job.bid)}</Text>
             </View>
-          ) : (
-            <View style={styles.flex1}>
-              <Text style={styles.detailTitle}>තහවුරු කරන තෙක් රැඳී සිටී…</Text>
-              <Text style={styles.detailSub}>කාර්මිකයාගේ app එකෙන්</Text>
+          </View>
+          {!techConfirmed && (
+            <View style={[styles.statusPill, arrived ? styles.statusPillWait : styles.statusPillOn, styles.selfCenter]}>
+              <Text style={[styles.statusPillText, { color: arrived ? Colors.warning : Colors.success }]}>
+                {arrived ? '⏳ තහවුරු කරන තුරු රැඳී සිටින්න' : '🛣️ කාර්මිකයා පැමිණෙමින් සිටී'}
+              </Text>
             </View>
           )}
+          <View style={styles.mutedTag}>
+            <TxnTag kind="SOS" source={`sos-${closeCode}`} />
+          </View>
         </View>
-        <View style={styles.detailRow}>
-          <Text style={styles.detailIcon}>{techConfirmed ? '🔗' : '⏳'}</Text>
-          <Text style={styles.detailText}>{techConfirmed ? 'රැකියාව ඔහුට සම්බන්ධ කර ඇත' : 'රැකියාව ඔහුට සම්බන්ධ කිරීමට සූදානම්'}</Text>
-        </View>
-      </View>
-      {mechanicCard([
-        { icon: '📞', text: job.phone },
-        { icon: '💰', text: 'එකඟ වූ ගාස්තුව', value: money(job.bid) },
-      ])}
-    </>
-  );
+      </>
+    );
+  };
 
   const chooseOwnerBuys = () => {
     setPartPopup(false);
@@ -1060,6 +1044,7 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
   /** Not now: the job goes on without the part, and the vehicle remembers it until it is fitted. */
   const deferPart = () => {
     setDeferAsk(false);
+    setTechCheck(false);
     setPartPopup(false);
     setPartState('deferred');
     addRepair({
@@ -1394,7 +1379,7 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
       case 'confirm':
         return (
           <ActionButton
-            label="SOS ඉල්ලීම දැන් යවන්න"
+            label={breakdown ? 'SOS ඉල්ලීම දැන් යවන්න' : 'වර්ගයක් තෝරන්න'}
             icon="🚨"
             variant="sos"
             disabled={!breakdown}
@@ -1481,7 +1466,7 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
 
         <ScrollView ref={sheetScroll} style={styles.flex1} contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
           {/* Once connected, whoever took the SOS stays at the top, one tap from their full profile. */}
-          {selected && CONNECTED_STEPS.includes(baseStep) && baseStep !== 'tracking' && (
+          {selected && CONNECTED_STEPS.includes(baseStep) && baseStep !== 'tracking' && baseStep !== 'arrived' && (
             <Pressable style={styles.connectedBar} onPress={() => setShowProfile(true)} accessibilityLabel="Open connected profile">
               <View style={[styles.avatar, styles.avatarSmall]}>
                 <Text style={styles.avatarEmojiSmall}>{profileOf(selected).kind === 'garage' ? '🛠️' : '👨‍🔧'}</Text>
@@ -1502,8 +1487,7 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
           {baseStep === 'confirm' && renderConfirm()}
           {baseStep === 'searching' && renderSearching()}
           {baseStep === 'nearby' && renderNearby()}
-          {baseStep === 'tracking' && renderTracking()}
-          {baseStep === 'arrived' && renderArrived()}
+          {(baseStep === 'tracking' || baseStep === 'arrived') && renderTracking()}
           {baseStep === 'repairing' && renderRepairing()}
           {baseStep === 'qrScan' && renderQrScan()}
           {baseStep === 'rating' && renderRating()}
@@ -1600,33 +1584,64 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
         </ModalCard>
       )}
 
-      {step === 'repairing' && deferAsk && (
+      {step === 'repairing' && deferAsk && !techCheck && (
         <ModalCard
           icon={SAFETY_PARTS.has(partName) ? '⚠️' : '🕓'}
           tone={SAFETY_PARTS.has(partName) ? 'danger' : 'primary'}
           title="කොටස පසුව මාරු කරනව ද ?"
+          highlight={SAFETY_PARTS.has(partName) ? 'ආරක්ෂාවට අදාළ කොටසකි' : 'කාර්මිකයාගේ අනුමැතිය මත'}
           body={
             SAFETY_PARTS.has(partName)
               ? `\n${partName} වාහනයේ ආරක්ෂාවට අදාළ කොටසකි. මෙය පසුවට දැමුවහොත් වාහනය ධාවනය කිරීමට පෙර කාර්මිකයා සමග නැවත පරීක්ෂා කරන්න. ගරාජය මෙම තීරණය වාර්තා කරගනී.`
               : `\n${partName} දැනට ගැනීමට නොහැකි නම් පසුව මාරු කර ගන්න. කාර්මිකයාගේ අනුමැතිය මත වාහනය ආරක්ෂිතව ධාවනය කළ හැකි නම් පමණක් මෙය සිදු කරන්න.\nවාහනයට මෙම කොටස අවශ්‍ය බව Ongarage වාර්තාවේ සටහන් කර ගනී.`
           }
         >
-          <ActionButton label="අවලංගු" variant="ghost" compact onPress={() => setDeferAsk(false)} />
-          <ActionButton label={SAFETY_PARTS.has(partName) ? 'මම දනිමි, පසුවට' : 'ඔව්,\nපසුව මාරු\nකරන්නම්'} variant="primary" compact onPress={deferPart} />
+          <View style={styles.deferStack}>
+            <ActionButton label="ආපසු" variant="primary" compact onPress={() => setDeferAsk(false)} />
+            {SAFETY_PARTS.has(partName) ? (
+              <ActionButton label="මම දනිමි, පසුවට" variant="ghost" compact onPress={() => setTechCheck(true)} />
+            ) : (
+              <ActionButton label="ඔව්, පසුව මාරු කරන්නම්" variant="ghost" compact onPress={deferPart} />
+            )}
+          </View>
+        </ModalCard>
+      )}
+
+      {step === 'repairing' && deferAsk && techCheck && (
+        <ModalCard
+          icon="⚠️"
+          tone="danger"
+          title="කාර්මිකයා තහවුරු කරන්න"
+          highlight="ආරක්ෂිතව ධාවනය කළ හැකිද?"
+          body={`\n${partName} නොමැතිව වාහනය ආරක්ෂිතව ධාවනය කළ හැකිද? කාර්මිකයා සමග එකඟ වූ පසු පමණක් තහවුරු කරන්න.`}
+        >
+          <View style={styles.deferStack}>
+            <ActionButton label="ඔව්, ආරක්ෂිතයි" variant="primary" compact onPress={deferPart} />
+            <ActionButton
+              label="නැහැ, ආරක්ෂිත නොවේ"
+              variant="ghost"
+              compact
+              onPress={() => {
+                setTechCheck(false);
+                setDeferAsk(false);
+                setPartPopup(true);
+              }}
+            />
+          </View>
         </ModalCard>
       )}
 
       {step === 'consent' && (
         <ModalCard
-          icon="⚠️"
-          tone="danger"
+          icon="🧾"
+          tone="primary"
           title="SOS ඉල්ලීම තහවුරු කරන්න"
-          highlight={`${money(BASE_FEE)} ක`}
-          body={`\nඔබගේ ස්ථානයේ සිට km ${INITIAL_RADIUS_KM} ක් ඇතුළත ලියාපදිංචි ගරාජ වෙත දැනුම් දෙනු ලැබේ.\nOnGarage අනුමත ${money(BASE_FEE)} ක පැමිණීමේ ගාස්තුවක් ඔබ වෙත පැමිණීමේ ගමන් වියදම වෙනුවෙන් කාර්මිකයාට ගෙවිය යුතුය.`}
-          bodySuffix="(අලුත්වැඩියාවක් අවශ්‍ය නොවුණත් මෙය අදාළ වේ.)"
+          rows={[{ label: 'Call-out fee', value: money(BASE_FEE) }]}
+          highlight={`${feeText()} ක`}
+          body={`\nඔබගේ ස්ථානයේ සිට km ${INITIAL_RADIUS_KM} ක් ඇතුළත ගරාජ වලට දැනුම් දෙයි.\nඅලුත්වැඩියාවක් නොවුණත්, කාර්මිකයාගේ ගමන් වියදම වෙනුවෙන් ${feeText()} ක ගාස්තුව ගෙවිය යුතුයි.`}
         >
           <ActionButton label="අවලංගු" variant="ghost" compact onPress={() => setStep('confirm')} />
-          <ActionButton label={`SOS යවන්න · රු. ${money(BASE_FEE)}`} variant="sos" compact onPress={startSearch} />
+          <ActionButton label="SOS යවන්න" variant="sos" compact onPress={startSearch} />
         </ModalCard>
       )}
 
@@ -1635,12 +1650,15 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
           icon="📡"
           tone="primary"
           title="සෙවුම් කලාපය පුළුල් කරමින්"
-          highlight={`තව ${money(SURCHARGE_STEP)} ක් එකතු වේ.`}
-          body={`\nමෙම කලාපය තුළ තවම ගරාජයක් හෝ කාර්මිකයෙක් හමු වී නැත. සෙවුම් කලාපය km ${radius + RADIUS_STEP_KM} දක්වා වැඩි කෙරේ.\nවැඩි දුරක් පැමිනීමට සිදුවීම හේතුවෙන් කාර්මිකයාගේ පැමිණීමේ ගාස්තුවට\nතව ${money(SURCHARGE_STEP)} ක් එකතු වේ.`}
+          rows={[
+            { label: 'Search radius', value: `km ${radius} → km ${radius + RADIUS_STEP_KM}` },
+            { label: 'Call-out fee', value: `${money(calloutFeeFor(radius))} → ${money(calloutFeeFor(radius + RADIUS_STEP_KM))}` },
+          ]}
+          body={`\nමෙම කලාපයේ ගරාජයක් හෝ කාර්මිකයෙක් නැත. ඒ නිසා සෙවුම් කලාපය වැඩි කරන්න ද ?`}
         >
-          <ActionButton label="අවලංගු" variant="ghost" compact onPress={() => setShowCancel(true)} />
+          <ActionButton label="නැහැ, නැවත සොයන්න" variant="ghost" compact onPress={() => setExpansionPrompt(false)} />
           <ActionButton
-            label="දිගටම සොයන්න"
+            label="ඔව්, වැඩි කරන්න"
             variant="primary"
             compact
             onPress={() => {
@@ -1720,8 +1738,8 @@ const styles = themedStyles(() => StyleSheet.create({
   closeBtnText: { fontSize: 14, color: '#fff' },
   stepper: { flexDirection: 'row', gap: 4, paddingHorizontal: 16, paddingTop: 10, paddingBottom: 4 },
   partActions: { flex: 1, gap: 8 },
-  stepSeg: { flex: 1, height: 4, borderRadius: 2, backgroundColor: Colors.subtleBorder },
-  stepSegDone: { backgroundColor: 'rgba(239, 68, 68, 0.6)' },
+  stepSeg: { flex: 1, height: 6, borderRadius: 3, backgroundColor: Colors.subtleBorder },
+  stepSegDone: { backgroundColor: '#ef4444' },
   stepSegActive: { backgroundColor: '#ef4444' },
   body: { paddingHorizontal: 6, paddingTop: 6, gap: 12, paddingBottom: 24 },
   mapFull: { ...StyleSheet.absoluteFill },
@@ -1766,9 +1784,11 @@ const styles = themedStyles(() => StyleSheet.create({
   gridEmoji: { fontSize: 30 },
   gridImage: { width: 60, height: 60 },
   breakGrid: { flexDirection: 'row', flexWrap: 'wrap', rowGap: 12 },
-  breakItem: { width: '25%', alignItems: 'center', gap: 4 },
+  breakItem: { width: '33.33%', alignItems: 'center', gap: 4 },
   breakTile: { width: 84, height: 80, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'transparent' },
-  breakTileActive: { borderColor: '#ef4444' },
+  breakTileActive: { borderColor: '#ef4444', borderWidth: 3 },
+  breakTick: { position: 'absolute', top: -6, right: -6, width: 22, height: 22, borderRadius: 11, backgroundColor: '#ef4444', alignItems: 'center', justifyContent: 'center' },
+  breakTickText: { fontSize: 12, fontFamily: FONTS.bodyBold, color: '#fff' },
   breakImage: { width: 80, height: 80 },
   breakLabel: { fontSize: 10.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain, textAlign: 'center', lineHeight: 22, height: 24, paddingTop: 2, paddingHorizontal: 2 },
   gridLabel: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textMain, textAlign: 'center' },
@@ -1891,6 +1911,8 @@ const styles = themedStyles(() => StyleSheet.create({
   heroCircleIcon: { fontSize: 36, color: '#fff', fontWeight: '900' },
   heroTitle: { fontSize: 20, lineHeight: 28, fontFamily: FONTS.titleBold, color: Colors.textMain, textAlign: 'center' },
   heroText: { fontSize: 14, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, textAlign: 'center', lineHeight: 21 },
+  arrivedLine: { fontSize: 14, fontFamily: FONTS.bodyRegular, color: Colors.textMain, textAlign: 'center', lineHeight: 21 },
+  statusPillWait: { backgroundColor: 'rgba(245, 158, 11, 0.14)' },
   heroNote: { fontSize: 12, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, textAlign: 'center', lineHeight: 18, marginTop: 6 },
 
   etaBar: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 6, marginTop: 6, marginBottom: 4, paddingVertical: 12, borderRadius: 12, borderWidth: 1, borderColor: outline(), backgroundColor: Colors.bgCard, ...elevation1() },
@@ -1901,6 +1923,12 @@ const styles = themedStyles(() => StyleSheet.create({
   etaValueSinhala: { fontSize: 14, fontFamily: FONTS.titleBold, color: Colors.textMain },
   // The three part decisions share one size; only the recommended one is filled.
   partOption: { width: '100%', minHeight: 58, paddingVertical: 10, paddingHorizontal: 16, borderRadius: 22, alignItems: 'center', justifyContent: 'center', gap: 2 },
+  deferStack: { width: '100%', gap: 8 },
+  acceptedRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 4 },
+  acceptedIcon: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.success },
+  acceptedText: { fontSize: 14, fontFamily: FONTS.bodyBold, color: Colors.textMain },
+  mutedTag: { alignSelf: 'center', opacity: 0.6 },
+  estimateValue: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textMain, marginTop: 2 },
   partOption_primary: { backgroundColor: '#1a73e8' },
   partOption_secondary: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(255, 255, 255, 0.06)' : '#eaf1fb' },
   partOption_tertiary: { backgroundColor: 'transparent', borderWidth: 1, borderColor: outline() },

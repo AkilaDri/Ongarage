@@ -272,9 +272,9 @@ const styles = themedStyles(() => StyleSheet.create({
   modalBody: { fontSize: 12.5, fontFamily: FONTS.bodyRegular, color: Colors.textSoft, textAlign: 'center', lineHeight: 19, marginBottom: 10 },
   modalRows: { alignSelf: 'center', gap: 4 },
   modalRow: { flexDirection: 'row', alignItems: 'flex-start' },
-  modalRowLabel: { width: 56, fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain, lineHeight: 19, textAlign: 'right' },
-  modalRowColon: { width: 14, fontSize: 12.5, fontFamily: FONTS.bodyRegular, color: Colors.textSoft, lineHeight: 19, textAlign: 'center' },
-  modalRowValue: { fontSize: 12.5, fontFamily: FONTS.bodyRegular, color: Colors.textSoft, lineHeight: 19, textAlign: 'left' },
+  modalRowLabel: { minWidth: 56, flexShrink: 0, fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain, lineHeight: 19, textAlign: 'right' },
+  modalRowColon: { width: 14, flexShrink: 0, fontSize: 12.5, fontFamily: FONTS.bodyRegular, color: Colors.textSoft, lineHeight: 19, textAlign: 'center' },
+  modalRowValue: { flexShrink: 0, fontSize: 12.5, fontFamily: FONTS.bodyRegular, color: Colors.textSoft, lineHeight: 19, textAlign: 'left' },
   modalBodySuffix: { fontSize: 9, color: Colors.red },
   modalBodyStrong: { fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
   // The Latin letters beside the Sinhala body: a step larger, so they match the Sinhala visually.

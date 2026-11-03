@@ -5,6 +5,7 @@ import { useNotice } from '../context/NoticeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, FONTS, getThemeMode, themedStyles } from '@ongarage/shared';
 import { LOCATION_SUGGESTIONS } from '../constants/mockData';
+import Svg, { Circle, Line } from 'react-native-svg';
 import { Gradient, GRADIENTS } from '@ongarage/shared';
 import { GoogleMap } from '@ongarage/shared';
 import { useUserLocation } from '../context/LocationContext';
@@ -198,7 +199,14 @@ export const SOSMapPickerScreen: React.FC<SOSMapPickerScreenProps> = ({ initialL
 
         <View style={styles.mapControls}>
           <Pressable style={styles.roundBtn} onPress={useMyLocation} accessibilityLabel="Use my location">
-            <Text style={styles.mapControlText}>◎</Text>
+            <Svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke={Colors.textMain} strokeWidth={2} strokeLinecap="round">
+              <Circle cx="12" cy="12" r="7" />
+              <Circle cx="12" cy="12" r="2.5" />
+              <Line x1="12" y1="1.5" x2="12" y2="4.5" />
+              <Line x1="12" y1="19.5" x2="12" y2="22.5" />
+              <Line x1="1.5" y1="12" x2="4.5" y2="12" />
+              <Line x1="19.5" y1="12" x2="22.5" y2="12" />
+            </Svg>
           </Pressable>
           <Pressable style={styles.roundBtn} onPress={() => setZoom((z) => Math.min(z + 1, MAX_ZOOM))} accessibilityLabel="Zoom in">
             <Text style={styles.mapControlText}>＋</Text>
@@ -211,8 +219,7 @@ export const SOSMapPickerScreen: React.FC<SOSMapPickerScreenProps> = ({ initialL
 
       <View style={styles.bottomSheet}>
         <View style={styles.handle} />
-        <Text style={styles.sheetTitle}>වාහනය Breakdown වූ ස්ථානය තෝරන්න</Text>
-        <Text style={styles.sheetSub}>සිතියම මත touch කර හෝ search කර පින් එක නිවැරදි තැනට ගෙන එන්න</Text>
+        <Text style={styles.sheetTitle}>Breakdown ස්ථානය තෝරන්න</Text>
         <View style={styles.locationRow}>
           <View style={styles.locationDisc}>
             <Text style={styles.locationIcon}>📍</Text>
@@ -275,12 +282,11 @@ const styles = themedStyles(() => StyleSheet.create({
   bottomSheet: { marginTop: -24, backgroundColor: Colors.bgCard, paddingHorizontal: 24, paddingTop: 12, paddingBottom: 20, gap: 12, borderTopLeftRadius: 28, borderTopRightRadius: 28, shadowColor: '#3c4043', shadowOffset: { width: 0, height: -2 }, shadowOpacity: 0.14, shadowRadius: 8, elevation: 8 },
   handle: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: Colors.subtleBorder, marginBottom: 4 },
   sheetTitle: { fontSize: 20, lineHeight: 28, fontFamily: FONTS.titleBold, color: Colors.textMain },
-  sheetSub: { fontSize: 12.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: -4 },
   locationRow: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 12, borderWidth: 1, borderColor: outline(), backgroundColor: Colors.bgCard },
   locationDisc: { width: 40, height: 40, borderRadius: 20, backgroundColor: getThemeMode() === 'dark' ? 'rgba(239, 68, 68, 0.18)' : '#fee2e2', justifyContent: 'center', alignItems: 'center' },
   locationIcon: { fontSize: 18 },
   locationName: { fontSize: 15, fontFamily: FONTS.titleBold, color: Colors.textMain },
-  locationStatus: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.success, marginTop: 2 },
+  locationStatus: { fontSize: 12, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 2 },
   confirmBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 16, borderRadius: 28, overflow: 'hidden' },
   confirmBtnText: { fontSize: 14, fontFamily: FONTS.bodyBold, color: '#fff' },
 }));
