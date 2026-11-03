@@ -45,7 +45,7 @@ const light: Palette = {
   bgCard: '#ffffff',
   bgCardHover: '#e2e8f0',
   bgDark: '#eef2f7',
-  sheetBg: '#f7f7f7',
+  sheetBg: '#f0f0f0',
   mapBg: '#dbe4ee',
   barBg: 'rgba(255, 255, 255, 0.97)',
   cardGlass: 'rgba(255, 255, 255, 0.95)',

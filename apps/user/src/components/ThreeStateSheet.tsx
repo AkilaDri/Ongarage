@@ -13,6 +13,8 @@ export type SheetApi = {
   onScroll: (y: number) => void;
   /** Brings the sheet back down to its middle height (the list goes back to its top). */
   collapse: () => void;
+  /** Lowers the sheet to its peek strip, so the map behind it shows in full. */
+  minimize: () => void;
 };
 
 /**
@@ -34,11 +36,13 @@ export const ThreeStateSheet: React.FC<{
    */
   expandedExtra?: number;
   /** Shown while minimised (fades out as the sheet opens). */
-  peek: React.ReactNode;
+  peek: React.ReactNode | ((api: SheetApi) => React.ReactNode);
   /** Called whenever the sheet settles on a new height. */
   onStateChange?: (state: SheetState) => void;
+  /** Hands out the animated height (once), so something on the map can ride on the sheet's top edge. */
+  onHeight?: (height: Animated.Value) => void;
   children: (api: SheetApi) => React.ReactNode;
-}> = ({ areaHeight, peekHeight, collapsedRatio = 0.55, bottomInset = 0, expandedExtra = 0, peek, onStateChange, children }) => {
+}> = ({ areaHeight, peekHeight, collapsedRatio = 0.55, bottomInset = 0, expandedExtra = 0, peek, onStateChange, onHeight, children }) => {
   // The top height is the same before and after the bar folds: (smaller area + its extra) = (bigger area + nothing).
   const full = Math.max(areaHeight - bottomInset + expandedExtra, peekHeight + 120);
   const collapsed = Math.max(peekHeight + 60, Math.round(full * collapsedRatio));
@@ -52,6 +56,11 @@ export const ThreeStateSheet: React.FC<{
   const scrollRef = useRef<ScrollView>(null);
   const sizes = useRef({ peek: peekHeight, collapsed, expanded: full });
   sizes.current = { peek: peekHeight, collapsed, expanded: full };
+
+  useEffect(() => {
+    onHeight?.(height);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [height]);
 
   useEffect(() => {
     const id = height.addListener(({ value }) => (current.current = value));
@@ -141,10 +150,23 @@ export const ThreeStateSheet: React.FC<{
   const radius = height.interpolate({ inputRange: [Math.max(full - 60, peekHeight + 1), Math.max(full, peekHeight + 2)], outputRange: [26, 0], extrapolate: 'clamp' });
   // The grip strip melts away as the sheet reaches the top, so the list sits right under the top bar.
   const gripRange = [Math.max(full - 70, peekHeight + 1), Math.max(full, peekHeight + 2)];
-  const gripSpace = height.interpolate({ inputRange: gripRange, outputRange: [12, 0], extrapolate: 'clamp' });
+  const gripSpace = height.interpolate({ inputRange: gripRange, outputRange: [6, 0], extrapolate: 'clamp' });
   const gripOpacity = height.interpolate({ inputRange: gripRange, outputRange: [1, 0], extrapolate: 'clamp' });
   const gripHeight = height.interpolate({ inputRange: gripRange, outputRange: [4, 0], extrapolate: 'clamp' });
   const handleWidth = height.interpolate({ inputRange: [peekHeight, collapsed, Math.max(full, collapsed + 1)], outputRange: [48, 36, 28], extrapolate: 'clamp' });
+
+  const sheetApi: SheetApi = {
+    state,
+    reveal,
+    scrollRef,
+    collapse: () => animateTo('collapsed'),
+    minimize: () => animateTo('peek'),
+    onScroll: (y) => {
+      listY.current = y;
+      // Scrolling the list with a wheel / trackpad opens the sheet fully (web).
+      if (y > 2 && stateRef.current !== 'expanded') animateTo('expanded');
+    },
+  };
 
   return (
     <Animated.View ref={sheetNode} style={[styles.sheet, NO_SELECT, { bottom: bottomInset, height, borderTopLeftRadius: radius, borderTopRightRadius: radius }]} {...pan.panHandlers}>
@@ -153,20 +175,10 @@ export const ThreeStateSheet: React.FC<{
       </Animated.View>
       <View style={styles.flex1}>
         <Animated.View style={[StyleSheet.absoluteFill, { opacity: reveal.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }) }]} pointerEvents={state === 'peek' ? 'auto' : 'none'}>
-          {peek}
+          {typeof peek === 'function' ? peek(sheetApi) : peek}
         </Animated.View>
         <Animated.View style={[styles.flex1, { opacity: reveal }]} pointerEvents={state === 'peek' ? 'none' : 'auto'}>
-          {children({
-            state,
-            reveal,
-            scrollRef,
-            collapse: () => animateTo('collapsed'),
-            onScroll: (y) => {
-              listY.current = y;
-              // Scrolling the list with a wheel / trackpad opens the sheet fully (web).
-              if (y > 2 && stateRef.current !== 'expanded') animateTo('expanded');
-            },
-          })}
+          {children(sheetApi)}
         </Animated.View>
       </View>
     </Animated.View>
@@ -186,7 +198,7 @@ const styles = themedStyles(() =>
       left: 0,
       right: 0,
       bottom: 0,
-      backgroundColor: getThemeMode() === 'dark' ? Colors.bgBody : '#ffffff',
+      backgroundColor: getThemeMode() === 'dark' ? Colors.bgBody : '#f0f0f0',
       overflow: 'hidden',
       shadowColor: '#000',
       shadowOffset: { width: 0, height: -6 },

@@ -134,10 +134,10 @@ function AppShell() {
 const styles = themedStyles(() =>
   StyleSheet.create({
     container: { flex: 1, backgroundColor: headerBand().bg },
-    containerFull: { backgroundColor: getThemeMode() === 'dark' ? Colors.bgBody : '#ffffff' },
+    containerFull: { backgroundColor: Colors.bgBody },
     sheetFull: { marginTop: 0, borderTopLeftRadius: 0, borderTopRightRadius: 0 },
     flex1: { flex: 1 },
-    sheet: { flex: 1, marginTop: -18, borderTopLeftRadius: 24, borderTopRightRadius: 24, overflow: 'hidden', backgroundColor: getThemeMode() === 'dark' ? Colors.bgBody : '#ffffff' },
+    sheet: { flex: 1, marginTop: -18, borderTopLeftRadius: 24, borderTopRightRadius: 24, overflow: 'hidden', backgroundColor: Colors.bgBody },
     nav: { position: 'absolute', left: 0, right: 0, bottom: 0 },
     floatChat: { position: 'absolute', top: 10, right: 14, zIndex: 50 },
   })

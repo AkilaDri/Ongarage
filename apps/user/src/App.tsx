@@ -267,6 +267,8 @@ function AppShell() {
   // A balance long overdue limits new work (marketplace/reliability.ts): a new job, a bid accepted, a direct booking. SOS, chat, OnMart and paying stay open.
   const standing = usePayStanding();
   const [payFirst, setPayFirst] = useState(false);
+  // The hamburger in the Bids sheet header: every received bid as one row.
+  const [bidsRows, setBidsRows] = useState(false);
   const openPost = (draft: JobDraft | null) => (standing.limited ? setPayFirst(true) : setPostJob({ draft }));
   const openBooking = (b: { garage: Garage; categoryId?: string; initial?: { description?: string; vehicleId?: string; service?: string }; back?: () => void }) => (standing.limited ? setPayFirst(true) : setBooking(b));
   // A chat can send the owner to OnMart with a part searched (a part the garage asks for or the owner must buy).
@@ -386,7 +388,7 @@ function AppShell() {
           </View>
         )}
         {/* Every other tab starts with its title; it folds away with the page scroll like the old header did. */}
-        {activeTab !== 'home' && !!TAB_TITLES[activeTab] && (
+        {activeTab !== 'home' && activeTab !== 'bids' && !!TAB_TITLES[activeTab] && (
           <Animated.View style={{ height: martHeaderCollapse.interpolate({ inputRange: [0, 1], outputRange: [PAGE_TITLE_H, 0] }), overflow: 'hidden' }}>
             <View style={styles.pageTitleBar}>
               {(() => {
@@ -546,6 +548,8 @@ function AppShell() {
             <BidsScreen
               tab={bidsTab}
               onTabChange={setBidsTab}
+              rowsView={bidsRows}
+              onToggleRows={() => setBidsRows((v) => !v)}
               onRepublish={(draft) => openPost(draft)}
               onNewBid={() => openPost(null)}
               onPayFirst={() => setPayFirst(true)}
