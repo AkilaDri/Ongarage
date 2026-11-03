@@ -160,7 +160,7 @@ export const EN_SOS: Record<string, string> = {
   'OnMart හි ඔබම ඇණවුම් කරන්න': 'Order it yourself on OnMart',
   'බිල ඔබට එයි': 'The bill comes to you',
   'පසුව ගන්නම්': 'Later',
-  'දැන් ඇණවුම් නැත · OnGarage සේවා වාර්තාවේ සටහන් වේ': 'No order now · recorded in the OnGarage service report',
+  'OnGarage සේවා වාර්තාවේ සටහන් වේ': 'Recorded in the OnGarage service report',
   'බිල ඔබට': 'The bill is yours',
   'SOS යවන්න': 'Send SOS',
   'SOS ඉල්ලීම තහවුරු කරන්න': 'Confirm the SOS request',

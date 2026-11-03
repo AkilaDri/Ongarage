@@ -1105,15 +1105,13 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
               </Text>
             </View>
           </View>
-          <Text style={styles.cardSub}>කොටස ලැබෙන තුරු අලුත්වැඩියාව රැඳී සිටී. කොටස OnMart හරහා ලබාගන්න — ක්‍රමයක් තෝරන්න:</Text>
-          <ActionButton
-            label="OnMart වෙත ගොස් මම ගන්නම්"
-            icon="🛍️"
-            variant="primary"
-            onPress={chooseOwnerBuys}
-          />
-          <ActionButton label="කාර්මිකයාට OnMart හරහා ඇණවුම් කිරීමට අවසර දෙන්න (බිල ඔබට)" icon="📦" variant="ghost" onPress={chooseTechnicianOrders} />
-          <ActionButton label="අනවශ්‍යයි — පසුව මාරු කර ගන්නම්" icon="🕓" variant="ghost" onPress={() => setDeferAsk(true)} />
+          <View style={{ gap: 2 }}>
+            <Text style={styles.cardSub}>කොටස ලැබෙන තුරු අලුත්වැඩියාව රැඳී සිටී.</Text>
+            <Text style={styles.cardSub}>කොටස ඔබට කෙසේ ලබාගැනීමට කැමතිද?</Text>
+          </View>
+          <PartOption tone="primary" title="මම ගන්නම්" sub="OnMart හි ඔබම ඇණවුම් කරන්න" onPress={chooseOwnerBuys} />
+          <PartOption tone="secondary" title="කාර්මිකයා ඇණවුම් කරයි" sub="බිල ඔබට එයි" onPress={chooseTechnicianOrders} />
+          <PartOption tone="tertiary" title="පසුව ගන්නම්" sub="OnGarage සේවා වාර්තාවේ සටහන් වේ" onPress={() => setDeferAsk(true)} />
         </View>
       );
     if (partState === 'deferred')
@@ -1597,7 +1595,7 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
           <View style={styles.partActions}>
             <PartOption tone="primary" title="මම ගන්නම්" sub="OnMart හි ඔබම ඇණවුම් කරන්න" onPress={chooseOwnerBuys} />
             <PartOption tone="secondary" title="කාර්මිකයා ඇණවුම් කරයි" sub="බිල ඔබට එයි" onPress={chooseTechnicianOrders} />
-            <PartOption tone="tertiary" title="පසුව ගන්නම්" sub="දැන් ඇණවුම් නැත · OnGarage සේවා වාර්තාවේ සටහන් වේ" onPress={() => { setPartPopup(false); setDeferAsk(true); }} />
+            <PartOption tone="tertiary" title="පසුව ගන්නම්" sub="OnGarage සේවා වාර්තාවේ සටහන් වේ" onPress={() => { setPartPopup(false); setDeferAsk(true); }} />
           </View>
         </ModalCard>
       )}
