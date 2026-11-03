@@ -1,10 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Easing, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Animated, AccessibilityInfo, Easing, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { onFly, type FlyKind } from '../utils/fly';
 
 const LOOK: Record<FlyKind, { glyph: string; color: string; tab: number }> = {
   // the tab's place in the bottom bar: Home, Bids, OnMart, Activity, Account
-  posted: { glyph: '📨', color: '#1a73e8', tab: 1 },
+  posted: { glyph: '📋', color: '#1a73e8', tab: 1 },
   bidReady: { glyph: '🤝', color: '#16a34a', tab: 1 },
   booked: { glyph: '📅', color: '#1a73e8', tab: 3 },
   done: { glyph: '✓', color: '#16a34a', tab: 3 },
@@ -18,6 +18,13 @@ export const FlyLayer: React.FC = () => {
   const { width, height } = useWindowDimensions();
   const [kind, setKind] = useState<FlyKind | null>(null);
   const t = useRef(new Animated.Value(0)).current;
+  // With reduced motion on, the token does not fly: the landing ring and the words still show.
+  const [reduce, setReduce] = useState(false);
+  useEffect(() => {
+    AccessibilityInfo.isReduceMotionEnabled().then(setReduce);
+    const sub = AccessibilityInfo.addEventListener('reduceMotionChanged', setReduce);
+    return () => sub.remove();
+  }, []);
 
   // One continuous timeline (no stops between the parts): 0 - 0.18 the token pops in, 0.18 - 0.3 it holds, 0.3 - 0.85 it glides to its place, 0.8 - 1 the ring spreads.
   useEffect(
@@ -25,6 +32,7 @@ export const FlyLayer: React.FC = () => {
       onFly((k) => {
         setKind(k);
         t.setValue(0);
+        // Three seconds: slow enough to follow where the job went.
         Animated.timing(t, { toValue: 1, duration: 3000, easing: Easing.linear, useNativeDriver: true }).start(() => setKind(null));
       }),
     [t]
@@ -41,13 +49,20 @@ export const FlyLayer: React.FC = () => {
   const opacity = t.interpolate({ inputRange: [0, 0.06, 0.78, 0.86, 1], outputRange: [0, 1, 1, 0, 0] });
   const ringScale = t.interpolate({ inputRange: [0, 0.8, 1], outputRange: [0.5, 0.5, 2], easing: Easing.out(Easing.quad) });
   const ringOpacity = t.interpolate({ inputRange: [0, 0.8, 0.84, 1], outputRange: [0, 0, 0.7, 0] });
+  // What it means, written where it lands: a posted job is now with the garages, on the Bids tab.
+  const wordsOpacity = t.interpolate({ inputRange: [0, 0.8, 0.9, 1], outputRange: [0, 0, 1, 1] });
 
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
       <Animated.View
         style={[styles.ring, { left: to.x - 24, top: to.y - 24, borderColor: look.color, opacity: ringOpacity, transform: [{ scale: ringScale }] }]}
       />
-      <Animated.View style={[styles.token, { backgroundColor: look.color, opacity, transform: [{ translateX: Animated.subtract(x, 22) }, { translateY: Animated.subtract(y, 22) }, { scale }] }]}>
+      {kind === 'posted' && (
+        <Animated.View style={[styles.words, { left: Math.max(8, Math.min(width - 248, to.x - 120)), top: to.y - 76, opacity: wordsOpacity }]}>
+          <Text style={styles.wordsText}>ලංසු ඉල්ලීම Bids වෙත යැවුවා</Text>
+        </Animated.View>
+      )}
+      <Animated.View style={[styles.token, { backgroundColor: look.color, opacity: reduce ? 0 : opacity, transform: [{ translateX: Animated.subtract(x, 22) }, { translateY: Animated.subtract(y, 22) }, { scale }] }]}>
         <Text style={styles.glyph}>{look.glyph}</Text>
       </Animated.View>
     </View>
@@ -58,4 +73,6 @@ const styles = StyleSheet.create({
   token: { position: 'absolute', left: 0, top: 0, width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 8 },
   glyph: { fontSize: 20, color: '#ffffff', fontWeight: '800' },
   ring: { position: 'absolute', width: 48, height: 48, borderRadius: 24, borderWidth: 3 },
+  words: { position: 'absolute', width: 240, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 12, backgroundColor: '#1e3a8a' },
+  wordsText: { fontSize: 13, fontWeight: '700', color: '#ffffff', textAlign: 'center' },
 });

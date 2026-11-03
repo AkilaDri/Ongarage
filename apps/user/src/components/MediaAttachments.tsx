@@ -45,18 +45,37 @@ export const MediaAttachments: React.FC<{
 
   return (
     <View style={styles.wrap}>
-      <PhotoStrip
-        photos={photos}
-        height={84}
-        onAdd={photos.length < MAX_PHOTOS ? () => void pickPhotos(MAX_PHOTOS - photos.length).then((ph) => ph.length && onPhotos([...photos, ...ph])) : undefined}
-        addLabel="ඡායාරූපයක්"
-      />
+      {photos.length > 0 && <PhotoStrip photos={photos} height={84} />}
       {photos.length > 0 && (
         <Pressable onPress={() => onPhotos(photos.slice(0, -1))} hitSlop={6}>
           <Text style={styles.remove}>අවසන් ඡායාරූපය ඉවත් කරන්න</Text>
         </Pressable>
       )}
 
+      {/* The two attachments are equal tiles in one row: the owner sees them as one choice, both optional. */}
+      <View style={styles.tileRow}>
+        <Pressable
+          style={({ pressed }) => [styles.tile, pressed && { opacity: 0.8 }, photos.length >= MAX_PHOTOS && { opacity: 0.5 }]}
+          onPress={() => void pickPhotos(MAX_PHOTOS - photos.length).then((ph) => ph.length && onPhotos([...photos, ...ph]))}
+          disabled={photos.length >= MAX_PHOTOS}
+          accessibilityLabel="Add photos"
+        >
+          <Text style={styles.tileIcon}>📷</Text>
+          <Text style={styles.tileLabel}>ඡායාරූපයක්</Text>
+          <Text style={styles.tileSub}>{photos.length ? `${photos.length}/${MAX_PHOTOS}` : 'විකල්පයි'}</Text>
+        </Pressable>
+        <Pressable
+          style={({ pressed }) => [styles.tile, recording && styles.tileRec, pressed && { opacity: 0.8 }]}
+          onPress={() => (recording ? stop(seconds) : start())}
+          accessibilityLabel={recording ? 'Stop recording' : 'Record voice note'}
+        >
+          <Text style={styles.tileIcon}>{recording ? '⏹' : '🎙️'}</Text>
+          <Text style={[styles.tileLabel, recording && styles.tileTextRec]}>{recording ? `0:${String(seconds).padStart(2, '0')} / 0:${MAX_VOICE_SEC}` : 'හඬ සටහනක්'}</Text>
+          <Text style={[styles.tileSub, recording && styles.tileTextRec]}>{recording ? 'නවත්වන්න' : `තත්පර ${MAX_VOICE_SEC} දක්වා`}</Text>
+        </Pressable>
+      </View>
+
+      {/* A recorded note is a note: its own player row, with a remove control. */}
       {voiceNotes.map((n, i) => (
         <View key={n.id} style={styles.voiceRow}>
           <View style={styles.flex1}>
@@ -67,15 +86,6 @@ export const MediaAttachments: React.FC<{
           </Pressable>
         </View>
       ))}
-      <Pressable
-        style={({ pressed }) => [styles.record, recording && styles.recording, pressed && { opacity: 0.8 }]}
-        onPress={() => (recording ? stop(seconds) : start())}
-        accessibilityLabel={recording ? 'Stop recording' : 'Record voice note'}
-      >
-        <Text style={[styles.recordText, recording && { color: '#fff' }]}>
-          {recording ? `⏹ නවත්වන්න · 0:${String(seconds).padStart(2, '0')} / 0:${MAX_VOICE_SEC}` : `🎙️ හඬ සටහනක් පටිගත කරන්න (තත්පර ${MAX_VOICE_SEC} දක්වා)`}
-        </Text>
-      </Pressable>
     </View>
   );
 };
@@ -88,8 +98,12 @@ const styles = themedStyles(() =>
     voiceRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     removeBtn: { width: 30, height: 30, borderRadius: 15, backgroundColor: Colors.subtleFill, borderWidth: 1, borderColor: Colors.borderColor, justifyContent: 'center', alignItems: 'center' },
     removeText: { fontSize: 11, color: Colors.textMuted },
-    record: { paddingVertical: 12, paddingHorizontal: 14, borderRadius: 14, borderWidth: 1, borderColor: 'rgba(29, 78, 216, 0.45)', backgroundColor: 'rgba(29, 78, 216, 0.08)', alignItems: 'center' },
-    recording: { backgroundColor: '#ef4444', borderColor: '#ef4444' },
-    recordText: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: '#1d4ed8' },
+    tileRow: { flexDirection: 'row', gap: 10 },
+    tile: { flex: 1, height: 88, borderRadius: 14, borderWidth: 1, borderColor: 'rgba(29, 78, 216, 0.35)', backgroundColor: 'rgba(29, 78, 216, 0.06)', alignItems: 'center', justifyContent: 'center', gap: 2, padding: 8 },
+    tileRec: { backgroundColor: '#ef4444', borderColor: '#ef4444' },
+    tileIcon: { fontSize: 20 },
+    tileLabel: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: '#1d4ed8', textAlign: 'center' },
+    tileSub: { fontSize: 11, fontFamily: FONTS.bodyRegular, color: Colors.textSoft, textAlign: 'center' },
+    tileTextRec: { color: '#ffffff' },
   })
 );

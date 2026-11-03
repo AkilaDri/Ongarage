@@ -153,6 +153,13 @@ const MixedText: React.FC<{ text: string; style: any }> = ({ text, style }) => {
 /** One numbered step of the form: a rounded card with a step badge that turns into a tick once the step is filled in. */
 const TAB_LABEL: Record<string, string> = { service: 'සේවාව', details: 'විස්තර', parts: 'කොටස්', vehicle: 'වාහනය', timer: 'කාලය' };
 
+const ReviewRow: React.FC<{ label: string; value: string }> = ({ label, value }) => (
+  <View style={styles.reviewRow}>
+    <Text style={styles.reviewLabel}>{label}</Text>
+    <Text style={styles.reviewValue}>{value}</Text>
+  </View>
+);
+
 const StepCard: React.FC<{ step: number; title: string; done: boolean; hint?: string; optional?: boolean; requiredNote?: string; children: React.ReactNode }> = ({ step, title, done, hint, optional, requiredNote, children }) => (
   <View style={styles.stepCard}>
     <View style={styles.stepHead}>
@@ -652,7 +659,7 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, defaultVehi
           <TextInput
             style={[styles.textArea, { height: descriptionH }]}
             multiline
-            placeholder="ඔබට අවශ්‍ය සේවාව හෝ ගැටලුව විස්තර කරන්න..."
+            placeholder="ඔබට අවශ්‍ය සේවාව හෝ ගැටලුව විස්තර කරන්න... (විස්තරයක් නැතිනම් හඬ සටහනක් ප්‍රමාණවත්ය)"
             placeholderTextColor={Colors.textMuted}
             value={description}
             onChangeText={setDescription}
@@ -674,13 +681,7 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, defaultVehi
               </View>
             </View>
           )}
-          <View style={{ gap: 2 }}>
-            <Text style={styles.eyebrow}>ඡායාරූප සහ හඬ සටහන් (විකල්පයි)</Text>
-            <View style={{ gap: 2 }}>
-              <Text style={[styles.hint, { color: Colors.textSoft }]}>• ඡායාරූප විකල්පයි</Text>
-              <Text style={[styles.hint, { color: Colors.textSoft }]}>• විස්තරයක් නැති විට හඬ සටහනක් ප්‍රමාණවත්ය</Text>
-            </View>
-          </View>
+          <Text style={styles.eyebrow}>ඡායාරූප සහ හඬ සටහන්</Text>
           <MediaAttachments photos={photos} voiceNotes={voiceNotes} onPhotos={setPhotos} onVoiceNotes={setVoiceNotes} />
         </StepCard>
 
@@ -699,7 +700,10 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, defaultVehi
               );
             })}
           </View>
-          <Text style={styles.partHelp}>මුල් = වාහන නිෂ්පාදකයාගේ කොටස · වෙළඳපල = වෙනත් නිෂ්පාදකයෙකුගේ කොටස</Text>
+          {/* The chosen part type's meaning, under the options; before a choice, the general line. */}
+          <Text style={styles.partHelp}>
+            {sparePart ? SPARE_PARTS.find((p) => p.id === sparePart)?.help : 'කොටසේ වර්ගය අනුව මිලත්, වගකීමත් වෙනස් වේ.'}
+          </Text>
         </StepCard>
 
         {/* The place the vehicle is repaired at: where it is, and the map to see it. */}
@@ -731,18 +735,36 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, defaultVehi
         )}
         {tab === 'timer' && (
           <>
-        <StepCard step={5} title="⏱️ ලංසු කාලය" done={biddingHours !== null} hint="උපරිම පැය 24">
-          {/* The chosen time leads, large, above the slider; the two ends of the scale sit small under it. */}
+        <StepCard step={5} title="⏱️ ලංසු කාලය" done={biddingHours !== null}>
+          {/* The chosen time leads, large, above the quick picks and the slider. Before a choice it is a muted prompt, not a value. */}
           <View style={styles.timerHead}>
             <Text style={styles.cardSub}>ලංසු ලැබෙන කාලය</Text>
-            <Text style={styles.timerBig}>{biddingHours === null ? 'තෝරන්න' : `පැය ${biddingHours}`}</Text>
+            <Text style={[styles.timerBig, biddingHours === null && styles.timerPrompt]}>{biddingHours === null ? 'තෝරන්න' : `පැය ${biddingHours}`}</Text>
+          </View>
+          <View style={styles.quickRow}>
+            {[1, 3, 6, 12, 24].map((h) => (
+              <Pressable key={h} style={[styles.quickChip, biddingHours === h && styles.quickChipOn]} onPress={() => setBiddingHours(h)} accessibilityLabel={`${h} hours`}>
+                <Text style={[styles.quickText, biddingHours === h && styles.quickTextOn]}>{`${h} පැය`}</Text>
+              </Pressable>
+            ))}
           </View>
           <Slider min={1} max={24} value={biddingHours} onChange={setBiddingHours} />
           <View style={styles.rowBetween}>
             <Text style={styles.scaleText}>පැය 1</Text>
             <Text style={styles.scaleText}>පැය 24</Text>
           </View>
+          {/* What the time means: garages bid inside it, and bids stop when it ends. */}
+          <Text style={styles.timerNote}>ගරාජ මෙම කාලය තුළ ලංසු යවයි; කාලය අවසන් වූ පසු ලංසු පිළිගන්නේ නැත.</Text>
         </StepCard>
+
+        {/* The whole job at a glance before it is posted: the owner checks it once. */}
+        <View style={styles.reviewCard}>
+          <Text style={styles.reviewTitle}>ඔබේ රැකියාව</Text>
+          <ReviewRow label="සේවාව" value={(categoryId && shortCategoryName(categoryId)) || '—'} />
+          <ReviewRow label="වාහනය" value={vehicle ? `${vehicle.name} · ${vehicle.registrationNo || vehicle.plate}` : '—'} />
+          <ReviewRow label="කොටස" value={sparePart ? SPARE_PARTS.find((p) => p.id === sparePart)?.label ?? '—' : fitting ? 'සවි කිරීම' : '—'} />
+          <ReviewRow label="ලංසු කාලය" value={biddingHours === null ? '—' : `පැය ${biddingHours}`} />
+        </View>
           </>
         )}
       </ScrollView>
@@ -860,6 +882,18 @@ const styles = themedStyles(() => StyleSheet.create({
   stepTitle: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textMain },
   timerHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
   timerBig: { fontSize: 22, fontFamily: FONTS.titleBold, color: Colors.textMain },
+  timerPrompt: { fontSize: 18, color: Colors.textSoft },
+  quickRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  quickChip: { paddingHorizontal: 14, height: 36, borderRadius: 18, borderWidth: 1, borderColor: outline(), backgroundColor: Colors.bgCard, justifyContent: 'center' },
+  quickChipOn: { backgroundColor: '#1d4ed8', borderColor: '#1d4ed8' },
+  quickText: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
+  quickTextOn: { color: '#ffffff' },
+  timerNote: { fontSize: 12.5, fontFamily: FONTS.bodyRegular, color: Colors.textSoft, lineHeight: 18 },
+  reviewCard: { padding: 16, borderRadius: 14, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: '#bfdbfe', gap: 8 },
+  reviewTitle: { fontSize: 14, fontFamily: FONTS.titleBold, color: '#1d4ed8' },
+  reviewRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 },
+  reviewLabel: { fontSize: 13, fontFamily: FONTS.bodyRegular, color: Colors.textSoft },
+  reviewValue: { flexShrink: 1, fontSize: 13.5, fontFamily: FONTS.bodyBold, color: Colors.textMain, textAlign: 'right' },
   scaleText: { fontSize: 11.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
   sectionHeading: { fontSize: 15, fontFamily: FONTS.titleBold, color: Colors.textMain, marginBottom: 4 },
   toggleRow: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 8, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline() },

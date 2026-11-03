@@ -24,6 +24,16 @@ import type { Vehicle } from '@ongarage/shared';
 // Sri Lankan plates: optional province letters, 2–3 letters (or digits), dash, 4 digits.
 const PLATE_PATTERN = /^([A-Z]{2}-)?([A-Z]{2,3}|\d{2,3})-\d{4}$/;
 
+// A labelled field: the label sits above the box, so the example inside it is never mistaken for a value.
+const Field: React.FC<React.ComponentProps<typeof TextInput> & { label: string; error?: string | null; hint?: string }> = ({ label, error, hint, style, ...input }) => (
+  <>
+    <Text style={styles.label}>{label}</Text>
+    <TextInput style={[styles.input, error ? styles.inputError : null, style]} placeholderTextColor={Colors.textSoft} {...input} />
+    {!!hint && !error && <Text style={styles.hintText}>{hint}</Text>}
+    {!!error && <Text style={styles.error}>{error}</Text>}
+  </>
+);
+
 interface AddVehicleSheetProps {
   visible: boolean;
   onClose: () => void;
@@ -44,6 +54,7 @@ export const AddVehicleSheet: React.FC<AddVehicleSheetProps> = ({ visible, onClo
   const [color, setColor] = useState('');
   const [insuranceNo, setInsuranceNo] = useState('');
   const [touched, setTouched] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
   const [saved, setSaved] = useState<Vehicle | null>(null);
   const slide = useRef(new Animated.Value(0)).current;
   const iconPop = useRef(new Animated.Value(1)).current;
@@ -63,6 +74,7 @@ export const AddVehicleSheet: React.FC<AddVehicleSheetProps> = ({ visible, onClo
       setColor('');
       setInsuranceNo('');
       setTouched(false);
+      setShowDetails(false);
       setSaved(null);
       success.setValue(0);
       Animated.spring(slide, { toValue: 1, stiffness: 200, damping: 24, mass: 1, useNativeDriver: true }).start();
@@ -155,42 +167,47 @@ export const AddVehicleSheet: React.FC<AddVehicleSheetProps> = ({ visible, onClo
               })}
             </View>
 
-            <Text style={styles.label}>වාහනයේ නම / මාදිලිය</Text>
-            <TextInput
-              style={[styles.input, nameError && styles.inputError]}
+            <Field
+              label="වාහනයේ නම / මාදිලිය *"
               placeholder="උදා: Toyota Aqua"
-              placeholderTextColor={Colors.textMuted}
               value={name}
               onChangeText={setName}
               maxLength={32}
+              error={nameError}
             />
-            {nameError && <Text style={styles.error}>{nameError}</Text>}
 
-            <Text style={styles.label}>අංක තහඩුව</Text>
-            <TextInput
-              style={[styles.input, styles.plateInput, plateError && styles.inputError]}
+            <Field
+              label="අංක තහඩුව *"
               placeholder="උදා: CAB-1234"
-              placeholderTextColor={Colors.textMuted}
               autoCapitalize="characters"
               autoCorrect={false}
               value={plate}
-              onChangeText={setPlate}
+              onChangeText={(t) => setPlate(t.toUpperCase())}
               maxLength={14}
+              style={styles.plateInput}
+              error={plateError}
+              hint="ශ්‍රී ලංකා ආකෘතිය: CAB-1234 හෝ WP-CAB-1234"
             />
-            {plateError && <Text style={styles.error}>{plateError}</Text>}
 
-            <Text style={styles.label}>වාහනයේ විස්තරයන්</Text>
-            <TextInput style={styles.input} placeholder="ලියාපදිංචි අංකය" placeholderTextColor={Colors.textMuted} value={registrationNo} onChangeText={setRegistrationNo} maxLength={32} />
-            <TextInput style={styles.input} placeholder="Chassis අංකය" placeholderTextColor={Colors.textMuted} value={chassisNo} onChangeText={setChassisNo} maxLength={32} />
-            <TextInput style={styles.input} placeholder="Engine අංකය" placeholderTextColor={Colors.textMuted} value={engineNo} onChangeText={setEngineNo} maxLength={32} />
-            <TextInput style={styles.input} placeholder="Make" placeholderTextColor={Colors.textMuted} value={make} onChangeText={setMake} maxLength={32} />
-            <TextInput style={styles.input} placeholder="Model" placeholderTextColor={Colors.textMuted} value={model} onChangeText={setModel} maxLength={32} />
-            <TextInput style={styles.input} placeholder="Color" placeholderTextColor={Colors.textMuted} value={color} onChangeText={setColor} maxLength={32} />
-            <TextInput style={styles.input} placeholder="Insurance Number" placeholderTextColor={Colors.textMuted} value={insuranceNo} onChangeText={setInsuranceNo} maxLength={32} />
+            {/* The rest is optional: collapsed, so the form stays short until the owner wants more. */}
+            <Pressable style={styles.detailsToggle} onPress={() => setShowDetails((v) => !v)} accessibilityLabel="Vehicle details, optional">
+              <Text style={styles.detailsToggleText}>{showDetails ? '▾' : '▸'} වාහනයේ විස්තර (විකල්පයි)</Text>
+            </Pressable>
+            {showDetails && (
+              <>
+                <Field label="ලියාපදිංචි අංකය" placeholder="උදා: 12-3456" value={registrationNo} onChangeText={setRegistrationNo} maxLength={32} />
+                <Field label="Chassis අංකය" placeholder="උදා: MR0FR22G..." value={chassisNo} onChangeText={setChassisNo} maxLength={32} />
+                <Field label="Engine අංකය" placeholder="උදා: 1NZ-1234567" value={engineNo} onChangeText={setEngineNo} maxLength={32} />
+                <Field label="Make" placeholder="උදා: Toyota" value={make} onChangeText={setMake} maxLength={32} />
+                <Field label="Model" placeholder="උදා: Aqua" value={model} onChangeText={setModel} maxLength={32} />
+                <Field label="Color" placeholder="උදා: Pearl White" value={color} onChangeText={setColor} maxLength={32} />
+                <Field label="Insurance Number" placeholder="උදා: INS-000123" value={insuranceNo} onChangeText={setInsuranceNo} maxLength={32} />
+              </>
+            )}
           </ScrollView>
 
           <View style={styles.footer}>
-            <ActionButton label="වාහනය එක් කරන්න" icon="＋" variant="primary" disabled={touched && !valid} onPress={save} />
+            <ActionButton label={valid ? 'වාහනය එක් කරන්න' : !name.trim() ? 'නම ඇතුළත් කරන්න' : 'අංක තහඩුව ඇතුළත් කරන්න'} icon="＋" variant="primary" disabled={!valid} onPress={save} />
           </View>
 
           {saved && (
@@ -217,7 +234,7 @@ const styles = themedStyles(() =>
     anchor: { flex: 1, justifyContent: 'flex-end' },
     sheet: { maxHeight: '88%', backgroundColor: Colors.sheetBg, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 10, overflow: 'hidden' },
     handle: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: Colors.subtleBorder },
-    headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, paddingTop: 12 },
+    headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, paddingTop: 12, paddingBottom: 8, backgroundColor: Colors.sheetBg, zIndex: 2 },
     title: { fontSize: 20, lineHeight: 28, fontFamily: FONTS.titleBold, color: Colors.textMain },
     closeBtn: {
       width: 30,
@@ -248,8 +265,8 @@ const styles = themedStyles(() =>
     },
     plateText: { fontSize: 12, fontWeight: '800', color: Colors.primary, letterSpacing: 1 },
     label: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, letterSpacing: 0.4, marginTop: 6 },
-    types: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-    typeItem: { width: 64, alignItems: 'center', gap: 5 },
+    types: { flexDirection: 'row', flexWrap: 'wrap', rowGap: 12 },
+    typeItem: { width: '33.33%', alignItems: 'center', gap: 5 },
     typeTile: { width: 56, height: 56, borderRadius: 17, ...glassStyle(), justifyContent: 'center', alignItems: 'center' },
     typeTileActive: { backgroundColor: 'rgba(56, 189, 248, 0.2)', borderColor: Colors.primary, shadowColor: Colors.primary, shadowOpacity: 0.5 },
     typeEmoji: { fontSize: 26 },
@@ -266,6 +283,9 @@ const styles = themedStyles(() =>
       fontFamily: FONTS.bodyMedium,
     },
     plateInput: { letterSpacing: 1.5, fontWeight: '700' },
+    hintText: { fontSize: 11, fontFamily: FONTS.bodyRegular, color: Colors.textSoft },
+    detailsToggle: { paddingVertical: 12, marginTop: 6, borderTopWidth: 1, borderTopColor: Colors.borderColor },
+    detailsToggleText: { fontSize: 14, fontFamily: FONTS.bodyBold, color: '#1d4ed8' },
     inputError: { borderColor: Colors.error },
     error: { fontSize: 10.5, fontFamily: FONTS.bodyMedium, color: Colors.errorText },
     footer: { padding: 16, paddingTop: 10, borderTopWidth: 1, borderTopColor: Colors.borderColor, backgroundColor: Colors.barBg },
