@@ -15,6 +15,8 @@ import { BookedTag } from '../BookedTag';
 export const GarageTile: React.FC<{
   garage: Garage;
   width?: number | `${number}%`;
+  /** A shorter photo, so more garages fit on a list (the browse screen). */
+  compact?: boolean;
   ad?: boolean;
   /** Shows whether the garage is online (open) right now, as a tag on its photo. */
   showStatus?: boolean;
@@ -24,7 +26,7 @@ export const GarageTile: React.FC<{
   categoryId?: string;
   onOpen: () => void;
   onSaveChange: (saved: boolean) => void;
-}> = ({ garage: g, width = 236, ad, showStatus, showDetails, categoryId, onOpen, onSaveChange }) => {
+}> = ({ garage: g, width = 236, compact, ad, showStatus, showDetails, categoryId, onOpen, onSaveChange }) => {
   const [saved, setSaved] = useState(false);
   const info = GARAGE_INFO[g.id];
   const level = g.level ? LEVELS.find((l) => l.id === g.level) : undefined;
@@ -38,7 +40,7 @@ export const GarageTile: React.FC<{
   return (
     <Pressable style={({ pressed }) => [styles.tile, { width }, pressed && styles.pressed]} onPress={onOpen} accessibilityLabel={`Garage ${g.name}`}>
       <View>
-        <Image source={GARAGE_COVERS[g.id] ?? { uri: g.photos?.[0] }} style={styles.cover} resizeMode="cover" />
+        <Image source={GARAGE_COVERS[g.id] ?? { uri: g.photos?.[0] }} style={[styles.cover, compact && styles.coverCompact]} resizeMode="cover" />
         {!!badge && (
           <View style={[styles.badge, ad && styles.badgeAd]}>
             <Text style={[styles.badgeText, ad && styles.badgeAdText]} numberOfLines={1}>
@@ -113,6 +115,7 @@ const styles = themedStyles(() =>
     tile: { borderRadius: 12, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), overflow: 'hidden', ...cardShadow() },
     pressed: { opacity: 0.85 },
     cover: { width: '100%', height: 128 },
+    coverCompact: { height: 92 },
     // Badges and the heart sit on the photo: fixed light chips readable in both themes.
     badge: { position: 'absolute', top: 8, left: 8, maxWidth: '70%', paddingHorizontal: 8, height: 22, justifyContent: 'center', borderRadius: 6, backgroundColor: 'rgba(255, 255, 255, 0.92)' },
     badgeAd: { backgroundColor: 'rgba(15, 23, 42, 0.75)' },

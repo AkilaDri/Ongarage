@@ -590,7 +590,6 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, defaultVehi
       </View>
 
       <View style={styles.postSheet}>
-        <View style={styles.handle} />
         <View style={styles.progressWrap}>
           <View style={styles.progressRow}>
             {/* Coloured by position, as in the SOS flow: the steps reached are red, the rest grey (a finished step does not change the colour). */}
@@ -936,7 +935,8 @@ const styles = themedStyles(() => StyleSheet.create({
   buddyFieldFocus: { borderColor: '#1a73e8' },
   buddyCollapse: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(100, 116, 139, 0.14)' },
   buddyCollapseText: { fontSize: 18, fontFamily: FONTS.bodyBold, color: Colors.textMain },
-  progressWrap: { gap: 6, paddingHorizontal: 4, marginBottom: 8 },
+  // 14px above the bar: the space the drag handle used to take, so the bar keeps its place.
+  progressWrap: { gap: 6, paddingHorizontal: 4, marginTop: 14, marginBottom: 8 },
   progressRow: { flexDirection: 'row', gap: 6 },
   progressSeg: { flex: 1, paddingVertical: 6 },
   progressBar: { height: 6, borderRadius: 3, backgroundColor: Colors.subtleBorder },

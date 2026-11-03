@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, Pressable, StyleSheet, ScrollView, TextInput, Animated, Easing, Linking, PanResponder, Platform } from 'react-native';
+import { shortCategoryName } from '../components/home/CategoryStrip';
+import { View, Text, Pressable, StyleSheet, ScrollView, TextInput, Animated, Easing, Linking, Modal, PanResponder, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, FONTS, getThemeMode, themedStyles } from '@ongarage/shared';
 import { MOCK_GARAGES } from '../constants/mockData';
@@ -80,9 +81,8 @@ export const ServiceBrowseScreen: React.FC<ServiceBrowseScreenProps> = ({ servic
   const [selectedSub, setSelectedSub] = useState(() => Math.max(0, service.subcategories.indexOf(initialSub ?? '')));
   // When folded, the first few show, plus the picked one if it is further down the list, so the choice stays visible in green.
   const pickedIndex = selectedSub;
-  const visibleSubs = subsOpen
-    ? service.subcategories
-    : pickedIndex >= SUB_PREVIEW
+  // The row over the map never grows: the full list lives in the filter sheet (subsOpen), so nothing covers the map.
+  const visibleSubs = pickedIndex >= SUB_PREVIEW
       ? [...service.subcategories.slice(0, SUB_PREVIEW - 1), service.subcategories[pickedIndex]]
       : service.subcategories.slice(0, SUB_PREVIEW);
   const [mapHeight, setMapHeight] = useState(0);
@@ -90,6 +90,9 @@ export const ServiceBrowseScreen: React.FC<ServiceBrowseScreenProps> = ({ servic
   // Where the garages are searched from and how far: the owner's own spot by default, or a spot picked on the map (`origin`); the range is dragged on the bar over the map.
   const [origin, setOrigin] = useState<LatLng | null>(null);
   const [pickMode, setPickMode] = useState(false);
+  // A place tapped on the map is shown first, then confirmed or cancelled from the bar.
+  const [pendingOrigin, setPendingOrigin] = useState<LatLng | null>(null);
+  const originBeforePick = useRef<LatLng | null>(null);
   const [radiusKm, setRadiusKm] = useState(RADIUS_MAX);
   const trackW = useRef(1);
   const dragFrom = useRef(0);
@@ -108,6 +111,12 @@ export const ServiceBrowseScreen: React.FC<ServiceBrowseScreenProps> = ({ servic
   const sheetHeight = useRef(new Animated.Value(DEFAULT_PEEK_HEIGHT)).current;
   const currentHeight = useRef(DEFAULT_PEEK_HEIGHT);
   const dragStart = useRef(DEFAULT_PEEK_HEIGHT);
+  // Opens at the middle, so the garages are the first thing seen; the map is still above it.
+  useEffect(() => {
+    const t = setTimeout(() => animateTo('collapsed'), 400);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // The map area grows by the search bar's height while the bar folds away. `mapHeight` is its height with the bar shown and is not updated during the fold
   // (a new height every frame made the sheet re-render and re-spring all the way up, which felt like a stall); the full-open sheet is that plus the bar.
@@ -347,6 +356,25 @@ export const ServiceBrowseScreen: React.FC<ServiceBrowseScreenProps> = ({ servic
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+        {/* The same top bar as the job form and the search screen: a solid blue band, a round back button on the left, and the search pill. It fades as the sheet rises. */}
+        <Animated.View style={[styles.browseBand, { opacity: sheetHeight.interpolate({ inputRange: [collapsedHeight, collapsedHeight + 70], outputRange: [1, 0], extrapolate: 'clamp' }) }]}>
+          <Pressable onPress={onClose} hitSlop={10} accessibilityLabel="Close screen" style={styles.roundBack}>
+            <Icon name="x" size={20} strokeWidth={2.5} color={Colors.textMain} />
+          </Pressable>
+          <View style={styles.searchPill}>
+            <Icon name="search" size={18} color={Colors.textMuted} />
+            <TextInput
+              ref={searchRef}
+              autoFocus={false}
+              style={styles.searchInput}
+              placeholder="ගරාජයක් හෝ සේවාවක් සොයන්න..."
+              placeholderTextColor={getThemeMode() === 'dark' ? Colors.textMuted : '#94a3b8'}
+              value={searchText}
+              onChangeText={setSearchText}
+            />
+          </View>
+        </Animated.View>
+
       <View style={styles.mapArea} onLayout={(e) => {
         const h = e.nativeEvent.layout.height;
         setMapW(Math.round(e.nativeEvent.layout.width));
@@ -358,10 +386,11 @@ export const ServiceBrowseScreen: React.FC<ServiceBrowseScreenProps> = ({ servic
       }}>
         <GoogleMap
           // The map keeps one size whatever the sheet does (it slides over it): the height of the map area with the search bar shown, less the peeking sheet.
-          style={[StyleSheet.absoluteFill, mapHeight ? { bottom: undefined, height: Math.max(0, mapHeight - (peekHeight - 20)) } : { bottom: peekHeight - 20 }]}
+          // The map's top edge sits 24px into the blue band, so its rounded corners show over it (as the sheets do on the other screens).
+          style={[StyleSheet.absoluteFill, { borderTopLeftRadius: 28, borderTopRightRadius: 28, overflow: 'hidden', top: 108 }, mapHeight ? { bottom: undefined, height: Math.max(0, mapHeight - (peekHeight - 20) - 108) } : { bottom: peekHeight - 20 }]}
           center={center}
           zoom={zoom}
-          onPressCoordinate={pickMode ? (c) => { setOrigin(c); setPickMode(false); } : undefined}
+          onPressCoordinate={pickMode ? (c) => { setOrigin(c); setPendingOrigin(c); } : undefined}
           renderOverlay={(project) => (
             <>
               {pins.map((g) => {
@@ -399,24 +428,6 @@ export const ServiceBrowseScreen: React.FC<ServiceBrowseScreenProps> = ({ servic
           )}
         />
 
-        {/* The search bar floats over the map (no header band above it) and fades out as the sheet is raised, so it never sits on top of the sheet. The way back is the arrow at its start. */}
-        <Animated.View style={[styles.floatSearch, { opacity: sheetHeight.interpolate({ inputRange: [collapsedHeight, collapsedHeight + 70], outputRange: [1, 0], extrapolate: 'clamp' }) }]}>
-          <View style={styles.searchBox}>
-            <Pressable onPress={onClose} hitSlop={10} accessibilityLabel="Close screen" style={styles.backBtn}>
-              <Icon name="arrow-left" size={22} strokeWidth={2.5} color="#0f2a3d" />
-            </Pressable>
-            <TextInput
-              ref={searchRef}
-              autoFocus={false}
-              style={styles.searchInput}
-              placeholder="ගරාජයක් හෝ සේවාවක් සොයන්න..."
-              placeholderTextColor={Colors.textMuted}
-              value={searchText}
-              onChangeText={setSearchText}
-            />
-            <Icon name="search" size={20} color="#1a73e8" />
-          </View>
-        </Animated.View>
 
         {/* The sub-services of the picked service (they slide by themselves to show there are more) float over the map right under the search bar, and fade out with it. */}
         <Animated.View
@@ -435,7 +446,6 @@ export const ServiceBrowseScreen: React.FC<ServiceBrowseScreenProps> = ({ servic
                     style={[styles.subChip, { backgroundColor: active ? SELECTED_GREEN : '#ffffff', borderColor: active ? SELECTED_GREEN : service.color + '8c' }]}
                     onPress={() => {
                       setSelectedSub(i);
-                      // Picking one from the full list folds the list back to its first few.
                       setSubsOpen(false);
                     }}
                     hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
@@ -449,8 +459,8 @@ export const ServiceBrowseScreen: React.FC<ServiceBrowseScreenProps> = ({ servic
                 );
               })}
               {service.subcategories.length > SUB_PREVIEW && (
-                <Pressable style={[styles.subChip, styles.subMore]} onPress={() => setSubsOpen((o) => !o)} hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }} accessibilityRole="button" accessibilityLabel={subsOpen ? 'Show fewer sub services' : `Show all ${service.subcategories.length} sub services`}>
-                  <Text style={styles.subMoreText}>{subsOpen ? 'අඩුවෙන් පෙන්වන්න' : `සියල්ල බලන්න (${service.subcategories.length})`}</Text>
+                <Pressable style={[styles.subChip, styles.subMore]} onPress={() => setSubsOpen(true)} hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }} accessibilityRole="button" accessibilityLabel={subsOpen ? 'Show fewer sub services' : `Show all ${service.subcategories.length} sub services`}>
+                  <Text style={styles.subMoreText}>{`සියල්ල බලන්න (${service.subcategories.length})`}</Text>
                 </Pressable>
               )}
             </View>
@@ -477,7 +487,11 @@ export const ServiceBrowseScreen: React.FC<ServiceBrowseScreenProps> = ({ servic
           <View style={styles.spotRow}>
             <Pressable
               style={[styles.spotChip, pickMode && styles.spotChipOn]}
-              onPress={() => setPickMode((m) => !m)}
+              onPress={() => {
+                originBeforePick.current = origin;
+                setPendingOrigin(null);
+                setPickMode((m) => !m);
+              }}
               accessibilityLabel={pickMode ? 'Cancel choosing a place on the map' : origin ? 'Search centre: another place. Tap to choose on the map' : 'Search centre: my location. Tap to choose another place'}
               accessibilityState={{ selected: pickMode }}
             >
@@ -497,13 +511,53 @@ export const ServiceBrowseScreen: React.FC<ServiceBrowseScreenProps> = ({ servic
                 <Text style={styles.spotChipText}>✕</Text>
               </Pressable>
             )}
-            <View style={styles.countPill} accessibilityLabel={placeMode ? `${placesList.length} places offer this` : `${found.length} garages offer this`}>
-              <Text style={styles.openStickerText}>{placeMode ? `මෙම සේවාව දෙන ස්ථාන ${placesList.length}` : `මෙම සේවාව කරන ගරාජ ${found.length}`}</Text>
-            </View>
           </View>
         </Animated.View>
 
+        {pickMode && pendingOrigin && (
+          <View style={[styles.confirmBar, { bottom: peekHeight + 12 }]}>
+            <Pressable style={styles.confirmYes} onPress={() => { setPickMode(false); setPendingOrigin(null); }} accessibilityLabel="Confirm this place">
+              <Text style={styles.confirmYesText}>ස්ථානය තහවුරු කරන්න</Text>
+            </Pressable>
+            <Pressable style={styles.confirmNo} onPress={() => { setOrigin(originBeforePick.current); setPendingOrigin(null); setPickMode(false); }} accessibilityLabel="Cancel this place">
+              <Text style={styles.confirmNoText}>අවලංගු</Text>
+            </Pressable>
+          </View>
+        )}
+
         <Animated.View pointerEvents="none" style={[styles.mapDim, { opacity: mapDim }]} />
+
+        {/* All the sub-services, in one place, with Done: opened from "සියල්ල බලන්න", so the map under it stays clear. */}
+        <Modal visible={subsOpen} transparent animationType="fade" onRequestClose={() => setSubsOpen(false)}>
+          <Pressable style={styles.filterBackdrop} onPress={() => setSubsOpen(false)} accessibilityLabel="Close the filter" />
+          <View style={styles.filterSheet}>
+            <Text style={styles.filterTitle}>{`${service.name} · උප සේවා`}</Text>
+            <View style={styles.subGrid}>
+              {service.subcategories.map((sub) => {
+                const i = service.subcategories.indexOf(sub);
+                const active = i === selectedSub;
+                return (
+                  <Pressable
+                    key={sub}
+                    style={[styles.subChip, { backgroundColor: active ? SELECTED_GREEN : '#ffffff', borderColor: active ? SELECTED_GREEN : service.color + '8c' }]}
+                    onPress={() => {
+                      setSelectedSub(i);
+                      setSubsOpen(false);
+                    }}
+                    accessibilityRole="radio"
+                    accessibilityLabel={`Sub service ${sub}`}
+                    accessibilityState={{ selected: active }}
+                  >
+                    <Text style={[styles.subChipText, active && styles.subChipTextActive]}>{active ? `✓ ${sub}` : sub}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+            <Pressable style={styles.filterDone} onPress={() => setSubsOpen(false)} accessibilityLabel="Done">
+              <Text style={styles.filterDoneText}>සම්පූර්ණයි</Text>
+            </Pressable>
+          </View>
+        </Modal>
 
         <Animated.View
           style={[styles.sheet, { height: sheetHeight, borderTopLeftRadius: sheetRadius, borderTopRightRadius: sheetRadius }]}
@@ -522,8 +576,9 @@ export const ServiceBrowseScreen: React.FC<ServiceBrowseScreenProps> = ({ servic
               <Pressable style={styles.sheetTitleRow} onPress={() => sheet === 'peek' && animateTo('collapsed')}>
                 {/* The category's own artwork, the same picture as its tile on Home. */}
                 <CategoryPhoto categoryId={service.id} size={34} />
-                <Text style={styles.sheetTitle} numberOfLines={1}>{service.name}</Text>
+                <Text style={styles.sheetTitle} numberOfLines={1}>{shortCategoryName(service.id) ?? service.name}</Text>
               </Pressable>
+              <Text style={styles.listCount}>{placeMode ? `මෙම සේවාව දෙන ස්ථාන ${placesList.length}` : `ගරාජ ${found.length} ක් මෙය කරයි`}</Text>
             </View>
             <View style={styles.headerRight}>
               {/* Free quote: the same look as the Free Quotes banner on Home (the blue card with the white ＋), asking every nearby garage for bids on this service. */}
@@ -651,6 +706,7 @@ export const ServiceBrowseScreen: React.FC<ServiceBrowseScreenProps> = ({ servic
                     key={g.id}
                     garage={g}
                     width="100%"
+                    compact
                     showStatus
                     showDetails
                     categoryId={service.id}
@@ -694,6 +750,9 @@ const styles = themedStyles(() => StyleSheet.create({
     paddingVertical: 10,
   },
   // Floats over the map's top edge, like Google Maps' search box.
+  browseBand: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 4, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 68, backgroundColor: '#1d367f' },
+  roundBack: { width: 46, height: 46, borderRadius: 23, backgroundColor: Colors.bgCard, justifyContent: 'center', alignItems: 'center' },
+  searchPill: { flex: 1, height: 52, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, borderRadius: 26, backgroundColor: Colors.bgCard },
   floatSearch: { position: 'absolute', top: 12, left: 14, right: 14, zIndex: 4, flexDirection: 'row', alignItems: 'center', gap: 10 },
   backBtn: { width: 30, height: 30, alignItems: 'center', justifyContent: 'center', marginLeft: -4 },
   searchClose: { width: 28, height: 28, borderRadius: 14, marginLeft: 6, justifyContent: 'center', alignItems: 'center' },
@@ -837,6 +896,17 @@ const styles = themedStyles(() => StyleSheet.create({
   // The open count over the map, with no background of its own, at the right end of the line of the location chip.
   mapOpen: { position: 'absolute', right: 0, top: 0, flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 6, backgroundColor: 'transparent' },
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 },
+  confirmBar: { position: 'absolute', left: 16, right: 16, flexDirection: 'row', gap: 10, zIndex: 20 },
+  confirmYes: { flex: 1, height: 48, borderRadius: 24, backgroundColor: '#1a73e8', justifyContent: 'center', alignItems: 'center' },
+  confirmYesText: { fontSize: 14, fontWeight: '800', color: '#ffffff' },
+  confirmNo: { paddingHorizontal: 18, height: 48, borderRadius: 24, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.borderColor, justifyContent: 'center' },
+  confirmNoText: { fontSize: 14, fontWeight: '700', color: Colors.textMain },
+  filterBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0, 0, 0, 0.35)' },
+  filterSheet: { position: 'absolute', left: 0, right: 0, bottom: 0, padding: 20, gap: 14, borderTopLeftRadius: 24, borderTopRightRadius: 24, backgroundColor: Colors.bgCard },
+  filterTitle: { fontSize: 16, fontWeight: '800', color: Colors.textMain },
+  filterDone: { height: 46, borderRadius: 23, backgroundColor: '#1a73e8', justifyContent: 'center', alignItems: 'center' },
+  filterDoneText: { fontSize: 14, fontWeight: '800', color: '#ffffff' },
+  listCount: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a56b0' },
   freeQuoteHead: { alignSelf: 'center', gap: 6, paddingLeft: 10 },
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   openSticker: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, height: 26, borderRadius: 13, backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.18)' : '#e8f0fe' },
@@ -859,7 +929,7 @@ const styles = themedStyles(() => StyleSheet.create({
   sheetClosePressed: { transform: [{ scale: 0.9 }] },
   // The sub-service chips float over the map right under the search bar; the spot chip and the controls below start a little lower to make room.
   // Full width, so the chips slide edge to edge of the screen (the row's side margins are padding inside the scroller, not a clipping edge).
-  subFloat: { position: 'absolute', top: 70, left: 0, right: 0, zIndex: 4 },
+  subFloat: { position: 'absolute', top: 146, left: 0, right: 0, zIndex: 4 },
   subChipTextMap: { color: '#0f2a3d' },
   subGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, paddingHorizontal: 14, paddingVertical: 4 },
   subMore: { backgroundColor: '#ffffff', borderColor: '#1a73e8' },

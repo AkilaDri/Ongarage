@@ -1,10 +1,18 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Easing, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Animated, Easing, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, TextStyle, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, distanceKm, FONTS, getThemeMode, Icon, POPULAR_SERVICES, SERVICE_CATEGORIES, themedStyles, type Garage, type ServiceCategory } from '@ongarage/shared';
 import { MOCK_GARAGES } from '../../constants/mockData';
+import { GARAGE_SUB_SERVICES } from '../../constants/garageSubServices';
 import { useUserLocation } from '../../context/LocationContext';
 import { CategoryPhoto } from './CategoryPhoto';
+import { shortCategoryName } from './CategoryStrip';
+
+// The browser draws its own focus ring on text fields; the field's blue border replaces it.
+const NO_FOCUS_RING = { outlineStyle: 'none' } as unknown as TextStyle;
+
+// The categories people use most, in order: the ones with popular sub-services first (the usage list the app already keeps).
+const POPULAR_CATEGORY_ORDER = [...new Set(POPULAR_SERVICES.map((p) => p.categoryId))];
 
 const MAX_GARAGES = 8;
 /** How long each suggested job stays in the bar before the next one slides in. */
@@ -64,6 +72,7 @@ export const HomeSearch: React.FC<{
 }> = ({ onService, onGarage, onPost, inCard }) => {
   const [open, setOpen] = useState(false);
   const [text, setText] = useState('');
+  const [focused, setFocused] = useState(false);
   const user = useUserLocation();
   const q = text.trim().toLowerCase();
 
@@ -76,6 +85,13 @@ export const HomeSearch: React.FC<{
       for (const c of SERVICE_CATEGORIES) {
         for (const s of c.subcategories) if (s.toLowerCase().includes(q)) hits.push({ key: `${c.id}:${s}`, category: c, sub: s });
       }
+    } else {
+      // Nothing typed: the popular categories lead, the rest keep their order (the sort is stable).
+      const rank = (id: string) => {
+        const i = POPULAR_CATEGORY_ORDER.indexOf(id);
+        return i === -1 ? Infinity : i;
+      };
+      hits.sort((a, b) => rank(a.category.id) - rank(b.category.id));
     }
     return hits;
   }, [q]);
@@ -94,6 +110,36 @@ export const HomeSearch: React.FC<{
     setText('');
   };
 
+  // How many garages near the owner do this category: the number that tells them there is a choice.
+  const nearbyOffering = (categoryId: string) =>
+    MOCK_GARAGES.filter((g) => (GARAGE_SUB_SERVICES[g.id]?.[categoryId]?.length ?? 0) > 0 && distanceKm(user.coords, g.coords) <= 10).length;
+
+  // The category's short name, as on the home tiles (sub-service names stay as they are).
+  const catName = (c: ServiceCategory) => shortCategoryName(c.id) ?? c.name;
+
+  const garageRow = (g: (typeof garages)[number]) => (
+            <Pressable
+              key={g.id}
+              style={styles.row}
+              // The search stays open under the profile: closing the profile returns to these results.
+              onPress={() => onGarage(g)}
+              accessibilityLabel={`Search result garage ${g.name}`}
+            >
+              <View style={styles.garageIcon}>
+                <Text style={styles.garageEmoji}>🛠️</Text>
+              </View>
+              <View style={styles.flex1}>
+                <Text style={styles.rowTitle} numberOfLines={1}>
+                  {g.name}
+                </Text>
+                <Text style={styles.rowSub} numberOfLines={2}>
+                  ★ {g.rating} · km {g.distance} · {g.specialization}
+                </Text>
+              </View>
+              <Text style={styles.chev} accessibilityElementsHidden importantForAccessibility="no">›</Text>
+            </Pressable>
+  );
+
   return (
     <>
       <Pressable style={[styles.bar, inCard && styles.barInCard]} onPress={() => setOpen(true)} accessibilityLabel="Search services and garages" accessibilityRole="search">
@@ -105,16 +151,22 @@ export const HomeSearch: React.FC<{
 
       <Modal visible={open} animationType="fade" statusBarTranslucent onRequestClose={close}>
         <SafeAreaView style={styles.page} edges={['top', 'bottom']}>
-          <View style={styles.top}>
-            <View style={styles.field}>
+          {/* The same top bar as the job form: a solid blue band, a round close button on the left, the search field in the band. */}
+          <View style={styles.searchBand}>
+            <Pressable onPress={close} hitSlop={10} style={styles.closeRound} accessibilityLabel="Close search">
+              <Text style={styles.closeRoundText}>✕</Text>
+            </Pressable>
+            <View style={[styles.field, styles.fieldInBand, focused && styles.fieldFocus]}>
               <Icon name="search" size={16} color={Colors.textMuted} />
               <TextInput
-                style={styles.input}
+                style={[styles.input, NO_FOCUS_RING]}
                 value={text}
                 onChangeText={setText}
+                onFocus={() => setFocused(true)}
+                onBlur={() => setFocused(false)}
                 autoFocus
                 placeholder="සේවාවක් හෝ ගරාජයක් සොයන්න..."
-                placeholderTextColor={Colors.textMuted}
+                placeholderTextColor={getThemeMode() === 'dark' ? Colors.textMuted : '#94a3b8'}
                 accessibilityLabel="Search text"
                 returnKeyType="search"
               />
@@ -124,13 +176,18 @@ export const HomeSearch: React.FC<{
                 </Pressable>
               )}
             </View>
-            <Pressable onPress={close} hitSlop={14} style={styles.cancelHit} accessibilityLabel="Close search">
-              <Text style={styles.cancel}>අවලංගු</Text>
-            </Pressable>
           </View>
 
           {/* The first child is the sticky heading: it stays under the search field while the results scroll beneath it. */}
-          <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.list} stickyHeaderIndices={[0]}>
+          {/* The results sit in a rounded sheet that rises from the blue band, as on the job form. */}
+          <View style={styles.searchSheet}>
+          <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={styles.list} stickyHeaderIndices={q ? [0] : undefined}>
+            {!q && !!garages.length && (
+              <>
+                <Text style={styles.section}>ළඟම ගරාජ</Text>
+                {garages.slice(0, 3).map((g) => garageRow(g))}
+              </>
+            )}
             <View style={styles.stickyHead}>{!!services.length && <Text style={styles.section}>සේවා</Text>}</View>
             {services.map((s) => (
               <Pressable
@@ -145,44 +202,36 @@ export const HomeSearch: React.FC<{
                 <CategoryPhoto categoryId={s.category.id} size={36} />
                 <View style={styles.flex1}>
                   <Text style={styles.rowTitle} numberOfLines={1}>
-                    {s.sub ?? s.category.name}
+                    {s.sub ?? catName(s.category)}
                   </Text>
-                  <Text style={styles.rowSub} numberOfLines={1}>
-                    {s.sub ? s.category.name : `උප සේවා ${s.category.subcategories.length} කි`}
+                  <Text style={styles.rowSub} numberOfLines={2}>
+                    {s.sub ? catName(s.category) : `ළඟ ගරාජ ${nearbyOffering(s.category.id)} ක්\nමෙය කරයි`}
                   </Text>
                 </View>
+                {/* A category can go straight to bids: the posting opens with it chosen, and the typed text carried along. */}
+                {!s.sub && !!onPost && (
+                  <Pressable
+                    style={styles.bidChip}
+                    onPress={() => {
+                      close();
+                      onPost(s.category.id, text.trim());
+                    }}
+                    hitSlop={8}
+                    accessibilityLabel={`Get bids for ${catName(s.category)}`}
+                  >
+                    <Text style={styles.bidChipText}>ලංසු ලබාගන්න</Text>
+                  </Pressable>
+                )}
                 <Text style={styles.chev} accessibilityElementsHidden importantForAccessibility="no">›</Text>
               </Pressable>
             ))}
 
-            {!!garages.length && <Text style={styles.section}>ගරාජ</Text>}
-            {garages.map((g) => (
-              <Pressable
-                key={g.id}
-                style={styles.row}
-                onPress={() => {
-                  close();
-                  onGarage(g);
-                }}
-                accessibilityLabel={`Search result garage ${g.name}`}
-              >
-                <View style={styles.garageIcon}>
-                  <Text style={styles.garageEmoji}>🛠️</Text>
-                </View>
-                <View style={styles.flex1}>
-                  <Text style={styles.rowTitle} numberOfLines={1}>
-                    {g.name}
-                  </Text>
-                  <Text style={styles.rowSub} numberOfLines={1}>
-                    ★ {g.rating} · km {g.distance} · {g.specialization}
-                  </Text>
-                </View>
-                <Text style={styles.chev} accessibilityElementsHidden importantForAccessibility="no">›</Text>
-              </Pressable>
-            ))}
+            {!!q && !!garages.length && <Text style={styles.section}>ගරාජ</Text>}
+            {!!q && garages.map((g) => garageRow(g))}
 
             {!services.length && !garages.length && <Text style={styles.empty}>“{text.trim()}” සඳහා ප්‍රතිඵල නැත. වෙනත් වචනයකින් සොයන්න.</Text>}
           </ScrollView>
+          </View>
           {/* Too many garages, or none that fits: every nearby garage can bid for the job instead. */}
           {!!onPost && (
             <Pressable
@@ -200,8 +249,10 @@ export const HomeSearch: React.FC<{
                 <View style={styles.postCtaBadge}>
                   <Text style={styles.postCtaBadgeText}>නොමිලේ Quotes</Text>
                 </View>
-                <Text style={styles.postCtaTitle}>තෝරගන්න අපහසුයි ද ?</Text>
-                <Text style={styles.postCtaSub}>සියල්ලන්ගෙන් ලංසු ඉල්ලන්න</Text>
+                <Text style={styles.postCtaTitle} numberOfLines={1}>
+                  {q ? `“${text.trim()}” සඳහා ලංසු ඉල්ලන්න` : 'තෝරගන්න අපහසුයි ද ?'}
+                </Text>
+                <Text style={styles.postCtaSub}>මිල සහ හොඳම සේවාව සසදන්න.</Text>
               </View>
               <View style={styles.postCtaPlus}>
                 <Text style={styles.postCtaPlusText}>+</Text>
@@ -237,15 +288,27 @@ const styles = themedStyles(() =>
     page: { flex: 1, backgroundColor: Colors.bgBody },
     top: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 10 },
     field: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8, height: 44, paddingHorizontal: 14, borderRadius: 22, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.borderColor },
+    // The same room as the job form's band: the pill sits 12px from the top, and the sheet rises about 42px below it.
+    searchBand: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 68, backgroundColor: '#1d367f' },
+    closeRound: { width: 46, height: 46, borderRadius: 23, backgroundColor: Colors.bgCard, justifyContent: 'center', alignItems: 'center' },
+    closeRoundText: { fontSize: 16, fontWeight: '700', color: Colors.textMain },
+    fieldInBand: { height: 52, borderWidth: 0, borderRadius: 26 },
+    bidChip: { flexShrink: 0, paddingHorizontal: 10, height: 30, borderRadius: 15, borderWidth: 1, borderColor: '#93c5fd', backgroundColor: '#eff6ff', justifyContent: 'center' },
+    bidChipText: { fontSize: 12, fontFamily: FONTS.bodyBold, color: '#1d4ed8' },
+    searchSheet: { flex: 1, marginTop: -24, backgroundColor: Colors.sheetBg, borderTopLeftRadius: 28, borderTopRightRadius: 28, overflow: 'hidden' },
+    sheetHandle: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: Colors.subtleBorder, marginTop: 10 },
     input: { flex: 1, fontSize: 14, fontFamily: FONTS.bodyRegular, color: Colors.textMain, paddingVertical: 0 },
+    fieldFocus: { borderColor: '#1a73e8', borderWidth: 2 },
     cancelHit: { minHeight: 44, justifyContent: 'center' },
     cancel: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: getThemeMode() === 'dark' ? Colors.primary : '#0369a1' },
-    list: { paddingHorizontal: 16, paddingBottom: 30 },
+    // 14px at the top: the space the drag handle used to take.
+    list: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 120 },
     stickyHead: { backgroundColor: Colors.bgBody, paddingBottom: 2 },
-    section: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: getThemeMode() === 'dark' ? Colors.textMuted : '#525f73', letterSpacing: 0.5, marginTop: 14, marginBottom: 6 },
-    row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 9 },
-    rowTitle: { fontSize: 14, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
-    rowSub: { fontSize: 11.5, fontFamily: FONTS.bodyRegular, color: getThemeMode() === 'dark' ? Colors.textMuted : '#525f73', marginTop: 1 },
+    section: { fontSize: 13, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? Colors.textMain : '#0f172a', marginTop: 16, marginBottom: 6 },
+    // Rows: 12px of air above and below (the touch target stays at least 56px), 12px between the parts.
+    row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 },
+    rowTitle: { fontSize: 14, lineHeight: 19, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
+    rowSub: { fontSize: 12, lineHeight: 16, fontFamily: FONTS.bodyRegular, color: getThemeMode() === 'dark' ? Colors.textMuted : '#334155', marginTop: 2 },
     chev: { fontSize: 20, color: Colors.textMuted },
     garageIcon: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.borderColor },
     garageEmoji: { fontSize: 16 },
