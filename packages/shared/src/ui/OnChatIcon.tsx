@@ -7,7 +7,7 @@ import { FONTS } from '../theme/fonts';
  * The OnChat icon, the standard long form: a solid speech bubble with its tail at the bottom left and the word ONCHAT in white inside it.
  * `short`: the compact mark for a bar, a solid bubble (its fill, or `color`) with a big white ON in it.
  */
-export const OnChatIcon: React.FC<{ width?: number; color: string; /** A colour to fill the bubble with; the word and outline are then `color` on it. */ fill?: string; short?: boolean }> = ({ width = 44, color, fill, short }) => {
+export const OnChatIcon: React.FC<{ width?: number; color: string; /** A colour to fill the bubble with; the word and outline are then `color` on it. */ fill?: string; short?: boolean; /** The compact mark's text in place of "ON" (an unread count). */ label?: string }> = ({ width = 44, color, fill, short, label }) => {
   if (short) {
     // The compact bubble: as tall as the full mark at the same display size, its body above a tail hanging below the left side.
     const height = Math.round((width * 40) / 46);
@@ -18,7 +18,7 @@ export const OnChatIcon: React.FC<{ width?: number; color: string; /** A colour 
         </Svg>
         <View style={{ height: (height * 30) / 40, alignItems: 'center', justifyContent: 'center' }}>
           {/* Written inline: a theme style would scale a size this small up. */}
-          <Text style={{ color, fontSize: 13.4, lineHeight: 16, fontFamily: FONTS.bodyBold, includeFontPadding: false }}>ON</Text>
+          <Text style={{ color, fontSize: 13.4, lineHeight: 16, fontFamily: FONTS.bodyBold, includeFontPadding: false }}>{label ?? 'ON'}</Text>
         </View>
       </View>
     );

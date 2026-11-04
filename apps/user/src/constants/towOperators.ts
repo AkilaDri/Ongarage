@@ -35,3 +35,13 @@ export const TOW_REVIEWS: Record<string, TowReviewSeed[]> = {
 /** An operator's reviews as the cards the profile shows. */
 export const towReviewsOf = (operatorId: string, operatorName: string) =>
   (TOW_REVIEWS[operatorId] ?? []).map((x) => ({ id: x.id, name: x.name, rating: x.rating, at: Date.now() - x.daysAgo * DAY, text: x.text, meta: '✓ Tow request එකක් අවසන් කළා', reply: x.reply ? { by: operatorName, text: x.reply, at: Date.now() - (x.daysAgo - 0.5) * DAY } : undefined }));
+
+/** The truck an operator sends: its number plate, kind, colour and driver (demo data until a backend; real trucks will have photos). */
+export type TowTruck = { plate: string; model: string; color: string; driver: string; /** The body colour of the drawn truck. */ body: string };
+export const TOW_TRUCKS: Record<string, TowTruck> = {
+  t1: { plate: 'LB - 4521', model: 'Isuzu Flatbed', color: 'සුදු', driver: 'නිමල් පෙරේරා', body: '#f8fafc' },
+  t2: { plate: 'SP - 7730', model: 'Mitsubishi Recovery (Winch)', color: 'රතු', driver: 'සුනිල් ප්‍රනාන්දු', body: '#ef4444' },
+  t3: { plate: 'LC - 2894', model: 'Tata Flatbed', color: 'නිල්', driver: 'කමල් සිල්වා', body: '#3b82f6' },
+  t4: { plate: 'LH - 6105', model: 'Isuzu Flatbed + Winch', color: 'කහ', driver: 'දිනේෂ් රණසිංහ', body: '#facc15' },
+  t5: { plate: 'SG - 3342', model: 'Mazda Emergency Truck', color: 'කොළ', driver: 'රුවන් ද සිල්වා', body: '#22c55e' },
+};

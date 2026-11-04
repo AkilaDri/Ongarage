@@ -168,13 +168,18 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
           onMore={() => setDetail({ kind: 'job', id: job.id })}
           chat={<ChatButton plain size={36} target={{ id: job.id, title: bid.garageName, subtitle: cat?.name, phone: MOCK_GARAGES.find((g) => g.name === bid.garageName)?.phone, vehicle: findVehicle(job.vehicleId) }} />}
         />
-        <PostBody vehicle={findVehicle(job.vehicleId)} kind="bid" subject={cat?.name ?? 'Service'} onPress={() => setDetail({ kind: 'job', id: job.id })}>
-          <View style={styles.rowBetween}>
-            {finished(job.id) && !cancelled(job.id) ? <RatingLine rating={workshops[job.id]?.review?.rating} onRate={workshops[job.id] ? () => setRating(workshops[job.id]) : undefined} /> : <View />}
+        <PostBody
+          vehicle={findVehicle(job.vehicleId)}
+          kind="bid"
+          subject={cat?.name ?? 'Service'}
+          onPress={() => setDetail({ kind: 'job', id: job.id })}
+          status={
             <View style={[styles.status, finished(job.id) ? styles.statusDone : styles.statusOngoing]}>
               <Text style={[styles.statusText, { color: cancelled(job.id) ? Colors.errorText : finished(job.id) ? Colors.success : Colors.warning }]}>{cancelled(job.id) ? '✕ අවලංගු කළා' : finished(job.id) ? '✓ සම්පූර්ණයි' : '● වෙන් කළා'}</Text>
             </View>
-          </View>
+          }
+        >
+          {finished(job.id) && !cancelled(job.id) && <RatingLine rating={workshops[job.id]?.review?.rating} onRate={workshops[job.id] ? () => setRating(workshops[job.id]) : undefined} />}
         </PostBody>
         <View style={styles.divider} />
         {finished(job.id) ? (

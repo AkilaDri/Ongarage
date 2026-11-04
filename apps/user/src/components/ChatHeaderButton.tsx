@@ -23,15 +23,8 @@ export const ChatHeaderButton: React.FC<{ scrolled?: Animated.Value }> = ({ scro
         )}
       </Animated.View>
       <Animated.View style={[StyleSheet.absoluteFill, styles.shortWrap, { opacity: progress.interpolate({ inputRange: [0, 1], outputRange: [0, 1] }) }]}>
-        <View>
-          <OnChatIcon width={40} color="#ffffff" fill={fill} short />
-          {/* Half over the bubble's top right corner, so it sits on the edge. */}
-          {totalUnread > 0 && (
-            <View style={styles.badgeInBubble}>
-              <Text style={styles.badgeInBubbleText}>{totalUnread > 9 ? '9+' : totalUnread}</Text>
-            </View>
-          )}
-        </View>
+        {/* The count takes the place of "ON" in the middle of the bubble; with no new message it just says ON. */}
+        <OnChatIcon width={40} color="#ffffff" fill={fill} short label={totalUnread > 0 ? (totalUnread > 9 ? '9+' : String(totalUnread)) : undefined} />
       </Animated.View>
     </Pressable>
   );
@@ -51,7 +44,5 @@ const styles = themedStyles(() =>
     shortWrap: { alignItems: 'flex-end', justifyContent: 'center' },
     badge: { position: 'absolute', top: -12, right: -10, zIndex: 2, minWidth: 20, height: 20, paddingHorizontal: 5, borderRadius: 10, borderWidth: 2, borderColor: getThemeMode() === 'dark' ? '#12161c' : '#ffffff', backgroundColor: '#ef4444', alignItems: 'center', justifyContent: 'center' },
     badgeText: { fontSize: 11, fontFamily: FONTS.bodyBold, color: '#ffffff' },
-    badgeInBubble: { position: 'absolute', top: -7, right: -7, minWidth: 20, height: 20, paddingHorizontal: 5, borderRadius: 10, borderWidth: 2, borderColor: getThemeMode() === 'dark' ? '#12161c' : '#ffffff', backgroundColor: '#ef4444', alignItems: 'center', justifyContent: 'center' },
-    badgeInBubbleText: { fontSize: 11, fontFamily: FONTS.bodyBold, color: '#ffffff' },
   })
 );

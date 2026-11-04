@@ -132,7 +132,7 @@ export type TowRequest = {
   cancelled?: boolean;
 };
 
-/** The owner may cancel until the truck has arrived. */
-export const canCancelTow = (r: TowRequest) => !r.cancelled && towStageIndex(r.stage) < towStageIndex('arrived');
+/** The owner may cancel until the vehicle is loaded on the truck (the truck on its way, or arrived and loading); once it is being carried the option is frozen. */
+export const canCancelTow = (r: TowRequest) => !r.cancelled && towStageIndex(r.stage) < towStageIndex('transporting');
 /** The job is finished once delivered and nothing waits for the owner. */
 export const towClosed = (r: TowRequest) => r.stage === 'delivered' && r.approval !== 'pending';

@@ -1,9 +1,9 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { canCancelTow, finalNeedsApproval, type TowCondition, type TowOption, type TowRequest, type TowStage, type LatLng } from '@ongarage/shared';
-import { TOW_OPERATORS } from '../constants/towOperators';
+import { TOW_OPERATORS, TOW_TRUCKS } from '../constants/towOperators';
 import { useNotice } from './NoticeContext';
 
-/** The simulated operator moves through its steps this many seconds apart (the drive to the pickup takes `ENROUTE_SEC`). */
+/** The simulated operator moves through its steps this many seconds apart (each of the two drives, to the pickup and to the destination, takes `ENROUTE_SEC`). */
 const STEP_SEC = 4;
 const ENROUTE_SEC = 8;
 
@@ -22,9 +22,9 @@ type Api = {
 
 const TowContext = createContext<Api | null>(null);
 
-const NEXT: Partial<Record<TowStage, TowStage>> = { searching: 'accepted', accepted: 'enroute', enroute: 'arrived', arrived: 'loading', loading: 'transporting', transporting: 'delivered' };
-const TEXT: Partial<Record<TowStage, { title: string; body: (n: string) => string }>> = {
-  accepted: { title: 'Tow truck එක පිළිගත්තා', body: (n) => `${n} ඔබ වෙත එනවා.` },
+const NEXT: Partial<Record<TowStage, TowStage>> = { searching: 'accepted', accepted: 'enroute', enroute: 'arrived', arrived: 'transporting', loading: 'transporting', transporting: 'delivered' };
+const TEXT: Partial<Record<TowStage, { title: string; body: (n: string, plate?: string) => string }>> = {
+  accepted: { title: 'Tow truck එක පිළිගත්තා', body: (n, plate) => `${n} ඔබ වෙත එනවා${plate ? ` · Truck අංකය ${plate}` : ''}.` },
   enroute: { title: 'Truck එක මග', body: (n) => `${n} ඔබ වෙත පැමිණෙමින් සිටී.` },
   arrived: { title: 'Truck එක ළඟා වුණා', body: (n) => `${n} ඔබ සිටින තැනට පැමිණියා.` },
   transporting: { title: 'වාහනය රැගෙන යනවා', body: () => 'ඔබේ වාහනය ගමනාන්තය බලා යමින් පවතී.' },
@@ -61,18 +61,19 @@ export const TowProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (t) notify({ icon: '🛻', title: t.title, body: t.body(opName(cur)), tone: 'primary' });
       if (approval) notify({ icon: '💰', title: 'අවසන් මිල ඇස්තමේන්තුවට වඩා වැඩියි', body: `රු. ${final} — ඔබේ අනුමැතිය අවශ්‍යයි.`, tone: 'danger' });
       schedule();
-    }, (r.stage === 'enroute' ? ENROUTE_SEC : STEP_SEC) * 1000);
+    }, (r.stage === 'enroute' || r.stage === 'transporting' ? ENROUTE_SEC : STEP_SEC) * 1000);
   }, [notify]);
 
   const start = useCallback(
     (option: TowOption, input: TowInput) => {
       const now = Date.now();
-      const r: TowRequest = { id: `tow${now}`, operatorId: option.op.id, ...input, quote: option.quote, etaMin: option.etaMin, stage: 'searching', createdAt: now };
+      const r: TowRequest = { id: `tow${now}`, operatorId: option.op.id, ...input, quote: option.quote, etaMin: option.etaMin, stage: 'accepted', createdAt: now };
       setRequest(r);
       live.current = r;
+      notify({ icon: '🛻', title: TEXT.accepted!.title, body: TEXT.accepted!.body(opName(r), TOW_TRUCKS[r.operatorId]?.plate), tone: 'primary' });
       schedule();
     },
-    [schedule]
+    [schedule, notify]
   );
 
   const cancel = useCallback(() => {

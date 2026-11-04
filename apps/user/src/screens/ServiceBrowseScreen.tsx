@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, ScrollView, TextInput, Animated, Easing, Linking, PanResponder, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Svg, { Path } from 'react-native-svg';
 import { Colors, FONTS, getThemeMode, themedStyles } from '@ongarage/shared';
 import { MOCK_GARAGES } from '../constants/mockData';
 import { GarageTile } from '../components/home/GarageTile';
@@ -539,11 +540,14 @@ export const ServiceBrowseScreen: React.FC<ServiceBrowseScreenProps> = ({ servic
               {sheet === 'expanded' && (
                 <Pressable
                   style={({ pressed }) => [styles.sheetClose, styles.sheetMinimize, pressed && styles.sheetClosePressed]}
-                  onPress={() => animateTo('collapsed')}
+                  onPress={() => animateTo('peek')}
                   hitSlop={8}
-                  accessibilityLabel="Minimize"
+                  accessibilityLabel="See the whole map"
                 >
-                  <Icon name="chevron-down" size={16} strokeWidth={2.5} color={Colors.primary} />
+                  <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={Colors.primary} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                    <Path d="M9 4 3 6.5v13L9 17l6 3 6-2.5v-13L15 7 9 4Z" />
+                    <Path d="M9 4v13M15 7v13" />
+                  </Svg>
                 </Pressable>
               )}
             </View>
@@ -838,7 +842,7 @@ const styles = themedStyles(() => StyleSheet.create({
   mapOpen: { position: 'absolute', right: 0, top: 0, flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 6, backgroundColor: 'transparent' },
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 },
   freeQuoteHead: { alignSelf: 'center', gap: 6, paddingLeft: 10 },
-  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 18 },
   openSticker: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, height: 26, borderRadius: 13, backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.18)' : '#e8f0fe' },
   openDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#16a34a' },
   openStickerText: { fontSize: 12, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a56b0' },

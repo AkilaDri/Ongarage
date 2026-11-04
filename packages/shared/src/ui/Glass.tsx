@@ -164,7 +164,9 @@ export const ModalCard: React.FC<{
   rows?: { label: string; value: string }[];
   /** A part of the body to set in a subtle bold (matched text is shown as written). */
   highlight?: string;
-}> = ({ icon, tone, title, body, bodySuffix, children, material, rows, highlight }) => {
+  /** Shows a close (✕) button in the top right corner of the card. */
+  onClose?: () => void;
+}> = ({ icon, tone, title, body, bodySuffix, children, material, rows, highlight, onClose }) => {
   const parts = highlight && body.includes(highlight) ? body.split(highlight) : [body];
   const anim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -173,6 +175,11 @@ export const ModalCard: React.FC<{
   return (
     <View style={styles.modalOverlay}>
       <Animated.View style={[styles.modalCard, material && styles.modalCardMaterial, { opacity: anim, transform: [{ scale: anim.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1] }) }] }]}>
+        {!!onClose && (
+          <Pressable style={styles.modalClose} onPress={onClose} hitSlop={8} accessibilityRole="button" accessibilityLabel="Close">
+            <Text style={styles.modalCloseText}>✕</Text>
+          </Pressable>
+        )}
         <View style={[styles.modalIcon, material && styles.modalIconMaterial, { backgroundColor: modalTint(tone) }]}>
           <Text style={[styles.modalIconText, material && styles.modalIconTextMaterial]}>{icon}</Text>
         </View>
@@ -268,6 +275,8 @@ const styles = themedStyles(() => StyleSheet.create({
   },
   modalIcon: { width: 64, height: 64, borderRadius: 32, justifyContent: 'center', alignItems: 'center', marginBottom: 4 },
   modalIconText: { fontSize: 28 },
+  modalClose: { position: 'absolute', top: 12, right: 12, width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? 'rgba(255,255,255,0.1)' : '#f1f3f4', zIndex: 2 },
+  modalCloseText: { fontSize: 14, lineHeight: 16, color: Colors.textMuted, fontWeight: '700' },
   modalTitle: { fontSize: 17, fontFamily: FONTS.titleBold, color: Colors.textMain, textAlign: 'center' },
   modalBody: { fontSize: 12.5, fontFamily: FONTS.bodyRegular, color: Colors.textSoft, textAlign: 'center', lineHeight: 19, marginBottom: 10 },
   modalRows: { alignSelf: 'center', gap: 4 },

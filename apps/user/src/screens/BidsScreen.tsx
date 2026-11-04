@@ -406,7 +406,8 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
     <View style={styles.container} onLayout={(e) => {
         const h = Math.round(e.nativeEvent.layout.height);
         setArea(h);
-        setMapArea((m) => (m === 0 ? h : Math.min(m, h)));
+        // No title bar folds away on this tab any more, so the map is always exactly as tall as the tab.
+        setMapArea(h);
       }}
     >
       {/* The map fills the whole tab; the sheet slides over it. */}
@@ -650,6 +651,7 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
           icon="✅"
           tone="success"
           title="වෙන් කිරීම තහවුරුයි!"
+          onClose={() => setBooked(null)}
           body={`${booked.bid.garageName} ඔබව ඉක්මනින් සම්බන්ධ කර ගනු ඇත. එකඟ වූ මිල: ${money(booked.bid.price)}.`}
         >
           <ActionButton
@@ -706,7 +708,7 @@ const styles = themedStyles(() => StyleSheet.create({
   // The count is a soft blue pill (like a small info chip) on the corner, so the label row never wraps on narrow tabs.
   // The count is a blue round tag on the chip's top right edge (a white ring round it), not inside the chip.
   tabCount: { position: 'absolute', top: -10, right: 8, minWidth: 22, height: 22, paddingHorizontal: 5, borderRadius: 11, alignItems: 'center', justifyContent: 'center', backgroundColor: '#1a73e8', borderWidth: 2, borderColor: pageBg() },
-  mapRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10 },
+  mapRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: 22 },
   mapViewBtnOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#d2e3fc' },
   mapViewBtn: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe' },
   receivedTools: { flexDirection: 'row', alignItems: 'center', gap: 10 },

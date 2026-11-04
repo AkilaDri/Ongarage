@@ -60,8 +60,10 @@ export const PostBody: React.FC<{
   kind: keyof typeof KIND;
   subject: string;
   onPress?: () => void;
+  /** A status tag set on the subject's line, at the right end. */
+  status?: React.ReactNode;
   children?: React.ReactNode;
-}> = ({ vehicle, kind, subject, onPress, children }) => {
+}> = ({ vehicle, kind, subject, onPress, status, children }) => {
   const k = KIND[kind];
   return (
     <Pressable style={styles.body} onPress={onPress} disabled={!onPress} accessibilityLabel={subject}>
@@ -76,7 +78,14 @@ export const PostBody: React.FC<{
           <Text style={[styles.kindText, k.tone === 'red' ? styles.kindTextRed : k.tone === 'green' ? styles.kindTextGreen : styles.kindTextBlue]}>{k.label}</Text>
         </View>
       </View>
-      <Text style={styles.subject}>{subject}</Text>
+      {status ? (
+        <View style={styles.subjectRow}>
+          <Text style={[styles.subject, styles.flex1]}>{subject}</Text>
+          {status}
+        </View>
+      ) : (
+        <Text style={styles.subject}>{subject}</Text>
+      )}
       {children}
     </Pressable>
   );
@@ -107,6 +116,7 @@ const styles = themedStyles(() =>
     kindTextBlue: { color: dark() ? '#8db1ff' : '#1a73e8' },
     kindTextGreen: { color: Colors.success },
     kindTextRed: { color: Colors.errorText },
+    subjectRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
     subject: { fontSize: 13.5, fontFamily: FONTS.titleBold, color: Colors.textMain, lineHeight: 20 },
   })
 );
