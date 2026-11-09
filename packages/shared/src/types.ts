@@ -539,6 +539,8 @@ export type CustomerRecord = {
   topTags: { tag: CustomerTag; count: number }[];
   /** Ratings left out while the customer's dispute is open. */
   disputed: number;
+  /** Whether tags are visible to other garages (D2: only after ratings are settled past the 30-day window). */
+  showTags: boolean;
 };
 
 /** The owner asks the garage to fit another part to the vehicle while a job runs; the garage accepts it (and quotes it as extra work) or declines with a reason. */

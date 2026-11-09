@@ -6,7 +6,10 @@ import { useMart } from '../context/MartContext';
 import { useWorkshops } from '../context/WorkshopContext';
 import { MART_TABS, USER_TABS, type MartNavId, type TabId } from '../constants/tabs';
 
-/** What waits for the owner, as the red counts on the bottom bars. */
+/** The count badges on the bottom bars are neutral: red is kept for SOS and the other urgent signals, so it still means something. */
+const COUNT_BADGE = '#334155';
+
+/** What waits for the owner, as the counts on the bottom bars. */
 const useOwnerCounts = () => {
   const { jobs } = useBids();
   const { bookings } = useBookings();
@@ -29,12 +32,12 @@ export const OwnerNav: React.FC<{ activeTab: TabId; onTabChange: (tab: TabId) =>
   const c = useOwnerCounts();
   const badges: Partial<Record<TabId, number>> = { bids: c.bids, activity: c.activity, mart: c.mart.total };
   // While something in OnMart waits for the owner, its tab pulses (a blue radar) as well as showing the count, so it is noticed from any other tab.
-  return <BottomNav items={USER_TABS.map((t) => ({ ...t, badge: badges[t.id], alert: t.id === 'mart' && c.mart.total > 0 ? ('enroute' as const) : undefined }))} activeTab={activeTab} onTabChange={onTabChange} />;
+  return <BottomNav items={USER_TABS.map((t) => ({ ...t, badge: badges[t.id], badgeColor: COUNT_BADGE, alert: t.id === 'mart' && c.mart.total > 0 ? ('enroute' as const) : undefined }))} activeTab={activeTab} onTabChange={onTabChange} />;
 };
 
 export const OwnerMartNav: React.FC<{ activeTab: Exclude<MartNavId, 'ongarage'>; onTabChange: (tab: MartNavId) => void }> = ({ activeTab, onTabChange }) => {
   const c = useOwnerCounts();
   // Inside OnMart each page shows what is new on it; opening the page clears it.
   const news: Partial<Record<MartNavId, number>> = { mine: c.mart.requests, wall: c.mart.wall, orders: c.mart.orders };
-  return <BottomNav items={MART_TABS.map((t) => ({ ...t, badge: news[t.id] || undefined, alert: news[t.id] ? ('enroute' as const) : undefined }))} activeTab={activeTab} onTabChange={onTabChange} />;
+  return <BottomNav items={MART_TABS.map((t) => ({ ...t, badge: news[t.id] || undefined, badgeColor: COUNT_BADGE, alert: news[t.id] ? ('enroute' as const) : undefined }))} activeTab={activeTab} onTabChange={onTabChange} />;
 };

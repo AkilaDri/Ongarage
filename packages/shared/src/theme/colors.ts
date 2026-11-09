@@ -1,6 +1,14 @@
 import { fontWeightOf } from './fonts';
 export type ThemeMode = 'dark' | 'light';
 
+/** The OnGarage logo colours (OnMart, OnChat and OnGarage marks): the same in both themes. */
+export const BRAND = {
+  /** The logo's navy: the wordmark, and the towing card. */
+  navy: '#0D2B3E',
+  /** The logo's orange: the "On" and the power mark, and the vehicle repair card. */
+  orange: '#EE5E16',
+} as const;
+
 const dark = {
   // Background
   bgBody: '#07090e',
@@ -74,7 +82,7 @@ const light: Palette = {
 
 const PALETTES: Record<ThemeMode, Palette> = { dark, light };
 
-let current: ThemeMode = 'dark';
+let current: ThemeMode = 'light';
 
 export const getThemeMode = () => current;
 

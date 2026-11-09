@@ -42,6 +42,9 @@ module.exports = spec('Owner · top bars fold away while scrolling', 'user', asy
   // Service browse window: the search bar folds while the sheet is fully open
   await t.clickText('Home');
   await t.wait(800);
+  await t.clickLabel('All services');
+  await t.wait(800);
+  await p.evaluate(() => document.querySelector('[aria-label="Service Mechanical"]').scrollIntoView({ block: 'center' }));
   await t.clickLabel('Service Mechanical');
   await t.wait(1800);
   const searchOpen = await wrapperHeight('[aria-label="Close screen"]', 0);

@@ -10,7 +10,7 @@ import { FONTS } from '@ongarage/shared';
 import { MOCK_GARAGES } from '../constants/mockData';
 import { bidSubServices, FITTING_SUPPLY, PARTS_FITTING_CATEGORY_ID, SERVICE_CATEGORIES, type PartsFitting, type PartType } from '@ongarage/shared';
 import { useVehicles } from '../context/VehiclesContext';
-import { VehicleOptions } from '../components/VehicleOptions';
+import { VehiclePicker } from '../components/Header';
 import { GoogleMap } from '@ongarage/shared';
 import { Gradient, GRADIENTS } from '@ongarage/shared';
 import { ActionButton, GlassIcon, glassStyle } from '@ongarage/shared';
@@ -151,7 +151,14 @@ const MixedText: React.FC<{ text: string; style: any }> = ({ text, style }) => {
 };
 
 /** One numbered step of the form: a rounded card with a step badge that turns into a tick once the step is filled in. */
-const TAB_LABEL: Record<string, string> = { service: 'සේවාව', details: 'විස්තර', parts: 'කොටස්', vehicle: 'වාහනය', timer: 'කාලය' };
+const TAB_LABEL: Record<string, string> = { service: 'සේවාව සහ වාහනය', details: 'විස්තර', parts: 'කොටස්', timer: 'කාලය' };
+
+// An icon on a soft disc, as in the SOS and towing confirmation rows.
+const SoftIcon: React.FC<{ emoji: string }> = ({ emoji }) => (
+  <View style={styles.softIcon}>
+    <Text style={styles.softIconEmoji}>{emoji}</Text>
+  </View>
+);
 
 const ReviewRow: React.FC<{ label: string; value: string }> = ({ label, value }) => (
   <View style={styles.reviewRow}>
@@ -208,8 +215,11 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, defaultVehi
   const [fitSupply, setFitSupply] = useState<PartsFitting['supply']>(draft?.fitting?.supply ?? 'owner');
   const [biddingHours, setBiddingHours] = useState<number | null>(null);
   const [doorstep, setDoorstep] = useState(false);
-  // The form is five tabs, filled in this order: the service, the details, the parts and the place, the vehicle, then how long bids may come in.
-  const [tab, setTab] = useState<'service' | 'vehicle' | 'details' | 'parts' | 'timer'>('service');
+  // The form is four tabs, filled in this order: the service and the vehicle, the details, the parts and the place, then how long bids may come in.
+  const [tab, setTab] = useState<'service' | 'details' | 'parts' | 'timer'>('service');
+  const [showVehiclePicker, setShowVehiclePicker] = useState(false);
+  const [catsExpanded, setCatsExpanded] = useState(false);
+  const vehicleRef = useRef<View>(null);
   const [showMap, setShowMap] = useState(false);
   const [photos, setPhotos] = useState<string[]>([]);
   const [voiceNotes, setVoiceNotes] = useState<VoiceNote[]>([]);
@@ -246,12 +256,11 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, defaultVehi
 
   const vehicle = findVehicle(vehicleId);
   const fitting = categoryId === PARTS_FITTING_CATEGORY_ID;
-  const ORDER = ['service', 'details', 'parts', 'vehicle', 'timer'] as const;
+  const ORDER = ['service', 'details', 'parts', 'timer'] as const;
   const tabIndex = ORDER.indexOf(tab);
   const lastTab = tabIndex === ORDER.length - 1;
   const tabDone = {
     service: categoryId !== null,
-    vehicle: true,
     details: problemTold(description, voiceNotes) && (!fitting || fitPart.trim().length > 0),
     parts: sparePart !== null || (fitting && fitSupply === 'owner'),
     timer: biddingHours !== null,
@@ -604,12 +613,33 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, defaultVehi
 
         {tab === 'service' && (
           <>
+        {/* The vehicle comes first, as in the SOS and towing confirmations: the car is chosen before the service is. */}
+        <View style={styles.stepCard}>
+        <Pressable ref={vehicleRef} style={styles.vehRow} onPress={() => setShowVehiclePicker(true)} accessibilityLabel="Change job vehicle">
+          <SoftIcon emoji="🚗" />
+          <View style={styles.flex1}>
+            <Text style={styles.vehLabel}>වාහනය</Text>
+            {vehicle && <VehicleLine vehicle={vehicle} textStyle={styles.vehTitle} />}
+          </View>
+          <Text style={styles.vehLink}>වෙනස් කරන්න</Text>
+        </Pressable>
+        </View>
         {renderBuddy()}
 
-        <StepCard step={1} title={`සේවා අංශය`} done={categoryId !== null} hint={`${SERVICE_CATEGORIES.length} අංශ`} requiredNote="පහළින් තෝරන්න">
+        <StepCard step={1} title={`සේවා අංශය · ${SERVICE_CATEGORIES.length}`} done={categoryId !== null} requiredNote="පහළින් තෝරන්න">
           {/* The same tiles as the Home screen's categories. */}
           {/* Only what can be bid for: not fuel stations, not towing (those are found and booked, see the service mode). */}
+          {catsExpanded && (
+            <Pressable style={styles.lessLink} onPress={() => setCatsExpanded(false)} accessibilityLabel="Show fewer categories">
+              <Text style={styles.lessLinkText}>අඩුවෙන් පෙන්වන්න</Text>
+            </Pressable>
+          )}
           <CategoryStrip
+            layout="grid"
+            columns={4}
+            collapsedCount={7}
+            expanded={catsExpanded}
+            onExpandedChange={setCatsExpanded}
             suggestedId={profile?.categoryId ?? null}
             include={(id) => bidSubServices(id).length > 0}
             onSelect={(c) => {
@@ -642,13 +672,6 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, defaultVehi
             </>
           )}
         </StepCard>
-
-          </>
-        )}
-        {tab === 'vehicle' && (
-          <>
-        <Text style={styles.sectionHeading}>ඔබගේ වාහනය තෝරන්න</Text>
-        <VehicleOptions value={vehicleId} onChange={setVehicleId} />
 
           </>
         )}
@@ -782,6 +805,7 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, defaultVehi
         ) : (
           <ActionButton
             label={tabDone[tab] ? 'ඊළඟ ›' : tab === 'service' ? 'සේවා අංශයක් තෝරන්න' : 'අවශ්‍ය තොරතුරු පුරවන්න'}
+            icon={tabDone[tab] ? '🔧' : undefined}
             variant="primary"
             disabled={!tabDone[tab]}
             onPress={next}
@@ -806,6 +830,13 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, defaultVehi
           </View>
         </View>
       </Modal>
+      <VehiclePicker
+        visible={showVehiclePicker}
+        activeVehicle={vehicleId}
+        anchorRef={vehicleRef}
+        onSelect={setVehicleId}
+        onClose={() => setShowVehiclePicker(false)}
+      />
     </SafeAreaView>
   );
 };
@@ -821,6 +852,12 @@ const fieldEdge = () => (isDay() ? '#b9c6d6' : 'transparent');
 const SOFT_SHADOW = { shadowColor: '#0f172a', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.1, shadowRadius: 16, elevation: 3 } as const;
 
 const styles = themedStyles(() => StyleSheet.create({
+  softIcon: { width: 46, height: 46, borderRadius: 23, backgroundColor: Colors.subtleFill, justifyContent: 'center', alignItems: 'center' },
+  softIconEmoji: { fontSize: 21 },
+  vehRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  vehLabel: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, letterSpacing: 0.4 },
+  vehTitle: { fontSize: 15, fontFamily: FONTS.titleBold, color: Colors.textMain },
+  vehLink: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
   container: { flex: 1, backgroundColor: pageBg() },
   postSheet: { flex: 1, marginTop: -24, backgroundColor: pageBg(), borderTopLeftRadius: 28, borderTopRightRadius: 28, overflow: 'hidden', shadowColor: '#3c4043', shadowOffset: { width: 0, height: -2 }, shadowOpacity: 0.14, shadowRadius: 8, elevation: 8 },
   handle: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: Colors.subtleBorder, marginTop: 10 },
@@ -864,7 +901,7 @@ const styles = themedStyles(() => StyleSheet.create({
   closeText: { fontSize: 14, color: '#fff' },
   progressTrack: { height: 6, marginHorizontal: 6, marginTop: 12, borderRadius: 3, overflow: 'hidden', backgroundColor: isDay() ? '#d5dde8' : Colors.subtleBorder },
   progressFill: { height: '100%', borderRadius: 3, backgroundColor: Colors.primary },
-  body: { paddingHorizontal: 6, paddingTop: 10, gap: 10, paddingBottom: 20 },
+  body: { paddingHorizontal: 6, paddingTop: 10, gap: 14, paddingBottom: 20 },
   subWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   subChip: { paddingHorizontal: 9, paddingVertical: 5, borderRadius: 12, borderWidth: 1 },
   subChipText: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
@@ -872,6 +909,8 @@ const styles = themedStyles(() => StyleSheet.create({
   eyebrow: { fontSize: 12.5, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? Colors.textMuted : '#475569', letterSpacing: 0.2 },
   changePill: { paddingHorizontal: 12, height: 30, borderRadius: 8, justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe' },
   changePillText: { fontSize: 12, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
+  lessLink: { alignSelf: 'flex-end', paddingVertical: 2 },
+  lessLinkText: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
   stepCard: { backgroundColor: Colors.bgCard, borderRadius: 12, borderWidth: 1, borderColor: outline(), ...elevation1(), padding: 16, gap: 12 },
   stepHead: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   stepBadge: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.primary },

@@ -13,18 +13,20 @@ import {
   NotoSansSinhala_700Bold,
 } from '@expo-google-fonts/noto-sans-sinhala';
 import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
-import { Icon, Colors, DialogButton, FONTS, getThemeMode, Gradient, ModalCard, Pulse, themedStyles } from '@ongarage/shared';
+import { Gradient, Icon, Colors, DialogButton, FONTS, getThemeMode, ModalCard, Pulse, themedStyles } from '@ongarage/shared';
+import { periodOf, SkyBar, SkyShade, useHour } from './components/WeatherAnimation';
+import { HomeSearch } from './components/home/HomeSearch';
+import { CategoryPhoto } from './components/home/CategoryPhoto';
 import { ThemeProvider, useTheme, setAppShape } from '@ongarage/shared';
 
 // This app has PickMe's shapes too (big rounded cards, pill buttons and chips, light edges, soft shadows), like the garage app. Set before the first screen is drawn.
 setAppShape('pickme');
-import { VehiclesProvider } from './context/VehiclesContext';
+import { VehiclesProvider, useVehicles } from './context/VehiclesContext';
 import { OwnerMartNav, OwnerNav } from './components/OwnerNav';
 import { setMartOpener, setShopOpener } from './utils/martBridge';
 import { setFittingOpener } from './utils/fittingBridge';
 import { LocationProvider } from './context/LocationContext';
 import { LanguageProvider } from './context/LanguageContext';
-import { periodOf, SkyBar, SkyShade, useHour } from './components/WeatherAnimation';
 import { MartProvider, useMart } from './context/MartContext';
 import { WallProvider } from './context/WallContext';
 import { BidsProvider } from './context/BidsContext';
@@ -36,19 +38,20 @@ import { PendingRepairsProvider } from './context/PendingRepairsContext';
 import { WorkshopProvider } from './context/WorkshopContext';
 import { ProfileProvider } from './context/ProfileContext';
 import { Header, HEADER_BAND_H, TitleBand } from './components/Header';
+import { VehicleChip } from './components/VehicleChip';
 import { HOME_FLOW } from './constants/homeFlow';
 import { PlaceCommunityProvider } from './context/PlaceCommunityContext';
 import { EvBookingProvider } from './context/EvBookingContext';
 import { TowProvider } from './context/TowContext';
-import { TowingScreen } from './screens/TowingScreen';
-import { HomeSearch } from './components/home/HomeSearch';
-import { QuoteOutline } from './components/home/QuoteOutline';
+import { TowRecordsProvider } from './context/TowRecordsContext';
+// The old towing screen is kept in apps/user/backup-towing-v1 (restore here if the new flow must be reverted).
+import { TowFlow, type TowStatus } from './screens/tow/TowFlow';
 import { GarageReviewsSheet } from './components/GarageReviewsSheet';
 import { MartHeader } from './components/mart/MartHeader';
 import { ChatHeaderButton } from './components/ChatHeaderButton';
 import { ServiceReminders } from './components/ServiceReminders';
 import { PaymentReminders } from './components/PaymentReminders';
-import { PayFirstSheet, PayStandingBanner } from './components/PayStandingViews';
+import { PayFirstSheet } from './components/PayStandingViews';
 import { setBookingOpener } from './utils/bookingBridge';
 import { MOCK_GARAGES } from './constants/mockData';
 import { usePayStanding } from './context/PayStanding';
@@ -61,6 +64,7 @@ import { Toast } from './components/Toast';
 import { DirectBookingSheet } from './components/DirectBookingSheet';
 import { BookedPrompt } from './components/BookedPrompt';
 import { HomeScreen } from './screens/HomeScreen';
+
 import { SOSMapPickerScreen } from './screens/SOSMapPickerScreen';
 import { SOSFlowScreen } from './screens/SOSFlowScreen';
 import { ServiceBrowseScreen } from './screens/ServiceBrowseScreen';
@@ -105,12 +109,18 @@ const SEARCH_TINT = [
   { offset: '0', color: '#0b1d5e', opacity: 0 },
   { offset: '1', color: '#0b1d5e', opacity: 0.75 },
 ];
-const SOS_H = 108;
+// The SOS and towing cards: 56px, the height two lines of text need.
+const ROW_H = 56;
 // The blue card is taller when it holds the search bar (HOME_FLOW 'search'); JOB_TOP_H is its text part.
-const JOB_TOP_H = 108;
-const JOB_H = HOME_FLOW === 'search' ? JOB_TOP_H + 62 : JOB_TOP_H;
+const JOB_TOP_H = 72;
+// The repair card: a title, then the search row at its foot; no empty band between them.
+const JOB_H = HOME_FLOW === 'search' ? 120 : JOB_TOP_H;
 const BANNER_GAP = 8;
+// The repair card's inner inset: the title and the search row share this left edge.
+const JOB_INSET = 16;
 const COMPACT_H = 56;
+// The SOS card takes this share of the top row; towing takes the rest.
+const SOS_SPLIT = 0.4;
 
 // Soft diagonal washes over the banners' base colours (lighter at the top left, deeper at the bottom right).
 const SOS_GRADIENT = [
@@ -125,6 +135,7 @@ const JOB_GRADIENT = [
 ];
 
 type SOSStage = 'closed' | 'map' | 'flow';
+
 
 SplashScreen.preventAutoHideAsync();
 
@@ -164,6 +175,7 @@ function AppShell() {
   // (BANNER_FOLD_PX), while `sheetScroll` (the sheet's rise, one for one with the finger) takes longer.
   const bannerFold = useRef(new Animated.Value(0)).current;
   const scrollY = useRef(0);
+  const [homeFolded, setHomeFolded] = useState(false);
   const [headerH, setHeaderH] = useState(80);
   // Width of the banner area: the two banners tween between stacked cards and one row of two.
   const [bannerW, setBannerW] = useState(358);
@@ -172,13 +184,18 @@ function AppShell() {
   const lerp = (a: number, b: number) => sheetScroll.interpolate({ inputRange: [0, 1], outputRange: [a, b] });
   const lerpB = (a: number, b: number) => bannerFold.interpolate({ inputRange: [0, 1], outputRange: [a, b] });
   const fadeOut = bannerFold.interpolate({ inputRange: [0, 0.4], outputRange: [1, 0], extrapolate: 'clamp' });
-  const fadeIn = bannerFold.interpolate({ inputRange: [0.6, 1], outputRange: [0, 1], extrapolate: 'clamp' });
+  // The expanded button fades out over the first part of the fold and the folded pill fades in over the rest, so they never show together.
+  const fadeIn = bannerFold.interpolate({ inputRange: [0.4, 1], outputRange: [0, 1], extrapolate: 'clamp' });
   // Once the card is folded to its compact row, the search and its touch zone must not take taps meant for the Quotes button.
   const [searchLive, setSearchLive] = useState(true);
   useEffect(() => {
     const id = bannerFold.addListener(({ value }) => setSearchLive(value < 0.5));
     return () => bannerFold.removeListener(id);
   }, [bannerFold]);
+  // How far Home has scrolled, 0 at the top and 1 once it has gone HOME_FOLD_PX: the OnChat button condenses to its short form.
+  const homeFold = useRef(new Animated.Value(0)).current;
+  // Home has no pinned bar, so the OnChat button never drops for one.
+  const noDrop = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (firstRender.current) {
@@ -256,6 +273,20 @@ function AppShell() {
   }, []);
   // The owner can leave a running SOS job for OnMart (to buy a part the technician needs) and come back to it.
   const [sosHidden, setSosHidden] = useState(false);
+  // A tow is running (the truck has accepted): Home hides its towing button until it ends.
+  const [towStatus, setTowStatus] = useState<TowStatus>({ running: false, label: '', needsInput: false });
+  // The owner put the running tow away: the flow is hidden and a return bar shows (on Home, and over the other tabs).
+  const [towMinimised, setTowMinimised] = useState(false);
+  const closeTow = () => {
+    setTowMinimised(false);
+    setSelectedService(null);
+  };
+  // The height of the Home banners: SOS, Repair, and towing when it shows.
+  const bannersH = ROW_H + BANNER_GAP + JOB_H;
+  // SOS takes the full top row only while a tow is minimised (its return bar is then the one thing to reach).
+  const sosFull = towMinimised && towStatus.running;
+  // While an SOS job runs (its flow is open, minimised or not), the towing button takes the whole row, as the SOS button does while a tow runs.
+  const towFull = sosStage === 'flow';
   // What the SOS job is doing, for the status line while it is put away.
   const [sosStatus, setSosStatus] = useState({ label: '', needsAction: false });
   // A decision (a part, a price, the QR code) brings the owner back to the job without them looking for it.
@@ -265,7 +296,8 @@ function AppShell() {
   const [martSeed, setMartSeed] = useState('');
   const [martShopReq, setMartShopReq] = useState<{ id: string; at: number; ask?: boolean } | null>(null);
   const [sosLocation, setSOSLocation] = useState<PickedLocation | null>(null);
-  const [selectedVehicle, setSelectedVehicle] = useState('premio');
+  // The active vehicle lives in the vehicles context, so it is kept between launches and every tab reads the same one.
+  const { activeVehicleId: selectedVehicle, setActiveVehicleId: setSelectedVehicle } = useVehicles();
   const [selectedService, setSelectedService] = useState<ServiceCategory | null>(null);
   // A suggested job from Home ("Oil Change") opens its category with that sub-service picked.
   const [selectedSubName, setSelectedSubName] = useState<string | undefined>(undefined);
@@ -332,11 +364,12 @@ function AppShell() {
 
   // The banners follow the owner's own scrolling (nothing snaps by itself): as the Home sheet is scrolled up the SOS and free-quotes banners fold into their
   // one row and stick in the top header, and they unfold the same way on the way back. They are pinned when the sheet reaches them, after `collapsePx` of scrolling, and `HomeScreen` holds its content back by the same distance so everything moves with the finger, one for one.
-  const collapsePx = Math.max(1, SOS_H + BANNER_GAP + JOB_H - COMPACT_H + Math.max(0, headerH - 18));
+  const collapsePx = Math.max(1, ROW_H + BANNER_GAP + JOB_H - COMPACT_H + Math.max(0, headerH - 18));
   const collapseRef = useRef(collapsePx);
   collapseRef.current = collapsePx;
   const handleHomeScroll = useCallback((y: number) => {
     scrollY.current = y;
+    setHomeFolded(y >= collapseRef.current);
     sheetScroll.setValue(Math.min(1, Math.max(0, y / collapseRef.current)));
     // The banners fold over the same distance as the sheet rises, so the sheet always meets the banners (a quicker fold leaves an empty gap between them).
     bannerFold.setValue(Math.min(1, Math.max(0, y / collapseRef.current)));
@@ -362,6 +395,8 @@ function AppShell() {
     if (activeTab === 'mart' || activeTab === 'activity' || activeTab === 'bids' || activeTab === 'profile') setMartHeaderVisible(true);
   }, [activeTab, setMartHeaderVisible]);
 
+  // The SOS button is always one tap away: on Home once the card has scrolled off, and on every other tab. Hidden while the running job's return bar shows.
+
   // Home pins the compact SOS / job banners under the band (Activity and OnMart set their own, in their own screens).
   React.useEffect(() => {
     if (activeTab !== 'home') return;
@@ -377,7 +412,7 @@ function AppShell() {
     <LocationProvider>
     <PlaceCommunityProvider>
     <EvBookingProvider>
-    <TowProvider>
+    <TowRecordsProvider><TowProvider>
     <MartProvider>
     <WallProvider>
     <BidsProvider>
@@ -403,6 +438,8 @@ function AppShell() {
               <Text style={styles.pageTitle} numberOfLines={1}>
                 {TAB_TITLES[activeTab]}
               </Text>
+              {/* The owner's vehicle, on every tab that has a title bar: left of the chat button. */}
+              <VehicleChip />
               {activeTab === 'mart' && martSegment === 'wall' && (
                 <>
                   <View style={styles.flex1} />
@@ -439,23 +476,17 @@ function AppShell() {
               <SkyBar period={skyPeriod} />
             </Animated.View>
             <View onLayout={(e) => setBannerW(Math.round(e.nativeEvent.layout.width))}>
-              <Animated.View style={{ height: lerp(SOS_H + BANNER_GAP + JOB_H, COMPACT_H) }}>
-                {/* SOS: full card at the top of the page, the left half of a single row once scrolled */}
-                <Animated.View style={[styles.sosBanner, styles.bannerAbs, { width: lerpB(bannerW, half), height: lerpB(SOS_H, COMPACT_H), top: 0, left: 0 }]}>
+              {/* SOS and towing share the top row (SOS left, towing right). Only while a tow is minimised does SOS take the full row. */}
+              <Animated.View style={{ height: lerp(bannersH, COMPACT_H) }}>
+                {/* SOS: the left half of the top row; once scrolled it folds away into the Quotes bar. */}
+                {/* While an SOS job runs, its red return bar sits under the Repair card, so this button is hidden. */}
+                <Animated.View style={[styles.sosBanner, styles.bannerAbs, { display: sosStage === 'flow' ? 'none' : 'flex', width: lerpB(sosFull ? bannerW : bannerW * SOS_SPLIT, 0), height: lerpB(ROW_H, COMPACT_H), top: 0, left: 0, opacity: fadeOut }]}>
                   <Gradient stops={SOS_GRADIENT} />
                   <View style={styles.sheen} pointerEvents="none" />
                   <Pressable style={({ pressed }) => [StyleSheet.absoluteFill, pressed && styles.pressed]} onPress={() => setSOSStage('map')} accessibilityLabel="Open SOS">
-                    <Animated.View style={[styles.sosBannerContent, styles.bannerFull, { width: bannerW, opacity: fadeOut }]}>
-                      <View style={styles.sosLeft}>
-                        <View style={styles.sosBadge}>
-                          <Pulse style={styles.pulseDot} />
-                          <Text style={[styles.badgeText, styles.badgeTextSos]}>24/7 SOS</Text>
-                        </View>
-                        <Text style={styles.heroTitle}>වාහනය Breakdown ද ?</Text>
-                        <Text style={styles.heroSub}>ළගම OnGarage උදව් ඉල්ලන්න</Text>
-                      </View>
-                      <View style={styles.sosButton}>
-                        <Text style={styles.sosButtonText}>SOS</Text>
+                    <Animated.View style={[styles.sosBannerContent, styles.bannerFull, { width: sosFull ? bannerW : bannerW * SOS_SPLIT, opacity: fadeOut }]}>
+                      <View style={styles.cardStack}>
+                        <Text style={styles.sosWord}>SOS</Text>
                       </View>
                     </Animated.View>
                     <Animated.View style={[styles.compactRow, { opacity: fadeIn }]} pointerEvents="none">
@@ -468,23 +499,24 @@ function AppShell() {
                   </Pressable>
                 </Animated.View>
 
+                {/* Towing beside the SOS card, on the same row: a neutral card, so red stays with SOS alone. Hidden while a tow runs. */}
+                <Animated.View style={[styles.towingCard, styles.bannerAbs, skyPeriod === 'night' && styles.nightLift, { display: towStatus.running ? 'none' : 'flex', left: towFull ? 0 : bannerW * SOS_SPLIT + BANNER_GAP, width: lerpB(towFull ? bannerW : bannerW * (1 - SOS_SPLIT) - BANNER_GAP, 0), height: lerpB(ROW_H, COMPACT_H), top: 0, opacity: fadeOut }]}>
+                  <Pressable style={({ pressed }) => [StyleSheet.absoluteFill, pressed && styles.pressed]} onPress={() => setSelectedService(categoryInfo('12'))} accessibilityLabel="Towing">
+                    <Animated.View style={[styles.towingContent, styles.bannerFull, { width: towFull ? bannerW : bannerW * (1 - SOS_SPLIT) - BANNER_GAP }]}>
+                      <View style={styles.towingRow}>
+                        <CategoryPhoto categoryId="12" size={18} />
+                        <Text style={styles.towingLabel}>TOWING</Text>
+                      </View>
+                    </Animated.View>
+                  </Pressable>
+                </Animated.View>
+
                 {/* Post a job: full card below the SOS card, the right half of the row once scrolled */}
-                <Animated.View style={[styles.jobBanner, styles.bannerAbs, { width: lerpB(bannerW, half), height: lerpB(JOB_H, COMPACT_H), top: lerpB(SOS_H + BANNER_GAP, 0), left: lerpB(0, half + BANNER_GAP) }]}>
-                  <Gradient stops={JOB_GRADIENT} />
-                  <View style={styles.sheen} pointerEvents="none" />
-                  {/* The free-quotes text and the ＋ sit in a card of their own inside the blue card: only an outline, no fill. */}
-                  {HOME_FLOW === 'search' && <QuoteOutline style={[styles.jobQuoteOutline, { opacity: fadeOut }]} />}
+                <Animated.View style={[styles.jobBanner, styles.bannerAbs, skyPeriod === 'night' && styles.nightLift, { width: bannerW, height: lerpB(JOB_H, COMPACT_H), top: lerpB(ROW_H + BANNER_GAP, 0), left: 0 }]}>
                   <Pressable style={({ pressed }) => [StyleSheet.absoluteFill, pressed && styles.pressed]} onPress={() => openPost(null)} accessibilityLabel="Post a repair job">
                     <Animated.View style={[styles.jobBannerContent, styles.bannerFull, HOME_FLOW === 'search' && { bottom: undefined, height: JOB_TOP_H }, { width: bannerW, opacity: fadeOut }]}>
                       <View style={styles.jobLeft}>
-                        <View style={styles.jobBadge}>
-                          <Text style={[styles.badgeText, styles.badgeTextJob]}>නොමිලේ Quotes</Text>
-                        </View>
-                        <Text style={styles.jobBannerTitle}>වාහනයේ Repair එකක්ද?</Text>
-                        <Text style={styles.jobBannerSub}>OnGarage වලින් Quotes ගන්න</Text>
-                      </View>
-                      <View style={styles.jobCta}>
-                        <Text style={styles.jobCtaText}>＋</Text>
+                        <Text style={styles.jobBannerTitle}>වාහනයේ <Text style={styles.jobBannerLatin}>Repair</Text> එකක්ද?</Text>
                       </View>
                     </Animated.View>
                     <Animated.View style={[styles.compactRow, { opacity: fadeIn }]} pointerEvents="box-none">
@@ -497,17 +529,11 @@ function AppShell() {
                       </Pressable>
                     </Animated.View>
                   </Pressable>
-                  {/* The search part of the card has its own deeper blue, fading in from where the free-quotes text ends down to the card's bottom edge. */}
-                  {HOME_FLOW === 'search' && (
-                    <Animated.View pointerEvents="none" style={[styles.jobSearchTint, { opacity: fadeOut }]}>
-                      <Gradient vertical stops={SEARCH_TINT} />
-                    </Animated.View>
-                  )}
                   {/* The search part of the card is its own touch zone: touching the search bar or the space round it never reaches the post-a-job press behind it. */}
                   {HOME_FLOW === 'search' && searchLive && <View style={{ position: 'absolute', left: 0, right: 0, top: JOB_TOP_H, bottom: 0 }} onStartShouldSetResponder={() => true} />}
                   {/* The search bar inside the blue card, under the free-quotes text; the ＋ above still posts a job. */}
                   {HOME_FLOW === 'search' && (
-                    <Animated.View pointerEvents={searchLive ? 'auto' : 'none'} style={{ position: 'absolute', left: 12, bottom: 12, width: Math.max(0, bannerW - 24), opacity: fadeOut }}>
+                    <Animated.View pointerEvents={searchLive ? 'auto' : 'none'} style={{ position: 'absolute', left: JOB_INSET, bottom: JOB_INSET, width: Math.max(0, (bannerW - 2 * JOB_INSET) * 0.54 - 4), opacity: fadeOut }}>
                       <HomeSearch
                         inCard
                         onService={(c, sub) => {
@@ -518,6 +544,11 @@ function AppShell() {
                         onPost={(categoryId, text) => openPost({ categoryId, description: text, vehicleId: selectedVehicle } as unknown as JobDraft)}
                       />
                     </Animated.View>
+                  )}
+                  {HOME_FLOW === 'search' && searchLive && (
+                    <Pressable style={({ pressed }) => [styles.quoteAction, { width: Math.max(0, (bannerW - 2 * JOB_INSET) * 0.46 - 4) }, pressed && styles.pressed]} onPress={() => openPost(null)} accessibilityLabel="Post a repair job">
+                      <Text style={styles.quoteActionText}>Quotes ඉල්ලන්න</Text>
+                    </Pressable>
                   )}
                 </Animated.View>
               </Animated.View>
@@ -531,14 +562,22 @@ function AppShell() {
             styles.sheet,
             activeTab === 'home' && styles.sheetOverlap,
             activeTab === 'home' && styles.sheetHome,
-            // On Home the sheet's top corners straighten once the page has scrolled up to the top of the screen.
-            activeTab === 'home' && { borderTopLeftRadius: lerp(24, 0), borderTopRightRadius: lerp(24, 0) },
             { opacity: pageAnim, transform: [{ translateY: pageAnim.interpolate({ inputRange: [0, 1], outputRange: [14, 0] }) }] },
           ]}
         >
           {activeTab === 'home' ? (
             <HomeScreen
               onSOSPress={() => setSOSStage('map')}
+              sosReturn={sosStage === 'flow' && sosHidden ? (
+                <Pressable style={styles.sosReturnInline} onPress={() => setSosHidden(false)} accessibilityLabel="Back to the SOS job">
+                  <Text style={styles.sosReturnText}>{sosStatus.label ? `🚨 ${sosStatus.label} ›` : '🚨 SOS රැකියාවට ආපසු ›'}</Text>
+                </Pressable>
+              ) : null}
+              towReturn={towMinimised && towStatus.running ? (
+                <Pressable style={styles.towReturnInline} onPress={() => setTowMinimised(false)} accessibilityLabel="Back to the towing job">
+                  <Text style={styles.sosReturnText}>{`🛻 ${towStatus.label} ›`}</Text>
+                </Pressable>
+              ) : null}
               onPostJob={() => openPost(null)}
               onServicePress={(c, sub) => {
                 setSelectedSubName(sub);
@@ -573,18 +612,11 @@ function AppShell() {
               onHeaderVisibilityChange={setMartHeaderVisible}
             />
           ) : (
-            <ProfileScreen activeVehicle={selectedVehicle} onVehicleChange={setSelectedVehicle} onHeaderProgress={(p) => martHeaderCollapse.setValue(p)} />
+            <ProfileScreen activeVehicle={selectedVehicle} onVehicleChange={setSelectedVehicle} onHeaderProgress={(p) => martHeaderCollapse.setValue(p)} onOpenHome={() => setActiveTab('home')} onOpenActivity={() => { focusActivity({ kind: 'done' }); setActiveTab('activity'); }} />
           )}
         </Animated.View>
 
         <View style={styles.bottomNavContainer}>
-          {/* A balance is due or late (and new work limited when it is long late): tap to see what is owed. */}
-          <PayStandingBanner
-            onPress={() => {
-              focusActivity({ kind: 'done' });
-              setActiveTab('activity');
-            }}
-          />
           {activeTab === 'mart' ? (
             <OwnerMartNav
               activeTab={martSegment}
@@ -608,6 +640,13 @@ function AppShell() {
           )}
         </View>
         <Toast />
+        {/* Above the toasts: a notice never covers the way to SOS. */}
+        {/* Folded Home: the chat sits in the bottom-right corner, where the SOS disc was, so it never covers the Quotes bar. */}
+        {activeTab === 'home' && homeFolded && (
+          <View style={styles.foldChatCorner} pointerEvents="box-none">
+            <ChatHeaderButton round night={skyPeriod === 'night'} />
+          </View>
+        )}
         <FlyLayer />
         {askMart && (
           <ModalCard
@@ -635,10 +674,9 @@ function AppShell() {
         <PaymentReminders />
         {/* The chat icon stays put at the top right however the header folds away while the page scrolls. */}
         <Animated.View
-          style={[styles.floatChat, activeTab !== 'home' && { top: -2 }, { opacity: chatHide.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }), transform: [{ translateY: Animated.multiply(activeTab === 'home' ? sheetScroll : martHeaderCollapse, chatDockDrop) }, { translateY: chatHide.interpolate({ inputRange: [0, 1], outputRange: [0, -24] }) }] }]}
-          pointerEvents={chatBlocked ? 'none' : 'box-none'}
-        >
-          <ChatHeaderButton scrolled={activeTab === 'home' ? sheetScroll : martHeaderCollapse} />
+          style={[styles.floatChat, activeTab !== 'home' && { top: -2 }, { opacity: Animated.multiply(chatHide.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }), activeTab === 'home' ? bannerFold.interpolate({ inputRange: [0.4, 1], outputRange: [1, 0], extrapolate: 'clamp' }) : 1), transform: [{ translateY: Animated.multiply(activeTab === 'home' ? noDrop : martHeaderCollapse, chatDockDrop) }, { translateY: chatHide.interpolate({ inputRange: [0, 1], outputRange: [0, -24] }) }] }]}
+          pointerEvents={chatBlocked || (activeTab === 'home' && homeFolded) ? 'none' : 'box-none'}        >
+          <ChatHeaderButton scrolled={activeTab === 'home' ? homeFold : martHeaderCollapse} night={skyPeriod === 'night'} />
         </Animated.View>
       </SafeAreaView>
 
@@ -683,9 +721,14 @@ function AppShell() {
           <Toast topOffset={84} />
         </View>
       )}
-      {sosStage === 'flow' && sosHidden && (
+      {sosStage === 'flow' && sosHidden && activeTab !== 'home' && (
         <Pressable style={styles.sosReturn} onPress={() => setSosHidden(false)} accessibilityLabel="Back to the SOS job">
           <Text style={styles.sosReturnText}>{sosStatus.label ? `🚨 ${sosStatus.label} ›` : '🚨 SOS රැකියාවට ආපසු ›'}</Text>
+        </Pressable>
+      )}
+      {towMinimised && towStatus.running && activeTab !== 'home' && (
+        <Pressable style={styles.towReturn} onPress={() => setTowMinimised(false)} accessibilityLabel="Back to the towing job">
+          <Text style={styles.sosReturnText}>{`🛻 ${towStatus.label} ›`}</Text>
         </Pressable>
       )}
 
@@ -709,13 +752,18 @@ function AppShell() {
         <Toast topOffset={84} />
       </Modal>
 
-      <Modal visible={selectedService !== null} animationType="slide" statusBarTranslucent onRequestClose={() => setSelectedService(null)}>
-        {selectedService && selectedService.id === '12' && <TowingScreen vehicleId={selectedVehicle} onClose={() => setSelectedService(null)} />}
+      <Modal visible={selectedService !== null && selectedService.id !== '12'} animationType="fade" statusBarTranslucent onRequestClose={() => setSelectedService(null)}>
         {selectedService && selectedService.id !== '12' && (
           <ServiceBrowseScreen service={selectedService} initialSub={selectedSubName} vehicleId={selectedVehicle} onPostJob={HOME_FLOW === 'search' ? (categoryId) => { setSelectedService(null); openPost({ categoryId, description: '', vehicleId: selectedVehicle } as unknown as JobDraft); } : undefined} onClose={() => setSelectedService(null)} onBook={(garage, back) => openBooking({ garage, categoryId: selectedService.id, back })} />
         )}
         <Toast topOffset={84} />
       </Modal>
+      {/* The towing flow is not a Modal: a Modal unmounts its contents when hidden, which would lose a running tow. Minimising hides this layer and keeps the flow mounted. */}
+      {selectedService?.id === '12' && (
+        <View pointerEvents={towMinimised ? 'none' : 'auto'} style={[StyleSheet.absoluteFill, styles.towLayer, towMinimised && styles.towLayerHidden]}>
+          <TowFlow onClose={closeTow} onMinimize={() => setTowMinimised(true)} onStatus={setTowStatus} active={!towMinimised} />
+        </View>
+      )}
       <PayFirstSheet visible={payFirst} onClose={() => setPayFirst(false)} onViewOwed={() => {
           focusActivity({ kind: 'done' });
           setActiveTab('activity');
@@ -761,7 +809,7 @@ function AppShell() {
     </BidsProvider>
     </WallProvider>
     </MartProvider>
-    </TowProvider>
+    </TowProvider></TowRecordsProvider>
     </EvBookingProvider>
     </PlaceCommunityProvider>
     </LocationProvider>
@@ -787,43 +835,63 @@ const styles = themedStyles(() => StyleSheet.create({
   sosLayer: { zIndex: 50, backgroundColor: Colors.bgBody },
   sosLayerHidden: { display: 'none' },
   sosReturn: { position: 'absolute', zIndex: 60, left: 16, right: 16, bottom: 96, alignItems: 'center', justifyContent: 'center', height: 46, borderRadius: 23, backgroundColor: '#dc2626', shadowColor: '#dc2626', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.4, shadowRadius: 12, elevation: 10 },
+  sosReturnInline: { marginHorizontal: 16, marginTop: 4, marginBottom: 14, alignItems: 'center', justifyContent: 'center', height: 46, borderRadius: 23, backgroundColor: '#dc2626', shadowColor: '#dc2626', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 10, elevation: 6 },
   sosReturnText: { fontSize: 14, fontFamily: FONTS.titleBold, color: '#ffffff' },
-  sheetOverlap: { marginTop: -18, borderTopLeftRadius: 24, borderTopRightRadius: 24, overflow: 'hidden' },
+  // The towing return bar: the same shape as SOS's, in the blue of the towing flow.
+  towReturn: { position: 'absolute', zIndex: 60, left: 16, right: 16, bottom: 96, alignItems: 'center', justifyContent: 'center', height: 46, borderRadius: 23, backgroundColor: '#1d367f', shadowColor: '#1d367f', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.35, shadowRadius: 12, elevation: 10 },
+  towLayer: { zIndex: 150, elevation: 150, backgroundColor: 'transparent' },
+  towLayerHidden: { display: 'none' },
+  towReturnInline: { marginHorizontal: 16, marginTop: 4, marginBottom: 14, alignItems: 'center', justifyContent: 'center', height: 46, borderRadius: 23, backgroundColor: '#1d367f', shadowColor: '#1d367f', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 10, elevation: 6 },
+  sheetOverlap: { marginTop: -18, overflow: 'hidden' },
   // Home: the list sits in its own rounded, shadowed sheet that slides up over the padding under the banners.
   // No border or shadow where the sheet meets the banners: the header's sky shades into the same page colour.
   // Solid: the page colour behind the lists.
-  sheetHome: { marginTop: -16, zIndex: 2, backgroundColor: pageBg() },
-  bottomNavContainer: { position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 20 },
+  sheetHome: { marginTop: -16, zIndex: 2, backgroundColor: 'transparent' },
   // Sticky banners on Home (outside the sheet so they don't move when sheet expands)
   // Starts 4px above the container (over only the last strip of the header, so the buildings stay visible) and runs down over the sheet's top; a plain rectangle, no corners.
     // The page colour behind the banners, from exactly where the header ends (the container itself overlaps the header by 18).
-  sheetBack: { position: 'absolute', left: 0, right: 0, top: 16, bottom: 0, backgroundColor: pageBg() },
   skyShade: { position: 'absolute', left: 0, right: 0, top: 16, height: 262, overflow: 'hidden' },
-  stickyBannersContainer: { marginTop: -18, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 6, paddingTop: 16, paddingBottom: 26, zIndex: 1, backgroundColor: 'transparent' },
+  sheetBack: { position: 'absolute', left: 0, right: 0, top: 16, bottom: 0, backgroundColor: pageBg() },
+  stickyBannersContainer: { marginTop: -18, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 16, paddingTop: 16, paddingBottom: 26, zIndex: 1, backgroundColor: 'transparent' },
   pressed: { opacity: 0.9, transform: [{ scale: 0.99 }] },
-  sosBanner: { borderRadius: 22, overflow: 'hidden', backgroundColor: '#c81e2b', borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.2)', shadowColor: '#c81e2b', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.35, shadowRadius: 20, elevation: 7 },
+  foldChatCorner: { position: 'absolute', right: 16, bottom: 92, zIndex: 3 },
+  sosBanner: { borderRadius: 22, overflow: 'hidden', backgroundColor: '#B91C1C', borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.2)', shadowColor: '#c81e2b', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.35, shadowRadius: 20, elevation: 7 },
   // A soft light disc in the corner: depth without clutter.
   sheen: { position: 'absolute', top: -70, right: -40, width: 190, height: 190, borderRadius: 95, backgroundColor: 'rgba(255, 255, 255, 0.07)' },
-  sosBannerContent: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 18, paddingVertical: 16, gap: 12 },
+  sosBannerContent: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 18, paddingVertical: 8, gap: 12 },
   sosLeft: { flex: 1, gap: 3 },
   sosBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'flex-start', paddingHorizontal: 9, paddingVertical: 3, borderRadius: 11, backgroundColor: '#ffffff', marginBottom: 3 },
   jobBadge: { alignSelf: 'flex-start', paddingHorizontal: 9, paddingVertical: 3, borderRadius: 11, backgroundColor: '#ffffff', marginBottom: 3 },
   pulseDot: { width: 6, height: 6, backgroundColor: '#fff', borderRadius: 3 },
-  badgeText: { fontSize: 10.5, fontWeight: '800', color: '#fff', letterSpacing: 0.4 },
+  badgeText: { fontSize: 12, fontWeight: '800', color: '#fff', letterSpacing: 0.4 },
   // Solid white badges carry their colour in the text, so the small label reads on the white.
   badgeTextSos: { color: '#b91c1c' },
   badgeTextJob: { color: '#1b3a96' },
-  heroTitle: { fontSize: 17, fontFamily: FONTS.titleBold, color: '#fff', letterSpacing: 0.2 },
+  heroTitle: { fontSize: 16, fontFamily: FONTS.titleBold, color: '#fff', letterSpacing: 0.2 },
   heroSub: { fontSize: 12, fontFamily: FONTS.bodyMedium, color: '#ffffff' },
-  sosButton: { width: 70, height: 70, borderRadius: 35, backgroundColor: '#ffffff', borderWidth: 5, borderColor: 'rgba(255, 255, 255, 0.35)', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  sosButtonText: { fontSize: 17, fontWeight: '900', color: '#c81e2b', letterSpacing: 1 },
+  towingCard: { borderRadius: 22, backgroundColor: '#0D2B3E', overflow: 'hidden' },
+  // At night the navy cards would sink into the dark sky: a thin light edge and a soft glow lift them off it.
+  nightLift: { borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.12)', shadowColor: '#7dd3fc', shadowOpacity: 0.25, shadowRadius: 12, shadowOffset: { width: 0, height: 0 }, elevation: 4 },
+  towingContent: { alignItems: 'center', justifyContent: 'center', gap: 2, left: 0 },
+  cardStack: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  // One wordmark line: heavy Latin on the deeper red, white on it is about 7:1.
+  sosWord: { fontSize: 16, lineHeight: 20, fontFamily: FONTS.titleBold, color: '#ffffff', letterSpacing: 1.2 },
+  towingRow: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  // The same type as SOS: one bold size, caps with tracking, white on the coloured button.
+  towingLabel: { fontSize: 16, lineHeight: 20, fontFamily: FONTS.titleBold, color: '#ffffff', letterSpacing: 1.2 },
+  towingText: { alignItems: 'flex-start', gap: 2 },
+  cardLabel: { fontSize: 15, lineHeight: 18, fontFamily: FONTS.titleBold, color: '#ffffff' },
+  cardSub: { fontSize: 12, lineHeight: 15, fontFamily: FONTS.bodyMedium, color: '#ffffff' },
+  jobBannerLatin: { fontSize: 19, fontFamily: FONTS.titleBold },
+  quoteAction: { position: 'absolute', right: JOB_INSET, bottom: JOB_INSET, height: 44, paddingHorizontal: 10, borderRadius: 22, backgroundColor: '#1A73E8', alignItems: 'center', justifyContent: 'center' },
+  quoteActionText: { fontSize: 13, fontFamily: FONTS.bodyBold, color: '#ffffff', textAlign: 'center' },
   // No shadow keys at all (the app's PickMe shape adds a soft shadow to any style that has one): its shadow showed as a pale streak between this card and the search bar.
   jobSearchTint: { position: 'absolute', left: 0, right: 0, top: JOB_TOP_H - 14, bottom: 0 },
   jobQuoteOutline: { position: 'absolute', left: 10, right: 10, top: 10, height: JOB_TOP_H - 14 },
-  jobBanner: { borderRadius: 22, overflow: 'hidden', backgroundColor: '#1b3a96', borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.2)' },
-  jobBannerContent: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 18, paddingVertical: 16, gap: 12 },
+  jobBanner: { borderRadius: 22, overflow: 'hidden', backgroundColor: '#0D2B3E', borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.08)', shadowColor: '#0D2B3E', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.25, shadowRadius: 14 },
+  jobBannerContent: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 16, gap: 12 },
   jobLeft: { flex: 1, gap: 2 },
-  jobBannerTitle: { fontSize: 17, fontFamily: FONTS.titleBold, color: '#fff', letterSpacing: 0.2 },
+  jobBannerTitle: { fontSize: 18, fontFamily: FONTS.titleBold, color: '#ffffff', letterSpacing: 0.2 },
   jobBannerSub: { fontSize: 12, fontFamily: FONTS.bodyMedium, color: '#ffffff' },
   jobCta: { width: 60, height: 60, borderRadius: 30, backgroundColor: '#ffffff', borderWidth: 4, borderColor: 'rgba(255, 255, 255, 0.35)', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   bannerAbs: { position: 'absolute' },
@@ -831,12 +899,13 @@ const styles = themedStyles(() => StyleSheet.create({
   compactRow: { ...StyleSheet.absoluteFill, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   compactSos: { fontSize: 17, fontWeight: '900', color: '#fff', letterSpacing: 1 },
   compactSmall: { fontSize: 11, fontWeight: '700', color: '#ffffff' },
-  compactPlus: { width: 28, height: 28, borderRadius: 14, borderWidth: 2, borderColor: 'rgba(255,255,255,0.85)', alignItems: 'center', justifyContent: 'center' },
+  compactPlus: { width: 28, height: 28, borderRadius: 14, borderWidth: 2, borderColor: '#ffffff', alignItems: 'center', justifyContent: 'center' },
   compactDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: '#fff' },
   // The plus is drawn (not a glyph) so its stroke weight matches the dot's.
-  plusBarH: { position: 'absolute', width: 12, height: 2.5, borderRadius: 2, backgroundColor: '#fff' },
-  plusBarV: { position: 'absolute', width: 2.5, height: 12, borderRadius: 2, backgroundColor: '#fff' },
+  plusBarH: { position: 'absolute', width: 12, height: 2.5, borderRadius: 2, backgroundColor: '#ffffff' },
+  plusBarV: { position: 'absolute', width: 2.5, height: 12, borderRadius: 2, backgroundColor: '#ffffff' },
   compactPlusText: { fontSize: 15, fontWeight: '700', color: '#fff', marginTop: -2 },
-  compactJob: { fontSize: 14, fontFamily: FONTS.titleBold, color: '#fff' },
+  compactJob: { fontSize: 14, fontFamily: FONTS.titleBold, color: '#ffffff' },
   jobCtaText: { fontSize: 26, fontWeight: '700', color: '#1b3a96', marginTop: -2 },
+  bottomNavContainer: { position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 20 },
 }));

@@ -67,7 +67,7 @@ export const PayStandingBanner: React.FC<{ onPress: () => void }> = ({ onPress }
   return (
     <Pressable style={[styles.banner, s.limited && styles.bannerLimited]} onPress={onPress} accessibilityLabel="Payment balance reminder">
       <Text style={styles.bannerText} numberOfLines={2}>
-        {s.limited ? `⛔ දින ${s.overdueDays} කින් හිඟ මුදල් ගෙවීමක් ප්‍රමාදවී ඇත — අලුත් රැකියා නවතා ඇත. ගෙවීම් බලන්න ›` : `⚠️ ගෙවිය යුතු ${money(s.owed)} ${s.overdueDays ? 'ප්‍රමාදයි' : 'අද දිනයයි'} — බලන්න ›`}
+        {s.limited ? `⛔ දින ${s.overdueDays} ප්‍රමාදයි · අලුත් රැකියා නවතා ඇත · ගෙවන්න ›` : `⚠️ ගෙවිය යුතු ${money(s.owed)} ${s.overdueDays ? 'ප්‍රමාදයි' : 'අද'} · ගෙවන්න ›`}
       </Text>
     </Pressable>
   );

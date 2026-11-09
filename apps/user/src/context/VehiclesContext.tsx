@@ -5,6 +5,9 @@ import { normalisePlate, type Vehicle } from '@ongarage/shared';
 
 const STORAGE_KEY = 'ongarage.addedVehicles';
 const EDITS_KEY = 'ongarage.vehicleEdits';
+const ACTIVE_KEY = 'ongarage.activeVehicle';
+/** The vehicle the owner starts on when nothing was chosen yet. */
+const FIRST_VEHICLE_ID = 'premio';
 
 type VehiclesState = {
   vehicles: Vehicle[];
@@ -12,6 +15,15 @@ type VehiclesState = {
   addVehicle: (input: Omit<Vehicle, 'id'>) => Vehicle;
   /** Saves details the owner typed in (reg no, chassis, engine, make, model…) for any vehicle, the seeded ones too. */
   updateVehicle: (id: string, change: Partial<Omit<Vehicle, 'id'>>) => void;
+  /** The vehicle every tab is about. One value for the whole app: changing it changes Home, Bids, Activity, OnMart and Account together. */
+  activeVehicleId: string;
+  setActiveVehicleId: (id: string) => void;
+  activeVehicle: Vehicle;
+  /** Bids and Activity show every vehicle's jobs when this is on; otherwise only the active vehicle's. */
+  showAllVehicles: boolean;
+  setShowAllVehicles: (on: boolean) => void;
+  /** Whether a job, booking or record of this vehicle belongs in the lists the owner is looking at. */
+  isInScope: (vehicleId?: string) => boolean;
 };
 
 const VehiclesContext = createContext<VehiclesState | null>(null);
@@ -19,6 +31,8 @@ const VehiclesContext = createContext<VehiclesState | null>(null);
 export const VehiclesProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [added, setAdded] = useState<Vehicle[]>([]);
   const [edits, setEdits] = useState<Record<string, Partial<Vehicle>>>({});
+  const [activeId, setActiveId] = useState(FIRST_VEHICLE_ID);
+  const [showAllVehicles, setShowAllVehicles] = useState(false);
 
   useEffect(() => {
     AsyncStorage.getItem(STORAGE_KEY)
@@ -26,6 +40,9 @@ export const VehiclesProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       .catch(() => {});
     AsyncStorage.getItem(EDITS_KEY)
       .then((raw) => raw && setEdits(JSON.parse(raw)))
+      .catch(() => {});
+    AsyncStorage.getItem(ACTIVE_KEY)
+      .then((raw) => raw && setActiveId(raw))
       .catch(() => {});
   }, []);
 
@@ -54,7 +71,20 @@ export const VehiclesProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     });
   }, []);
 
-  return <VehiclesContext.Provider value={{ vehicles, findVehicle, addVehicle, updateVehicle }}>{children}</VehiclesContext.Provider>;
+  // A stored id that no longer exists (a vehicle removed or never added) falls back to the first vehicle.
+  const activeVehicleId = vehicles.some((v) => v.id === activeId) ? activeId : vehicles[0].id;
+  const setActiveVehicleId = useCallback((id: string) => {
+    setActiveId(id);
+    AsyncStorage.setItem(ACTIVE_KEY, id).catch(() => {});
+  }, []);
+  const activeVehicle = vehicles.find((v) => v.id === activeVehicleId) ?? vehicles[0];
+  const isInScope = useCallback((vehicleId?: string) => showAllVehicles || vehicleId === activeVehicleId, [showAllVehicles, activeVehicleId]);
+
+  return (
+    <VehiclesContext.Provider value={{ vehicles, findVehicle, addVehicle, updateVehicle, activeVehicleId, setActiveVehicleId, activeVehicle, showAllVehicles, setShowAllVehicles, isInScope }}>
+      {children}
+    </VehiclesContext.Provider>
+  );
 };
 
 export const useVehicles = () => {

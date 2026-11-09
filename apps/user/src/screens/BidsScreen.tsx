@@ -77,9 +77,11 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, onRepu
   const [usedOnly, setUsedOnly] = useState(false);
   // The icon beside the received bids: every bid as one row (to see them all at once and answer quickly) instead of a full card each.
   const [rowsView, setRowsView] = useState(false);
-  const { jobs, acceptBid, removeBid } = useBids();
+  const { jobs: allJobs, acceptBid, removeBid } = useBids();
   const { workshops } = useWorkshops();
-  const { findVehicle } = useVehicles();
+  const { findVehicle, isInScope } = useVehicles();
+  // Only the active vehicle's jobs, unless the owner chose every vehicle (VehicleChip).
+  const jobs = allJobs.filter((j) => isInScope(j.vehicleId));
   const user = useUserLocation();
   const [now, setNow] = useState(Date.now());
   const [confirming, setConfirming] = useState<{ job: RepairJob; bid: Bid } | null>(null);

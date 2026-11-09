@@ -15,6 +15,8 @@ export type NavItem<T extends string> = {
   path?: string;
   icon?: React.ComponentType<{ active: boolean; size?: number }>;
   badge?: number;
+  /** The badge's colour; red (the default) is for urgent counts only. */
+  badgeColor?: string;
   /**
    * A light around the icon that says what is going on, so it can be read without opening the tab:
    * 'incoming' a red emergency strobe (new requests waiting for an answer), 'approval' a fast red / amber strobe with a shake (something critical waits for
@@ -148,7 +150,7 @@ export function BottomNav<T extends string>({ items, activeTab, onTabChange }: B
             )}
             </AlertIcon>
             {!!item.badge && (
-              <View style={styles.badge}>
+              <View style={[styles.badge, item.badgeColor ? { backgroundColor: item.badgeColor } : null]}>
                 <Text style={styles.badgeText}>{item.badge > 9 ? '9+' : item.badge}</Text>
               </View>
             )}

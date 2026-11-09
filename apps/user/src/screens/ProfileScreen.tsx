@@ -2,25 +2,18 @@ import { LkPlate, VehicleIcon3D } from '@ongarage/shared';
 import { elevation1, outline, pageBg } from '../utils/material';
 import { PAGE_TITLE_H } from '../constants/layout';
 import React, { useRef, useState } from 'react';
-import { Image, ImageBackground, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Colors, FONTS, getThemeMode, Gradient, ThemeToggle, themedStyles, useTheme } from '@ongarage/shared';
+import { Image, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Colors, FONTS, getThemeMode, ThemeToggle, themedStyles, useTheme } from '@ongarage/shared';
 import { useLang } from '../context/LanguageContext';
 import { useVehicles } from '../context/VehiclesContext';
 import { useProfile } from '../context/ProfileContext';
 import { AddVehicleSheet } from '../components/AddVehicleSheet';
 import { nextServiceOf, ServiceRecordsSheet, useServiceRecords } from '../components/ServiceRecordsSheet';
-import { SERVICE_KINDS } from '@ongarage/shared';
-import { formatDate } from '../utils/format';
 import { VEHICLE_DETAIL_FIELDS, VehicleDetailsSheet, vehicleDetailsDone } from '../components/VehicleDetailsSheet';
 import { AppSettingsSheet } from '../components/AppSettingsSheet';
 import { Sheet } from '../components/Sheet';
 import { EditProfileScreen } from './EditProfileScreen';
 import { PayReliabilityCard } from '../components/PayStandingViews';
-
-const VEHICLE_SHADE = [
-  { offset: '0', color: '#020617', opacity: 0 },
-  { offset: '1', color: '#020617', opacity: 0.8 },
-];
 
 const HELP_LINE = '0112345678';
 
@@ -29,12 +22,15 @@ interface ProfileScreenProps {
   onVehicleChange: (vehicleId: string) => void;
   /** 0 at the top, 1 once scrolled: how far the sheet has risen over the top band (as on Home). */
   onHeaderProgress?: (progress: number) => void;
+  /** §5 shortcuts: spend details live on Activity, next service on Home. */
+  onOpenHome?: () => void;
+  onOpenActivity?: () => void;
 }
 
 type SheetId = 'settings' | 'help' | 'about' | null;
 
 /** The account page: who you are (tap to edit), how complete the profile is, your vehicles, then a list of rows. */
-export const ProfileScreen: React.FC<ProfileScreenProps> = ({ activeVehicle, onVehicleChange, onHeaderProgress }) => {
+export const ProfileScreen: React.FC<ProfileScreenProps> = ({ activeVehicle, onVehicleChange, onHeaderProgress, onOpenHome, onOpenActivity }) => {
   const { isDark, toggle } = useTheme();
   const { lang, setLang } = useLang();
   const { profile, fullName, initials } = useProfile();
@@ -100,6 +96,12 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ activeVehicle, onV
 
         <PayReliabilityCard />
 
+        {/* §5 shortcuts: each fact has one home, Account links to it. */}
+        <View style={styles.gCard}>
+          {row('💰', 'මුළු වියදම', () => onOpenActivity?.(), 'View spend on Activity', undefined, true)}
+          {row('🏠', 'වාහන තත්ත්වය', () => onOpenHome?.(), 'View vehicle status on Home')}
+        </View>
+
         {/* My vehicles: one card, the vehicles as chips, then the chosen one in full */}
         <View style={styles.gCard}>
           <View style={styles.gHead}>
@@ -152,24 +154,22 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ activeVehicle, onV
               );
             })}
           </View>
-          {/* When the next service is due, from the record the garage wrote at the last one; the owner is reminded before it */}
+          {/* Next service: a compact link to Home where the full status lives (§5: Home is the authority). */}
           {nextService && (
-            <View style={styles.nextService} accessibilityLabel="Next service">
+            <Pressable style={styles.nextService} onPress={onOpenHome} accessibilityLabel="Next service on Home">
               <View style={[styles.nextIcon, nextService.reminder.state !== 'ok' && styles.nextIconWarn]}>
                 <Text style={styles.menuIcon}>🔔</Text>
               </View>
               <View style={styles.flex1}>
                 <Text style={styles.menuLabel}>ඊළඟ සේවාව</Text>
-                <Text style={styles.recordsSub}>
-                  {[nextService.service.nextServiceAt ? formatDate(nextService.service.nextServiceAt) : '', nextService.service.nextServiceKm ? `${nextService.service.nextServiceKm.toLocaleString('en-US')} km` : ''].filter(Boolean).join(' · ')} · අවසන් සේවාව: {SERVICE_KINDS.find((k) => k.id === nextService.service.kind)?.label} ({nextService.service.mileageKm.toLocaleString('en-US')} km)
-                </Text>
               </View>
               <View style={[styles.nextChip, nextService.reminder.state === 'ok' ? styles.nextChipOk : nextService.reminder.state === 'soon' ? styles.nextChipSoon : styles.nextChipLate]}>
                 <Text style={styles.nextChipText}>
                   {nextService.reminder.state === 'ok' ? 'හරි' : nextService.reminder.state === 'soon' ? `දින ${nextService.reminder.daysLeft ?? '—'}` : nextService.reminder.state === 'due' ? 'අද' : 'ප්‍රමාදයි'}
                 </Text>
               </View>
-            </View>
+              <Text style={styles.chevron}>›</Text>
+            </Pressable>
           )}
           {/* The vehicle's service history: every job a garage finished on it is its own record */}
           <Pressable style={({ pressed }) => [styles.recordsRow, pressed && styles.pressed]} onPress={() => setRecordsFor(vehicle)} accessibilityLabel="Service records">

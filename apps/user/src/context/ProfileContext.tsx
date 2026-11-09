@@ -65,6 +65,8 @@ type ProfileState = {
   /** Updates several fields at once (already validated by the caller). */
   update: (change: Partial<OwnerProfile>) => void;
   fullName: string;
+  /** The first name only, for greetings. */
+  firstName: string;
   initials: string;
   /** How many of PROFILE_STEPS are done. */
   completed: number;
@@ -95,7 +97,7 @@ export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const initials = `${profile.firstName[0] ?? ''}${profile.lastName[0] ?? ''}`.toUpperCase() || '👤';
   const completed = PROFILE_STEPS.filter((s) => s.done(profile)).length;
 
-  return <ProfileContext.Provider value={{ profile, update, fullName, initials, completed }}>{children}</ProfileContext.Provider>;
+  return <ProfileContext.Provider value={{ profile, update, fullName, firstName: profile.firstName.trim(), initials, completed }}>{children}</ProfileContext.Provider>;
 };
 
 export const useProfile = () => {

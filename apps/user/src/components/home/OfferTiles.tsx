@@ -2,6 +2,12 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { FONTS, Gradient, themedStyles } from '@ongarage/shared';
 import { DotScroll } from './DotScroll';
+
+// One accent for every offer, so the tiles read as one group and the page keeps a single colour family.
+const ACCENT_STOPS = [
+  { offset: '0', color: '#0E7C86' },
+  { offset: '1', color: '#0A5F67' },
+];
 type Tile = { id: string; title: string; subtitle: string; emoji: string; stops: { offset: string; color: string }[] };
 
 /** Colourful deal tiles in a sideways row: a short title, one line, a big emoji and an arrow. */
@@ -9,7 +15,7 @@ export const OfferTiles = <T extends Tile>({ offers, onOpen }: { offers: T[]; on
   <DotScroll contentContainerStyle={styles.row}>
     {offers.map((o) => (
       <Pressable key={o.id} style={({ pressed }) => [styles.tile, pressed && styles.pressed]} onPress={() => onOpen(o)} accessibilityLabel={`Offer ${o.title}`}>
-        <Gradient stops={o.stops} />
+        <Gradient stops={ACCENT_STOPS} />
         <Text style={styles.title}>{o.title}</Text>
         <Text style={styles.subtitle} numberOfLines={2}>
           {o.subtitle}

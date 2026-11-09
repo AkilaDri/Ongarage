@@ -24,9 +24,11 @@ export const GarageTile: React.FC<{
   showDetails?: boolean;
   /** The service being browsed (the estimate is for it). */
   categoryId?: string;
+  /** A short text hint about what this garage charged the owner before (e.g. "බ්‍රේක් · රු. 8,200"). */
+  priceHint?: string;
   onOpen: () => void;
   onSaveChange: (saved: boolean) => void;
-}> = ({ garage: g, width = 236, compact, ad, showStatus, showDetails, categoryId, onOpen, onSaveChange }) => {
+}> = ({ garage: g, width = 236, compact, ad, showStatus, showDetails, categoryId, priceHint, onOpen, onSaveChange }) => {
   const [saved, setSaved] = useState(false);
   const info = GARAGE_INFO[g.id];
   const level = g.level ? LEVELS.find((l) => l.id === g.level) : undefined;
@@ -74,7 +76,7 @@ export const GarageTile: React.FC<{
         </Pressable>
       </View>
       <View style={styles.body}>
-        <Text style={styles.name} numberOfLines={1}>
+        <Text style={styles.name} numberOfLines={2}>
           {level ? `${level.icon} ` : ''}
           {g.name}
         </Text>
@@ -83,8 +85,9 @@ export const GarageTile: React.FC<{
             <Text style={styles.star}>★ {g.rating.toFixed(1)}</Text> ({g.reviews})
           </Text>
           <Text style={styles.meta}>📍 {g.distance} km</Text>
-          {info && <Text style={styles.meta}>⏱️ ~මිනි. {info.replyMin}</Text>}
+          {info && <Text style={styles.meta}>⏱️ විනාඩි {info.replyMin}</Text>}
         </View>
+        {!!priceHint && <Text style={styles.priceHint} numberOfLines={1}>💰 {priceHint}</Text>}
         {content && (
           <View style={styles.details}>
             <InfoChip text={today?.open ? `🕒 ${today.open}` : '🕒 අද වසා ඇත'} />
@@ -140,9 +143,11 @@ const styles = themedStyles(() =>
     logoBadge: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline() },
     details: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 },
     body: { paddingHorizontal: 14, paddingVertical: 12, gap: 4 },
-    name: { fontSize: 15, fontFamily: FONTS.titleBold, color: Colors.textMain },
+    // Two lines reserved, so a long name wraps instead of cutting off, and the rating row sits at the same height on every card.
+    name: { fontSize: 15, lineHeight: 20, minHeight: 40, fontFamily: FONTS.titleBold, color: Colors.textMain },
     meta: { fontSize: 12, fontFamily: FONTS.bodyMedium, color: Colors.textMuted },
     metaRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: 10, rowGap: 2 },
     star: { color: Colors.warning, fontFamily: FONTS.bodyBold },
+    priceHint: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.successText, marginTop: 2 },
   })
 );

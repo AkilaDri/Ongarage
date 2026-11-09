@@ -7,6 +7,14 @@ import { payStanding, type PayLevel } from './reliability';
 /** Ratings older than this stop counting in the public record. */
 export const RATING_EXPIRY_MONTHS = 12;
 
+/** The owner has this many days to dispute a review before it counts publicly (D6). */
+export const DISPUTE_WINDOW_DAYS = 30;
+
+const WINDOW_MS = DISPUTE_WINDOW_DAYS * 24 * 60 * 60 * 1000;
+
+/** Whether the 30-day dispute window has passed (the owner can no longer file a new dispute). */
+export const disputeWindowPassed = (r: CustomerRating, now = Date.now()) => now - r.at >= WINDOW_MS;
+
 export const CUSTOMER_TAGS: { id: CustomerTag; label: string; good: boolean }[] = [
   { id: 'paidOnTime', label: 'කාලයට ගෙවුවා', good: true },
   { id: 'polite', label: 'ගෞරවනීයයි', good: true },
@@ -22,11 +30,14 @@ export const tagLabel = (t: CustomerTag) => CUSTOMER_TAGS.find((x) => x.id === t
 /** Only a job closed with the customer's code can be rated, and only once. */
 export const canRateCustomer = (p?: WorkshopProgress) => !!p && p.stage === 'closed' && !p.customerRating;
 
-/** Whether a rating counts in the public record: not expired, and not under dispute. */
+/** Whether a rating counts in the public record: not expired, past the 30-day dispute window (D6), and not under an open dispute. */
 export const ratingCounts = (r: CustomerRating, now = Date.now()) => {
   const limit = new Date(now);
   limit.setMonth(limit.getMonth() - RATING_EXPIRY_MONTHS);
-  return r.at >= limit.getTime() && !(r.dispute && r.dispute.status !== 'withdrawn');
+  if (r.at < limit.getTime()) return false;
+  if (!disputeWindowPassed(r, now)) return false;
+  if (r.dispute && r.dispute.status === 'open') return false;
+  return true;
 };
 
 /** Once the balance is paid, "did not pay" no longer stands: it becomes "paid late". */
@@ -56,8 +67,12 @@ export const summarizeCustomer = (ratings: CustomerRating[], payments: (JobPayme
     avgStars: avg,
     topTags,
     disputed: ratings.filter((r) => r.dispute && r.dispute.status !== 'withdrawn').length,
+    showTags: topTags.length > 0,
   };
 };
+
+/** Whether a rating's note is visible to other garages (D2/D5): only when the dispute went against the owner. */
+export const noteVisibleToGarages = (r: CustomerRating) => r.dispute?.status === 'upheld';
 
 /** Why a customer note cannot be published as written (the AI layer's moderation reasons). */
 export const NOTE_BLOCKED: Record<string, string> = {

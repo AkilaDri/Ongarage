@@ -31,6 +31,7 @@ export * from './marketplace/places';
 export * from './marketplace/placeReports';
 export * from './marketplace/evBooking';
 export * from './marketplace/towing';
+export * from './marketplace/towCancel';
 export * from './marketplace/relationship';
 export * from './marketplace/levels';
 export * from './marketplace/fairness';
@@ -54,9 +55,12 @@ export * from './marketplace/loyalty';
 export * from './marketplace/sosCancel';
 export * from './marketplace/inquiry';
 export * from './marketplace/partsBatch';
+export * from './marketplace/serviceSearch';
+export * from './marketplace/searchLog';
 export * from './marketplace/martAttention';
 export * from './marketplace/popularity';
 export * from './marketplace/jobUpdates';
+export * from './marketplace/ads';
 
 // AI decisions layer (rules today; Claude / Laya through the back end later).
 export * from './ai';

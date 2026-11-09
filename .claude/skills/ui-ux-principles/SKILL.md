@@ -8,6 +8,7 @@ description: Use when designing, reviewing or refining any screen, panel, dialog
 Sources:
 - **UX** = *Universal Principles of UX*, Irene Pereyra. Principles are numbered 01–100, and this file quotes those numbers. The whole book has been read.
 - **UPD** = *Universal Principles of Design*, Lidwell, Holden, Butler (3rd ed.). Numbers 001–200. Only the entries below were read in full; treat the rest as unread.
+- **Typography** = *Universal Principles of Typography*, Rockport. All 100 principles are read and summarised in section M (principles 10–14 need a re-read for detail).
 
 Use the principles to check a screen. Do not add elements to satisfy a principle; remove or reorder until it holds. Where a principle conflicts with a user's stated wish, say so and ask.
 
@@ -170,6 +171,135 @@ Principles appearing in more than one list (for example 133 Pareto, 155 Recognit
 - **UPD 002 Accessibility, 005 Affordance, 064 Feedback, 067 Figure-ground, 089 Hick's law, 069 Fitts' law, 091 Highlighting, 107 Legibility, 152 Proximity, 168 Serial position, 171 Similarity:** see sections above.
 - **UPD 035 Consistency:** the same role looks and behaves the same everywhere.
 
+## M. Typography (Universal Principles of Typography, Rockport, principles 1–100)
+
+Source: *Universal Principles of Typography* (Rockport, Elliot Jay Stocks). Numbers are the book's. The book is written for Latin type on print and web; the Sinhala rules below are inferences from it, and say so when they are used. Principles 10–14 were not kept in notes and need a re-read if a rule from them is needed.
+
+**Letterforms and fonts (1–9, 16)**
+- **1–2 Typography matters; no excuse:** every font and size choice is typography, whether or not the designer chose the typeface.
+- **3 Font vs typeface, 4 characters vs glyphs:** a typeface is the design family; a font is one file of it. Check the font file contains the glyphs you need (see 38, 95).
+- **5–8 Anatomy, metrics, em square, x-height:** the x-height drives how big text looks. A face with a large x-height looks larger at the same size. Do not compare sizes across families without looking.
+- **9 Classification:** a classification says little about use. Judge a face by its details.
+- **16 Legible characters:** "1", "l", "I" and "0", "O" must look different. Confusable characters are a legibility failure.
+
+**Legibility and readability (17–19)**
+- **17 Readability:** "It's perfectly possible to make legible type unreadable with bad typography." Fix readability with spacing and measure before changing the face.
+- **18 Optical size:** "The design of letterforms can and should adjust according to the size they're set at." Use a size-specific cut when available. Small text wants more open spacing, display text wants more contrast.
+- **19 Two-lines test:** set a two-word name on two lines (same face, centred) to check weight, leading, width and justification together. Use it on two-line headings and card titles.
+
+**Spacing (20–22, 35, 54–55)**
+- **20 Line height:** "Avoid those clashes, but don't get too generously with your leading." About 110–150% for body text. Wider measures need more leading; uppercase can be tighter. Inference for Sinhala: vowel signs sit above and below the line, so give Sinhala body text the upper half of that range.
+- **21 Measure:** "Unruly lines make reading so much harder than it needs to be, so keep them in check." Bringhurst: 45–75 characters for single-column text. Material guidance: 40–60. The book's test: asterisks at the 45th and 75th characters show whether a measure is too short or too long.
+- **22 Tracking:** "Optimize the spacing between letters based on their size and context." Open small text and small caps slightly. Keep large display type tight. Never set tracking as a fixed pixel value; express it relative to the type size.
+- **35 Well-spaced font:** "Beautiful letterforms mean nothing if the font's not spaced properly." Prefer professionally spaced fonts; sidebearings and kerning come from the designer.
+- **54 Line height headache:** the white space inside a text box comes from the font's metrics and line height, and it is the usual cause of alignment problems. The box height is not the visible text height.
+- **55 Manual changes:** a font's vertical metrics sit at different positions in its em box. Recheck spacing whenever a typeface changes, especially inside buttons.
+
+**Emphasis, weight and style (23–27)**
+- **23 Emphasis:** "Be intentional with your use of bolds and italics." An underline means a link, so never underline plain text. Caps are for short labels and acronyms only. Each emphasis style should mean one thing across the app.
+- **24 Italics:** "An italic style is required for almost all typesetting, and not just for emphasis." Sinhala text has no true italic in the app's font, so do not apply `fontStyle: 'italic'` to Sinhala.
+- **25 Weight is a range:** "Look for as many weights as possible. You never know when they might come in handy." Bold is one step on a scale; a semibold is often the better label weight.
+- **26 Styles:** one family with its styles (upright, italic, small caps, widths) removes the need for a second typeface.
+- **27 Faux styles:** "They're mistakes, and you don't want them in your designs. Ever." A synthetic bold looks bloated, a synthetic italic is only a slant, synthetic small caps look too thin. Use a real weight or a different font.
+
+**Obliques, widths, masters (28–31)**
+- **28 True obliques:** "Unlike italics, obliques are slanted versions of the upright forms — but that slant is still optically adjusted by the type designer." Use an oblique where a slant suggests movement.
+- **29 Widths:** "The freedom to occupy more horizontal space opens up so many more opportunities." A condensed width fits more characters into a narrow heading.
+- **30 Masters and interpolation:** named weights and widths are points on a continuous scale in variable fonts. Use named instances unless a layout needs an exact fit.
+- **31 Multiplexed widths:** "Change the weight without affecting the horizontal space used by the type." When a tab, chip or segment turns bold on selection, its neighbours jump. Reserve the width, or use a multiplexed face.
+
+**Pairing type (36–47)**
+- **36–39 Four-step choice:** (36) choose a typeface that suits the project's purpose; (37) choose one with a comprehensive design (language coverage, weights, widths, optical sizes); (38) choose font files that are reliable (check the glyphs and kerning are really in the file); (39) choose font files that are usable in the situation, including licence and pairing.
+- **34 Licensing:** "You can even let the license help you narrow down your typeface choices." Licences are priced by weights, media and users. "Free" does not mean any use is allowed.
+- **40–41 Families and superfamilies:** "A shared skeleton and similar proportions take the guesswork out of pairing." A superfamily that already covers serif, sans and mono removes the need for a second family.
+- **42 Pair only if you have to:** "It might be that you already have a type family that does everything you need."
+- **43 Pair related type:** "Fonts from the same designer often have a lot in common."
+- **44 Font matrix:** skeleton (dynamic, rational, geometric), flesh (contrast, serifs), skin (finer detail). Same skeleton pairs well; same flesh with different skeleton does not.
+- **45 Pairs that align:** "Side-by-side type might need some additional consideration to play nice." Check x-heights and line height when two faces sit on one line.
+- **46 Monospace as a complement:** "They're great for setting lines of code — but are by no means limited to that alone." Tabular figures are monospaced.
+- **47 Distinction and harmony:** "Whether pairing typefaces or just combining different styles from one font, we've got to find that sweet spot between too different and too similar."
+
+**Systems, rhythm, hierarchy (48–53)**
+- **48 Design system:** "It needn't be complicated, it just needs to be consistent." A type scale and a short list of styles is already a system.
+- **49 Baseline grid:** "Set the size of your body text, decide on its leading, and you have a baseline grid." Align other sizes to it with incremental leading (every nth line).
+- **50 Rhythm:** "Vertical rhythm is even more important when you can't adhere to a baseline grid." On screens, rely on consistent spacing between blocks, since images break any grid.
+- **51 Type scale:** "Pick whatever ratio you like, as long as each font size has a relationship to the size above and below it." A major third (1.25) gives a gentle scale; a golden ratio (1.618) gives much larger jumps.
+- **52 Hierarchy:** "Size, weight, and spacing all help imply order within a document." A heading floating equally between paragraphs looks unrelated to what follows it. A heading can be lighter in weight if it is much bigger (about 150% of body).
+- **53 Typographic colour:** "Once the demands of legibility and logical order are satisfied, evenness of color is the typographers normal aim." Squint at a screen: even density means good texture.
+
+**Punctuation and dashes (32, 56–58)**
+- **32 Quotation marks:** "At the very least, ensure that curly quotation marks are turned on by default." Use proper quotation marks and apostrophes, not straight ones.
+- **56 Dashes:** the hyphen joins words and breaks words; an en dash connects ranges (08:00–17:00); an em dash marks an interruption. Do not use two hyphens in place of an em dash.
+- **57 Spaces around dashes:** "Not all spaces are created equal either." Thin or hair spaces around an em dash usually look better than full spaces, and the width depends on the face.
+- **58 Punctuation in emphasis:** italicise punctuation that follows italic words; do not embolden punctuation after bold words.
+
+**Justification, breaks and optical care (59–63)**
+- **59 Justify and hyphenate with caution:** justified text needs hyphenation and creates rivers in narrow columns. Default to ragged-right.
+- **60 Widows and orphans:** "It might mean breaking a few rules along the way — and that's an acceptable trade-off." A single word on its own line is the one to avoid.
+- **61 Optical trickery:** "Make things look aligned by misaligning them." Overshoot round letters, hang opening quotation marks, and nudge large display type so its visible edge aligns.
+- **62 Diacritics:** "Don't forget the extra space required for accents and the like." Uppercase with diacritics needs more line height; a tight line height clashes accents with the line above.
+- **63 Drop caps:** decorative only; they do not add function.
+
+**Size, units and format (64–68)**
+- **64 Size doesn't exist:** "Even absolute units don't produce reliable results — it depends where the reader is." Perceived size depends on the viewer's distance and the face.
+- **65 Units:** "Relative units for screens, absolute units for print, but above all: consistency." On screens, use units that scale with the user's text-size setting.
+- **66 Customise type:** tweaking outlines is for logotypes, not body text.
+- **67 Font formats:** OpenType (OTF/TTF) is the standard; WOFF2 is the compressed web format.
+- **68 OpenType:** features (ligatures, numerals, small caps, alternates) are switched on by the font and the software, not by the text.
+
+**OpenType features (69–76)**
+- **69 Alternates:** swap glyphs through named sets, not by hand.
+- **70 Ligatures:** "As well as avoiding awkward clashes, they can avoid repeating letterforms, too." Common ligatures aid readability; discretionary ones are decorative. Copying text can lose ligatures.
+- **71 Numerals:** four kinds: proportional lining, proportional oldstyle, tabular lining, tabular oldstyle. Use tabular figures in tables and columns of prices; oldstyle in running prose; lining for labels.
+- **72 Swashes:** "But watch out for unsightly clashes between letterforms."
+- **73 Proper fractions:** "If you're setting recipes, your readers will appreciate this subtle but important change."
+- **74 Small caps:** "If you've got text containing acronyms, it's useful to have small caps to hand." Increase tracking on small caps and small uppercase.
+- **75 Stylistic sets:** "Swap out alternate glyphs en masse."
+- **76 Kerning:** "Tracking will probably get you most of the way there." Leave built-in kerning on; use metrics, not optical, spacing.
+
+**Web and screens (77–85)**
+- **77 Subsetting:** "Font files can be big and, for websites, that has an impact on users' bandwidth." Load only the glyph ranges a page needs.
+- **78 Web fonts:** "Any font that's not preinstalled on a user's device is a web font."
+- **79 Web typography:** "There's very little we can do in print that we can't also do online, but web typography comes with the added blessing (or curse) of responsive design."
+- **80 Flexible content:** "We don't know how big the user's screen will be — and that's okay. Let's plan for it." Size type relative to the viewport and the user's settings.
+- **81 Fluid type scales:** "Let the browser determine how to elegantly move between a type scale that works for small and large viewports."
+- **82 Deliver font files with intent:** serve only the weights and scripts used; set a fallback that shows text while the font loads.
+- **83 OpenType on the web:** "OpenType is well-supported in modern browsers, but there are still some nuances." Check the font really contains each feature.
+- **84–85 Variable fonts and axes:** "Manipulate elements of the typeface's design, and move past traditional weights and styles." Axes are weight, width, slant, optical size, and custom ones.
+- **86 Grade:** "But beware: print and screen behave in opposite ways." Light text on dark looks bolder on screens; a lighter grade can compensate in dark mode.
+- **87 Parametric axes:** "Dive deep down the rabbit hole of granular-level refinement." Expert fine-tuning, after the optical size axis.
+- **88 Inheritance problem:** "Employ CSS custom properties to make your code future-proof and your life a little easier." A child inherits the whole `font-feature-settings` string and loses the rest; set one variable per setting.
+- **89 Icons and symbols:** icons often ship in font files. Check that the icon font has the glyphs you need and that they follow the text's weight.
+- **90 Layer and colour fonts:** colour fonts and layered styles give more than one colour. Use them for logos and display, not body text.
+- **91 Font menus:** conflicting fonts with the same name cause different results; use a font manager.
+- **92 Indie foundries:** "While you can get your fonts from the big companies, developing a relationship with the smaller, often one-person foundries can go a long way."
+- **93 More fonts:** "It's not like we have enough songs, is it?" Expect new faces; choose by fit, not by how many you already have.
+
+**Languages and scripts (94–97)**
+- **94 Script and writing system:** "'Script' and 'writing system' aren't quite the same thing." A writing system adds rules and conventions to a script. Italics are not relevant to most Asian writing systems; Indic scripts have no x-height.
+- **95 Internationalisation:** "The sad truth is that not enough fonts support multiple languages, let alone multiple scripts." A missing glyph shows as tofu (the empty box). Use tofu as a test: type the names your users enter in Sinhala, Tamil and English, and check every character renders.
+- **96 Shaping:** "As users of Latin type, we take shaping for granted, and when shaping goes wrong, it can mean unreadable text in other scripts." Sinhala is a shaped script: the glyphs change with their neighbours. Do not split a word into separately styled pieces, because that breaks the shaping.
+- **97 Licensing and internationalisation together:** "Even the huge corporations can find this stuff hard." Confirm a font's licence covers every script you ship.
+
+**Hierarchy of needs and judgement (98–100)**
+- **98 Nix's hierarchy of typographic needs:** from the base: font functionality, font security (licence), typographic love and belonging, typographic esteem, typographic actualisation. Work from the base up; a delightful face that breaks reading or licensing fails at the base.
+- **99 It depends:** "In typography, context is everything." Treat each rule as a guideline and test it in its context.
+- **100 Keep learning:** "It's time to see how deep this rabbit hole goes."
+
+Applying this to the OnGarage apps:
+- Use the `FONTS` tokens (`bodyRegular`, `bodySemiBold`, `bodyBold`, `titleBold`) and make sure each one maps to a real font file, never a synthesised weight (27, 25).
+- Do not set `fontStyle: 'italic'` on Sinhala text (24, 27).
+- Give Sinhala body text the upper part of the line-height range and check that chip and button heights do not clip the vowel signs (20, 62). Inference for Sinhala.
+- Keep selected chips, segments and tabs at a fixed width while the weight changes (31).
+- Underline only real links; keep all caps for acronyms and short English labels (23).
+- Bound the body measure on tablets and the web, and let line height grow with the line length (20, 21).
+- Make headings clearly bigger than body text, and keep them close to the content they head (52).
+- Use tabular figures in price columns, such as the bill and parts lists, where the platform supports them (71).
+- Use en dashes for ranges such as times and dates, and em dashes for breaks in a sentence (56).
+- Do not justify UI text; avoid a single word on the last line of a block (59, 60).
+- Test every user-entered name in Sinhala, Tamil and English for tofu, and confirm the font covers the scripts the app ships (95, 97).
+- Keep text containers flexible with respect to the user's text size; do not fix a text box to its absolute height (64, 65).
+
 ## Checklist for a screen review
 
 1. Who is it for, what is their goal, and where are they when they use it? (UX 01, 26)
@@ -184,6 +314,8 @@ Principles appearing in more than one list (for example 133 Pareto, 155 Recognit
 10. Does each interruption deserve to interrupt? (UX 33, 34)
 11. Are targets at least 44 px and contrast at least 4.5:1? (UX 18)
 12. Can a first-time user reach the goal without instructions? (UX 22, 15)
+13. Is every weight, italic and underline used with one meaning, with no faked styles, and do selected states keep their width? (Typography 23, 27, 31)
+14. Is body text set with enough line height and a bounded measure? (Typography 20, 21)
 
 ## Applying this to the apps
 

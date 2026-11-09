@@ -1,11 +1,14 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Easing, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, TextStyle, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Colors, distanceKm, FONTS, getThemeMode, Icon, POPULAR_SERVICES, SERVICE_CATEGORIES, themedStyles, type Garage, type ServiceCategory } from '@ongarage/shared';
+import { Colors, distanceKm, FONTS, getThemeMode, Icon, POPULAR_SERVICES, SERVICE_CATEGORIES, searchServices, themedStyles, type Garage, type SearchEvent, type ServiceCategory } from '@ongarage/shared';
 import { MOCK_GARAGES } from '../../constants/mockData';
 import { GARAGE_SUB_SERVICES } from '../../constants/garageSubServices';
 import { useUserLocation } from '../../context/LocationContext';
 import { CategoryPhoto } from './CategoryPhoto';
+import { SearchBand } from './SearchBand';
+import { DidYouMean } from './DidYouMean';
+import { applyLearnedSearch, logSearch } from '../../utils/searchLog';
 import { shortCategoryName } from './CategoryStrip';
 
 // The browser draws its own focus ring on text fields; the field's blue border replaces it.
@@ -56,7 +59,8 @@ const AnimatedHint: React.FC = () => {
   );
 };
 
-type ServiceHit = { key: string; category: ServiceCategory; sub?: string };
+/** One row of the service results: a category, a sub-service, or a part kind that belongs to a category (shown under its own name). */
+type ServiceHit = { key: string; category: ServiceCategory; sub?: string; label?: string };
 
 /**
  * The search bar on Home. Touching it opens a full-screen search: type a main service (Tyres, Service ...), a sub-service (Oil Change,
@@ -77,23 +81,20 @@ export const HomeSearch: React.FC<{
   const q = text.trim().toLowerCase();
 
   const services = useMemo<ServiceHit[]>(() => {
-    const hits: ServiceHit[] = [];
-    for (const c of SERVICE_CATEGORIES) {
-      if (!q || c.name.toLowerCase().includes(q)) hits.push({ key: c.id, category: c });
-    }
-    if (q) {
-      for (const c of SERVICE_CATEGORIES) {
-        for (const s of c.subcategories) if (s.toLowerCase().includes(q)) hits.push({ key: `${c.id}:${s}`, category: c, sub: s });
-      }
-    } else {
+    if (!q) {
       // Nothing typed: the popular categories lead, the rest keep their order (the sort is stable).
       const rank = (id: string) => {
         const i = POPULAR_CATEGORY_ORDER.indexOf(id);
         return i === -1 ? Infinity : i;
       };
-      hits.sort((a, b) => rank(a.category.id) - rank(b.category.id));
+      return SERVICE_CATEGORIES.map((c) => ({ key: c.id, category: c })).sort((a, b) => rank(a.category.id) - rank(b.category.id));
     }
-    return hits;
+    // Typed: the shared matcher finds categories, sub-services and part kinds, even with a spelling slip ("break pad").
+    return searchServices(q).flatMap((h) => {
+      const category = SERVICE_CATEGORIES.find((c) => c.id === h.categoryId);
+      if (!category) return [];
+      return [{ key: `${h.categoryId}:${h.label}`, category, sub: h.kind === 'sub' ? h.sub : undefined, label: h.kind === 'part' ? h.label : undefined }];
+    });
   }, [q]);
 
   const garages = useMemo(
@@ -105,7 +106,17 @@ export const HomeSearch: React.FC<{
     [q, user.coords]
   );
 
+  // The service the owner tapped in this search, if any: the search log keeps it with what they typed.
+  const picked = useRef<SearchEvent['picked']>(undefined);
+  // Words owners on this device have used before are learned when the search opens.
+  useEffect(() => {
+    applyLearnedSearch();
+  }, []);
+
   const close = () => {
+    const typed = text.trim();
+    if (typed) logSearch({ query: typed, hits: services.length + garages.length, picked: picked.current, at: Date.now() });
+    picked.current = undefined;
     setOpen(false);
     setText('');
   };
@@ -142,41 +153,17 @@ export const HomeSearch: React.FC<{
 
   return (
     <>
-      <Pressable style={[styles.bar, inCard && styles.barInCard]} onPress={() => setOpen(true)} accessibilityLabel="Search services and garages" accessibilityRole="search">
+      <Pressable style={({ pressed }) => [styles.bar, inCard && styles.barInCard, pressed && { opacity: 0.8 }]} onPress={() => setOpen(true)} accessibilityLabel="Search services and garages" accessibilityRole="search">
         <View style={styles.barBtn}>
           <Icon name="search" size={22} color="#1a73e8" />
         </View>
-        <AnimatedHint />
+        {inCard ? <Text style={styles.staticHint} numberOfLines={1}>උදා: බ්‍රේක් පෑඩ්</Text> : <AnimatedHint />}
       </Pressable>
 
-      <Modal visible={open} animationType="fade" statusBarTranslucent onRequestClose={close}>
+      <Modal visible={open} animationType="none" statusBarTranslucent onRequestClose={close}>
         <SafeAreaView style={styles.page} edges={['top', 'bottom']}>
           {/* The same top bar as the job form: a solid blue band, a round close button on the left, the search field in the band. */}
-          <View style={styles.searchBand}>
-            <Pressable onPress={close} hitSlop={10} style={styles.closeRound} accessibilityLabel="Close search">
-              <Text style={styles.closeRoundText}>✕</Text>
-            </Pressable>
-            <View style={[styles.field, styles.fieldInBand, focused && styles.fieldFocus]}>
-              <Icon name="search" size={16} color={Colors.textMuted} />
-              <TextInput
-                style={[styles.input, NO_FOCUS_RING]}
-                value={text}
-                onChangeText={setText}
-                onFocus={() => setFocused(true)}
-                onBlur={() => setFocused(false)}
-                autoFocus
-                placeholder="සේවාවක් හෝ ගරාජයක් සොයන්න..."
-                placeholderTextColor={getThemeMode() === 'dark' ? Colors.textMuted : '#94a3b8'}
-                accessibilityLabel="Search text"
-                returnKeyType="search"
-              />
-              {!!text && (
-                <Pressable onPress={() => setText('')} hitSlop={8} accessibilityLabel="Clear search">
-                  <Icon name="x" size={16} color={Colors.textMuted} />
-                </Pressable>
-              )}
-            </View>
-          </View>
+          <SearchBand value={text} onChangeText={setText} onClose={close} autoFocus />
 
           {/* The first child is the sticky heading: it stays under the search field while the results scroll beneath it. */}
           {/* The results sit in a rounded sheet that rises from the blue band, as on the job form. */}
@@ -194,15 +181,17 @@ export const HomeSearch: React.FC<{
                 key={s.key}
                 style={styles.row}
                 onPress={() => {
-                  close();
+                  // The search stays under the service screen while it fades in; it closes once that has arrived.
+                  picked.current = { categoryId: s.category.id, sub: s.sub, label: s.sub ?? s.label ?? s.category.name };
                   onService(s.category, s.sub);
+                  setTimeout(close, 380);
                 }}
                 accessibilityLabel={s.sub ? `Search result ${s.sub}` : `Search result ${s.category.name}`}
               >
                 <CategoryPhoto categoryId={s.category.id} size={36} />
                 <View style={styles.flex1}>
                   <Text style={styles.rowTitle} numberOfLines={1}>
-                    {s.sub ?? catName(s.category)}
+                    {s.sub ?? s.label ?? catName(s.category)}
                   </Text>
                   <Text style={styles.rowSub} numberOfLines={2}>
                     {s.sub ? catName(s.category) : `ළඟ ගරාජ ${nearbyOffering(s.category.id)} ක්\nමෙය කරයි`}
@@ -229,7 +218,7 @@ export const HomeSearch: React.FC<{
             {!!q && !!garages.length && <Text style={styles.section}>ගරාජ</Text>}
             {!!q && garages.map((g) => garageRow(g))}
 
-            {!services.length && !garages.length && <Text style={styles.empty}>“{text.trim()}” සඳහා ප්‍රතිඵල නැත. වෙනත් වචනයකින් සොයන්න.</Text>}
+            {!services.length && !garages.length && <DidYouMean query={text.trim()} onPick={setText} />}
           </ScrollView>
           </View>
           {/* Too many garages, or none that fits: every nearby garage can bid for the job instead. */}
@@ -249,7 +238,7 @@ export const HomeSearch: React.FC<{
                 <View style={styles.postCtaBadge}>
                   <Text style={styles.postCtaBadgeText}>නොමිලේ Quotes</Text>
                 </View>
-                <Text style={styles.postCtaTitle} numberOfLines={1}>
+                <Text style={styles.postCtaTitle} numberOfLines={2}>
                   {q ? `“${text.trim()}” සඳහා ලංසු ඉල්ලන්න` : 'තෝරගන්න අපහසුයි ද ?'}
                 </Text>
                 <Text style={styles.postCtaSub}>මිල සහ හොඳම සේවාව සසදන්න.</Text>
@@ -270,9 +259,10 @@ const styles = themedStyles(() =>
     flex1: { flex: 1 },
     // A white bar (white in both themes) with a soft shadow: a plain blue search icon (no fill), then the moving hint in its category's colour.
     bar: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8, paddingLeft: 8, paddingRight: 18, borderRadius: 8, backgroundColor: '#ffffff', shadowColor: '#0f2a3d', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.18, shadowRadius: 12, elevation: 4 },
-    barInCard: { paddingVertical: 3, shadowOpacity: 0, elevation: 0 },
+    barInCard: { height: 44, paddingVertical: 0, shadowOpacity: 0, elevation: 0, borderWidth: 1, borderColor: 'rgba(15, 42, 61, 0.14)' },
     barBtn: { width: 30, height: 38, alignItems: 'center', justifyContent: 'center' },
     hintRow: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 5 },
+    staticHint: { flex: 1, fontSize: 14, fontFamily: FONTS.bodyRegular, color: '#64748b' },
     hintLabel: { fontSize: 12, fontFamily: FONTS.bodyRegular, color: '#5f6368' },
     hintClip: { flex: 1, height: 22, overflow: 'hidden', justifyContent: 'center' },
     hintWord: { fontSize: 12.5, fontFamily: FONTS.bodyBold },

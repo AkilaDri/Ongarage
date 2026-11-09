@@ -4,7 +4,7 @@ import { elevation1, outline, pageBg } from '../utils/material';
 import { PAGE_TITLE_H } from '../constants/layout';
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Image, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Colors, getThemeMode, Gradient, pointsBalance, themedStyles, ReceiptLineIcon, ScheduleLineIcon, SosLineIcon } from '@ongarage/shared';
+import { Colors, getThemeMode, Gradient, pointsBalance, themedStyles } from '@ongarage/shared';
 import { FONTS } from '@ongarage/shared';
 import { categoryInfo, SERVICE_CATEGORIES } from '@ongarage/shared';
 import { useVehicles } from '../context/VehiclesContext';
@@ -24,10 +24,11 @@ import { useBookings } from '../context/BookingsContext';
 import { useSOSRecords } from '../context/SOSRecordsContext';
 import { TxnTag } from '../components/TxnTag';
 import { useMart } from '../context/MartContext';
+import { useTowRecords } from '../context/TowRecordsContext';
+import { TowRecordCard } from '../components/tow/TowRecordCard';
 import { DirectBookingCard } from '../components/DirectBookingCard';
 import { chatDockOffset, chatHide } from '../utils/chatDock';
 import { ChatHeaderButton } from '../components/ChatHeaderButton';
-import { VehicleBlock } from '../components/VehicleBlock';
 import { MOCK_GARAGES } from '../constants/mockData';
 import { OrdersList } from '../components/mart/OrdersList';
 import { PayablesCard } from '../components/PayablesCard';
@@ -63,23 +64,31 @@ const SPEND_GRADIENT = [
 
 const formatDate = (d: Date) => `${d.getFullYear()} ${MONTHS[d.getMonth()]} ${d.getDate()}`;
 
-/** The sub chips' icons: the same line icons as the bottom navigation bar. */
-const SubChipIcon: React.FC<{ id: string; active: boolean }> = ({ id, active }) => {
-  const Ico = id === 'bids' ? ReceiptLineIcon : id === 'direct' ? ScheduleLineIcon : SosLineIcon;
-  return <Ico active={active} size={18} />;
-};
 
 export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b: DirectBooking) => void; onOpenMart?: () => void; onHeaderProgress?: (progress: number) => void }> = ({ onOpenBids, onBookAgain, onOpenMart, onHeaderProgress }) => {
-  const { jobs } = useBids();
-  const { bookings } = useBookings();
-  const { workshops } = useWorkshops();
-  const { records: sosRecords } = useSOSRecords();
+  const { jobs: allJobs } = useBids();
+  const { bookings: allBookings } = useBookings();
+  const { workshops: allWorkshops } = useWorkshops();
+  const { isInScope, vehicles: allVehicles } = useVehicles();
+  // Only the active vehicle's jobs and bookings, unless the owner chose every vehicle (VehicleChip). A workshop record follows its job or booking.
+  const jobs = allJobs.filter((j) => isInScope(j.vehicleId));
+  const bookings = allBookings.filter((b) => isInScope(b.vehicleId));
+  const { records: allSosRecords } = useSOSRecords();
+  const inScope = new Set([...jobs, ...bookings].map((x) => x.id));
+  const sosRecords = allSosRecords.filter((r) => isInScope(allVehicles.find((v) => v.plate === r.vehiclePlate)?.id));
+  const workshops = Object.fromEntries(Object.entries(allWorkshops).filter(([id]) => inScope.has(id))) as typeof allWorkshops;
   // The owner's OnGarage points: every finished SOS job's award that has not expired.
   const sosPoints = pointsBalance(
     sosRecords.filter((r) => r.points).map((r) => ({ jobId: r.id, base: r.points!.base, ratingBonus: r.points!.ratingBonus, at: r.completedAt })),
     Date.now()
   );
   const { purchases } = useMart();
+  // Towing from the new flow: a held scheduled tow is ongoing, a finished tow is done, a cancelled hold is ended. A tow for a temporary vehicle shows for every vehicle.
+  const { records: allTow } = useTowRecords();
+  const towRecords = allTow.filter((r) => r.vehicleId === null || isInScope(r.vehicleId));
+  const heldTows = towRecords.filter((r) => r.status === 'held');
+  const doneTows = towRecords.filter((r) => r.status === 'done');
+  const cancelledTows = towRecords.filter((r) => r.status === 'cancelled');
   // A workshop job the owner stopped, or saw close, moves down to the completed list.
   const finished = (id: string) => {
     const w = workshops[id];
@@ -124,30 +133,16 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
     chatDockOffset.setValue(pinnedH.current);
     return () => chatDockOffset.setValue(0);
   }, []);
-  // Each kind of record has its own chip: pick one to see only those records.
+  // One row of top-level filters only (step 6: no sub-chips); the vehicle chip in the header filters by vehicle.
   const [kind, setKind] = useState<'current' | 'done' | 'ended' | 'mart'>('done');
   const show = (k: typeof kind) => kind === k;
-  // Inside "ongoing": which kind of running work to look at.
-  const [currentKind, setCurrentKind] = useState<'bids' | 'direct' | 'sos'>('bids');
-  const showCurrent = (k: typeof currentKind) => currentKind === k;
-  // After a booking is sent, Activity opens on Ongoing → Booking (whether this screen was already open or is only just opening).
+  // After a booking is sent, Activity opens on Ongoing (whether this screen was already open or is only just opening).
   useEffect(() => {
-    const apply = (f: ActivityFocus) => {
-      setKind(f.kind);
-      if (f.current) setCurrentKind(f.current);
-    };
+    const apply = (f: ActivityFocus) => setKind(f.kind);
     const waiting = takeActivityFocus();
     if (waiting) apply(waiting);
-    return onActivityFocus((f) => {
-      takeActivityFocus();
-      apply(f);
-    });
+    return onActivityFocus((f) => { takeActivityFocus(); apply(f); });
   }, []);
-  // Inside "completed": which kind of finished work to look at.
-  const [doneKind, setDoneKind] = useState<'bids' | 'direct' | 'sos'>('bids');
-  const showDone = (k: typeof doneKind) => kind === 'done' && doneKind === k;
-  // Inside "cancelled": which kind of cancelled work to look at.
-  const [endedKind, setEndedKind] = useState<'bids' | 'direct' | 'sos'>('bids');
   const vehicleName = (id: string) => findVehicle(id).name;
   const user = useUserLocation();
 
@@ -294,66 +289,6 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
             );
           })}
         </View>
-        {kind === 'current' && (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.kindChips}>
-            {(
-              [
-                { id: 'bids', label: 'ලංසු', count: ongoing.length },
-                { id: 'direct', label: 'Booking', count: liveBookings.length },
-                { id: 'sos', label: 'SOS', count: 0 },
-              ] as { id: typeof currentKind; label: string; count: number }[]
-            ).map((c) => {
-              const on = currentKind === c.id;
-              return (
-                <Pressable key={c.id} style={[styles.subChip, on && styles.kindChipOn]} onPress={() => setCurrentKind(c.id)} accessibilityLabel={`Ongoing ${c.id}`}>
-                  <SubChipIcon id={c.id} active={on} />
-                  <Text style={[styles.kindChipText, on && styles.kindChipTextOn]}>{c.label}</Text>
-                  {c.count > 0 && (
-                    <PopCount value={c.count} style={styles.subBadge} textStyle={styles.subBadgeText} />
-                  )}
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-        )}
-        {kind === 'done' && (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.kindChips}>
-            {(
-              [
-                { id: 'bids', label: 'ලංසු', count: doneJobs.length },
-                { id: 'direct', label: 'Booking', count: doneBookings.length },
-                { id: 'sos', label: 'SOS', count: sosRecords.length },
-              ] as { id: typeof doneKind; label: string; count: number }[]
-            ).map((c) => {
-              const on = doneKind === c.id;
-              return (
-                <Pressable key={c.id} style={[styles.subChip, on && styles.kindChipOn]} onPress={() => setDoneKind(c.id)} accessibilityLabel={`Completed ${c.id}`}>
-                  <SubChipIcon id={c.id} active={on} />
-                  <Text style={[styles.kindChipText, on && styles.kindChipTextOn]}>{c.label}</Text>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-        )}
-        {kind === 'ended' && (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.kindChips}>
-            {(
-              [
-                { id: 'bids', label: 'ලංසු' },
-                { id: 'direct', label: 'Booking' },
-                { id: 'sos', label: 'SOS' },
-              ] as { id: typeof endedKind; label: string }[]
-            ).map((c) => {
-              const on = endedKind === c.id;
-              return (
-                <Pressable key={c.id} style={[styles.subChip, on && styles.kindChipOn]} onPress={() => setEndedKind(c.id)} accessibilityLabel={`Cancelled ${c.id}`}>
-                  <SubChipIcon id={c.id} active={on} />
-                  <Text style={[styles.kindChipText, on && styles.kindChipTextOn]}>{c.label}</Text>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-        )}
           <Animated.View pointerEvents="box-none" style={[styles.pinnedChat, { opacity: edge }]}>
             <ChatHeaderButton scrolled={shortChat} />
           </Animated.View>
@@ -404,72 +339,41 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
 
         {show('current') && (
           <>
-
-        {/* Every booking that is on, together: the ones waiting for the garage first, then the confirmed ones. */}
-        {/* Each kind of ongoing work has its own empty message: a card saying what shows here and when. */}
-        {showCurrent('direct') && (liveBookings.length > 0 ? [...pendingBookings, ...activeBookings].map(bookingCard) : <EmptyState icon="📅" title="සක්‍රීය වෙන් කිරීම් නැත" text="ඔබ ගරාජයකට වෙන්කිරීමක් යැවූ විට එය මෙහි පෙන්වනු ඇත." />)}
-        {showCurrent('bids') && (ongoing.length > 0 ? ongoing.map(({ job, bid }) => bidCard(job, bid)) : <EmptyState icon="🤝" title="සක්‍රීය ලංසු නැත" text="ඔබ ලංසුවක් පිළිගත් විට එම රැකියාව මෙහි පෙන්වනු ඇත." />)}
-        {showCurrent('sos') && (
-          <EmptyState icon="🚨" title="සක්‍රීය SOS නැත" text="SOS ඉල්ලීමක් පිළිගත් විට එය මෙහි පෙන්වනු ඇත; අවසන් වූ විට ‘සම්පූර්ණ’ යටතට යයි." />
+        {/* All ongoing items together: bookings waiting for the garage, then confirmed, then accepted bids. */}
+        {[...pendingBookings, ...activeBookings].map(bookingCard)}
+        {ongoing.map(({ job, bid }) => bidCard(job, bid))}
+        {heldTows.map((r) => (
+          <TowRecordCard key={r.id} record={r} />
+        ))}
+        {liveBookings.length === 0 && ongoing.length === 0 && heldTows.length === 0 && (
+          <EmptyState icon="📅" title="සක්‍රීය රැකියා නැත" text="ඔබ ගරාජයකට වෙන්කිරීමක් යැවූ විට හෝ ලංසුවක් පිළිගත් විට එය මෙහි පෙන්වනු ඇත." />
         )}
-
           </>
         )}
 
-        {show('ended') && endedKind === 'direct' && (endedBookings.length > 0 ? endedBookings.map(bookingCard) : <EmptyState icon="📅" title="අවලංගු වෙන්කිරීම් නැත" text="අවලංගු වූ හෝ ප්‍රතික්ෂේප වූ වෙන්කිරීම් මෙහි පෙන්වනු ඇත." />)}
-        {show('ended') && endedKind === 'bids' && (cancelledJobs.length > 0 ? cancelledJobs.map(({ job, bid }) => bidCard(job, bid)) : <EmptyState icon="🤝" title="අවලංගු ලංසු නැත" text="අවලංගු වූ ලංසු රැකියා මෙහි පෙන්වනු ඇත." />)}
-        {show('ended') && endedKind === 'sos' && <EmptyState icon="🚨" title="අවලංගු SOS නැත" text="අවලංගු වූ SOS ඉල්ලීම් මෙහි පෙන්වනු ඇත." />}
-
-        {kind === 'done' && doneKind === 'sos' && sosRecords.length === 0 && (
-          <EmptyState icon="🚨" title="SOS සේවා නැත" text="සම්පූර්ණ කළ SOS සේවා මෙහි වාර්තා වේ." />
-        )}
-        {showDone('sos') && sosRecords.length > 0 && (
+        {show('ended') && (
           <>
-            {sosPoints > 0 && <Text style={styles.sosPoints}>💎 OnGarage ලකුණු: {sosPoints}</Text>}
-            {sosRecords.map((r) => (
-              <SwipeCard key={r.id} style={[styles.card, styles.cardDone]} onOpen={() => setRecord({ kind: 'sos', record: r })}>
-              <Pressable style={styles.cardInner} onPress={() => setRecord({ kind: 'sos', record: r })} accessibilityLabel={`SOS record ${r.breakdown.label}`}>
-                <PostHead
-                  photo={
-                    <View style={styles.sosIcon}> {r.breakdown.id && BREAKDOWN_IMAGES[r.breakdown.id] ? <Image source={BREAKDOWN_IMAGES[r.breakdown.id]} style={styles.sosImage} resizeMode="contain" /> : <Text style={styles.sosIconText}>{r.breakdown.icon}</Text>} </View>
-                  }
-                  name={r.responder.name}
-                  meta={`${r.responder.mechanic} · ${formatDate(new Date(r.completedAt))}`}
-                  price={money(r.total)}
-                  onMore={() => setRecord({ kind: 'sos', record: r })}
-                />
-                <PostBody vehicle={vehicles.find((x) => x.plate === r.vehiclePlate) ?? { type: 'Sedan', name: r.vehicleName, plate: r.vehiclePlate }} kind="sos" subject={`SOS · ${r.breakdown.label}`}>
-                  <View style={styles.rowBetween}>
-                    <RatingLine rating={r.rating} />
-                    <View style={[styles.status, styles.statusDone]}>
-                      <Text style={[styles.statusText, { color: Colors.success }]}>✓ සම්පූර්ණයි</Text>
-                    </View>
-                  </View>
-                  <TxnTag kind="SOS" source={r.id} />
-                </PostBody>
-                <View style={styles.divider} />
-                <Text style={styles.sub} numberOfLines={2}>
-                  📍 {r.address}
-                </Text>
-                <View style={styles.divider} />
-                <View style={styles.rowBetween}>
-                  <Text style={[styles.sub, styles.flex1]} numberOfLines={2}>
-                    පැමිණීම {money(r.fees.callout)} · අලුත්වැඩියා {money(r.fees.repair)}
-                    {r.fees.part ? ` · ${r.fees.part.name} ${money(r.fees.part.amount)}` : ''}
-                  </Text>
-                  <Text style={[styles.sub, { color: Colors.warning }]}>{'★'.repeat(r.rating)}{'☆'.repeat(5 - r.rating)}</Text>
-                </View>
-              </Pressable>
-              </SwipeCard>
-            ))}
+        {endedBookings.map(bookingCard)}
+        {cancelledJobs.map(({ job, bid }) => bidCard(job, bid))}
+        {cancelledTows.map((r) => (
+          <TowRecordCard key={r.id} record={r} />
+        ))}
+        {endedBookings.length === 0 && cancelledJobs.length === 0 && cancelledTows.length === 0 && (
+          <EmptyState icon="✕" title="අවලංගු රැකියා නැත" text="අවලංගු වූ හෝ ප්‍රතික්ෂේප වූ රැකියා මෙහි පෙන්වනු ඇත." />
+        )}
           </>
         )}
 
         {show('done') && (
           <>
-        {showDone('direct') && doneBookings.map(bookingCard)}
-        {showDone('bids') && doneJobs.map(({ job, bid }) => bidCard(job, bid))}
-        {showDone('bids') && history.map((w) => (
+        {sosPoints > 0 && sosRecords.length > 0 && <Text style={styles.sosPoints}>💎 OnGarage ලකුණු: {sosPoints}</Text>}
+        {/* All completed items together: bid jobs, direct bookings, SOS records and past workshop history. */}
+        {doneBookings.map(bookingCard)}
+        {doneJobs.map(({ job, bid }) => bidCard(job, bid))}
+        {doneTows.map((r) => (
+          <TowRecordCard key={r.id} record={r} />
+        ))}
+        {history.map((w) => (
           <SwipeCard key={w.id} style={[styles.card, styles.cardDone]} onOpen={() => setRecord({ kind: 'history', workshop: w })}>
           <Pressable style={styles.cardInner} onPress={() => setRecord({ kind: 'history', workshop: w })} accessibilityLabel={`Past job ${w.title ?? categoryInfo(w.categoryId).name}`}>
             <PostHead
@@ -501,6 +405,45 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
           </Pressable>
           </SwipeCard>
         ))}
+        {sosRecords.map((r) => (
+          <SwipeCard key={r.id} style={[styles.card, styles.cardDone]} onOpen={() => setRecord({ kind: 'sos', record: r })}>
+          <Pressable style={styles.cardInner} onPress={() => setRecord({ kind: 'sos', record: r })} accessibilityLabel={`SOS record ${r.breakdown.label}`}>
+            <PostHead
+              photo={
+                <View style={styles.sosIcon}>{r.breakdown.id && BREAKDOWN_IMAGES[r.breakdown.id] ? <Image source={BREAKDOWN_IMAGES[r.breakdown.id]} style={styles.sosImage} resizeMode="contain" /> : <Text style={styles.sosIconText}>{r.breakdown.icon}</Text>}</View>
+              }
+              name={r.responder.name}
+              meta={`${r.responder.mechanic} · ${formatDate(new Date(r.completedAt))}`}
+              price={money(r.total)}
+              onMore={() => setRecord({ kind: 'sos', record: r })}
+            />
+            <PostBody vehicle={vehicles.find((x) => x.plate === r.vehiclePlate) ?? { type: 'Sedan', name: r.vehicleName, plate: r.vehiclePlate }} kind="sos" subject={`SOS · ${r.breakdown.label}`}>
+              <View style={styles.rowBetween}>
+                <RatingLine rating={r.rating} />
+                <View style={[styles.status, styles.statusDone]}>
+                  <Text style={[styles.statusText, { color: Colors.success }]}>✓ සම්පූර්ණයි</Text>
+                </View>
+              </View>
+              <TxnTag kind="SOS" source={r.id} />
+            </PostBody>
+            <View style={styles.divider} />
+            <Text style={styles.sub} numberOfLines={2}>
+              📍 {r.address}
+            </Text>
+            <View style={styles.divider} />
+            <View style={styles.rowBetween}>
+              <Text style={[styles.sub, styles.flex1]} numberOfLines={2}>
+                පැමිණීම {money(r.fees.callout)} · අලුත්වැඩියා {money(r.fees.repair)}
+                {r.fees.part ? ` · ${r.fees.part.name} ${money(r.fees.part.amount)}` : ''}
+              </Text>
+              <Text style={[styles.sub, { color: Colors.warning }]}>{'★'.repeat(r.rating)}{'☆'.repeat(5 - r.rating)}</Text>
+            </View>
+          </Pressable>
+          </SwipeCard>
+        ))}
+        {doneBookings.length === 0 && doneJobs.length === 0 && history.length === 0 && sosRecords.length === 0 && (
+          <EmptyState icon="✓" title="සම්පූර්ණ රැකියා නැත" text="අවසන් වූ රැකියා, වෙන්කිරීම් සහ SOS සේවා මෙහි පෙන්වනු ඇත." />
+        )}
           </>
         )}
       </ScrollView>
@@ -584,13 +527,6 @@ const styles = themedStyles(() => StyleSheet.create({
   badge: { position: 'absolute', top: -9, right: 8, minWidth: 20, height: 20, paddingHorizontal: 6, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: '#1a73e8', borderWidth: 2, borderColor: pageBg() },
   badgeGood: {},
   badgeText: { fontSize: 10.5, fontFamily: FONTS.bodyBold, color: '#ffffff' },
-  kindChips: { gap: 10, paddingTop: 14, paddingRight: 16 },
-  subBadge: { position: 'absolute', top: -9, right: 4, minWidth: 19, height: 19, paddingHorizontal: 5, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: '#1a73e8', borderWidth: 2, borderColor: pageBg() },
-  subBadgeText: { fontSize: 10, fontFamily: FONTS.bodyBold, color: '#ffffff' },
-  kindChipOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe', borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#d2e3fc' },
-  subChip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, height: 32, borderRadius: 8, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline() },
-  kindChipText: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textSoft },
-  kindChipTextOn: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
   // Keeps the heading clear of the icons in the card's top right corner.
   // The tappable body of a swipeable card: it lays its rows out the way the card itself does.
   cardInner: { gap: 12 },

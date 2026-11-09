@@ -1530,13 +1530,14 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
               </View>
             </View>
           </View>
-          <View style={styles.topSlot}>
-            {baseStep !== 'confirm' && onMinimize && (
+          {/* The slot exists only while minimise is offered: otherwise the pill runs to the right edge, as the towing pill does. */}
+          {baseStep !== 'confirm' && onMinimize && (
+            <View style={styles.topSlot}>
               <Pressable style={styles.roundBtn} onPress={onMinimize} accessibilityLabel="Minimise SOS">
                 <Text style={styles.roundBtnText}>⌄</Text>
               </Pressable>
-            )}
-          </View>
+            </View>
+          )}
         </View>
       </View>
 

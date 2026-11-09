@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, Easing, Pressable, StyleSheet, Text, View } from 'react-native';
-import { Colors, getThemeMode, themedStyles } from '../theme/colors';
+import { BRAND, Colors, getThemeMode, themedStyles } from '../theme/colors';
 import { FONTS } from '../theme/fonts';
 import { Gradient, GRADIENTS } from './Visuals';
 
@@ -28,7 +28,7 @@ export const softCard = () => ({ backgroundColor: Colors.bgCard, borderWidth: 1,
 export const softFill = () => (getThemeMode() === 'dark' ? Colors.subtleFill : '#eef2f7');
 
 /** The navy used for active tab pills and the strongest accents (same as the owner app). */
-export const NAVY = '#162b63';
+export const NAVY = BRAND.navy;
 
 /** The sky-blue band at the top of every app; the screen below overlaps it with rounded corners. */
 export const headerBand = () => {

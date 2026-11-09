@@ -8,11 +8,13 @@ import { VehicleIcon3D } from '@ongarage/shared';
 import { Gradient, GRADIENTS } from '@ongarage/shared';
 import WeatherAnimation, { periodOf, skyInk, useHour } from './WeatherAnimation';
 import { MOCK_USER } from '../constants/mockData';
+import { AddVehicleSheet } from './AddVehicleSheet';
 
 /** Every page's top band is this tall - the height of Home's greeting band. */
 export const HEADER_BAND_H = 100;
 // The top bar keeps its emoji as they are (the line-icon patch skips a Text marked this way).
 const KEEP_EMOJI = { keepEmoji: true } as object;
+const eveningShadow = { textShadowColor: 'rgba(20, 10, 40, 0.45)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 };
 const POPOVER_WIDTH = 264;
 const EDGE_GAP = 12;
 
@@ -22,15 +24,19 @@ interface VehiclePickerProps {
   anchorRef: React.RefObject<View | null>;
   onSelect: (vehicleId: string) => void;
   onClose: () => void;
+  /** Adds a row that shows every vehicle's jobs and costs in Bids and Activity, instead of only the chosen one's. */
+  withAll?: boolean;
 }
 
 type Placement = { top: number; left: number; originX: number };
 
-export const VehiclePicker: React.FC<VehiclePickerProps> = ({ visible, activeVehicle, anchorRef, onSelect, onClose }) => {
+export const VehiclePicker: React.FC<VehiclePickerProps> = ({ visible, activeVehicle, anchorRef, onSelect, onClose, withAll }) => {
+  // Every picker can add a vehicle: the row at the bottom opens the same add form, and the new vehicle is chosen when it is saved.
+  const [addOpen, setAddOpen] = useState(false);
   const { width: screenW } = useWindowDimensions();
   const [placement, setPlacement] = useState<Placement | null>(null);
   const progress = useRef(new Animated.Value(0)).current;
-  const { vehicles } = useVehicles();
+  const { vehicles, showAllVehicles, setShowAllVehicles } = useVehicles();
   const rows = useMemo(() => vehicles.map(() => new Animated.Value(0)), [vehicles.length]);
   const closing = useRef(false);
 
@@ -73,6 +79,7 @@ export const VehiclePicker: React.FC<VehiclePickerProps> = ({ visible, activeVeh
   };
 
   return (
+    <>
     <Modal visible={visible} transparent animationType="none" statusBarTranslucent onRequestClose={close}>
       <Animated.View style={[styles.backdrop, { opacity: progress }]}>
         <Pressable style={StyleSheet.absoluteFill} onPress={close} />
@@ -141,13 +148,67 @@ export const VehiclePicker: React.FC<VehiclePickerProps> = ({ visible, activeVeh
               </Animated.View>
             );
           })}
+          {withAll && (
+            <Pressable
+              style={({ pressed }) => [styles.row, showAllVehicles && styles.rowActive, pressed && !showAllVehicles && styles.rowPressed]}
+              onPress={() => {
+                setShowAllVehicles(!showAllVehicles);
+                close();
+              }}
+              accessibilityRole="checkbox"
+              accessibilityLabel="Show every vehicle"
+              accessibilityState={{ checked: showAllVehicles }}
+            >
+              <View style={[styles.iconTile, showAllVehicles && styles.iconTileActive]}>
+                {showAllVehicles && <Gradient stops={GRADIENTS.issue} />}
+                <Text style={{ fontSize: 20 }}>🚗</Text>
+              </View>
+              <View style={styles.rowText}>
+                <Text style={[styles.name, showAllVehicles && styles.nameActive]}>සියලු වාහන</Text>
+                <Text style={styles.plate}>ඔබගේ සියලු වාහනවල ලංසු සහ වියදම්</Text>
+              </View>
+              {showAllVehicles ? (
+                <View style={styles.check}>
+                  <Text style={styles.checkText}>✓</Text>
+                </View>
+              ) : (
+                <View style={styles.radio} />
+              )}
+            </Pressable>
+          )}
+          {(
+            <Pressable
+              style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
+              onPress={() => {
+                close();
+                setAddOpen(true);
+              }}
+              accessibilityLabel="Add a new vehicle"
+            >
+              <View style={styles.iconTile}>
+                <Text style={{ fontSize: 22, color: Colors.primary }}>＋</Text>
+              </View>
+              <View style={styles.rowText}>
+                <Text style={styles.name}>Add Vehicle</Text>
+              </View>
+            </Pressable>
+          )}
         </Animated.View>
       )}
     </Modal>
+      <AddVehicleSheet
+        visible={addOpen}
+        onClose={() => setAddOpen(false)}
+        onAdded={(v) => {
+          onSelect(v.id);
+          setAddOpen(false);
+        }}
+      />
+    </>
   );
 };
 
-const greetingFor = (hour: number) => {
+export const greetingFor = (hour: number) => {
   if (hour < 12) return 'සුභ උදෑසනක්';
   if (hour < 17) return 'සුභ දහවලක්';
   if (hour < 20) return 'සුභ සන්ධ්‍යාවක්';
@@ -172,24 +233,26 @@ export const TitleBand: React.FC<{ title: string; action?: { label: string; onPr
   );
 };
 
-export const Header: React.FC = () => {
-  const { fullName } = useProfile();
+/** Home's header band. `children` sits under the greeting (the active-vehicle chip). */
+export const Header: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
+  const { firstName } = useProfile();
 
   const hour = useHour();
-  const night = periodOf(hour) === 'night';
+  const period = periodOf(hour);
+  const night = period === 'night';
+  const evening = period === 'evening';
 
   return (
     <View style={styles.header}>
       <WeatherAnimation hour={hour} fadeBottom />
       <View style={styles.greetingRow}>
         <View style={styles.greetingText}>
-          <Text {...KEEP_EMOJI} style={[styles.city, night ? styles.cityNight : styles.cityDay]}>📍 {MOCK_USER.city}</Text>
-          <Text style={[styles.hi, night ? styles.hiNight : styles.hiDay]} numberOfLines={1}>
-            Hi {fullName},
+          <Text {...KEEP_EMOJI} style={[styles.city, night ? styles.cityNight : evening ? styles.cityEvening : styles.cityDay]}>📍 {MOCK_USER.city}</Text>
+          <Text style={[styles.hi, night ? styles.hiNight : evening ? styles.hiEvening : styles.hiDay]} numberOfLines={1}>
+            Hi {firstName},{' '}
+            <Text style={[styles.greeting, night ? styles.greetingNight : evening ? styles.greetingEvening : styles.greetingDay]}>{greetingFor(hour)}</Text>
           </Text>
-          <Text style={[styles.greeting, night ? styles.greetingNight : styles.greetingDay]} numberOfLines={1}>
-            {greetingFor(hour)}
-          </Text>
+          {children && <View style={styles.headerChild}>{children}</View>}
         </View>
       </View>
 
@@ -201,6 +264,7 @@ export const Header: React.FC = () => {
 const styles = themedStyles(() => StyleSheet.create({
   // A soft sky-blue band (dark text on light, light text on dark); the screen below overlaps it.
   header: {
+    zIndex: 1,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -219,6 +283,10 @@ const styles = themedStyles(() => StyleSheet.create({
   cityNight: { color: '#a9cbe6' },
   hiNight: { color: '#e6f3fc' },
   greetingNight: { color: '#a9cbe6' },
+  // The dusk sky is purple at the top and orange below: white with a soft shadow reads on both.
+  cityEvening: { color: '#ffffff', ...eveningShadow },
+  hiEvening: { color: '#ffffff', ...eveningShadow },
+  greetingEvening: { color: '#ffffff', ...eveningShadow },
   // Leaves room at the right for the floating chat icon (52px + its 14px margin), so the button never sits under it.
   titleBandAction: { marginRight: 66, paddingHorizontal: 14, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? '#16415f' : '#0f2f4a' },
   titleBandActionText: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: '#ffffff' },
@@ -230,6 +298,7 @@ const styles = themedStyles(() => StyleSheet.create({
   // Above the sky: the sun, clouds and birds drift behind the greeting, never over it.
   greetingRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 6, position: 'relative' },
   greetingText: { gap: 1, flex: 1 },
+  headerChild: { alignSelf: 'flex-start', marginTop: 6 },
   hi: { fontSize: 15, fontFamily: FONTS.titleBold, color: getThemeMode() === 'dark' ? '#d6eefc' : '#0f2a3d' },
   greeting: { fontSize: 12.5, fontFamily: FONTS.bodyMedium, color: getThemeMode() === 'dark' ? '#8fc3e3' : '#2b4a63' },
   vehiclePill: {

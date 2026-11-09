@@ -59,10 +59,11 @@ test('eta follows the distance', () => {
   assert.strictEqual(m.towEtaMin(15), 35);
 });
 
-test('stages: cancel only before arrival, closed once nothing waits', () => {
+test('stages: cancel until the vehicle is carried, closed once nothing waits', () => {
   const base = { id: 'r', stage: 'accepted' };
   assert.strictEqual(m.canCancelTow(base), true);
-  assert.strictEqual(m.canCancelTow({ ...base, stage: 'arrived' }), false);
+  assert.strictEqual(m.canCancelTow({ ...base, stage: 'arrived' }), true);
+  assert.strictEqual(m.canCancelTow({ ...base, stage: 'transporting' }), false);
   assert.strictEqual(m.canCancelTow({ ...base, cancelled: true }), false);
   assert.strictEqual(m.towClosed({ ...base, stage: 'delivered' }), true);
   assert.strictEqual(m.towClosed({ ...base, stage: 'delivered', approval: 'pending' }), false);

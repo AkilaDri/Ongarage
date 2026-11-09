@@ -31,21 +31,22 @@ export const CATEGORY_IMAGES: Record<string, ImageSourcePropType> = {
  * Worked out from each file's visible area: regenerate if an icon is replaced.
  */
 export const CATEGORY_ICON_FIT: Record<string, { scale: number; dx: number; dy: number }> = {
-  '1': { scale: 1.2, dx: 0.0035, dy: -0.0047 }, // mechanical
-  '2': { scale: 1.2, dx: 0.0117, dy: 0.0058 }, // electrical
-  '3': { scale: 1.11, dx: 0.0238, dy: -0.0108 }, // hybrid
-  '4': { scale: 1.2, dx: 0.0163, dy: -0.0457 }, // ac
-  '5': { scale: 1.143, dx: 0.0179, dy: -0.0491 }, // scan
-  '6': { scale: 1.2, dx: 0.0047, dy: 0.0187 }, // tyres
-  '7': { scale: 1.2, dx: 0.0023, dy: -0.021 }, // brakes
-  '8': { scale: 1.2, dx: 0.0058, dy: -0.0282 }, // paint
-  '9': { scale: 1.2, dx: 0.0351, dy: 0 }, // wash
-  '10': { scale: 1.178, dx: -0.0161, dy: -0.0126 }, // tuning
-  '11': { scale: 1.2, dx: 0, dy: -0.0047 }, // battery
-  '12': { scale: 1.157, dx: 0.0011, dy: -0.0011 }, // towing
-  '13': { scale: 1.12, dx: 0, dy: 0 }, // ev charging
-  '14': { scale: 1.12, dx: 0, dy: 0 }, // service
-  '16': { scale: 1.12, dx: 0, dy: 0 }, // fuel station
+  // Each scale brings the icon's visible height or width (its ink bounds, measured per file) to the same size; dx / dy centre the ink.
+  '1': { scale: 1.18, dx: 0.003, dy: -0.003 }, // mechanical
+  '2': { scale: 1.25, dx: 0.008, dy: 0.005 }, // electrical
+  '3': { scale: 0.88, dx: 0, dy: -0.051 }, // hybrid
+  '4': { scale: 1.14, dx: 0.013, dy: -0.039 }, // ac
+  '5': { scale: 1.05, dx: 0.016, dy: -0.043 }, // scan
+  '6': { scale: 1.14, dx: 0.004, dy: 0.015 }, // tyres
+  '7': { scale: 1.18, dx: 0.003, dy: -0.017 }, // brakes
+  '8': { scale: 1.22, dx: 0.004, dy: -0.022 }, // paint
+  '9': { scale: 1.15, dx: 0.03, dy: 0 }, // wash
+  '10': { scale: 1.03, dx: -0.014, dy: -0.012 }, // tuning
+  '11': { scale: 1.45, dx: 0.001, dy: -0.004 }, // battery (capped: thin artwork)
+  '12': { scale: 1.01, dx: 0, dy: -0.002 }, // towing
+  '13': { scale: 1.0, dx: 0.014, dy: 0.01 }, // ev charging
+  '14': { scale: 1.02, dx: -0.016, dy: -0.034 }, // service
+  '16': { scale: 1.01, dx: -0.019, dy: 0.01 }, // fuel station
 };
 
 /** The artwork of each SOS breakdown type (BREAKDOWN_TYPES id), from assets/sos-icons. */

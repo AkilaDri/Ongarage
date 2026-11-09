@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Colors, FONTS, getThemeMode, PAY_LEVEL_TEXT, RATING_EXPIRY_MONTHS, tagLabel, themedStyles } from '@ongarage/shared';
+import { Colors, DISPUTE_WINDOW_DAYS, FONTS, getThemeMode, PAY_LEVEL_TEXT, RATING_EXPIRY_MONTHS, tagLabel, themedStyles } from '@ongarage/shared';
 import { useGarage } from '../context/GarageContext';
 import { money } from '../utils/format';
 import { Sheet } from './Sheet';
@@ -42,7 +42,7 @@ export const CustomerBadge: React.FC<{ customer: Customer; compact?: boolean }> 
           <Row label="ඉතිරි මුදල්" value={r.unpaid ? `${money(r.owed)} · ගෙවා නැති ${r.unpaid}` : 'නැත'} />
           <Row label="ගරාජවල ශ්‍රේණිය" value={r.rated ? `★${r.avgStars} (${r.rated})` : '—'} />
         </View>
-        {r.topTags.length > 0 && (
+        {r.showTags && r.topTags.length > 0 && (
           <>
             <Text style={styles.heading}>ගරාජ බොහෝ විට කියූ දේ</Text>
             <View style={styles.tags}>
@@ -57,7 +57,7 @@ export const CustomerBadge: React.FC<{ customer: Customer; compact?: boolean }> 
           </>
         )}
         {r.disputed > 0 && <Text style={styles.hint}>ℹ️ පාරිභෝගිකයා විරුද්ධ වූ ශ්‍රේණිගත කිරීම් {r.disputed}ක් විසඳෙන තෙක් මෙම වාර්තාවට ගණන් නොගනී.</Text>}
-        <Text style={styles.hint}>සාධාරණත්වය සඳහා: කේතයෙන් වසා දැමූ රැකියා පමණක් ශ්‍රේණිගත කෙරේ; පාරිභෝගිකයාට පිළිතුරු දීමට සහ ගැටලුවක් ඉදිරිපත් කිරීමට හැක; මාස {RATING_EXPIRY_MONTHS}කට පසු සටහන් ගණන් නොගනී; ඉතිරි මුදල ගෙවූ විට “ගෙවුවේ නැහැ” “ප්‍රමාදව ගෙවුවා” බවට පත් වේ.</Text>
+        <Text style={styles.hint}>සාධාරණත්වය සඳහා: කේතයෙන් වසා දැමූ රැකියා පමණක් ශ්‍රේණිගත කෙරේ; පාරිභෝගිකයාට දින {DISPUTE_WINDOW_DAYS}ක් ඇතුළත ගැටලුවක් ඉදිරිපත් කිරීමට හැක (එතෙක් ශ්‍රේණිය සහ ගණන පමණක් පෙනේ); මාස {RATING_EXPIRY_MONTHS}කට පසු සටහන් ගණන් නොගනී; ඉතිරි මුදල ගෙවූ විට “ගෙවුවේ නැහැ” “ප්‍රමාදව ගෙවුවා” බවට පත් වේ.</Text>
       </Sheet>
     </>
   );
