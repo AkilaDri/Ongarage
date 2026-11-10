@@ -20,6 +20,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle, Line } from 'react-native-svg';
 import { canCancelSos, CloseCode, cancelFeeFor, Colors, distanceKm, LEVELS, makeCloseCode, martShop, partMarketPrice, pointsForJob, type SosStage, themedStyles } from '@ongarage/shared';
 import { MOCK_GARAGES } from '../constants/mockData';
+import { GARAGE_DIRECTORY } from '../constants/garageDirectory';
 import { FONTS } from '@ongarage/shared';
 import { useVehicles } from '../context/VehiclesContext';
 import { useNotice } from '../context/NoticeContext';
@@ -32,12 +33,13 @@ import { TxnTag } from '../components/TxnTag';
 import { txnId } from '../utils/txn';
 import { BREAKDOWN_TYPES, breakdownInfo, getThemeMode } from '@ongarage/shared';
 import { VehiclePicker } from '../components/Header';
-import { GoogleMap, type Project } from '@ongarage/shared';
+import { type Project } from '@ongarage/shared';
 import { Gradient, GRADIENTS, Pulse } from '@ongarage/shared';
 import { ActionButton as SharedButton } from '@ongarage/shared';
 import { ModalCard } from '@ongarage/shared';
 import { etaMinutes, kmToMapPixels, offsetCoordinate, zoomToFit } from '@ongarage/shared';
 import type { LatLng, PickedLocation } from '@ongarage/shared';
+import { AppMap } from '../components/map/AppMap';
 
 // An icon on a soft disc (no outline), in place of the shared bordered glass square.
 const GlassIcon: React.FC<{ emoji: string; small?: boolean }> = ({ emoji, small }) => (
@@ -119,6 +121,8 @@ type Candidate = Omit<Workshop, 'jobs' | 'years' | 'skill'> & {
   /** Trust level of a garage (see LEVELS). */
   level?: string;
   verified: boolean;
+  /** From the Sri Lanka garage list, not on OnGarage yet: shown with its details, but it cannot be connected through the app. */
+  directory?: boolean;
   /** One line each: what they do, what they have done. */
   facts: string[];
 };
@@ -426,9 +430,40 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
       verified: true,
       facts: [t.skill, `රැකියා ${t.jobs} · අත්දැකීම් වසර ${t.years}`],
     })).sort((a, b) => a.distanceKm - b.distanceKm);
-    return { nearbyGarages: garages, nearbyTechnicians: technicians };
+    // The nearest garages from the Sri Lanka list, listed with the OnGarage ones (nearest first). They are not on OnGarage yet.
+    const directory: Candidate[] = GARAGE_DIRECTORY.map((d) => {
+      const km = Number(distanceKm(location.coords, d.coords).toFixed(1));
+      return {
+        id: d.id,
+        name: d.name,
+        mechanic: 'ගරාජයේ සේවා කණ්ඩායම',
+        van: d.category,
+        phone: d.phones[0] ?? '',
+        rating: 0,
+        bid: BASE_FEE + Math.ceil(km) * SURCHARGE_STEP,
+        distanceKm: km,
+        bearing: 0,
+        coords: d.coords,
+        eta: etaMinutes(km),
+        kind: 'garage' as const,
+        reviews: 0,
+        verified: false,
+        directory: true,
+        facts: [d.category, d.address ?? d.district, d.district],
+      };
+    })
+      .sort((a, b) => a.distanceKm - b.distanceKm)
+      .slice(0, 5);
+    const nearbyGarages = [...garages, ...directory].sort((a, b) => a.distanceKm - b.distanceKm);
+    return { nearbyGarages, nearbyTechnicians: technicians };
   }, [location.coords]);
   const candidates = [...nearbyGarages, ...nearbyTechnicians];
+
+  /** Opens a garage's profile from the searching list; the profile sheet offers to connect while the search runs. */
+  const openPreview = (c: Candidate) => {
+    setSelected(c);
+    setShowProfile(true);
+  };
 
   const connectTo = (c: Candidate) => {
     setSelected(c);
@@ -726,13 +761,13 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
   const renderMap = (height: number, kind: 'confirm' | 'searching' | 'nearby' | 'tracking') => {
     if (kind === 'confirm') {
       return (
-        <GoogleMap style={styles.mapFull} center={location.coords} zoom={16} fallbackColor="#ef4444" renderOverlay={(p) => userPin(p)} />
+        <AppMap style={styles.mapFull} center={location.coords} zoom={16} fallbackColor="#ef4444" renderOverlay={(p) => userPin(p)} />
       );
     }
     if (kind === 'searching') {
       const zoom = zoomToFit(radius * 2, lat, height);
       return (
-        <GoogleMap
+        <AppMap
           style={styles.mapFull}
           center={location.coords}
           zoom={zoom}
@@ -764,7 +799,7 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
     if (kind === 'nearby') {
       const far = Math.max(...candidates.map((c) => c.distanceKm), 1);
       return (
-        <GoogleMap
+        <AppMap
           style={styles.mapFull}
           center={location.coords}
           zoom={zoomToFit(far * 2, lat, height)}
@@ -782,7 +817,7 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
       longitude: (job.coords.longitude + location.coords.longitude) / 2,
     };
     return (
-      <GoogleMap
+      <AppMap
         style={styles.mapFull}
         center={mid}
         zoom={zoomToFit(job.distanceKm, mid.latitude, height)}
@@ -959,15 +994,16 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
       </View>
 
       <Text style={[styles.sectionLabel, { color: Colors.textMain }]}>ළඟ ඇති ගරාජ</Text>
-      {workshops.map((w) => {
-        const responded = w.distanceKm <= radius;
+      {/* The nearest garages: a tap opens the garage's profile, from where the owner can connect to it (as on the nearby step). */}
+      {nearbyGarages.map((c) => {
+        const responded = c.distanceKm <= radius;
         return (
-          <View key={w.id} style={[styles.card, styles.rowCenter]}>
+          <Pressable key={c.id} style={[styles.card, styles.rowCenter]} onPress={() => openPreview(c)} accessibilityLabel={`Profile of ${c.name}`}>
             <GlassIcon emoji="🛠️" small />
             <View style={styles.flex1}>
-              <Text style={styles.cardTitle}>{w.name}</Text>
+              <Text style={styles.cardTitle}>{c.name}</Text>
               <Text style={styles.cardSub}>
-                {w.distanceKm} km · {w.eta} min
+                {c.distanceKm} km · {c.eta} min{c.directory ? ' · OnGarage ලියාපදිංචි නැත' : ''}
               </Text>
             </View>
             <View style={[styles.statusPill, responded ? styles.statusPillOn : styles.statusPillOff]}>
@@ -975,7 +1011,7 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
                 {responded ? '✓ ළඟයි' : 'කලාපයෙන් පිටත'}
               </Text>
             </View>
-          </View>
+          </Pressable>
         );
       })}
     </>
@@ -1011,11 +1047,16 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
           </View>
           <View style={styles.ratingPill}>
             <Text style={styles.ratingPillText}>
-              ★ {c.rating.toFixed(1)} ({c.reviews})
+              {c.directory ? 'ශ්‍රේණිගත කර නැත' : `★ ${c.rating.toFixed(1)} (${c.reviews})`}
             </Text>
           </View>
         </View>
         <View style={styles.profileChips}>
+          {c.directory && (
+            <View style={[styles.statusPill, styles.statusPillOff]}>
+              <Text style={[styles.statusPillText, { color: Colors.textMuted }]}>OnGarage ලියාපදිංචි නැත · ඉක්මනින් එකතු වේ</Text>
+            </View>
+          )}
           {c.verified && (
             <View style={[styles.statusPill, styles.statusPillOn]}>
               <Text style={[styles.statusPillText, { color: Colors.success }]}>✓ OnGarage ලියාපදිංචි</Text>
@@ -1044,11 +1085,17 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
         {profileBody(c)}
         <View style={styles.rowCenter}>
           <View style={styles.flex1}>
-            <ActionButton label="සම්බන්ධ වන්න" icon="🤝" variant="primary" onPress={() => connectTo(c)} />
+            {c.directory ? (
+              <Text style={styles.cardSub}>මෙම ගරාජය OnGarage හි ඉක්මනින් එකතු වේ. දැන් ඍජුවම අමතන්න.</Text>
+            ) : (
+              <ActionButton label="සම්බන්ධ වන්න" icon="🤝" variant="primary" onPress={() => connectTo(c)} />
+            )}
           </View>
-          <Pressable style={[styles.callBtn, { marginLeft: 8 }]} onPress={() => Linking.openURL(`tel:${c.phone.replace(/\s/g, '')}`)} accessibilityLabel={`Call ${c.name}`}>
-            <Text style={styles.callBtnText}>📞</Text>
-          </Pressable>
+          {!!c.phone && (
+            <Pressable style={[styles.callBtn, { marginLeft: 8 }]} onPress={() => Linking.openURL(`tel:${c.phone.replace(/\s/g, '')}`)} accessibilityLabel={`Call ${c.name}`}>
+              <Text style={styles.callBtnText}>📞</Text>
+            </Pressable>
+          )}
         </View>
       </View>
     );
@@ -1650,19 +1697,32 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
                 <View style={styles.divider} />
                 <View style={styles.detailRow}>
                   <Text style={styles.detailIcon}>📞</Text>
-                  <Text style={styles.detailText}>{selected.phone}</Text>
+                  <Text style={styles.detailText}>{selected.phone || 'දුරකථන අංකය නැත'}</Text>
                 </View>
                 <View style={styles.detailRow}>
                   <Text style={styles.detailIcon}>💰</Text>
                   <Text style={styles.detailText}>ඇස්තමේන්තුගත ගාස්තුව: {money(selected.bid)}</Text>
                 </View>
+                {(baseStep === 'searching' || baseStep === 'nearby') && 'kind' in selected && !selected.directory && (
+                  <ActionButton
+                    label="සම්බන්ධ වන්න"
+                    icon="🤝"
+                    variant="primary"
+                    onPress={() => {
+                      setShowProfile(false);
+                      connectTo(selected);
+                    }}
+                  />
+                )}
                 <View style={styles.rowCenter}>
                   <View style={styles.flex1}>
                     <ActionButton label="වසන්න" variant="ghost" onPress={() => setShowProfile(false)} />
                   </View>
-                  <Pressable style={[styles.callBtn, { marginLeft: 8 }]} onPress={() => Linking.openURL(`tel:${selected.phone.replace(/\s/g, '')}`)} accessibilityLabel="Call connected">
-                    <Text style={styles.callBtnText}>📞</Text>
-                  </Pressable>
+                  {!!selected.phone && (
+                    <Pressable style={[styles.callBtn, { marginLeft: 8 }]} onPress={() => Linking.openURL(`tel:${selected.phone.replace(/\s/g, '')}`)} accessibilityLabel="Call connected">
+                      <Text style={styles.callBtnText}>📞</Text>
+                    </Pressable>
+                  )}
                 </View>
               </>
             )}

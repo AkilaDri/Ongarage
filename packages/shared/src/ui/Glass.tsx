@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, Easing, Pressable, StyleSheet, Text, View } from 'react-native';
-import { BRAND, Colors, getThemeMode, themedStyles } from '../theme/colors';
+import { BAND, Colors, getThemeMode, themedStyles } from '../theme/colors';
 import { FONTS } from '../theme/fonts';
 import { Gradient, GRADIENTS } from './Visuals';
 
@@ -27,17 +27,17 @@ export const softCard = () => ({ backgroundColor: Colors.bgCard, borderWidth: 1,
 /** A soft grey fill for chips, inputs and secondary buttons (no outline). */
 export const softFill = () => (getThemeMode() === 'dark' ? Colors.subtleFill : '#eef2f7');
 
-/** The navy used for active tab pills and the strongest accents (same as the owner app). */
-export const NAVY = BRAND.navy;
+/** The brown used for active tab pills and the strongest accents. */
+export const NAVY = BAND.brown;
 
-/** The sky-blue band at the top of every app; the screen below overlaps it with rounded corners. */
+/** The brown band at the top of every app; the screen below overlaps it with rounded corners. */
 export const headerBand = () => {
   const dark = getThemeMode() === 'dark';
   return {
-    bg: dark ? '#0e2a3f' : '#bfe4fa',
-    title: dark ? '#d6eefc' : '#0f2a3d',
-    sub: dark ? '#8fc3e3' : '#2b4a63',
-    pill: dark ? '#16415f' : '#0f2f4a',
+    bg: dark ? BAND.deep : BAND.brown,
+    title: BAND.cream,
+    sub: BAND.creamSoft,
+    pill: dark ? BAND.deep : BAND.pill,
   };
 };
 

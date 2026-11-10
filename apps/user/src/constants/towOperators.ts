@@ -5,11 +5,11 @@ import type { TowOperator } from '@ongarage/shared';
  * (`marketplace/towing`). Prices are sample figures.
  */
 export const TOW_OPERATORS: TowOperator[] = [
-  { id: 't1', name: 'Galle Tow Express', coords: { latitude: 6.0412, longitude: 80.2121 }, phone: '077 220 1144', rating: 4.7, reviews: 86, trucks: ['Flatbed Towing', 'Emergency Transport'], baseFee: 3000, perKm: 190, recoveryFee: 2500, available: true },
-  { id: 't2', name: 'Southern Recovery', coords: { latitude: 6.0701, longitude: 80.2267 }, phone: '071 880 3320', rating: 4.5, reviews: 41, trucks: ['Recovery Winch', 'Flatbed Towing'], baseFee: 2800, perKm: 210, recoveryFee: 3500, available: true },
-  { id: 't3', name: 'Karapitiya Haulers', coords: { latitude: 6.0563, longitude: 80.2278 }, phone: '076 450 9921', rating: 4.2, reviews: 23, trucks: ['Flatbed Towing'], baseFee: 2500, perKm: 230, recoveryFee: 2800, available: true },
-  { id: 't4', name: 'Unawatuna Lifeline Towing', coords: { latitude: 6.0152, longitude: 80.2492 }, phone: '077 612 7755', rating: 4.8, reviews: 118, trucks: ['Flatbed Towing', 'Recovery Winch', 'Emergency Transport'], baseFee: 3500, perKm: 180, recoveryFee: 3000, available: true },
-  { id: 't5', name: 'Hikkaduwa Rescue', coords: { latitude: 6.1409, longitude: 80.1031 }, phone: '070 330 8812', rating: 4.4, reviews: 30, trucks: ['Emergency Transport'], baseFee: 2200, perKm: 170, recoveryFee: 2500, available: false },
+  { id: 't1', name: 'Galle Tow Express', coords: { latitude: 6.0412, longitude: 80.2121 }, phone: '077 220 1144', rating: 4.7, reviews: 86, trucks: ['Flatbed Towing', 'Emergency Transport'], winch: false, baseFee: 3000, perKm: 190, recoveryFee: 2500, available: true },
+  { id: 't2', name: 'Southern Recovery', coords: { latitude: 6.0701, longitude: 80.2267 }, phone: '071 880 3320', rating: 4.5, reviews: 41, trucks: ['Recovery Winch', 'Flatbed Towing'], winch: true, baseFee: 2800, perKm: 210, recoveryFee: 3500, available: true },
+  { id: 't3', name: 'Karapitiya Haulers', coords: { latitude: 6.0563, longitude: 80.2278 }, phone: '076 450 9921', rating: 4.2, reviews: 23, trucks: ['Flatbed Towing'], winch: false, baseFee: 2500, perKm: 230, recoveryFee: 2800, available: true },
+  { id: 't4', name: 'Unawatuna Lifeline Towing', coords: { latitude: 6.0152, longitude: 80.2492 }, phone: '077 612 7755', rating: 4.8, reviews: 118, trucks: ['Flatbed Towing', 'Recovery Winch', 'Emergency Transport'], winch: true, baseFee: 3500, perKm: 180, recoveryFee: 3000, available: true },
+  { id: 't5', name: 'Hikkaduwa Rescue', coords: { latitude: 6.1409, longitude: 80.1031 }, phone: '070 330 8812', rating: 4.4, reviews: 30, trucks: ['Emergency Transport'], winch: false, baseFee: 2200, perKm: 170, recoveryFee: 2500, available: false },
 ];
 
 const DAY = 24 * 60 * 60 * 1000;

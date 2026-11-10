@@ -13,7 +13,6 @@ import {
   dealFor,
   dealPrice,
   featuredShops,
-  GoogleMap,
   kitOffers,
   liveDeals,
   MART_STOCK,
@@ -79,6 +78,7 @@ import { ReserveSheet } from '../components/mart/ReserveSheet';
 import { ThreadSheet, type ThreadTarget } from '../components/mart/ThreadSheet';
 import type { MartSegment } from '../constants/tabs';
 import { chatDockOffset } from '../utils/chatDock';
+import { AppMap } from '../components/map/AppMap';
 
 /**
  * OnMart: the spare-parts marketplace. It opens on the shops nearest the owner, which can be sorted by rating,
@@ -412,7 +412,7 @@ export const MartScreen: React.FC<MartScreenProps> = ({ activeVehicle, segment, 
       }}
     >
       {segment === 'shops' && (
-        <GoogleMap
+        <AppMap
           center={coords}
           zoom={MAP_ZOOM[ring]}
           style={StyleSheet.absoluteFill}

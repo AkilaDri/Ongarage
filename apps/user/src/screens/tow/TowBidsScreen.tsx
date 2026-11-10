@@ -7,9 +7,9 @@ import {
   Colors,
   distanceKm,
   FONTS,
-  GoogleMap,
   kmToMapPixels,
   ModalCard,
+  canDoSites,
   nextTowRadiusKm,
   Pulse,
   rankTowOperators,
@@ -20,11 +20,17 @@ import {
   type TowQuote,
 } from '@ongarage/shared';
 import { TOW_OPERATORS } from '../../constants/towOperators';
+import { TOW_SITE_TEXT } from '../../constants/towSites';
+import { TowOperatorSheet } from './TowOperatorSheet';
 import { money } from '../../utils/format';
 import type { TowRouteDraft } from './TowRouteScreen';
 import type { TowVehicleFull } from './TowVehicleScreen';
+import { AppMap } from '../../components/map/AppMap';
 
-/** Screen 3 of the towing flow, in the SOS searching format: the map with the search radius, the search status, the trucks around, and the bids. */
+/**
+ * Step 4 of the towing flow: the trucks' quotes. The quotes are the main thing on screen; the owner taps one,
+ * and a bottom bar shows the chosen truck and its price with the confirm button.
+ */
 export type TowBid = { operatorId: string; name: string; phone: string; etaMin: number; quote: TowQuote; pickupKm: number };
 export type TowBidsDraft = { vehicle: TowVehicleFull; route: TowRouteDraft; bid: TowBid };
 
@@ -32,6 +38,27 @@ export type TowBidsDraft = { vehicle: TowVehicleFull; route: TowRouteDraft; bid:
 const ASK_WIDEN_AFTER_MS = 3500;
 /** The towing blue, the same as the rest of the flow. */
 const TOW_BLUE = '#1d367f';
+/** Trucks answer one by one: the first quote comes after a short search, then the others follow, each a moment apart. */
+const FIRST_QUOTE_MS = 2600;
+const NEXT_QUOTE_MS = 1400;
+
+/** A new quote eases in. The cheapest one also gets a single soft ring, once, and then stays still. */
+const QuoteIn: React.FC<{ children: React.ReactNode; ring?: boolean }> = ({ children, ring }) => {
+  const a = useRef(new Animated.Value(0)).current;
+  const halo = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.timing(a, { toValue: 1, duration: 420, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
+    if (ring) Animated.timing(halo, { toValue: 1, duration: 1400, easing: Easing.out(Easing.quad), useNativeDriver: true }).start();
+  }, [a, halo, ring]);
+  return (
+    <Animated.View style={{ opacity: a, transform: [{ translateY: a.interpolate({ inputRange: [0, 1], outputRange: [10, 0] }) }] }}>
+      {children}
+      {ring && (
+        <Animated.View pointerEvents="none" style={[styles.ring, { opacity: halo.interpolate({ inputRange: [0, 1], outputRange: [0.8, 0] }), transform: [{ scale: halo.interpolate({ inputRange: [0, 1], outputRange: [1, 1.04] }) }] }]} />
+      )}
+    </Animated.View>
+  );
+};
 
 export const TowBidsScreen: React.FC<{
   vehicle: TowVehicleFull;
@@ -39,23 +66,30 @@ export const TowBidsScreen: React.FC<{
   onClose: () => void;
   /** The owner puts the search away: the app shows the return bar and the search keeps running. */
   onMinimize?: () => void;
-  /** The owner took a bid. The flow moves on by itself. */
+  /** The owner confirmed a truck. The flow moves on by itself. */
   onNext: (draft: TowBidsDraft) => void;
-}> = ({ vehicle, route, onClose, onMinimize, onNext }) => {
+  /** A scheduled tow: the request goes out for this slot, and trucks free at that time confirm it. Set to the slot's label. */
+  slotLabel?: string;
+  /** Back to the time step, to pick another time when no truck is free at this one. */
+  onChangeTime?: () => void;
+}> = ({ vehicle, route, onClose, onMinimize, onNext, slotLabel, onChangeTime }) => {
   const { height: windowH } = useWindowDimensions();
-  const mapH = Math.round(windowH * 0.42);
+  const mapH = Math.round(windowH * 0.36);
   const condition: TowCondition = vehicle.condition;
   const lat = route.pickup.coords.latitude;
   const [radius, setRadius] = useState<number>(TOW_RADIUS_STEPS_KM[0]);
   const [stopped, setStopped] = useState(false);
   const [askWiden, setAskWiden] = useState(false);
   const [round, setRound] = useState(0);
+  const [picked, setPicked] = useState<string | null>(null);
+  // The truck whose profile is open (from a row or a pin on the map).
+  const [profileId, setProfileId] = useState<string | null>(null);
   const spin = useRef(new Animated.Value(0)).current;
 
   // Trucks that can take the job within the radius, cheapest first. Busy operators and wrong trucks are left out by the shared rules.
   const bids = useMemo(() => {
     const inside = TOW_OPERATORS.filter((op) => distanceKm(route.pickup.coords, op.coords) <= radius);
-    return rankTowOperators(inside, route.pickup.coords, route.drop.coords, condition, Date.now());
+    return rankTowOperators(inside, route.pickup.coords, route.drop.coords, condition, Date.now(), route.sites ?? []);
   }, [radius, route, condition]);
 
   // Trucks around the vehicle, nearest first.
@@ -67,10 +101,21 @@ export const TowBidsScreen: React.FC<{
     [route.pickup.coords]
   );
 
+  // The quotes the owner can see so far: they arrive one at a time, never all at once.
+  const [shown, setShown] = useState(0);
+  useEffect(() => {
+    setShown(0);
+    setPicked(null);
+    if (bids.length === 0) return;
+    const timers = bids.map((_, i) => setTimeout(() => setShown(i + 1), FIRST_QUOTE_MS + i * NEXT_QUOTE_MS));
+    return () => timers.forEach(clearTimeout);
+  }, [radius, round, bids.length]);
+  const quotes = bids.slice(0, shown);
+  const chosen = quotes.find((b) => b.op.id === picked) ?? null;
+
   const next = nextTowRadiusKm(radius);
-  const searching = !stopped && !askWiden && bids.length === 0 && next !== null;
+  const searching = !stopped && !askWiden && quotes.length === 0 && next !== null;
   const farther = radius > TOW_RADIUS_STEPS_KM[0];
-  const cheapest = bids[0];
 
   // Radar: the core turns while the search runs.
   useEffect(() => {
@@ -108,21 +153,38 @@ export const TowBidsScreen: React.FC<{
     setRound((r) => r + 1);
   };
 
-  const takeBid = (b: (typeof bids)[number]) =>
+  // Confirm hands the request to the tracking screen at once: that screen shows the chosen truck and the notices from then on.
+  const confirmChosen = () => {
+    if (!chosen) return;
     onNext({
       vehicle,
       route,
-      bid: { operatorId: b.op.id, name: b.op.name, phone: b.op.phone, etaMin: b.etaMin, quote: b.quote, pickupKm: b.pickupKm },
+      bid: { operatorId: chosen.op.id, name: chosen.op.name, phone: chosen.op.phone, etaMin: chosen.etaMin, quote: chosen.quote, pickupKm: chosen.pickupKm },
     });
+  };
 
   const spinRotate = spin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
   const zoom = zoomToFit(radius * 2, lat, mapH);
+  const quotedIds = new Set(quotes.map((b) => b.op.id));
+  // The price each quoted truck shows on its map pin, and how many of the nearby trucks have quoted.
+  const quoteTotal = new Map(quotes.map((b) => [b.op.id, b.quote.total]));
+  const nearbyQuoted = nearby.filter(({ op }) => quotedIds.has(op.id)).length;
+  // One meaning per status: the search area, the truck's own state, and whether it has quoted this job.
+  const statusOf = (op: (typeof TOW_OPERATORS)[number], km: number) => {
+    if (km > radius) return 'ප්‍රදේශයෙන් පිටත';
+    if (!op.available) return 'දැන් කාර්යබහුලයි';
+    if (!canDoSites(op, route.sites)) return 'මෙම වැඩට නොහැක';
+    if (quotedIds.has(op.id)) return slotLabel ? 'වේලාවට නිදහසයි' : 'මිල දුන්නා';
+    return slotLabel ? 'වේලාවට නිදහස් නැත' : 'මිල බලා සිටිනවා';
+  };
+  const profileOp = profileId ? (TOW_OPERATORS.find((o) => o.id === profileId) ?? null) : null;
+  const profileKm = profileOp ? distanceKm(route.pickup.coords, profileOp.coords) : 0;
 
   return (
     <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
-      {/* The map with the search radius, full width on top. The header floats over it. */}
+      {/* The map with the search radius, on top. The header floats over it. */}
       <View style={[styles.topArea, { height: mapH }]}>
-        <GoogleMap
+        <AppMap
           style={StyleSheet.absoluteFill}
           center={route.pickup.coords}
           zoom={zoom}
@@ -153,20 +215,29 @@ export const TowBidsScreen: React.FC<{
                 )}
                 {nearby.map(({ op }) => {
                   const p = project(op.coords);
-                  return p ? (
-                    <View key={op.id} style={[styles.pinAnchor, { left: p.x, top: p.y }]} pointerEvents="none">
-                      <View style={styles.truckPin}>
+                  if (!p) return null;
+                  // A truck that has quoted is marked blue, and the chosen one is marked larger.
+                  const quoted = quotedIds.has(op.id);
+                  const on = picked === op.id;
+                  return (
+                    <Pressable key={op.id} style={[styles.pinAnchor, { left: p.x, top: p.y }]} onPress={() => setProfileId(op.id)} accessibilityLabel={`Profile of ${op.name}`}>
+                      <View style={[styles.truckPin, quoted && styles.truckPinQuoted, (on || profileId === op.id) && styles.truckPinOn]}>
                         <Text style={styles.pinEmoji}>🛻</Text>
                       </View>
-                    </View>
-                  ) : null;
+                      {quoted && (
+                        <View style={styles.pinPrice}>
+                          <Text style={styles.pinPriceText}>{money(quoteTotal.get(op.id) ?? 0)}</Text>
+                        </View>
+                      )}
+                    </Pressable>
+                  );
                 })}
               </>
             );
           }}
         />
 
-        {/* The SOS header, in the towing blue: close on the left and the step pill, as on the SOS search. */}
+        {/* The header, as in SOS: close on the left, the step pill, and the right slot for minimise. */}
         <View style={styles.topBar}>
           <Pressable style={styles.roundBtn} onPress={onClose} accessibilityLabel="Close towing">
             <Text style={styles.closeText}>✕</Text>
@@ -179,13 +250,12 @@ export const TowBidsScreen: React.FC<{
               <Text style={styles.pillTitle} numberOfLines={1}>Ongarage Towing</Text>
               <View style={styles.stepRow}>
                 <View style={styles.stepChip}>
-                  <Text style={styles.stepNo}>3/5</Text>
+                  <Text style={styles.stepNo}>4/6</Text>
                 </View>
-                <Text style={styles.pillSub} numberOfLines={1}>{bids.length > 0 ? '· මිල ගණන්' : '· ට්‍රක් සොයමින්'}</Text>
+                <Text style={styles.pillSub} numberOfLines={1}>{slotLabel ? (quotes.length > 0 ? '· තහවුරු කිරීම්' : '· ට්‍රක් තහවුරු කරමින්') : quotes.length > 0 ? '· මිල ගණන්' : '· ට්‍රක් සොයමින්'}</Text>
               </View>
             </View>
           </View>
-          {/* The minimise slot, as in SOS: shown while the owner can put the search away. */}
           {onMinimize && (
             <View style={styles.topSlot}>
               <Pressable style={styles.roundBtn} onPress={onMinimize} accessibilityLabel="Minimise towing">
@@ -197,95 +267,186 @@ export const TowBidsScreen: React.FC<{
       </View>
 
       <View style={styles.sheet}>
+        <View style={styles.handle} />
         <View style={styles.progressRow}>
-          {[0, 1, 2, 3, 4].map((i) => (
-            <View key={i} style={[styles.progressBar, i <= 2 && styles.progressBarOn]} />
+          {[0, 1, 2, 3, 4, 5].map((i) => (
+            <View key={i} style={[styles.progressBar, i <= 3 && styles.progressBarOn]} />
           ))}
         </View>
 
         <ScrollView contentContainerStyle={styles.body} key={round} showsVerticalScrollIndicator={false}>
-          {/* The search status: the radar while it runs, the result once a truck has bid. */}
-          <View style={[styles.card, styles.rowCenter]}>
-            <View style={styles.radarWrap}>
-              <Pulse style={styles.radarRing} maxScale={1.6} />
-              <Animated.View style={[styles.radarCore, { transform: [{ rotate: spinRotate }] }]}>
-                <Text style={styles.radarEmoji}>📡</Text>
-              </Animated.View>
-            </View>
+          {/* The status in one line: the radar while the search runs, then the count of quotes. */}
+          <View style={styles.status}>
+            {/* Once an answer to a scheduled slot is in (none free), the radar stops: the card just says so. */}
+            {(!slotLabel || searching || quotes.length > 0) && (
+              <View style={styles.radarWrap}>
+                <Pulse style={styles.radarRing} maxScale={1.6} />
+                <Animated.View style={[styles.radarCore, { transform: [{ rotate: spinRotate }] }]}>
+                  <Text style={styles.radarEmoji}>📡</Text>
+                </Animated.View>
+              </View>
+            )}
             <View style={styles.flex1}>
               <Text style={styles.cardTitle}>
-                {bids.length > 0 ? `ට්‍රක් ${bids.length} ක් මිල දුන්නා` : searching ? 'ළඟම ට්‍රක් සොයමින්...' : 'ට්‍රක් මිල දුන්නේ නැහැ'}
+                {slotLabel
+                  ? quotes.length > 0
+                    ? `ට්‍රක් ${quotes.length} ක් ඒ වේලාවට ලබාගත හැකියි`
+                    : searching
+                      ? `${slotLabel} සඳහා ට්‍රක් තහවුරු කරමින්...`
+                      : 'ඒ වේලාවට ට්‍රක් නැහැ'
+                  : quotes.length > 0
+                    ? `ට්‍රක් ${quotes.length} ක් මිල දුන්නා`
+                    : searching
+                      ? 'ළඟම ට්‍රක් සොයමින්...'
+                      : 'ට්‍රක් මිල දුන්නේ නැහැ'}
               </Text>
-              <Text style={styles.cardSub}>{`km ${radius} ක් ඇතුළත සොයා ඔබව සම්බන්ධ කරනු ඇත.`}</Text>
-              {farther && <Text style={styles.cardSub}>දුරින් එන ට්‍රක් තිබේ. ඒවාට මිල වැඩි වෙන්න පුළුවන්.</Text>}
+              <Text style={styles.cardSub}>
+                {slotLabel
+                  ? !searching && quotes.length === 0
+                    ? 'වෙනත් වේලාවක් තෝරන්න.'
+                    : `${slotLabel} · km ${radius}`
+                  : `km ${radius}${farther ? ' · දුරින් එන ට්‍රක් ද ඇත' : ''}${route.sites?.length ? ` · ${route.sites.map((s) => TOW_SITE_TEXT[s]).join(', ')}` : ''}`}
+              </Text>
             </View>
           </View>
 
-          {/* Three figures, as in the SOS search: the radius, the cheapest price so far, and how many trucks have bid. */}
-          <View style={styles.statsRow}>
-            <View style={styles.statBox}>
+          {/* The three numbers, as on the SOS search: the search area, the cheapest price, and the trucks that have answered. */}
+          <View style={styles.statRow}>
+            <View style={styles.statTile}>
               <Text style={styles.statValue}>{`km ${radius}`}</Text>
               <Text style={styles.statLabel}>සෙවුම් කලාපය</Text>
             </View>
-            <View style={styles.statBox}>
-              <Text style={[styles.statValue, { color: Colors.warning }]}>{cheapest ? money(cheapest.quote.total) : '—'}</Text>
-              <Text style={styles.statLabel}>සුළුම මිල</Text>
+            <View style={styles.statTile}>
+              <Text style={styles.statValue}>{quotes.length > 0 ? money(quotes[0].quote.total) : '—'}</Text>
+              <Text style={styles.statLabel}>අඩුම මිල</Text>
             </View>
-            <View style={styles.statBox}>
-              <Text style={styles.statValue}>{bids.length}</Text>
-              <Text style={styles.statLabel}>මිල දුන් ට්‍රක්</Text>
+            <View style={styles.statTile}>
+              <Text style={styles.statValue}>{String(quotes.length)}</Text>
+              <Text style={styles.statLabel}>මිල දුන්නා</Text>
             </View>
           </View>
 
-          {bids.length > 0 && <Text style={styles.sectionLabel}>මිල දුන් ට්‍රක්</Text>}
-          {bids.map((b, i) => (
-            <Pressable key={b.op.id} style={styles.bid} onPress={() => takeBid(b)} accessibilityLabel={`Take bid from ${b.op.name} ${money(b.quote.total)}`}>
-              <View style={styles.flex1}>
-                <View style={styles.bidTop}>
-                  <Text style={styles.bidName} numberOfLines={1}>{b.op.name}</Text>
-                  {i === 0 && (
-                    <View style={styles.cheapTag}>
-                      <Text style={styles.cheapText}>සුළුම මිල</Text>
+          {/* The quotes: the main thing on this screen. The whole card is the button. */}
+          {quotes.map((b, i) => {
+            const on = picked === b.op.id;
+            const cheapestOne = i === 0;
+            return (
+              <QuoteIn key={b.op.id} ring={cheapestOne}>
+                <Pressable
+                  style={({ pressed }) => [styles.bid, on && styles.bidOn, pressed && { transform: [{ scale: 0.99 }] }]}
+                  onPress={() => setPicked(b.op.id)}
+                  accessibilityLabel={`Choose ${b.op.name} ${money(b.quote.total)}`}
+                  accessibilityState={{ selected: on }}
+                >
+                  {/* The name and details open the truck's profile; the rest of the card chooses the truck. */}
+                  <Pressable style={styles.profileRow} onPress={() => setProfileId(b.op.id)} accessibilityLabel={`Profile of ${b.op.name}`}>
+                    <View style={styles.truckDisc}>
+                      <Text style={styles.pinEmoji}>🛻</Text>
+                    </View>
+                    <View style={styles.flex1}>
+                    {cheapestOne && (
+                      <View style={[styles.cheapTag, styles.cheapTagTop]}>
+                        <Text style={styles.cheapText}>අඩුම මිල</Text>
+                      </View>
+                    )}
+                    <View style={styles.nameRow}>
+                      <Text style={styles.bidName}>{b.op.name}</Text>
+                      <Text style={styles.nameChevron}>›</Text>
+                    </View>
+                    {/* The same straight-line distance the search circle uses, so the card and the map agree. */}
+                    <Text style={styles.cardSub}>{`★ ${b.op.rating.toFixed(1)} · ${b.etaMin} min · ${distanceKm(route.pickup.coords, b.op.coords).toFixed(1)} km${b.quote.siteFee > 0 ? ` · ස්ථාන වැඩ ${money(b.quote.siteFee)}` : ''}`}</Text>
+                    </View>
+                  </Pressable>
+                  <Text style={styles.bidTotal}>{money(b.quote.total)}</Text>
+                  {on ? (
+                    <View style={styles.tickDisc}>
+                      <Text style={styles.tickText}>✓</Text>
+                    </View>
+                  ) : (
+                    <View style={[styles.pickBtn, cheapestOne ? styles.pickBtnPrimary : styles.pickBtnGhost]}>
+                      <Text style={[styles.pickText, cheapestOne ? styles.pickTextPrimary : styles.pickTextGhost]}>තෝරන්න</Text>
                     </View>
                   )}
-                </View>
-                <Text style={styles.cardSub}>{`★ ${b.op.rating.toFixed(1)} · ${b.etaMin} min · ${b.pickupKm} km`}</Text>
-              </View>
-              <Text style={styles.bidTotal}>{money(b.quote.total)}</Text>
-            </Pressable>
-          ))}
-
-          <Text style={styles.sectionLabel}>ළඟ ඇති ට්‍රක්</Text>
-          {nearby.map(({ op, km }) => {
-            const inside = km <= radius;
-            return (
-              <View key={op.id} style={[styles.card, styles.rowCenter]}>
-                <View style={styles.truckIcon}>
-                  <Text style={styles.truckIconText}>🛻</Text>
-                </View>
-                <View style={styles.flex1}>
-                  <Text style={styles.cardTitle} numberOfLines={1}>{op.name}</Text>
-                  <Text style={styles.cardSub}>{`${km.toFixed(1)} km`}</Text>
-                </View>
-                <View style={[styles.statusPill, inside ? styles.statusPillOn : styles.statusPillOff]}>
-                  <Text style={[styles.statusPillText, inside ? styles.statusTextOn : styles.statusTextOff]}>{inside ? '✓ ළඟයි' : 'කලාපයෙන් පිටත'}</Text>
-                </View>
-              </View>
+                </Pressable>
+              </QuoteIn>
             );
           })}
+
+          {/* The other trucks around, folded to one line: they are context, not a choice. */}
+          {/* The trucks that have not quoted yet, always listed as on the SOS search: context, and a tap opens the profile. */}
+          <Text style={styles.sectionLabel}>{`ළඟ ඇති ට්‍රක් ${nearby.length - nearbyQuoted}`}</Text>
+          {nearby
+            .filter(({ op }) => !quotedIds.has(op.id))
+            .map(({ op, km }) => {
+              // One meaning per status: the search area, the truck's own state, and whether it has quoted this job.
+              const quotedHere = quotedIds.has(op.id);
+              const status = statusOf(op, km);
+              return (
+                <Pressable key={op.id} style={styles.nearbyRow} onPress={() => setProfileId(op.id)} accessibilityLabel={`Profile of ${op.name}`}>
+                  <View style={styles.flex1}>
+                    <Text style={styles.nearbyName}>{op.name}</Text>
+                    <Text style={styles.cardSub}>{`${km.toFixed(1)} km`}</Text>
+                  </View>
+                  <View style={[styles.statusPill, quotedHere && styles.statusPillOn]}>
+                    <Text style={[styles.statusPillText, quotedHere ? styles.statusTextOn : styles.statusTextOff]}>{status}</Text>
+                  </View>
+                  <Text style={styles.rowChevron}>›</Text>
+                </Pressable>
+              );
+            })}
+          {/* The commitment rule sits under the list, before the owner confirms (the empty space was used for it). */}
+          {quotes.length > 0 && !slotLabel && <Text style={styles.ruleNote}>ට්‍රක් කෙනෙක් පිළිගන්නා තුරු නොමිලේ.</Text>}
         </ScrollView>
 
-        {/* The bottom action, as in SOS: stop the search while it runs, ask again once it has stopped. */}
-        {bids.length === 0 && (
-          <View style={styles.bottomBar}>
-            {searching ? (
+        {/* The bottom bar: once a truck is chosen, the confirm button; before that, the search controls. */}
+        <View style={styles.bottomBar}>
+          {chosen ? (
+            <View style={styles.confirmRow}>
+              <View style={styles.flex1}>
+                <Text style={styles.confirmPrice}>{money(chosen.quote.total)}</Text>
+              </View>
+              <Pressable style={styles.confirmBtn} onPress={confirmChosen} accessibilityLabel="Confirm this truck">
+                <Text style={styles.confirmText}>ට්‍රක් තහවුරු කරන්න</Text>
+              </Pressable>
+            </View>
+          ) : quotes.length === 0 ? (
+            searching ? (
               <ActionButton label="සෙවීම නවත්වන්න" variant="ghost" onPress={keepRadius} />
+            ) : slotLabel && onChangeTime ? (
+              // No truck is free at this time: the next step is a different time, so that is the main button.
+              <View style={styles.twoRow}>
+                <ActionButton label="වේලාව වෙනස් කරන්න" variant="primary" onPress={onChangeTime} />
+                <ActionButton label="නැවත ඉල්ලන්න" variant="ghost" onPress={askAgain} />
+              </View>
             ) : (
               <ActionButton label="නැවත ඉල්ලන්න" variant="primary" onPress={askAgain} />
-            )}
-          </View>
-        )}
+            )
+          ) : next !== null ? (
+            <ActionButton label="තවත් ට්‍රක් සොයන්න" variant="ghost" onPress={widen} />
+          ) : null}
+        </View>
       </View>
+
+      {/* A truck's profile: a sheet over the search, so the owner's place in the flow stays the same. Only facts the app holds. */}
+      {/* A truck's profile, laid out like a garage's. A truck that has quoted this job can be chosen from it. */}
+      {profileOp && (
+      <TowOperatorSheet
+        op={profileOp}
+        top={mapH - 24}
+        km={profileKm}
+        status={profileOp ? statusOf(profileOp, profileKm) : ''}
+        quote={profileOp ? (quotes.find((b) => b.op.id === profileOp.id)?.quote ?? null) : null}
+        onClose={() => setProfileId(null)}
+        onChoose={
+          profileOp && quotedIds.has(profileOp.id)
+            ? () => {
+                setPicked(profileOp.id);
+                setProfileId(null);
+              }
+            : undefined
+        }
+      />
+      )}
 
       {askWiden && next !== null && (
         <ModalCard
@@ -322,41 +483,71 @@ const styles = themedStyles(() =>
     stepChip: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, backgroundColor: '#dbeafe' },
     stepNo: { fontSize: 12, color: TOW_BLUE, fontFamily: FONTS.bodyBold },
     pinAnchor: { position: 'absolute', width: 0, height: 0 },
-    vehiclePin: { position: 'absolute', left: -18, top: -18, width: 36, height: 36, borderRadius: 18, backgroundColor: TOW_BLUE, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 4, shadowOffset: { width: 0, height: 2 }, elevation: 4 },
+    vehiclePin: { position: 'absolute', left: -18, top: -18, width: 36, height: 36, borderRadius: 18, backgroundColor: '#ffffff', borderWidth: 3, borderColor: TOW_BLUE, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 4, shadowOffset: { width: 0, height: 2 }, elevation: 4 },
     truckPin: { position: 'absolute', left: -15, top: -15, width: 30, height: 30, borderRadius: 15, backgroundColor: Colors.bgCard, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 3, shadowOffset: { width: 0, height: 1 }, elevation: 3 },
+    truckPinQuoted: { backgroundColor: '#dbeafe', borderWidth: 2, borderColor: TOW_BLUE },
+    truckPinOn: { backgroundColor: TOW_BLUE, left: -18, top: -18, width: 36, height: 36, borderRadius: 18 },
+    pinPrice: { position: 'absolute', left: -30, top: -36, width: 60, paddingVertical: 2, borderRadius: 10, backgroundColor: TOW_BLUE, alignItems: 'center' },
+    pinPriceText: { fontSize: 11, fontFamily: FONTS.bodyBold, color: '#ffffff' },
+    cheapTagTop: { alignSelf: 'flex-start', marginBottom: 4 },
+    ruleNote: { fontSize: 12.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 18, paddingHorizontal: 4, paddingTop: 6 },
     pinEmoji: { fontSize: 15 },
-    sheet: { flex: 1, marginTop: -24, backgroundColor: Colors.bgBody, borderTopLeftRadius: 28, borderTopRightRadius: 28, overflow: 'hidden', shadowColor: '#3c4043', shadowOffset: { width: 0, height: -2 }, shadowOpacity: 0.14, shadowRadius: 8, elevation: 8 },
+    handle: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: Colors.subtleBorder, marginTop: 10 },
     progressRow: { flexDirection: 'row', gap: 6, paddingHorizontal: 18, paddingTop: 12 },
     progressBar: { flex: 1, height: 5, borderRadius: 3, backgroundColor: Colors.subtleBorder },
     progressBarOn: { backgroundColor: '#1a73e8' },
-    body: { padding: 16, gap: 12, paddingBottom: 24 },
-    card: { padding: 14, borderRadius: 18, backgroundColor: Colors.bgCard, gap: 6 },
-    rowCenter: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-    radarWrap: { width: 52, height: 52, alignItems: 'center', justifyContent: 'center' },
-    radarRing: { position: 'absolute', width: 52, height: 52, borderRadius: 26, backgroundColor: 'rgba(29, 54, 127, 0.18)' },
-    radarCore: { width: 44, height: 44, borderRadius: 22, backgroundColor: TOW_BLUE, alignItems: 'center', justifyContent: 'center' },
-    radarEmoji: { fontSize: 20 },
+    sheet: { flex: 1, marginTop: -24, backgroundColor: Colors.bgBody, borderTopLeftRadius: 28, borderTopRightRadius: 28, overflow: 'hidden', shadowColor: '#3c4043', shadowOffset: { width: 0, height: -2 }, shadowOpacity: 0.14, shadowRadius: 8, elevation: 8 },
+    body: { padding: 16, gap: 10, paddingBottom: 20 },
+    status: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 4, paddingVertical: 2 },
+    radarWrap: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+    radarRing: { position: 'absolute', width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(29, 54, 127, 0.18)' },
+    radarCore: { width: 36, height: 36, borderRadius: 18, backgroundColor: TOW_BLUE, alignItems: 'center', justifyContent: 'center' },
+    radarEmoji: { fontSize: 16 },
     cardTitle: { fontSize: 15, fontFamily: FONTS.titleBold, color: Colors.textMain },
     cardSub: { fontSize: 12.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 18 },
-    statsRow: { flexDirection: 'row', gap: 8 },
-    statBox: { flex: 1, padding: 12, borderRadius: 16, backgroundColor: Colors.bgCard, alignItems: 'center', gap: 2 },
+    bid: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 18, backgroundColor: Colors.bgCard, borderWidth: 2, borderColor: 'transparent' },
+    bidOn: { borderColor: TOW_BLUE, backgroundColor: 'rgba(29, 54, 127, 0.06)' },
+    bidTop: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    bidName: { flexShrink: 1, fontSize: 15, fontFamily: FONTS.titleBold, color: Colors.textMain },
+    cheapTag: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8, backgroundColor: '#dbeafe' },
+    cheapText: { fontSize: 11, fontFamily: FONTS.bodyBold, color: '#1d4ed8' },
+    bidTotal: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textMain },
+    profileRow: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 },
+    truckDisc: { width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.subtleFill, alignItems: 'center', justifyContent: 'center' },
+    nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    nameChevron: { fontSize: 20, color: TOW_BLUE, marginTop: -2 },
+    pickBtn: { height: 36, paddingHorizontal: 14, borderRadius: 18, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5 },
+    pickBtnPrimary: { backgroundColor: TOW_BLUE, borderColor: TOW_BLUE },
+    pickBtnGhost: { backgroundColor: 'transparent', borderColor: TOW_BLUE },
+    pickText: { fontSize: 13, fontFamily: FONTS.bodyBold },
+    pickTextPrimary: { color: '#ffffff' },
+    pickTextGhost: { color: TOW_BLUE },
+    tickDisc: { width: 30, height: 30, borderRadius: 15, backgroundColor: TOW_BLUE, alignItems: 'center', justifyContent: 'center' },
+    tickText: { fontSize: 14, fontFamily: FONTS.bodyBold, color: '#ffffff' },
+    ring: { ...StyleSheet.absoluteFillObject, borderRadius: 18, borderWidth: 2, borderColor: '#60a5fa' },
+    nearbyToggle: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 4, paddingTop: 8 },
+    nearbyText: { fontSize: 13.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
+    nearbyChevron: { fontSize: 16, color: Colors.textMuted },
+    sectionLabel: { fontSize: 13.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, paddingHorizontal: 4, paddingTop: 8 },
+    statRow: { flexDirection: 'row', gap: 8 },
+    statTile: { flex: 1, paddingVertical: 12, borderRadius: 16, backgroundColor: Colors.bgCard, alignItems: 'center', gap: 2 },
     statValue: { fontSize: 15, fontFamily: FONTS.titleBold, color: Colors.textMain },
-    statLabel: { fontSize: 11, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, textAlign: 'center' },
-    sectionLabel: { fontSize: 14, fontFamily: FONTS.bodyBold, color: Colors.textMain, marginTop: 4 },
-    truckIcon: { width: 46, height: 46, borderRadius: 23, backgroundColor: Colors.subtleFill, alignItems: 'center', justifyContent: 'center' },
-    truckIconText: { fontSize: 21 },
+    statLabel: { fontSize: 11.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
+    nearbyRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 12, minHeight: 56, borderRadius: 14, backgroundColor: Colors.subtleFill },
+    nearbyName: { fontSize: 14, fontFamily: FONTS.bodySemiBold, color: Colors.textMain, lineHeight: 20 },
+    rowChevron: { fontSize: 22, color: Colors.textMuted, marginLeft: 2 },
+    twoRow: { gap: 8 },
     statusPill: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
     statusPillOn: { backgroundColor: '#dcfce7' },
     statusPillOff: { backgroundColor: Colors.subtleFill },
     statusPillText: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold },
     statusTextOn: { color: '#15803d' },
     statusTextOff: { color: Colors.textMuted },
-    bid: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 18, backgroundColor: Colors.bgCard },
-    bidTop: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-    bidName: { flexShrink: 1, fontSize: 15, fontFamily: FONTS.titleBold, color: Colors.textMain },
-    cheapTag: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8, backgroundColor: '#dbeafe' },
-    cheapText: { fontSize: 11, fontFamily: FONTS.bodyBold, color: '#1d4ed8' },
-    bidTotal: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textMain },
-    bottomBar: { padding: 16, paddingTop: 12, backgroundColor: Colors.bgCard, borderTopWidth: 1, borderTopColor: Colors.subtleBorder },
+    bottomBar: { padding: 16, paddingTop: 12, backgroundColor: Colors.bgCard, borderTopWidth: 1, borderTopColor: Colors.subtleBorder, minHeight: 84 },
+    confirmRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    confirmName: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
+    confirmPrice: { fontSize: 18, fontFamily: FONTS.titleBold, color: Colors.textMain },
+    confirmBtn: { height: 50, paddingHorizontal: 18, borderRadius: 25, alignItems: 'center', justifyContent: 'center', backgroundColor: TOW_BLUE },
+    confirmText: { fontSize: 14, fontFamily: FONTS.bodyBold, color: '#ffffff' },
   })
 );

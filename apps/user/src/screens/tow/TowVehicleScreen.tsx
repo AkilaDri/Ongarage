@@ -25,11 +25,11 @@ export type TowVehicleDraft =
 export type TowVehicleFull = TowVehicleDraft & { condition: TowCondition };
 
 /** Screen 1 of the towing flow, in the SOS confirmation format: the vehicle as a row to change, then one question with four picture tiles. */
-const CONDITION_TEXT: Record<TowCondition, { label: string; icon: string; tint: string }> = {
-  rolls: { label: 'ධාවනය වෙනවා', icon: '🚗', tint: '#22c55e' },
-  wontRoll: { label: 'ධාවනය වෙන්නේ නැහැ', icon: '🛑', tint: '#f59e0b' },
-  stuck: { label: 'හිරවෙලා', icon: '🪨', tint: '#8b5cf6' },
-  accident: { label: 'අනතුරක්', icon: '💥', tint: '#ef4444' },
+const CONDITION_TEXT: Record<TowCondition, { label: string; hint: string; icon: string; tint: string }> = {
+  rolls: { label: 'ගමන් කරන්න පුළුවන්', hint: 'එන්ජිම ස්ටාර්ට් වෙනවා, වාහනය තමන්ම යනවා', icon: '🚗', tint: '#22c55e' },
+  wontRoll: { label: 'ගමන් කරන්න බැහැ', hint: 'ස්ටාර්ට් වෙන්නේ නැහැ හෝ රෝද කැරකෙන්නේ නැහැ', icon: '🛑', tint: '#f59e0b' },
+  stuck: { label: 'හිර වෙලා තියෙනවා', hint: 'මඩේ, වැලි හෝ වළක හිරවෙලා, ඇදගෙන ඉවත් කරන්න ඕන', icon: '🪨', tint: '#8b5cf6' },
+  accident: { label: 'අනතුරකින් පසු', hint: 'අනතුරකින් හානි වෙලා, ට්‍රක් එකෙන් ගෙනියන්න ඕන', icon: '💥', tint: '#ef4444' },
 };
 
 /** The blue band (the Quotes posting header's blue, with the SOS band's gradient). */
@@ -84,18 +84,19 @@ export const TowVehicleScreen: React.FC<{
             <View style={styles.pillDisc}><Text style={styles.pillEmoji}>🛻</Text></View>
             <View style={styles.flex1}>
               <Text style={styles.pillTitle} numberOfLines={1}>Ongarage Towing</Text>
-              <View style={styles.stepRow}><View style={styles.stepChip}><Text style={styles.stepNo}>1/5</Text></View><Text style={styles.pillSub} numberOfLines={1}>· විස්තර තහවුරු කිරීම</Text></View>
+              <View style={styles.stepRow}><View style={styles.stepChip}><Text style={styles.stepNo}>1/6</Text></View><Text style={styles.pillSub} numberOfLines={1}>· විස්තර තහවුරු කිරීම</Text></View>
             </View>
           </View>
-        </View>
-        <View style={styles.progressRow}>
-          {[0, 1, 2, 3, 4].map((i) => (
-            <View key={i} style={[styles.progressBar, i === 0 && styles.progressBarOn]} />
-          ))}
         </View>
       </View>
 
       <View style={styles.sheet}>
+        <View style={styles.handle} />
+        <View style={styles.progressRow}>
+          {[0, 1, 2, 3, 4, 5].map((i) => (
+            <View key={i} style={[styles.progressBar, i === 0 && styles.progressBarOn]} />
+          ))}
+        </View>
         <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
           <View style={styles.card}>
             <Pressable ref={vehicleRef} style={styles.selectRow} onPress={() => (jobVehicle && ownVehicle ? switchToOwn() : setShowPicker(true))} accessibilityLabel={jobVehicle && ownVehicle ? 'Use my own vehicle' : 'Change tow vehicle'}>
@@ -165,7 +166,10 @@ export const TowVehicleScreen: React.FC<{
                     <View style={[styles.optionDisc, { backgroundColor: CONDITION_TEXT[c].tint + (on ? '55' : '33') }]}>
                       <Text style={styles.optionIcon}>{CONDITION_TEXT[c].icon}</Text>
                     </View>
-                    <Text style={[styles.optionLabel, on && styles.itemLabelOn]} numberOfLines={1}>{CONDITION_TEXT[c].label}</Text>
+                    <View style={styles.optionText}>
+                      <Text style={[styles.optionLabel, on && styles.itemLabelOn]}>{CONDITION_TEXT[c].label}</Text>
+                      <Text style={styles.optionHint}>{CONDITION_TEXT[c].hint}</Text>
+                    </View>
                     {on ? (
                       <View style={styles.tick}>
                         <Text style={styles.tickText}>✓</Text>
@@ -224,9 +228,10 @@ const styles = themedStyles(() =>
     stepNo: { fontSize: 12, color: '#1d367f', fontFamily: FONTS.bodyBold },
     pillTitle: { fontSize: 13.5, fontFamily: FONTS.titleBold, color: Colors.textMain },
     pillSub: { fontSize: 12, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
-    progressRow: { position: 'absolute', left: 16, right: 16, bottom: 14, flexDirection: 'row', gap: 6 },
-    progressBar: { flex: 1, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.3)' },
-    progressBarOn: { backgroundColor: '#ffffff' },
+    handle: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: Colors.subtleBorder, marginTop: 10 },
+    progressRow: { flexDirection: 'row', gap: 6, paddingHorizontal: 18, paddingTop: 12 },
+    progressBar: { flex: 1, height: 5, borderRadius: 3, backgroundColor: Colors.subtleBorder },
+    progressBarOn: { backgroundColor: '#1a73e8' },
     sheet: { flex: 1, marginTop: -24, backgroundColor: Colors.bgBody, borderTopLeftRadius: 28, borderTopRightRadius: 28, overflow: 'hidden' },
     body: { padding: 16, gap: 12, paddingBottom: 24 },
     personBadge: { position: 'absolute', right: -2, bottom: -2, width: 20, height: 20, borderRadius: 10, backgroundColor: '#1a73e8', borderWidth: 2, borderColor: Colors.bgCard, alignItems: 'center', justifyContent: 'center' },
@@ -261,7 +266,9 @@ const styles = themedStyles(() =>
     optionOn: { borderColor: '#1d367f', backgroundColor: Colors.bgCard },
     optionDisc: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center' },
     optionIcon: { fontSize: 22 },
-    optionLabel: { flex: 1, fontSize: 14.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
+    optionText: { flex: 1, gap: 2 },
+    optionLabel: { fontSize: 15, fontFamily: FONTS.bodyBold, color: Colors.textMain },
+    optionHint: { fontSize: 12, lineHeight: 17, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
     radio: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: Colors.subtleBorder },
     grid: { flexDirection: 'row', flexWrap: 'wrap', rowGap: 12 },
     item: { width: '33.33%', alignItems: 'center', gap: 4 },

@@ -12,6 +12,59 @@ Sources:
 
 Use the principles to check a screen. Do not add elements to satisfy a principle; remove or reorder until it holds. Where a principle conflicts with a user's stated wish, say so and ask.
 
+## 0. How to use this skill (read first, every refinement)
+
+The file has two layers. Work from the top layer and fall back to the lower ones only when it does not solve the case.
+
+1. **Core set (section 1 below).** The principles that have decided most refinements to these apps. Check the screen against each one first.
+2. **Fallback (sections A–M and the checklist).** The full library. Go here only when no core principle settles the question. Name the principle you used from this layer, and say why the core set did not cover it.
+3. **Log every refinement.** After a refinement, add one line to [usage-log.md](usage-log.md): date, screen, the principles used (by number), and any core principle that was missing. This log is how the core set stays current.
+4. **Review the core set** every 10 logged refinements, or when the user asks. Promote a principle that appears in 3 or more recent entries. Demote one that has not been used in the last 20 entries. Record the change in the log's "Review history" section.
+
+When giving a recommendation to the user, name the principle numbers and the core item (for example "UPD 005 affordance: the change button is not visible"). The user should be able to see why each suggestion exists.
+
+## 1. Core set (frequently used, check these first)
+
+Each entry: the principle, the question to ask of the screen, and the typical fix in this app. Numbers point to the full notes below.
+
+**C1. Affordance and visible controls (UPD 005, UX 50).** *Does a control look like what it does, and is every changeable thing visibly changeable?* Typical fix: a visible "වෙනස් කරන්න" (change) action on a row, at least 44px. A hidden tap-to-edit is a failure.
+
+**C2. Less is more, one question per screen (UX 11, UX 45, UPD 148).** *Does this element help the task right now?* Typical fix: remove a repeated question, a duplicate subtitle, or decoration in dead space. Do not fill empty space with decoration; use it for one useful fact.
+
+**C3. Recognition over recall (UPD 155, UX 24).** *Are the options visible, or does the user have to remember them?* Typical fix: chips, segments and condition lists shown in full, with the selected state visible. Show only the choices that matter (Hick's law, UX 24).
+
+**C4. Feedback that says what happens next (UX 13, UPD 064, UX 34).** *After a tap, does the user know what the system is doing or what the button will do?* Typical fix: a helper line under a switch (what the choice means), a status line during a wait, a label on the primary button that names the action ("ට්‍රක් සොයන්න").
+
+**C5. Consistency with the app's own patterns (UPD 035, UX 22).** *Does the same role look and behave the same as in the rest of the app?* Typical fix: SOS-style header pill and progress bar, the navy active pill, the tick style, `softCard()` and `ActionButton`. Break a pattern only with a stated reason.
+
+**C6. Primary action is clear and easy to reach (UPD 069 Fitts, UPD 168 serial position, UPD 067 figure-ground).** *Is the main action the largest, most contrasting element, near the thumb, and last in reading order?* Typical fix: the bottom bar holds one filled button; back is a secondary pill beside it.
+
+**C7. Touch targets and legibility (UPD 069, UX 107, Typography 20, 21, 27).** *Can every tap be hit, and can every label be read?* Typical fix: 44px minimum hit area; labels 13px or more in Sinhala with a generous line height; no synthetic bold or italic in Sinhala; no justified text.
+
+**C8. Interrupt only when needed (UX 33, UPD 087 habituation).** *Does this message deserve to interrupt?* Typical fix: a modal only for a decision the owner must make (for example widening the search radius); a toast for confirmations; no repeated alerts for the same state.
+
+**C9. Confirm only the costly or irreversible (UX 92, UX 14, UPD 033).** *Is this action costly or irreversible, and if not, can it be undone?* Typical fix: confirm a cancellation that has a fee, state the fee, and repeat the action on the button. Do not confirm a reversible edit; let the owner change it.
+
+**C10. Show the cost and the rule before commitment (UX 05, UX 89, UX 90).** *Has the owner been told the price, the fee, or the cancellation rule before they commit?* Typical fix: a note card with the rule ("ට්‍රක් කෙනෙක් පිළිගන්නා තුරු නොමිලේ"). Never hide a cost.
+
+**C11. Sequence and progress (UPD 127 number-space, UPD 091 highlighting, UX 49).** *Can the owner see where they are and what is left?* Typical fix: step counter and progress segments in the same order as the steps; one goal per path; the step's name, not its question, in the header.
+
+**C12. Peak and end (UX 134).** *Does the flow end on a positive, clear success?* Typical fix: the rating or the completion screen closes with a confirmation, never with an error or open question.
+
+**C13. Typography hierarchy and emphasis (Typography 23, 25, 27, 31, 52).** *Does size and weight say what matters, with one meaning per style, and do selected states keep their width?* Typical fix: bold for values and titles, grey label above; use the real weight from `FONTS`; reserve the width of a chip whose weight changes.
+
+Entries C1–C13 are the current core set. Their numbers are stable; when a principle is demoted, mark it "retired" here instead of renumbering.
+
+## 2. Reserve (fallback when the core set does not settle a case)
+
+Use these only after C1–C13 have been checked. Name the principle you used.
+
+- Learnability and first use: UX 15, 22, 23, 105. See section D.
+- Forms and input: UX 35, 91. See section F.
+- Errors: UX 90, 93. See section G.
+- Accessibility: UX 18, 19, 20; contrast 4.5:1, see section I.
+- Mental models and feedback loops: UX 116, UPD 065. See section L.
+- Typography detail: see section M.
 
 ## L. Profession lens (Universal Principles of Design, categorised contents)
 

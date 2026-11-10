@@ -69,3 +69,16 @@ test('stages: cancel until the vehicle is carried, closed once nothing waits', (
   assert.strictEqual(m.towClosed({ ...base, stage: 'delivered', approval: 'pending' }), false);
   assert.strictEqual(m.towClosed({ ...base, stage: 'transporting' }), false);
 });
+
+test('a site that needs pulling out goes only to a winch truck and adds labour', () => {
+  const plain = op({ id: 'plain', winch: false, recoveryFee: 2000, perKm: 1 });
+  const winch = op({ id: 'winch', winch: true, recoveryFee: 2000, perKm: 1 });
+  assert.strictEqual(m.canDoSites(plain, ['mud']), false);
+  assert.strictEqual(m.canDoSites(plain, ['tightAccess']), true);
+  assert.strictEqual(m.canDoSites(winch, ['rocks']), true);
+  const r = m.rankTowOperators([plain, winch], pickup, dest, 'rolls', at(12), ['mud']);
+  assert.deepStrictEqual(r.map((x) => x.op.id), ['winch']);
+  assert.strictEqual(r[0].quote.siteFee, 1000);
+  const none = m.rankTowOperators([winch], pickup, dest, 'rolls', at(12));
+  assert.strictEqual(none[0].quote.siteFee, 0);
+});

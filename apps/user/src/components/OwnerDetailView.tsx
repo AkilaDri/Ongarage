@@ -14,7 +14,6 @@ import {
   directionsUrl,
   FONTS,
   GlassIcon,
-  GoogleMap,
   Icon,
   LevelBadge,
   PhotoStrip,
@@ -39,6 +38,7 @@ import { CompletedRecord } from './CompletedRecord';
 import { TxnTag } from './TxnTag';
 import { ago, countdown, formatDate, formatTime, money } from '../utils/format';
 import type { DirectBooking } from '../types';
+import { AppMap } from './map/AppMap';
 
 export type OwnerDetailTarget = { kind: 'job'; job: RepairJob } | { kind: 'booking'; booking: DirectBooking };
 
@@ -137,7 +137,7 @@ export const OwnerDetailView: React.FC<{
           <EmptyState icon="📥" title="තවම ලංසු නැත" text="ළඟම ගරාජවලට ඔබගේ රැකියාව පෙනේ; ලංසු ලැබුණු විට මෙහි පෙන්වයි." />
         ) : (
           <>
-            <GoogleMap
+            <AppMap
               style={[styles.map, { height: MAP_H }]}
               center={user.coords}
               zoom={zoomToFit(Math.max(...j.bids.map((b) => b.distanceKm)) * 2.4, user.coords.latitude, MAP_H)}
@@ -231,7 +231,7 @@ export const OwnerDetailView: React.FC<{
             <Fact icon={b.doorstep ? '🚛' : '🏠'} label="සේවා ස්ථානය" value={b.doorstep ? 'ගරාජය ඔබ වෙත පැමිණේ' : 'ඔබ වාහනය ගරාජයට ගෙන යයි'} />
           </Rows>
         </View>
-        <GoogleMap
+        <AppMap
           style={[styles.map, styles.mapJoined, { height: MAP_H }]}
           center={b.garage.coords}
           zoom={14}

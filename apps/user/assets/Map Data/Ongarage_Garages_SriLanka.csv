@@ -1,0 +1,432 @@
+﻿#,District,Garage/Workshop Name,Category,Address / Locality,Phone (Tel/WhatsApp),Website,Latitude,Longitude,Google Maps Link,Rating,Data Source,Source Link
+1,Colombo,ADVAN CAR AUDIO,Garage / Vehicle Repair,"109/1, Maharagama-Dehiwala Road, Boralesgamuwa",+94777115511,,6.841572,79.904503,"https://www.google.com/maps/search/?api=1&query=6.841572,79.904503",,OSM,node/3070014274
+2,Colombo,Mr Paint,Garage / Vehicle Repair,"175, Vauxhall Street",+9411230503,https://mrpaint.com/,6.923069,79.857651,"https://www.google.com/maps/search/?api=1&query=6.923069,79.857651",,OSM,node/6048546685
+3,Colombo,S.N.D. Auto Service,Garage / Vehicle Repair,"351/D, Pannipitiya Road, Thalawathugoda",+94714554411,,6.873352,79.937355,"https://www.google.com/maps/search/?api=1&query=6.873352,79.937355",,OSM,node/6344273898
+4,Colombo,Priyantha Motors,Garage / Vehicle Repair,,+94112177014+94773128577,,6.88728,79.932364,"https://www.google.com/maps/search/?api=1&query=6.88728,79.932364",,OSM,node/6464257909
+5,Colombo,Renault Service Center,Garage / Vehicle Repair,Nawala Road,+94112369023,,6.889216,79.880927,"https://www.google.com/maps/search/?api=1&query=6.889216,79.880927",,OSM,node/6822468890
+6,Colombo,Thiwanka Motors,Garage / Vehicle Repair,"531A, Temple Road",+94759793322,,6.874134,79.933458,"https://www.google.com/maps/search/?api=1&query=6.874134,79.933458",,OSM,node/7324384294
+7,Colombo,Power Tyre & Battery Service,Garage / Vehicle Repair,,+94776096600+94712753837,,6.865042,79.942255,"https://www.google.com/maps/search/?api=1&query=6.865042,79.942255",,OSM,node/9703416566
+8,Colombo,Universal Tyres Private Limited,Tyre Service,"1043 1/1, P De S Kularatne Mawatha",+94112693566,,6.919321,79.873232,"https://www.google.com/maps/search/?api=1&query=6.919321,79.873232",,OSM,node/12105592896
+9,Colombo,Satoshi Trading,Garage / Vehicle Repair,"New Kandy Road, Malabe",+94714198200+94716337078,,6.904535,79.961646,"https://www.google.com/maps/search/?api=1&query=6.904535,79.961646",,OSM,way/403228452
+10,Colombo,Perera Tyre Service,Tyre Service,"New Kandy Road, Malabe",,,6.90466,79.950641,"https://www.google.com/maps/search/?api=1&query=6.90466,79.950641",,OSM,node/969843959
+11,Colombo,SPREYMECH,Garage / Vehicle Repair,W. A. D. Ramanayake Mawatha,,,6.914871,79.857347,"https://www.google.com/maps/search/?api=1&query=6.914871,79.857347",,OSM,node/1376770720
+12,Colombo,United Motors Garage,Garage / Vehicle Repair,"Majeed Road , Kolonnawa, Western Province",,,6.94764,79.880688,"https://www.google.com/maps/search/?api=1&query=6.94764,79.880688",,OSM,node/1376877209
+13,Colombo,wheelsmart,Garage / Vehicle Repair,,,,6.946599,79.877951,"https://www.google.com/maps/search/?api=1&query=6.946599,79.877951",,OSM,node/1468601011
+14,Colombo,Dammika Engineers (Pvt) Ltd,Garage / Vehicle Repair,"Purana Road, Maharagama",,,6.849547,79.916642,"https://www.google.com/maps/search/?api=1&query=6.849547,79.916642",,OSM,node/1651212804
+15,Colombo,Matara Garage Ltd,Garage / Vehicle Repair,"High Level Road , Colombo, Western Province",,,6.873492,79.882781,"https://www.google.com/maps/search/?api=1&query=6.873492,79.882781",,OSM,node/1735979954
+16,Colombo,Mazna Motors,Garage / Vehicle Repair,,,,6.856601,79.891185,"https://www.google.com/maps/search/?api=1&query=6.856601,79.891185",,OSM,node/1737485278
+17,Colombo,Toyota Lanka Service Station - Maharagama,Garage / Vehicle Repair,Nawinna,,,6.853979,79.914427,"https://www.google.com/maps/search/?api=1&query=6.853979,79.914427",,OSM,node/1845071181
+18,Colombo,Ravi Motors,Garage / Vehicle Repair,High Level Road,,,6.942083,80.133314,"https://www.google.com/maps/search/?api=1&query=6.942083,80.133314",,OSM,node/1856520396
+19,Colombo,Toyota Lanka,Garage / Vehicle Repair,,,,6.815705,79.877066,"https://www.google.com/maps/search/?api=1&query=6.815705,79.877066",,OSM,node/1895968903
+20,Colombo,AMW Services Centre,Garage / Vehicle Repair,,,,6.904974,79.901404,"https://www.google.com/maps/search/?api=1&query=6.904974,79.901404",,OSM,node/1912464487
+21,Colombo,Eranga Motors,Garage / Vehicle Repair,,,,6.859651,79.899377,"https://www.google.com/maps/search/?api=1&query=6.859651,79.899377",,OSM,node/2122142051
+22,Colombo,Automobile Association of Ceylon,Garage / Vehicle Repair,Sir Mohamed Macan Marker Mawatha,,https://www.aaceylon.lk/,6.927092,79.846597,"https://www.google.com/maps/search/?api=1&query=6.927092,79.846597",,OSM,node/2402351716
+23,Colombo,Mag City,Garage / Vehicle Repair,,,,6.923787,79.861581,"https://www.google.com/maps/search/?api=1&query=6.923787,79.861581",,OSM,node/3136329694
+24,Colombo,AutoZone,Garage / Vehicle Repair,,,,6.846703,79.970979,"https://www.google.com/maps/search/?api=1&query=6.846703,79.970979",,OSM,node/3254715384
+25,Colombo,Marina Shock Absorbers,Garage / Vehicle Repair,,,,6.902858,79.912075,"https://www.google.com/maps/search/?api=1&query=6.902858,79.912075",,OSM,node/3506435528
+26,Colombo,Ajith Motors,Garage / Vehicle Repair,,,,6.874231,79.953207,"https://www.google.com/maps/search/?api=1&query=6.874231,79.953207",,OSM,node/3537910732
+27,Colombo,Laugfs Eco-Sri Emission Test Service,Garage / Vehicle Repair,,,,6.866794,79.910815,"https://www.google.com/maps/search/?api=1&query=6.866794,79.910815",,OSM,node/3738520747
+28,Colombo,Edirisinghe Brothers,Garage / Vehicle Repair,"Prince of Wales Avenue, Colombo",,,6.950871,79.873682,"https://www.google.com/maps/search/?api=1&query=6.950871,79.873682",,OSM,node/3753933972
+29,Colombo,Toyota Lanka,Garage / Vehicle Repair,Phanchakawatta Road,,,6.931446,79.865245,"https://www.google.com/maps/search/?api=1&query=6.931446,79.865245",,OSM,node/3922521624
+30,Colombo,Tire Shop,Garage / Vehicle Repair,,,,6.864446,80.023873,"https://www.google.com/maps/search/?api=1&query=6.864446,80.023873",,OSM,node/4082996327
+31,Colombo,General Auto Works,Garage / Vehicle Repair,"T.B. Jaya Mawatha, Union Place",,,6.919125,79.861821,"https://www.google.com/maps/search/?api=1&query=6.919125,79.861821",,OSM,node/4747058361
+32,Colombo,Denzil Tyre House,Tyre Service,"205/B, Attidiya Road, Attidiya",,,6.836497,79.884722,"https://www.google.com/maps/search/?api=1&query=6.836497,79.884722",,OSM,node/4774200358
+33,Colombo,Stafford Motor's Service centre,Garage / Vehicle Repair,,,,6.923373,79.867897,"https://www.google.com/maps/search/?api=1&query=6.923373,79.867897",,OSM,node/4853489837
+34,Colombo,Drive Green,Garage / Vehicle Repair,,,,6.963334,79.870709,"https://www.google.com/maps/search/?api=1&query=6.963334,79.870709",,OSM,node/4976944867
+35,Colombo,Motorcycle Garage,Motorcycle Repair,"Galwarusawa Road , Oruwala, Western Province",,,6.894413,80.002066,"https://www.google.com/maps/search/?api=1&query=6.894413,80.002066",,OSM,node/5329109673
+36,Colombo,Autodrome,Garage / Vehicle Repair,,,,6.919865,79.858936,"https://www.google.com/maps/search/?api=1&query=6.919865,79.858936",,OSM,node/6351568704
+37,Colombo,U-Sri Engineers & Lorry Body Builders,Garage / Vehicle Repair,"235, Old Kottawa Road",,,6.859972,79.914211,"https://www.google.com/maps/search/?api=1&query=6.859972,79.914211",,OSM,node/6562564562
+38,Colombo,New Smart Service Center,Garage / Vehicle Repair,,,,6.974806,79.876493,"https://www.google.com/maps/search/?api=1&query=6.974806,79.876493",,OSM,node/6615719505
+39,Colombo,Mahesh Motors,Garage / Vehicle Repair,Maharagama,,,6.846264,79.91668,"https://www.google.com/maps/search/?api=1&query=6.846264,79.91668",,OSM,node/6615744995
+40,Colombo,Luck Mithuro Organization,Garage / Vehicle Repair,"206 A, Maharagama",,,6.842453,79.918328,"https://www.google.com/maps/search/?api=1&query=6.842453,79.918328",,OSM,node/6615745057
+41,Colombo,Accmart Tyre centre,Tyre Service,"14, Perakumba Mawatha, Jayawardenapura Kotte",,,6.903484,79.906058,"https://www.google.com/maps/search/?api=1&query=6.903484,79.906058",,OSM,node/6626945357
+42,Colombo,Ref Engineers,Garage / Vehicle Repair,"762, maln road athul kotte, Sri Jayawardenepura Kotte",,,6.897672,79.906115,"https://www.google.com/maps/search/?api=1&query=6.897672,79.906115",,OSM,node/6626986791
+43,Colombo,Royal Motors,Motorcycle Repair,"646, Kotte Road, Sri Jayawardenepura Kotte",,,6.893991,79.905324,"https://www.google.com/maps/search/?api=1&query=6.893991,79.905324",,OSM,node/6626986825
+44,Colombo,Leo's Paw Engineering,Garage / Vehicle Repair,Sri Jayawardenepura Kotte,,,6.888911,79.900954,"https://www.google.com/maps/search/?api=1&query=6.888911,79.900954",,OSM,node/6630965171
+45,Colombo,Toyota Genuine Parts,Garage / Vehicle Repair,"EthulKotte, Jayawardhanapura Kotte",,,6.876274,79.892363,"https://www.google.com/maps/search/?api=1&query=6.876274,79.892363",,OSM,node/6631008173
+46,Colombo,Sehandu Motors,Garage / Vehicle Repair,"13/3, Sri Nagavihara Road, nugegoda",,,6.881942,79.899347,"https://www.google.com/maps/search/?api=1&query=6.881942,79.899347",,OSM,node/6632922950
+47,Colombo,Magic Auto Touch Car Repaire,Garage / Vehicle Repair,"Kotte Rd, nugegoda",,,6.878134,79.900216,"https://www.google.com/maps/search/?api=1&query=6.878134,79.900216",,OSM,node/6632922978
+48,Colombo,Nandula Wheel Care (pvt) Ltd.,Tyre Service,"348, Pannipitiya Road",,,6.892688,79.928243,"https://www.google.com/maps/search/?api=1&query=6.892688,79.928243",,OSM,node/6687009690
+49,Colombo,Sterling After Care,Garage / Vehicle Repair,"9D, Sri Vijaya Road",,,6.894401,79.877275,"https://www.google.com/maps/search/?api=1&query=6.894401,79.877275",,OSM,node/7005952381
+50,Colombo,R.D.S. Motor Engineers,Garage / Vehicle Repair,,,,6.88254,79.914687,"https://www.google.com/maps/search/?api=1&query=6.88254,79.914687",,OSM,node/7022845594
+1,Gampaha,JKS Nippon Pvt Ltd,Garage / Vehicle Repair,"87/2A, Colombo - Kandy Road",0332234224,,7.073899,80.017215,"https://www.google.com/maps/search/?api=1&query=7.073899,80.017215",,OSM,node/4983927925
+2,Gampaha,Custom Wheels,Tyre Service,"158/4, Kiribathgoda-Makola-Sapugaskanda Road",+940773280010+940112984880,,6.977245,79.929761,"https://www.google.com/maps/search/?api=1&query=6.977245,79.929761",,OSM,node/8205814121
+3,Gampaha,E L Mortors,Garage / Vehicle Repair,"566, Colombo - Negombo Road, Ja- Ela",+94712932929,,7.058927,79.895884,"https://www.google.com/maps/search/?api=1&query=7.058927,79.895884",,OSM,node/8825472450
+4,Gampaha,Senok Work Shop,Garage / Vehicle Repair,,,,6.975136,79.888059,"https://www.google.com/maps/search/?api=1&query=6.975136,79.888059",,OSM,node/1903594744
+5,Gampaha,AMW,Garage / Vehicle Repair,,,,6.961473,79.886091,"https://www.google.com/maps/search/?api=1&query=6.961473,79.886091",,OSM,node/1924772412
+6,Gampaha,Nilantha Tyre Center,Tyre Service,,,,7.21989,80.187402,"https://www.google.com/maps/search/?api=1&query=7.21989,80.187402",,OSM,node/3724313646
+7,Gampaha,Austin Motors,Garage / Vehicle Repair,,,,7.014134,80.024509,"https://www.google.com/maps/search/?api=1&query=7.014134,80.024509",,OSM,node/3730057209
+8,Gampaha,Lanka Tiles Showroom,Tyre Service,"Colombo-Negombo Road, Paliyagoda",,,6.972959,79.886314,"https://www.google.com/maps/search/?api=1&query=6.972959,79.886314",,OSM,node/3753936804
+9,Gampaha,Micro Cars Workshop,Garage / Vehicle Repair,"873, Kandy Road, Wedamulla",,,6.968057,79.902179,"https://www.google.com/maps/search/?api=1&query=6.968057,79.902179",,OSM,node/3771327333
+10,Gampaha,Jagath Motors,Garage / Vehicle Repair,,,,7.099008,80.083767,"https://www.google.com/maps/search/?api=1&query=7.099008,80.083767",,OSM,node/3837541297
+11,Gampaha,Mint auto city,Garage / Vehicle Repair,,,,6.963457,79.896096,"https://www.google.com/maps/search/?api=1&query=6.963457,79.896096",,OSM,node/4451148892
+12,Gampaha,Tire repair shop,Tyre Service,"Samurdhi Mawatha, Biyagama - WP",,,6.963224,80.009617,"https://www.google.com/maps/search/?api=1&query=6.963224,80.009617",,OSM,node/4943591078
+13,Gampaha,Toyota Lanka (Accident Repair),Garage / Vehicle Repair,,,,6.985491,79.88868,"https://www.google.com/maps/search/?api=1&query=6.985491,79.88868",,OSM,node/4965144604
+14,Gampaha,Kusum Tyre & Wheel Alignment,Tyre Service,,,,6.96759,79.904627,"https://www.google.com/maps/search/?api=1&query=6.96759,79.904627",,OSM,node/4968444297
+15,Gampaha,Garage 161,Garage / Vehicle Repair,"Thelangapatha Road , Wattala, Western Province",,,6.971792,79.892225,"https://www.google.com/maps/search/?api=1&query=6.971792,79.892225",,OSM,node/12023995475
+16,Gampaha,Paint Mater Sri Lanka,Garage / Vehicle Repair,,,,7.020817,79.902969,"https://www.google.com/maps/search/?api=1&query=7.020817,79.902969",,OSM,node/12100573158
+17,Gampaha,Dissanayake Garage,Garage / Vehicle Repair,"St. Xaviers Road , Ja-ela, Western Province",,,7.068236,79.887437,"https://www.google.com/maps/search/?api=1&query=7.068236,79.887437",,OSM,way/377945391
+18,Gampaha,Kalindu Auto Repair Pvt. Ltd,Garage / Vehicle Repair,"Gampaha-Yakkala Road , Yakkala, Western Province",,,7.087231,80.031053,"https://www.google.com/maps/search/?api=1&query=7.087231,80.031053",,OSM,way/378081694
+19,Gampaha,Yann Lanka Auto Treaders,Garage / Vehicle Repair,,,,7.103599,79.883925,"https://www.google.com/maps/search/?api=1&query=7.103599,79.883925",,OSM,way/378082058
+20,Gampaha,Asanka Motors,Garage / Vehicle Repair,,,,7.107177,79.883706,"https://www.google.com/maps/search/?api=1&query=7.107177,79.883706",,OSM,way/378115684
+21,Gampaha,Bopitiya Auto Enterprises,Garage / Vehicle Repair,639,,,7.094707,79.887203,"https://www.google.com/maps/search/?api=1&query=7.094707,79.887203",,OSM,way/404556258
+22,Gampaha,FormulaWorld Collision Repair Center,Garage / Vehicle Repair,,,,7.124497,79.878815,"https://www.google.com/maps/search/?api=1&query=7.124497,79.878815",,OSM,way/428124538
+23,Gampaha,Garage watte,Garage / Vehicle Repair,", Pattiya, Western Province",,,6.963658,79.880713,"https://www.google.com/maps/search/?api=1&query=6.963658,79.880713",,Photon,
+24,Gampaha,CEB Workshop,Garage / Vehicle Repair,", Siyambalape South, Western Province",,,6.971222,79.988252,"https://www.google.com/maps/search/?api=1&query=6.971222,79.988252",,Photon,
+25,Gampaha,ESHCOL Workshop,Garage / Vehicle Repair,"Preethipura Road , Hekitta, Western Province",,,7.005131,79.86831,"https://www.google.com/maps/search/?api=1&query=7.005131,79.86831",,Photon,
+26,Gampaha,Wheels Lanka Workshop,Garage / Vehicle Repair,"1st Lane , Pattiya, Western Province",,,6.964006,79.884488,"https://www.google.com/maps/search/?api=1&query=6.964006,79.884488",,Photon,
+27,Gampaha,Tyre Corporation Road,Garage / Vehicle Repair,", Kelaniya, Western Province",,,6.969224,79.913613,"https://www.google.com/maps/search/?api=1&query=6.969224,79.913613",,Photon,
+28,Gampaha,Garage,Garage / Vehicle Repair,"Ganemulla-Weligampitiya Road , Ganemulla, Western Province",,,7.061153,79.970238,"https://www.google.com/maps/search/?api=1&query=7.061153,79.970238",,Photon,
+29,Gampaha,Garage,Garage / Vehicle Repair,"Chandrajothi Mawatha , Yakkala, Western Province",,,7.102355,80.016907,"https://www.google.com/maps/search/?api=1&query=7.102355,80.016907",,Photon,
+30,Gampaha,garage,Garage / Vehicle Repair,"Palkada Ela road , Alawathupitiya, Western Province",,,7.086564,79.897376,"https://www.google.com/maps/search/?api=1&query=7.086564,79.897376",,Photon,
+31,Gampaha,Garage,Garage / Vehicle Repair,"Temple Road , Ganemulla, Western Province",,,7.094928,79.943733,"https://www.google.com/maps/search/?api=1&query=7.094928,79.943733",,Photon,
+32,Gampaha,garage,Garage / Vehicle Repair,"Siyabala Gaha Cross Street , Seeduwa, Western Province",,,7.139694,79.883788,"https://www.google.com/maps/search/?api=1&query=7.139694,79.883788",,Photon,
+33,Gampaha,Garage iron work,Garage / Vehicle Repair,"Wataraum road , Ja-ela, Western Province",,,7.075848,79.882788,"https://www.google.com/maps/search/?api=1&query=7.075848,79.882788",,Photon,
+34,Gampaha,Weerasinghe Garage,Garage / Vehicle Repair,"Samuupakaara Road , Yakkala, Western Province",,,7.075849,80.038746,"https://www.google.com/maps/search/?api=1&query=7.075849,80.038746",,Photon,
+35,Gampaha,Royel Garage,Garage / Vehicle Repair,"Chandanagama Road , Yakkala, Western Province",,,7.080498,80.034855,"https://www.google.com/maps/search/?api=1&query=7.080498,80.034855",,Photon,
+36,Gampaha,Rasanjana Garage,Garage / Vehicle Repair,"Gampaha- Ja Ela , Gampaha, Western Province",,,7.093778,79.983584,"https://www.google.com/maps/search/?api=1&query=7.093778,79.983584",,Photon,
+37,Gampaha,Chandana Garage,Garage / Vehicle Repair,"Baduwathugoda Road , Bulathgamgoda, Western Province",,,7.111539,80.032535,"https://www.google.com/maps/search/?api=1&query=7.111539,80.032535",,Photon,
+38,Gampaha,Raja's Garage,Garage / Vehicle Repair,"Nittambuwa-Urapola-Ruwanwella Road , Nittambuwa, Western Province",,,7.112427,80.134933,"https://www.google.com/maps/search/?api=1&query=7.112427,80.134933",,Photon,
+39,Gampaha,Mass Pro Vehicle Service Center,Garage / Vehicle Repair,"Colombo-Kandy Road , Weediyawatta, Western Province",,,7.094696,80.039974,"https://www.google.com/maps/search/?api=1&query=7.094696,80.039974",,Photon,
+40,Gampaha,Tyre center book shop,Garage / Vehicle Repair,"Gampaha-Ja Ela Road , Makawita, Western Province",,,7.103961,79.936116,"https://www.google.com/maps/search/?api=1&query=7.103961,79.936116",,Photon,
+41,Gampaha,Tyre Shop,Garage / Vehicle Repair,"Colombo - Negombo Road , Negombo, Western Province",,,7.191433,79.857372,"https://www.google.com/maps/search/?api=1&query=7.191433,79.857372",,Photon,
+42,Gampaha,Tyre Shop,Garage / Vehicle Repair,"Weliveriya-Kirindiwela Road , Kirindiwela, Western Province",,,7.04182,80.121976,"https://www.google.com/maps/search/?api=1&query=7.04182,80.121976",,Photon,
+43,Gampaha,Asiri Motors And Garage,Garage / Vehicle Repair,Makola North Makola,,,6.981226,79.967851,"https://www.google.com/maps/search/?api=1&query=6.981226,79.967851",,RainbowPages,https://rainbowpages.lk/essential-services/garage/asiri-motors-and-garage/
+44,Gampaha,Carsmatic Motors,Garage / Vehicle Repair,Kiribathgoda,,,6.978151,79.926993,"https://www.google.com/maps/search/?api=1&query=6.978151,79.926993",,RainbowPages,https://rainbowpages.lk/essential-services/garage/carsmatic-motors/
+45,Gampaha,Chandra Engineers,Garage / Vehicle Repair,Kelaniya,,,6.950233,79.91719,"https://www.google.com/maps/search/?api=1&query=6.950233,79.91719",,RainbowPages,https://rainbowpages.lk/essential-services/garage/chandra-engineers-2/
+46,Gampaha,Pathum Motors,Garage / Vehicle Repair,231 Walgama Malwana,,,6.959609,80.018118,"https://www.google.com/maps/search/?api=1&query=6.959609,80.018118",,RainbowPages,https://rainbowpages.lk/essential-services/garage/pathum-motors-2/
+47,Gampaha,Senaka Motors,Garage / Vehicle Repair,Samurdhi Road Heiyanthuduwa,,,6.970619,79.97175,"https://www.google.com/maps/search/?api=1&query=6.970619,79.97175",,RainbowPages,https://rainbowpages.lk/essential-services/garage/senaka-motors-2/
+48,Gampaha,St Anthoneys Motors,Garage / Vehicle Repair,150/B Kandy Road Kadawatha,,,7.001407,79.950451,"https://www.google.com/maps/search/?api=1&query=7.001407,79.950451",,RainbowPages,https://rainbowpages.lk/essential-services/garage/st-anthoneys-motors/
+49,Gampaha,Dayananda Motor Garage,Garage / Vehicle Repair,218/B Minuwangoda Road Udugampola,,,7.136403,79.978284,"https://www.google.com/maps/search/?api=1&query=7.136403,79.978284",,RainbowPages,https://rainbowpages.lk/essential-services/garage/dayananda-motor-garage/
+50,Gampaha,Pradeep Nishantha,Garage / Vehicle Repair,Ganemulla,,,7.068284,79.961394,"https://www.google.com/maps/search/?api=1&query=7.068284,79.961394",,RainbowPages,https://rainbowpages.lk/essential-services/garage/pradeep-nishantha/
+1,Kalutara,Sajith Motors - body shop,Garage / Vehicle Repair,"61, Dibbedda-Mahawila Road",+94382238828,,6.699325,79.921722,"https://www.google.com/maps/search/?api=1&query=6.699325,79.921722",,OSM,node/2631866046
+2,Kalutara,Pokunuwita seat Center,Garage / Vehicle Repair,"Colombo road, Pokunuwita",+940344283413,,6.726419,80.033578,"https://www.google.com/maps/search/?api=1&query=6.726419,80.033578",,OSM,node/3728589108
+3,Kalutara,Guruge Engineering Works,Garage / Vehicle Repair,"50,10, Grace Land Circular Road, Horana",+94342263197,,6.715013,80.061139,"https://www.google.com/maps/search/?api=1&query=6.715013,80.061139",,OSM,node/11225627229
+4,Kalutara,Drive-Thru Garage (Pvt) Ltd,Garage / Vehicle Repair,"Drive-Thru Garage (Pvt) Ltd, ingiriya",+94774807488,https://drive-thru.com.lk,6.74019,80.152608,"https://www.google.com/maps/search/?api=1&query=6.74019,80.152608",,OSM,node/14120537041
+5,Kalutara,Ratnayake Tyre Service,Tyre Service,Wadduwa,,,6.666886,79.928875,"https://www.google.com/maps/search/?api=1&query=6.666886,79.928875",,OSM,node/2339192611
+6,Kalutara,Chandra Tire Stores,Tyre Service,,,,6.522414,80.111003,"https://www.google.com/maps/search/?api=1&query=6.522414,80.111003",,OSM,node/3368502022
+7,Kalutara,Sumith Garage,Garage / Vehicle Repair,"Wedha Mawatha , Gorakana, Western Province",,,6.757706,79.899065,"https://www.google.com/maps/search/?api=1&query=6.757706,79.899065",,OSM,node/6615707644
+8,Kalutara,Auto Hafeel,Garage / Vehicle Repair,,,,6.754217,79.89952,"https://www.google.com/maps/search/?api=1&query=6.754217,79.89952",,OSM,node/6615733788
+9,Kalutara,Saman Auto Service,Garage / Vehicle Repair,,,,6.752114,79.908543,"https://www.google.com/maps/search/?api=1&query=6.752114,79.908543",,OSM,node/6615733819
+10,Kalutara,Wincent Motors,Garage / Vehicle Repair,"100, Sri Sudharmarama Road, Panadura",,,6.699381,79.919895,"https://www.google.com/maps/search/?api=1&query=6.699381,79.919895",,OSM,node/10314920569
+11,Kalutara,Hasan Motors,Garage / Vehicle Repair,"346, Henatiyangala Rd",,,6.569782,79.974278,"https://www.google.com/maps/search/?api=1&query=6.569782,79.974278",,OSM,node/13874739601
+12,Kalutara,Rathna Garage,Garage / Vehicle Repair,"Sri Ariyawilasa Road, Horana",,,6.716861,80.065806,"https://www.google.com/maps/search/?api=1&query=6.716861,80.065806",,OSM,way/367187650
+13,Kalutara,Heshan Auto Ministry,Garage / Vehicle Repair,,,,6.709549,79.904245,"https://www.google.com/maps/search/?api=1&query=6.709549,79.904245",,OSM,way/1034241243
+14,Kalutara,Ferentino tyre pvt.ltd,Garage / Vehicle Repair,", Wagawatta, Western Province",,,6.71774,80.119575,"https://www.google.com/maps/search/?api=1&query=6.71774,80.119575",,Photon,
+15,Kalutara,Sithuruwana Tyre Mart,Garage / Vehicle Repair,"Galle Road , Beruwala, Western Province",,,6.474113,79.984113,"https://www.google.com/maps/search/?api=1&query=6.474113,79.984113",,Photon,
+16,Kalutara,Mr Kapila Indunila Kumara,Garage / Vehicle Repair,Raigama Bandaragama,,,6.718639,80.010845,"https://www.google.com/maps/search/?api=1&query=6.718639,80.010845",,RainbowPages,https://rainbowpages.lk/essential-services/garage/mr-kapila-indunila-kumara/
+17,Kalutara,Ajith Motors,Garage / Vehicle Repair,Thudugala Junction Dodangoda,,,6.554732,80.024136,"https://www.google.com/maps/search/?api=1&query=6.554732,80.024136",,RainbowPages,https://rainbowpages.lk/repair/motor-cycle-spare-parts-accessories-repairing/ajith-motors-7/
+18,Kalutara,Auto A C,Garage / Vehicle Repair,No 68 Galle Road Moragalla Beruwala,,,6.457339,79.986436,"https://www.google.com/maps/search/?api=1&query=6.457339,79.986436",,RainbowPages,https://rainbowpages.lk/essential-services/garage/suraveera-garage/
+19,Kalutara,Dons Garage &Services,Garage / Vehicle Repair,Kalutara,,,6.57453,80.028631,"https://www.google.com/maps/search/?api=1&query=6.57453,80.028631",,RainbowPages,https://rainbowpages.lk/essential-services/garage/dons-garage-andservices/
+20,Kalutara,Ranik Garage,Garage / Vehicle Repair,No 26 Balika Road Matugama,,,6.517883,80.113157,"https://www.google.com/maps/search/?api=1&query=6.517883,80.113157",,RainbowPages,https://rainbowpages.lk/essential-services/garage/ranik-garage/
+21,Kalutara,,Garage / Vehicle Repair,Panadura-Rathnapura,,,6.707323,79.950745,"https://www.google.com/maps/search/?api=1&query=6.707323,79.950745",,OSM,node/4874632025
+22,Kalutara,,Tyre Service,,,,6.535217,79.976611,"https://www.google.com/maps/search/?api=1&query=6.535217,79.976611",,OSM,node/9378880118
+23,Kalutara,,Garage / Vehicle Repair,,,,6.609792,79.951906,"https://www.google.com/maps/search/?api=1&query=6.609792,79.951906",,OSM,node/9378887420
+24,Kalutara,,Motorcycle Repair,,,,6.41382,80.082016,"https://www.google.com/maps/search/?api=1&query=6.41382,80.082016",,OSM,node/10679748137
+1,Kandy,Shantha's Auto Repair Shop,Garage / Vehicle Repair,Pilimathalawa,+94779047034,,7.2639,80.562938,"https://www.google.com/maps/search/?api=1&query=7.2639,80.562938",,OSM,node/2907650970
+2,Kandy,Duminda Auto Electronics,Garage / Vehicle Repair,Kundasale New Town,+94776793769,https://dumindaautoelectronics.com/,7.281341,80.682927,"https://www.google.com/maps/search/?api=1&query=7.281341,80.682927",,OSM,node/8380640539
+3,Kandy,Meewatura Motors,Garage / Vehicle Repair,"Meewathura Road, Peradeniya",+94812388643,https://meewathuramotors.business.site/,7.246864,80.591817,"https://www.google.com/maps/search/?api=1&query=7.246864,80.591817",,OSM,node/8496299002
+4,Kandy,Kundasale Auto Service,Garage / Vehicle Repair,,+94812420130,,7.28098,80.695027,"https://www.google.com/maps/search/?api=1&query=7.28098,80.695027",,OSM,node/8594031658
+5,Kandy,Gihan Automart & Auto Repair,Garage / Vehicle Repair,,+94761425906,,7.290494,80.709283,"https://www.google.com/maps/search/?api=1&query=7.290494,80.709283",,OSM,node/8948827704
+6,Kandy,Plus One Automobile Engineering,Garage / Vehicle Repair,"80, Kahalla Road, Katugastota",+94775405668,,7.32915,80.629418,"https://www.google.com/maps/search/?api=1&query=7.32915,80.629418",,OSM,node/9318146019
+7,Kandy,K. K. Brother’s,Motorcycle Repair,"320, Kandy - Nuwara Eliya Road",+94777104081,,7.116696,80.634368,"https://www.google.com/maps/search/?api=1&query=7.116696,80.634368",,OSM,node/11465255909
+8,Kandy,Gamini's Garage,Garage / Vehicle Repair,Ambilmeegama,,,7.265752,80.563788,"https://www.google.com/maps/search/?api=1&query=7.265752,80.563788",,OSM,node/2907671128
+9,Kandy,Tire/Battery Shop,Tyre Service,Kiribathkumbura,,,7.267119,80.574385,"https://www.google.com/maps/search/?api=1&query=7.267119,80.574385",,OSM,node/2907690432
+10,Kandy,Car Tire/ Battery Shop,Tyre Service,,,,7.265688,80.583209,"https://www.google.com/maps/search/?api=1&query=7.265688,80.583209",,OSM,node/2907698522
+11,Kandy,Willys Auto Shop,Garage / Vehicle Repair,,,,7.265497,80.585014,"https://www.google.com/maps/search/?api=1&query=7.265497,80.585014",,OSM,node/2907699791
+12,Kandy,MJR Peris Tire shop,Tyre Service,,,,7.310157,80.636468,"https://www.google.com/maps/search/?api=1&query=7.310157,80.636468",,OSM,node/3729706009
+13,Kandy,Junson Tyre Center,Garage / Vehicle Repair,"Colombo-Kandy Road, Gadaladeniya Junction",,,7.265441,80.556191,"https://www.google.com/maps/search/?api=1&query=7.265441,80.556191",,OSM,node/3738555779
+14,Kandy,ISJ Auto Engineering,Garage / Vehicle Repair,"Peradeniya-Badulla Road, Kaluwahalkada",,,7.18698,80.58936,"https://www.google.com/maps/search/?api=1&query=7.18698,80.58936",,OSM,node/3756785061
+15,Kandy,Vishwa tire house,Tyre Service,Katugasthota-Kurunegala-Puttalam Road,,,7.344496,80.549732,"https://www.google.com/maps/search/?api=1&query=7.344496,80.549732",,OSM,node/3840524749
+16,Kandy,Chandrasiri Motor Engineering Company,Garage / Vehicle Repair,"Katugastota Road, Mawilmada",,,7.318403,80.629573,"https://www.google.com/maps/search/?api=1&query=7.318403,80.629573",,OSM,node/4019044849
+17,Kandy,Winter Auto Air Con. Engineers (Pvt),Garage / Vehicle Repair,Niththawela Road,,,7.316445,80.632976,"https://www.google.com/maps/search/?api=1&query=7.316445,80.632976",,OSM,node/4019181854
+18,Kandy,Supiri Tyre House,Tyre Service,"William Gopallawa Mawatha, kandy",,,7.282951,80.624403,"https://www.google.com/maps/search/?api=1&query=7.282951,80.624403",,OSM,node/4019465209
+19,Kandy,Mahinda Motors,Garage / Vehicle Repair,,,,7.306449,80.767703,"https://www.google.com/maps/search/?api=1&query=7.306449,80.767703",,OSM,node/4077727426
+20,Kandy,Praveen Tire,Tyre Service,"Kandy - Mahiyanganaya- Padiyathalawa Road, Teldeniya",,,7.313359,80.760337,"https://www.google.com/maps/search/?api=1&query=7.313359,80.760337",,OSM,node/4077797944
+21,Kandy,Auto Electrical Repaire Shop,Garage / Vehicle Repair,"Gadaladeniya Road , Gadaladeniya, Central Province",,,7.263049,80.556404,"https://www.google.com/maps/search/?api=1&query=7.263049,80.556404",,OSM,node/4283895195
+22,Kandy,Nadeeka Motors,Garage / Vehicle Repair,,,,7.441623,80.56813,"https://www.google.com/maps/search/?api=1&query=7.441623,80.56813",,OSM,node/5197830435
+23,Kandy,Sanka Motors,Garage / Vehicle Repair,,,,7.438277,80.572166,"https://www.google.com/maps/search/?api=1&query=7.438277,80.572166",,OSM,node/5197834511
+24,Kandy,Tharaka Cushions,Garage / Vehicle Repair,"118, Katugasthota Road, Kandy",,,7.307086,80.635017,"https://www.google.com/maps/search/?api=1&query=7.307086,80.635017",,OSM,node/8004100340
+25,Kandy,Sunrise Car Service Station,Garage / Vehicle Repair,,,,7.285137,80.662145,"https://www.google.com/maps/search/?api=1&query=7.285137,80.662145",,OSM,node/8418237924
+26,Kandy,Truck Body & Repair Shop,Garage / Vehicle Repair,,,,7.277649,80.683226,"https://www.google.com/maps/search/?api=1&query=7.277649,80.683226",,OSM,node/8594031635
+27,Kandy,Central Tyre Mart,Tyre Service,,,,7.279063,80.6788,"https://www.google.com/maps/search/?api=1&query=7.279063,80.6788",,OSM,node/8676062857
+28,Kandy,KN Motors,Garage / Vehicle Repair,,,,7.206464,80.669377,"https://www.google.com/maps/search/?api=1&query=7.206464,80.669377",,OSM,node/9277975946
+29,Kandy,Sriya TukTuk Service,Motorcycle Repair,,,,7.193799,80.638472,"https://www.google.com/maps/search/?api=1&query=7.193799,80.638472",,OSM,node/10694540006
+30,Kandy,Tyre shop Hunnasgiriya,Tyre Service,"Kandy-Mahiyanganaya Road , Hunnasgiriya, Central Province",,,7.295529,80.853116,"https://www.google.com/maps/search/?api=1&query=7.295529,80.853116",,OSM,node/14054379784
+31,Kandy,Car Tire Sevice,Tyre Service,,,,7.264975,80.588709,"https://www.google.com/maps/search/?api=1&query=7.264975,80.588709",,OSM,way/287430241
+32,Kandy,Goreys Garage,Garage / Vehicle Repair,"Hill Crest Green Stage 2 , Dangolla, Central Province",,,7.263858,80.615458,"https://www.google.com/maps/search/?api=1&query=7.263858,80.615458",,OSM,way/540031521
+33,Kandy,Pritantha Motors,Motorcycle Repair,,,,7.275642,80.591583,"https://www.google.com/maps/search/?api=1&query=7.275642,80.591583",,OSM,way/904916288
+34,Kandy,Kandy Empire,Garage / Vehicle Repair,,,,7.292681,80.649298,"https://www.google.com/maps/search/?api=1&query=7.292681,80.649298",,OSM,way/1185533512
+35,Kandy,tyre house,Garage / Vehicle Repair,"Retiyagma Rd , Gabbela, Central Province",,,7.314401,80.785791,"https://www.google.com/maps/search/?api=1&query=7.314401,80.785791",,Photon,
+36,Kandy,Wijasiri Parking Garage,Garage / Vehicle Repair,"Nawalapitiya-Dolosbage Road , Nawalapitiya, Central Province",,,7.056704,80.533701,"https://www.google.com/maps/search/?api=1&query=7.056704,80.533701",,Photon,
+37,Kandy,Tyre Shop,Garage / Vehicle Repair,"Nawalapitiya-Harangala Road , Nawalapitiya, Central Province",,,7.059617,80.538458,"https://www.google.com/maps/search/?api=1&query=7.059617,80.538458",,Photon,
+38,Kandy,Garage Cafe,Garage / Vehicle Repair,"Sirimavo Bandaranaike Mawatha (Peradeniya Road) , Kandy, Central Province",,,7.291653,80.631382,"https://www.google.com/maps/search/?api=1&query=7.291653,80.631382",,Photon,
+39,Kandy,DW Garage Café,Garage / Vehicle Repair,"S.W.R.D. Bandaranayaka Mawatha , Kandy, Central Province",,,7.287856,80.628914,"https://www.google.com/maps/search/?api=1&query=7.287856,80.628914",,Photon,
+40,Kandy,Workshop Rd,Garage / Vehicle Repair,", Delpitiya, Central Province",,,7.131205,80.588088,"https://www.google.com/maps/search/?api=1&query=7.131205,80.588088",,Photon,
+41,Kandy,Workshop-2,Garage / Vehicle Repair,"Meewatura Road , Meewatura, Central Province",,,7.253147,80.591527,"https://www.google.com/maps/search/?api=1&query=7.253147,80.591527",,Photon,
+42,Kandy,Faculty Workshop,Garage / Vehicle Repair,"Galaha Road , Kandy, Central Province",,,7.259998,80.598827,"https://www.google.com/maps/search/?api=1&query=7.259998,80.598827",,Photon,
+43,Kandy,KMC Workshop,Garage / Vehicle Repair,"P. B. De Silva Mawatha , Kandy, Central Province",,,7.307168,80.648851,"https://www.google.com/maps/search/?api=1&query=7.307168,80.648851",,Photon,
+44,Kandy,Wheel Masters Kandy Auto,Garage / Vehicle Repair,159 Matale Road Katugastota Kandy,,,7.328382,80.623721,"https://www.google.com/maps/search/?api=1&query=7.328382,80.623721",,RainbowPages,https://rainbowpages.lk/vehicle/brake-down-wrecker-services/wheel-masters-pvt-ltd/
+45,Kandy,Iron Lion Coustom Bikes,Garage / Vehicle Repair,Wattegama,,,7.351325,80.682593,"https://www.google.com/maps/search/?api=1&query=7.351325,80.682593",,RainbowPages,https://rainbowpages.lk/essential-services/garage/iron-lion-coustom-bikes/
+46,Kandy,Janahitha Bajaj House,Garage / Vehicle Repair,No 05 Gannoruwa Road Peradeniya,,,7.269861,80.592584,"https://www.google.com/maps/search/?api=1&query=7.269861,80.592584",,RainbowPages,https://rainbowpages.lk/essential-services/garage/janahitha-bajaj-house/
+47,Kandy,Kegalle Motors,Garage / Vehicle Repair,No 30 Ampitiya Road Kandy,,,7.276322,80.655977,"https://www.google.com/maps/search/?api=1&query=7.276322,80.655977",,RainbowPages,https://rainbowpages.lk/essential-services/garage/kegalle-motors-2/
+48,Kandy,M I K Motors,Garage / Vehicle Repair,Digana,,,7.296494,80.733417,"https://www.google.com/maps/search/?api=1&query=7.296494,80.733417",,RainbowPages,https://rainbowpages.lk/essential-services/garage/m-i-k-motors/
+49,Kandy,Works Radiator Garage,Garage / Vehicle Repair,Kandy,,,7.293121,80.635036,"https://www.google.com/maps/search/?api=1&query=7.293121,80.635036",,RainbowPages,https://rainbowpages.lk/essential-services/garage/works-radiator-garage/
+50,Kandy,B N Motors,Garage / Vehicle Repair,Kolongoda,,,7.475443,80.942223,"https://www.google.com/maps/search/?api=1&query=7.475443,80.942223",,RainbowPages,https://rainbowpages.lk/essential-services/garage/b-n-motors/
+1,Matale,Tire Repair Shop,Tyre Service,,+94763973389,,7.528314,80.753908,"https://www.google.com/maps/search/?api=1&query=7.528314,80.753908",,OSM,node/10763724115
+2,Matale,Danushka Auto Engineering,Garage / Vehicle Repair,Dambulla,,,7.881368,80.647565,"https://www.google.com/maps/search/?api=1&query=7.881368,80.647565",,OSM,node/4899267519
+3,Matale,Kamal Motors,Garage / Vehicle Repair,"Kurunegala - Dambulla Road, Dambulla",,,7.872894,80.649988,"https://www.google.com/maps/search/?api=1&query=7.872894,80.649988",,OSM,node/4899675059
+4,Matale,Madawal tyre centre,Tyre Service,"Jaffna - Kandy Road, madawala ulpatha",,,7.609792,80.636299,"https://www.google.com/maps/search/?api=1&query=7.609792,80.636299",,OSM,node/4945291982
+5,Matale,Abey Garage,Garage / Vehicle Repair,"Jaffna - Kandy Road, Arangala",,,7.688595,80.648302,"https://www.google.com/maps/search/?api=1&query=7.688595,80.648302",,OSM,node/4948615323
+6,Matale,New Nevil,Tyre Service,"Jaffna - Kandy Road, Lenadora",,,7.756797,80.662027,"https://www.google.com/maps/search/?api=1&query=7.756797,80.662027",,OSM,node/4961881691
+7,Matale,Svea Motor Works,Garage / Vehicle Repair,Jaffna - Kandy Road,,,7.783263,80.660135,"https://www.google.com/maps/search/?api=1&query=7.783263,80.660135",,OSM,node/4965168169
+8,Matale,Darshana Auto Electrical & Scan Canter,Garage / Vehicle Repair,Jaffna - Kandy Road,,,7.601689,80.62953,"https://www.google.com/maps/search/?api=1&query=7.601689,80.62953",,OSM,node/4986254152
+9,Matale,Onali tyre house,Tyre Service,"Hettipola New Town Road, Hettipola",,,7.535049,80.913432,"https://www.google.com/maps/search/?api=1&query=7.535049,80.913432",,OSM,node/4986489119
+10,Matale,Jinendra motores,Garage / Vehicle Repair,Naula - Elahera - Pallegama - Hettipola Road,,,7.534928,80.900918,"https://www.google.com/maps/search/?api=1&query=7.534928,80.900918",,OSM,node/5030194317
+11,Matale,Baba Batiks,Garage / Vehicle Repair,,,,7.486158,80.622511,"https://www.google.com/maps/search/?api=1&query=7.486158,80.622511",,OSM,node/6048547085
+12,Matale,Gayan motors,Garage / Vehicle Repair,,,,7.951189,80.740841,"https://www.google.com/maps/search/?api=1&query=7.951189,80.740841",,OSM,node/13077669675
+13,Matale,Susil Motors,Garage / Vehicle Repair,"No 79, Jaffna - Kandy Road, Naula",,,7.703927,80.653772,"https://www.google.com/maps/search/?api=1&query=7.703927,80.653772",,OSM,way/1077978139
+14,Matale,Wasana auto Service,Motorcycle Repair,"Elahera Road, Naula",,,7.708178,80.653762,"https://www.google.com/maps/search/?api=1&query=7.708178,80.653762",,OSM,way/1077992152
+15,Matale,Garage Cafe,Garage / Vehicle Repair,"Sigiriya Road , Sigiriya, Central Province",,,7.950631,80.75391,"https://www.google.com/maps/search/?api=1&query=7.950631,80.75391",,Photon,
+16,Matale,Damen Wood Carving & Workshop,Garage / Vehicle Repair,"Hotel Road , Sigiriya, Central Province",,,7.950386,80.759426,"https://www.google.com/maps/search/?api=1&query=7.950386,80.759426",,Photon,
+17,Matale,vehicle service center,Garage / Vehicle Repair,"Pathinigolla Road , Owilikanda, Central Province",,,7.457881,80.581132,"https://www.google.com/maps/search/?api=1&query=7.457881,80.581132",,Photon,
+18,Matale,Dubil Motors,Garage / Vehicle Repair,Dambulla Road Habarana,,,7.889838,80.660814,"https://www.google.com/maps/search/?api=1&query=7.889838,80.660814",,RainbowPages,https://rainbowpages.lk/vehicle/brake-down-wrecker-services/dubil-motors/
+19,Matale,Viskam Motors,Garage / Vehicle Repair,Matale,,,7.698211,80.660908,"https://www.google.com/maps/search/?api=1&query=7.698211,80.660908",,RainbowPages,https://rainbowpages.lk/essential-services/garage/viskam-motors/
+1,Nuwara Eliya,Romec Tyre Shop,Garage / Vehicle Repair,Nuwara Eliya,,,6.976011,80.765163,"https://www.google.com/maps/search/?api=1&query=6.976011,80.765163",,OSM,node/3393564864
+2,Nuwara Eliya,Car Repair/Maintinance,Garage / Vehicle Repair,"Blackpool-Ambewela Road , Meepilimana, Central Province",,,6.940666,80.775752,"https://www.google.com/maps/search/?api=1&query=6.940666,80.775752",,OSM,node/4885454569
+3,Nuwara Eliya,Gunadasa Auto Repair & Maintinance,Garage / Vehicle Repair,"Blackpool-Ambewela Road , Ruwan Eliya, Central Province",,,6.9433,80.777399,"https://www.google.com/maps/search/?api=1&query=6.9433,80.777399",,OSM,node/4885454572
+4,Nuwara Eliya,Asanka Motors,Garage / Vehicle Repair,102/7 Gaminipura Road Hatton,,,6.891551,80.602158,"https://www.google.com/maps/search/?api=1&query=6.891551,80.602158",,RainbowPages,https://rainbowpages.lk/vehicle/brake-down-wrecker-services/asanka-motors-4/
+5,Nuwara Eliya,Eksath Motors,Garage / Vehicle Repair,Nuwara Eliya Road Talawakelle,,,6.926812,80.617797,"https://www.google.com/maps/search/?api=1&query=6.926812,80.617797",,RainbowPages,https://rainbowpages.lk/vehicle/brake-down-wrecker-services/eksath-motors-2/
+6,Nuwara Eliya,Upek Motors,Garage / Vehicle Repair,Walapane,,,7.095807,80.862436,"https://www.google.com/maps/search/?api=1&query=7.095807,80.862436",,RainbowPages,https://rainbowpages.lk/essential-services/garage/upek-motors/
+7,Nuwara Eliya,,Garage / Vehicle Repair,"Kotagala Railway Station Road, kotagala",,,6.928015,80.608994,"https://www.google.com/maps/search/?api=1&query=6.928015,80.608994",,OSM,node/11961040106
+8,Nuwara Eliya,,Garage / Vehicle Repair,,,,6.834663,80.615164,"https://www.google.com/maps/search/?api=1&query=6.834663,80.615164",,OSM,node/12612594105
+1,Galle,Singthi Motors & Service Center,Garage / Vehicle Repair,"493/A, Galle Road",+94915618207,,6.258701,80.037909,"https://www.google.com/maps/search/?api=1&query=6.258701,80.037909",,OSM,way/819705346
+2,Galle,Dodanduwa Group (Battery Shop),Garage / Vehicle Repair,"360, Colombo-Galle Road, Dodanduwa",+94765256157,,6.100757,80.128594,"https://www.google.com/maps/search/?api=1&query=6.100757,80.128594",,OSM,way/988546642
+3,Galle,Imali Motors,Garage / Vehicle Repair,"Colombo-Galle Road, Hikkaduwa",+94777196586,,6.114732,80.121109,"https://www.google.com/maps/search/?api=1&query=6.114732,80.121109",,OSM,way/1151930566
+4,Galle,Gunarathna Vulcanizing Center,Tyre Service,"Colombo-Galle Road, Hikkaduwa",+94772548989,,6.1119,80.123849,"https://www.google.com/maps/search/?api=1&query=6.1119,80.123849",,OSM,way/1151938379
+5,Galle,Athula Auto Service,Garage / Vehicle Repair,,,,6.07009,80.224188,"https://www.google.com/maps/search/?api=1&query=6.07009,80.224188",,OSM,node/3354057802
+6,Galle,Ridie Automart,Garage / Vehicle Repair,,,,6.056187,80.205099,"https://www.google.com/maps/search/?api=1&query=6.056187,80.205099",,OSM,node/3727797012
+7,Galle,Abenayaka Auto Services,Garage / Vehicle Repair,,,,6.060881,80.201132,"https://www.google.com/maps/search/?api=1&query=6.060881,80.201132",,OSM,node/3728673124
+8,Galle,Sudath Motors,Garage / Vehicle Repair,,,,6.065797,80.198559,"https://www.google.com/maps/search/?api=1&query=6.065797,80.198559",,OSM,node/3733218835
+9,Galle,Sumith Enterprises,Garage / Vehicle Repair,,,,6.241543,80.053748,"https://www.google.com/maps/search/?api=1&query=6.241543,80.053748",,OSM,node/3925585452
+10,Galle,Vithanawasam service Center,Garage / Vehicle Repair,Ankokkawala Road,,,6.039485,80.295643,"https://www.google.com/maps/search/?api=1&query=6.039485,80.295643",,OSM,node/4342449589
+11,Galle,DSI tyres,Tyre Service,"Galle Road , Hikkaduwa, Southern Province",,,6.1208,80.115462,"https://www.google.com/maps/search/?api=1&query=6.1208,80.115462",,OSM,node/9378711217
+12,Galle,Gamini Motors,Garage / Vehicle Repair,,,,6.418259,80.004248,"https://www.google.com/maps/search/?api=1&query=6.418259,80.004248",,OSM,way/149555783
+13,Galle,Lalith Service Centre,Garage / Vehicle Repair,,,,6.049068,80.209998,"https://www.google.com/maps/search/?api=1&query=6.049068,80.209998",,OSM,way/540481227
+14,Galle,Piyasena Service Station,Garage / Vehicle Repair,,,,6.071418,80.237441,"https://www.google.com/maps/search/?api=1&query=6.071418,80.237441",,OSM,way/564213981
+15,Galle,Buddhika's Garage,Garage / Vehicle Repair,", Kahaduwawatta, Southern Province",,,6.071928,80.215744,"https://www.google.com/maps/search/?api=1&query=6.071928,80.215744",,Photon,
+16,Galle,Sumith Motors Garage,Garage / Vehicle Repair,"Elpitiya Road , Paragahathota, Southern Province",,,6.256717,80.055499,"https://www.google.com/maps/search/?api=1&query=6.256717,80.055499",,Photon,
+17,Galle,Indika Tyre Service,Garage / Vehicle Repair,"Baddegama-Halpotota Road , Baddegama, Southern Province",,,6.175899,80.172503,"https://www.google.com/maps/search/?api=1&query=6.175899,80.172503",,Photon,
+18,Galle,Department of Mechanical and Manufacturing Engineering,Garage / Vehicle Repair,"Road to hostel D , Hapugala, Southern Province",,,6.078424,80.191826,"https://www.google.com/maps/search/?api=1&query=6.078424,80.191826",,Photon,
+19,Galle,Jayanthi Electrical,Garage / Vehicle Repair,"124, Wackwella Road, Galle",,,6.107475,80.185824,"https://www.google.com/maps/search/?api=1&query=6.107475,80.185824",,RainbowPages,https://rainbowpages.lk/vehicle/brake-down-wrecker-services/jayanthi-electrical/
+20,Galle,Preethi Motors,Garage / Vehicle Repair,Galle Road Matara,,,6.036891,80.227566,"https://www.google.com/maps/search/?api=1&query=6.036891,80.227566",,RainbowPages,https://rainbowpages.lk/vehicle/brake-down-wrecker-services/preethi-motors-2/
+21,Galle,,Garage / Vehicle Repair,"150, Main Street, Udugama, Galle",0777781548,,6.203191,80.335747,"https://www.google.com/maps/search/?api=1&query=6.203191,80.335747",,OSM,node/4860376030
+22,Galle,,Tyre Service,,,,6.036464,80.306176,"https://www.google.com/maps/search/?api=1&query=6.036464,80.306176",,OSM,node/2564532976
+23,Galle,,Garage / Vehicle Repair,Baddegama Road,,,6.089906,80.213696,"https://www.google.com/maps/search/?api=1&query=6.089906,80.213696",,OSM,node/6595934885
+24,Galle,,Tyre Service,,,,6.018158,80.357598,"https://www.google.com/maps/search/?api=1&query=6.018158,80.357598",,OSM,node/11052205206
+25,Galle,,Garage / Vehicle Repair,,,,6.41969,80.002606,"https://www.google.com/maps/search/?api=1&query=6.41969,80.002606",,OSM,way/155095590
+26,Galle,,Garage / Vehicle Repair,,,,6.271237,80.138687,"https://www.google.com/maps/search/?api=1&query=6.271237,80.138687",,OSM,way/535531864
+27,Galle,,Motorcycle Repair,,,,6.225554,80.222122,"https://www.google.com/maps/search/?api=1&query=6.225554,80.222122",,OSM,way/637073027
+28,Galle,,Motorcycle Repair,,,,6.27472,80.138789,"https://www.google.com/maps/search/?api=1&query=6.27472,80.138789",,OSM,way/997331371
+29,Galle,,Motorcycle Repair,,,,6.273157,80.138872,"https://www.google.com/maps/search/?api=1&query=6.273157,80.138872",,OSM,way/997331394
+1,Matara,New Gajanayaka Enterprises Honda Service Station,Motorcycle Repair,"594B, Matara Road, Weligama",+94778407616,,5.974452,80.436472,"https://www.google.com/maps/search/?api=1&query=5.974452,80.436472",,OSM,node/10962263635
+2,Matara,Samarasingha tyre,Tyre Service,"Galle - Akuressa - Deniyaya Road, Imaduwa",,,6.03696,80.391597,"https://www.google.com/maps/search/?api=1&query=6.03696,80.391597",,OSM,node/2370163337
+3,Matara,Preethi Motors,Garage / Vehicle Repair,,,,5.945916,80.529119,"https://www.google.com/maps/search/?api=1&query=5.945916,80.529119",,OSM,node/2800835319
+4,Matara,Matar Tyre Centre,Tyre Service,"New Tangalle Road, Matara",,,5.944941,80.554172,"https://www.google.com/maps/search/?api=1&query=5.944941,80.554172",,OSM,node/3455193468
+5,Matara,Kodithuwakku Tyre Store,Tyre Service,"Anagarika Dharmapala Mawatha, Matara",,,5.949225,80.543008,"https://www.google.com/maps/search/?api=1&query=5.949225,80.543008",,OSM,node/3455215664
+6,Matara,Sunbeam Motors,Tyre Service,"Anagarika Dharmapala Mawatha, Matara",,,5.947766,80.534651,"https://www.google.com/maps/search/?api=1&query=5.947766,80.534651",,OSM,node/3455219379
+7,Matara,Chamika Auto Service,Garage / Vehicle Repair,Miriswatta,,,6.063761,80.554181,"https://www.google.com/maps/search/?api=1&query=6.063761,80.554181",,OSM,node/4982740788
+8,Matara,Kavinda Auto Service,Garage / Vehicle Repair,,,,5.972492,80.605964,"https://www.google.com/maps/search/?api=1&query=5.972492,80.605964",,OSM,node/5676643085
+9,Matara,Geeth Auto repair,Garage / Vehicle Repair,"Matara Road , Matara, Southern Province",,,5.942946,80.504061,"https://www.google.com/maps/search/?api=1&query=5.942946,80.504061",,OSM,node/13092515597
+10,Matara,Tire Shop,Tyre Service,,,,5.941022,80.495061,"https://www.google.com/maps/search/?api=1&query=5.941022,80.495061",,OSM,way/318779809
+11,Matara,Dilshan Motors,Garage / Vehicle Repair,,,,6.095381,80.476539,"https://www.google.com/maps/search/?api=1&query=6.095381,80.476539",,OSM,way/736939928
+12,Matara,Nethma Tyre Mart,Tyre Service,"Matara - Kamburupitiya Road, Kamburupitiya",,,6.078762,80.565284,"https://www.google.com/maps/search/?api=1&query=6.078762,80.565284",,OSM,way/1077211580
+13,Matara,K.N Motors,Garage / Vehicle Repair,,,,5.938807,80.519415,"https://www.google.com/maps/search/?api=1&query=5.938807,80.519415",,OSM,way/1161229162
+14,Matara,Shalika Motors,Motorcycle Repair,,,,6.088911,80.647539,"https://www.google.com/maps/search/?api=1&query=6.088911,80.647539",,OSM,way/1421314376
+15,Matara,Indika Motors,Motorcycle Repair,,,,6.057256,80.631006,"https://www.google.com/maps/search/?api=1&query=6.057256,80.631006",,OSM,way/1452658091
+16,Matara,Chandana Auto Care,Garage / Vehicle Repair,,,,6.107538,80.648867,"https://www.google.com/maps/search/?api=1&query=6.107538,80.648867",,OSM,way/1463446449
+17,Matara,Air Tire Center,Tyre Service,,,,6.082777,80.648453,"https://www.google.com/maps/search/?api=1&query=6.082777,80.648453",,OSM,way/1463881338
+18,Matara,Mohotti Tire Plus,Tyre Service,,,,6.080934,80.653093,"https://www.google.com/maps/search/?api=1&query=6.080934,80.653093",,OSM,way/1463881341
+19,Matara,Mechanic (Tuk Tuk),Garage / Vehicle Repair,"Matara Road , Midigama, Southern Province",,,5.962305,80.402192,"https://www.google.com/maps/search/?api=1&query=5.962305,80.402192",,Photon,
+20,Matara,""" Gayan "", Gamagedara",Garage / Vehicle Repair,"Muruthagaspitiya , Muruthagaspitiya, Southern Province",,,6.009518,80.658201,"https://www.google.com/maps/search/?api=1&query=6.009518,80.658201",,Photon,
+21,Matara,D & A Constractions,Garage / Vehicle Repair,No 30 Uyanwaththa Matara,,,5.950707,80.547057,"https://www.google.com/maps/search/?api=1&query=5.950707,80.547057",,RainbowPages,https://rainbowpages.lk/essential-services/garage/d-and-a-motors/
+22,Matara,Darshana Motors,Garage / Vehicle Repair,Matara,,,5.947822,80.548292,"https://www.google.com/maps/search/?api=1&query=5.947822,80.548292",,RainbowPages,https://rainbowpages.lk/essential-services/garage/darshana-motors-6/
+23,Matara,,Motorcycle Repair,"Polwathumodara - Denipitiya Road, Weligama",+94778798985,,5.974223,80.457514,"https://www.google.com/maps/search/?api=1&query=5.974223,80.457514",,OSM,node/10576049619
+24,Matara,,Garage / Vehicle Repair,,,,6.004091,80.519047,"https://www.google.com/maps/search/?api=1&query=6.004091,80.519047",,OSM,node/3621414261
+25,Matara,,Garage / Vehicle Repair,,,,5.972357,80.424018,"https://www.google.com/maps/search/?api=1&query=5.972357,80.424018",,OSM,node/9724393456
+26,Matara,,Garage / Vehicle Repair,,,,5.942287,80.525941,"https://www.google.com/maps/search/?api=1&query=5.942287,80.525941",,OSM,node/12336703315
+1,Hambantota,Wijeweera,Tyre Service,,,,6.047587,80.733499,"https://www.google.com/maps/search/?api=1&query=6.047587,80.733499",,OSM,node/3771342429
+2,Hambantota,Ashan,Tyre Service,,,,6.045487,80.737064,"https://www.google.com/maps/search/?api=1&query=6.045487,80.737064",,OSM,node/3771350529
+3,Hambantota,City tyre,Tyre Service,"Beliatte-Tangalle Road , Suinamaluwa, Southern Province",,,6.030142,80.793104,"https://www.google.com/maps/search/?api=1&query=6.030142,80.793104",,OSM,node/3771432750
+4,Hambantota,Gihan Tyre House,Tyre Service,"Dikwella-Beliatte Road , Dedduwawala, Southern Province",,,6.020271,80.716421,"https://www.google.com/maps/search/?api=1&query=6.020271,80.716421",,OSM,node/4936562029
+5,Hambantota,Indika Repair Centre,Garage / Vehicle Repair,,,,6.01611,80.717249,"https://www.google.com/maps/search/?api=1&query=6.01611,80.717249",,OSM,node/4936567973
+6,Hambantota,Garage,Garage / Vehicle Repair,"Ranna-Angunakolapelessa Road , Ranna, Southern Province",,,6.150441,80.898953,"https://www.google.com/maps/search/?api=1&query=6.150441,80.898953",,Photon,
+7,Hambantota,Tissa tyre store,Garage / Vehicle Repair,"Tissa-Kirinde Road , Tissamaharama, Southern Province",,,6.283577,81.280585,"https://www.google.com/maps/search/?api=1&query=6.283577,81.280585",,Photon,
+8,Hambantota,Gamage homesty,Garage / Vehicle Repair,"New Lane , Tangalle, Southern Province",,,6.031747,80.796864,"https://www.google.com/maps/search/?api=1&query=6.031747,80.796864",,Photon,
+9,Hambantota,D L Motors,Garage / Vehicle Repair,101/1 Koholankala Hambantota,,,6.154231,81.144172,"https://www.google.com/maps/search/?api=1&query=6.154231,81.144172",,RainbowPages,https://rainbowpages.lk/vehicle/brake-down-wrecker-services/d-l-motors/
+10,Hambantota,,Tyre Service,,,,6.053424,80.734343,"https://www.google.com/maps/search/?api=1&query=6.053424,80.734343",,OSM,node/3771351789
+11,Hambantota,,Garage / Vehicle Repair,,,,6.023629,80.797708,"https://www.google.com/maps/search/?api=1&query=6.023629,80.797708",,OSM,node/4711173089
+1,Jaffna,Morris Bike Repair Shop,Garage / Vehicle Repair,"Kandy Road , Ariyalai, Northern Province",,,9.661492,80.03296,"https://www.google.com/maps/search/?api=1&query=9.661492,80.03296",,OSM,node/4357759398
+2,Jaffna,Tyre Service,Tyre Service,"Jaffna-Palali Road , Jaffna, Northern Province",,,9.661934,80.035297,"https://www.google.com/maps/search/?api=1&query=9.661934,80.035297",,OSM,node/4357760207
+3,Jaffna,Bike Repair & Wash,Garage / Vehicle Repair,"Kandy Road , Ariyalai, Northern Province",,,9.661028,80.03742,"https://www.google.com/maps/search/?api=1&query=9.661028,80.03742",,OSM,node/4357788891
+4,Jaffna,Tyre Shop & Service,Tyre Service,"Main Street , Jaffna, Northern Province",,,9.658643,80.021236,"https://www.google.com/maps/search/?api=1&query=9.658643,80.021236",,OSM,node/4370699949
+5,Jaffna,Tyre Services,Tyre Service,"Point Pedro Road , Jaffna, Northern Province",,,9.669559,80.019137,"https://www.google.com/maps/search/?api=1&query=9.669559,80.019137",,OSM,way/569215604
+6,Jaffna,cycle garage,Garage / Vehicle Repair,"Avarankal-Thondaimanaru Road , Achchuvely, Northern Province",,,9.776821,80.114813,"https://www.google.com/maps/search/?api=1&query=9.776821,80.114813",,Photon,
+7,Jaffna,Vagitha Garage,Garage / Vehicle Repair,"Navalar Road , Navanthurai, Northern Province",,,9.672427,80.017303,"https://www.google.com/maps/search/?api=1&query=9.672427,80.017303",,Photon,
+8,Jaffna,Carpentry Workshop,Garage / Vehicle Repair,", Ariyalai, Northern Province",,,9.653173,80.042685,"https://www.google.com/maps/search/?api=1&query=9.653173,80.042685",,Photon,
+9,Jaffna,Gayathiri Jewels Workshop,Garage / Vehicle Repair,", Jaffna, Northern Province",,,9.690607,80.01455,"https://www.google.com/maps/search/?api=1&query=9.690607,80.01455",,Photon,
+10,Jaffna,Tyre Service,Garage / Vehicle Repair,"Jaffna-Point Pedro Road , Point Pedro, Northern Province",,,9.80617,80.222791,"https://www.google.com/maps/search/?api=1&query=9.80617,80.222791",,Photon,
+11,Jaffna,Soori mechanic,Garage / Vehicle Repair,"Udupiddy Road , Udupiddy, Northern Province",,,9.805277,80.175538,"https://www.google.com/maps/search/?api=1&query=9.805277,80.175538",,Photon,
+12,Jaffna,Vehicle Service Station,Garage / Vehicle Repair,"Puloly-Kodikamam Road , Manthikai, Northern Province",,,9.801772,80.227502,"https://www.google.com/maps/search/?api=1&query=9.801772,80.227502",,Photon,
+13,Jaffna,Thurka,Garage / Vehicle Repair,Jaffna,,,9.665093,80.009303,"https://www.google.com/maps/search/?api=1&query=9.665093,80.009303",,RainbowPages,https://rainbowpages.lk/essential-services/garage/thurka/
+14,Jaffna,,Garage / Vehicle Repair,,,,9.678933,80.037019,"https://www.google.com/maps/search/?api=1&query=9.678933,80.037019",,OSM,node/4375325296
+15,Jaffna,,Tyre Service,,,,9.674518,80.025577,"https://www.google.com/maps/search/?api=1&query=9.674518,80.025577",,OSM,node/5584394124
+16,Jaffna,,Garage / Vehicle Repair,,,,9.660279,80.163683,"https://www.google.com/maps/search/?api=1&query=9.660279,80.163683",,OSM,node/8411118979
+17,Jaffna,,Garage / Vehicle Repair,,,,9.675134,80.00866,"https://www.google.com/maps/search/?api=1&query=9.675134,80.00866",,OSM,way/572229399
+18,Jaffna,,Motorcycle Repair,,,,9.79891,80.190386,"https://www.google.com/maps/search/?api=1&query=9.79891,80.190386",,OSM,way/1254320814
+19,Jaffna,,Tyre Service,,,,9.797961,80.181796,"https://www.google.com/maps/search/?api=1&query=9.797961,80.181796",,OSM,way/1254320816
+1,Kilinochchi,KunaratnamTyre,Tyre Service,"Jaffna-Kandy Road , Paranthan, Northern Province",,,9.4103,80.408079,"https://www.google.com/maps/search/?api=1&query=9.4103,80.408079",,OSM,node/4451435356
+1,Mannar,Sasi Garage,Garage / Vehicle Repair,"Station Road (Bar Road) , Mannar, Northern Province",,,8.978237,79.909998,"https://www.google.com/maps/search/?api=1&query=8.978237,79.909998",,Photon,
+2,Mannar,Rahubeen Out Motor Garage,Garage / Vehicle Repair,Pesalai,,,9.084841,79.820893,"https://www.google.com/maps/search/?api=1&query=9.084841,79.820893",,RainbowPages,https://rainbowpages.lk/essential-services/garage/rahubeen-out-motor-garage/
+1,Vavuniya,Motorbike repair,Garage / Vehicle Repair,,,,9.058128,80.658284,"https://www.google.com/maps/search/?api=1&query=9.058128,80.658284",,OSM,node/4116033652
+2,Vavuniya,Tharmini Tyre Work Shop,Garage / Vehicle Repair,"8th mile post , Vavuniya, Northern Province",,,8.753221,80.377096,"https://www.google.com/maps/search/?api=1&query=8.753221,80.377096",,Photon,
+3,Vavuniya,Uthyan Garage,Garage / Vehicle Repair,"Pandarikulam 1st Lane , Vavuniya, Northern Province",,,8.757417,80.489433,"https://www.google.com/maps/search/?api=1&query=8.757417,80.489433",,Photon,
+4,Vavuniya,mechanic shop,Garage / Vehicle Repair,"Jaffna-Kandy Road , Vavuniya, Northern Province",,,8.806309,80.491061,"https://www.google.com/maps/search/?api=1&query=8.806309,80.491061",,Photon,
+5,Vavuniya,Saneer Motors,Garage / Vehicle Repair,Mankulam Neriyakulam,,,8.603431,80.372696,"https://www.google.com/maps/search/?api=1&query=8.603431,80.372696",,RainbowPages,https://rainbowpages.lk/essential-services/garage/saneer-motors/
+6,Vavuniya,,Motorcycle Repair,,,,8.771237,80.486518,"https://www.google.com/maps/search/?api=1&query=8.771237,80.486518",,OSM,way/1216720561
+1,Mullaitivu,Arul Motors,Garage / Vehicle Repair,Mullaitivu Main Road Puthukkudiyiruppu,,,9.303682,80.694284,"https://www.google.com/maps/search/?api=1&query=9.303682,80.694284",,RainbowPages,https://rainbowpages.lk/essential-services/garage/arul-motors/
+1,Batticaloa,Hanfa Motors,Motorcycle Repair,,+94770299454,,7.914144,81.523167,"https://www.google.com/maps/search/?api=1&query=7.914144,81.523167",,OSM,node/11693712644
+2,Batticaloa,Muna Motors,Motorcycle Repair,,+94756666999,,7.913012,81.525802,"https://www.google.com/maps/search/?api=1&query=7.913012,81.525802",,OSM,node/11693712664
+3,Batticaloa,Absan Tyres & Works,Tyre Service,,+94752067853,,7.91167,81.527805,"https://www.google.com/maps/search/?api=1&query=7.91167,81.527805",,OSM,node/11693729677
+4,Batticaloa,Sukumar motors,Motorcycle Repair,"Main Street, sittandy 4",,,7.812305,81.562224,"https://www.google.com/maps/search/?api=1&query=7.812305,81.562224",,OSM,node/14096852763
+5,Batticaloa,Gowry motors,Garage / Vehicle Repair,,,,7.769759,81.618088,"https://www.google.com/maps/search/?api=1&query=7.769759,81.618088",,OSM,way/450991569
+6,Batticaloa,S.K.Raj motors,Garage / Vehicle Repair,,,,7.753026,81.636876,"https://www.google.com/maps/search/?api=1&query=7.753026,81.636876",,OSM,way/451993236
+7,Batticaloa,Motorcycle mehanic shop,Motorcycle Repair,,,,7.791097,81.583791,"https://www.google.com/maps/search/?api=1&query=7.791097,81.583791",,OSM,way/453451669
+8,Batticaloa,Joseph Motors,Garage / Vehicle Repair,,,,7.769633,81.613731,"https://www.google.com/maps/search/?api=1&query=7.769633,81.613731",,OSM,way/1210244493
+9,Batticaloa,Garage,Garage / Vehicle Repair,"Chandra Lane , Vettukkadu, Eastern Province",,,7.734323,81.692947,"https://www.google.com/maps/search/?api=1&query=7.734323,81.692947",,Photon,
+10,Batticaloa,Garage,Garage / Vehicle Repair,"Trincomalee Road , Batticaloa, Eastern Province",,,7.700006,81.686918,"https://www.google.com/maps/search/?api=1&query=7.700006,81.686918",,Photon,
+11,Batticaloa,Uthayan Garage,Garage / Vehicle Repair,"Padu Kaddar Road , Batticaloa, Eastern Province",,,7.69282,81.721376,"https://www.google.com/maps/search/?api=1&query=7.69282,81.721376",,Photon,
+12,Batticaloa,Vehile Garage,Garage / Vehicle Repair,"Rosairo Lane , Vettukkadu, Eastern Province",,,7.726925,81.693825,"https://www.google.com/maps/search/?api=1&query=7.726925,81.693825",,Photon,
+13,Batticaloa,Grage,Garage / Vehicle Repair,"Mariyamman Kovil Road , Batticaloa, Eastern Province",,,7.696742,81.719047,"https://www.google.com/maps/search/?api=1&query=7.696742,81.719047",,Photon,
+14,Batticaloa,Bus Garage,Garage / Vehicle Repair,"Sarvodaya Veethy , Batticaloa, Eastern Province",,,7.7521,81.663213,"https://www.google.com/maps/search/?api=1&query=7.7521,81.663213",,Photon,
+15,Batticaloa,Work Shop,Garage / Vehicle Repair,"Sarvodaya Veethy , Batticaloa, Eastern Province",,,7.750909,81.684881,"https://www.google.com/maps/search/?api=1&query=7.750909,81.684881",,Photon,
+16,Batticaloa,Carpenter WorkShop,Garage / Vehicle Repair,"Nirthanki Road , Chenkaladi, Eastern Province",,,7.794762,81.578062,"https://www.google.com/maps/search/?api=1&query=7.794762,81.578062",,Photon,
+17,Batticaloa,Mechhanical Workshop,Garage / Vehicle Repair,"Mathura Puri Road , Chenkaladi, Eastern Province",,,7.793346,81.578695,"https://www.google.com/maps/search/?api=1&query=7.793346,81.578695",,Photon,
+18,Batticaloa,Tyre Works,Garage / Vehicle Repair,"Trincomalee Road , Valaichchenai, Eastern Province",,,7.893057,81.537334,"https://www.google.com/maps/search/?api=1&query=7.893057,81.537334",,Photon,
+19,Batticaloa,A M L Motors,Garage / Vehicle Repair,Main St Oddamavadi,,,7.906771,81.519915,"https://www.google.com/maps/search/?api=1&query=7.906771,81.519915",,RainbowPages,https://rainbowpages.lk/essential-services/garage/a-m-l-motors/
+20,Batticaloa,,Garage / Vehicle Repair,,,,7.726668,81.686222,"https://www.google.com/maps/search/?api=1&query=7.726668,81.686222",,OSM,way/222604099
+21,Batticaloa,,Garage / Vehicle Repair,,,,7.722645,81.698257,"https://www.google.com/maps/search/?api=1&query=7.722645,81.698257",,OSM,way/223252858
+22,Batticaloa,,Garage / Vehicle Repair,,,,7.731618,81.688979,"https://www.google.com/maps/search/?api=1&query=7.731618,81.688979",,OSM,way/223500055
+23,Batticaloa,,Garage / Vehicle Repair,,,,7.729602,81.687798,"https://www.google.com/maps/search/?api=1&query=7.729602,81.687798",,OSM,way/231056014
+24,Batticaloa,,Garage / Vehicle Repair,,,,7.729401,81.684,"https://www.google.com/maps/search/?api=1&query=7.729401,81.684",,OSM,way/231664596
+1,Ampara,lakshan motors,Garage / Vehicle Repair,"229, Deegha Gamini Mawatha, අම්පාර",0776328082,,7.297871,81.680813,"https://www.google.com/maps/search/?api=1&query=7.297871,81.680813",,OSM,way/1083572555
+2,Ampara,saleem tyre gouse6,Tyre Service,,,,7.350048,81.846197,"https://www.google.com/maps/search/?api=1&query=7.350048,81.846197",,OSM,node/11295443564
+3,Ampara,Mottuvil Motors,Garage / Vehicle Repair,,,,6.871656,81.830131,"https://www.google.com/maps/search/?api=1&query=6.871656,81.830131",,OSM,node/12119746174
+4,Ampara,Raju painting garage,Garage / Vehicle Repair,"Pottuvil-Batticaloa Road , Nintavur, Eastern Province",,,7.3552,81.846154,"https://www.google.com/maps/search/?api=1&query=7.3552,81.846154",,Photon,
+5,Ampara,s.garage,Garage / Vehicle Repair,"Mahapola Road , Oluvil, Eastern Province",,,7.294303,81.864873,"https://www.google.com/maps/search/?api=1&query=7.294303,81.864873",,Photon,
+6,Ampara,,Motorcycle Repair,,,,7.289819,81.863397,"https://www.google.com/maps/search/?api=1&query=7.289819,81.863397",,OSM,node/13716011104
+1,Trincomalee,,Garage / Vehicle Repair,,,,8.5821,81.227907,"https://www.google.com/maps/search/?api=1&query=8.5821,81.227907",,OSM,node/7305995085
+1,Kurunegala,Riviresa Enterprises,Tyre Service,,0372239207,,7.426005,80.330663,"https://www.google.com/maps/search/?api=1&query=7.426005,80.330663",,OSM,node/5018341462
+2,Kurunegala,M.J. Motors,Motorcycle Repair,Nikaweratiya - Maho - Madagalla Road,+940714141277,,7.829816,80.302463,"https://www.google.com/maps/search/?api=1&query=7.829816,80.302463",,OSM,way/1163807554
+3,Kurunegala,Swarna Tire repair shop,Tyre Service,"Polgahawela - Kegalle road, Karandana",,,7.322796,80.315102,"https://www.google.com/maps/search/?api=1&query=7.322796,80.315102",,OSM,node/4780675707
+4,Kurunegala,"Bro, Kumara",Garage / Vehicle Repair,,,,7.676664,80.370601,"https://www.google.com/maps/search/?api=1&query=7.676664,80.370601",,OSM,node/5930483985
+5,Kurunegala,Sahira motors,Garage / Vehicle Repair,,,,7.990565,80.268583,"https://www.google.com/maps/search/?api=1&query=7.990565,80.268583",,OSM,node/9399150942
+6,Kurunegala,Upul Motors & Service,Motorcycle Repair,,,,7.992667,80.26922,"https://www.google.com/maps/search/?api=1&query=7.992667,80.26922",,OSM,node/9399192533
+7,Kurunegala,Badurdeen Service Sation,Motorcycle Repair,,,,7.999743,80.271876,"https://www.google.com/maps/search/?api=1&query=7.999743,80.271876",,OSM,node/9399192567
+8,Kurunegala,Rohan Auto AC,Garage / Vehicle Repair,,,,8.011798,80.270404,"https://www.google.com/maps/search/?api=1&query=8.011798,80.270404",,OSM,node/9399687106
+9,Kurunegala,Dsi Tyres,Tyre Service,"Anuradhapura Road , Amunukole Junction, North Western Province",,,8.039995,80.280457,"https://www.google.com/maps/search/?api=1&query=8.039995,80.280457",,OSM,node/9399745773
+10,Kurunegala,Lakshmi Tyre Center,Tyre Service,"Anuradhapura Road , Amunukole Junction, North Western Province",,,8.05379,80.283647,"https://www.google.com/maps/search/?api=1&query=8.05379,80.283647",,OSM,node/9399745794
+11,Kurunegala,Dissanayake Vehicles Service Center,Garage / Vehicle Repair,"Galgamuwa-Nikawewa Road , Wetakoluwagama, North Western Province",,,7.976644,80.32175,"https://www.google.com/maps/search/?api=1&query=7.976644,80.32175",,OSM,node/9400611593
+12,Kurunegala,New Vikum Motors,Motorcycle Repair,,,,7.959988,80.333071,"https://www.google.com/maps/search/?api=1&query=7.959988,80.333071",,OSM,node/9400611601
+13,Kurunegala,Chandana Motors & Service Center,Garage / Vehicle Repair,,,,7.939757,80.330819,"https://www.google.com/maps/search/?api=1&query=7.939757,80.330819",,OSM,node/9400769322
+14,Kurunegala,Thiyasha Motors,Garage / Vehicle Repair,,,,7.91159,80.242443,"https://www.google.com/maps/search/?api=1&query=7.91159,80.242443",,OSM,node/9400769350
+15,Kurunegala,Samantha Motors,Motorcycle Repair,,,,7.908137,80.243515,"https://www.google.com/maps/search/?api=1&query=7.908137,80.243515",,OSM,node/9400843357
+16,Kurunegala,Samantha Motors & Autor Service,Garage / Vehicle Repair,,,,7.903065,80.2456,"https://www.google.com/maps/search/?api=1&query=7.903065,80.2456",,OSM,node/9400843367
+17,Kurunegala,Pesanna auto plaint & tinkering,Garage / Vehicle Repair,,,,8.012998,80.318717,"https://www.google.com/maps/search/?api=1&query=8.012998,80.318717",,OSM,node/9410805078
+18,Kurunegala,Upul Motors,Motorcycle Repair,,,,8.054536,80.353881,"https://www.google.com/maps/search/?api=1&query=8.054536,80.353881",,OSM,node/9410978646
+19,Kurunegala,Ravindra Auto Workshop,Garage / Vehicle Repair,"Tambuttegama-Balaluwewa Road , Dehelgamuwa, North Central Province",,,8.076386,80.330328,"https://www.google.com/maps/search/?api=1&query=8.076386,80.330328",,OSM,node/9411086587
+20,Kurunegala,Rohana Paint Shop,Garage / Vehicle Repair,,,,8.079151,80.327113,"https://www.google.com/maps/search/?api=1&query=8.079151,80.327113",,OSM,node/9411086591
+21,Kurunegala,Bandara Motors,Garage / Vehicle Repair,,,,8.04491,80.287879,"https://www.google.com/maps/search/?api=1&query=8.04491,80.287879",,OSM,node/9411088022
+22,Kurunegala,Maxx Engineering Solutions,Motorcycle Repair,,,,8.051774,80.360002,"https://www.google.com/maps/search/?api=1&query=8.051774,80.360002",,OSM,node/9444222723
+23,Kurunegala,DM Tyre House,Tyre Service,,,,7.507427,80.342496,"https://www.google.com/maps/search/?api=1&query=7.507427,80.342496",,OSM,node/11950101266
+24,Kurunegala,Sanara Motors,Garage / Vehicle Repair,"Ambepussa- Kurunegala Road, polgahawela",,,7.331583,80.296496,"https://www.google.com/maps/search/?api=1&query=7.331583,80.296496",,OSM,way/369103104
+25,Kurunegala,Sakith Auto Care,Garage / Vehicle Repair,Alawwa,,,7.294016,80.239242,"https://www.google.com/maps/search/?api=1&query=7.294016,80.239242",,RainbowPages,https://rainbowpages.lk/essential-services/garage/sakith-auto-care/
+26,Kurunegala,New Darshana Motors,Garage / Vehicle Repair,Dambulla Road Melsiripura,,,7.638942,80.506318,"https://www.google.com/maps/search/?api=1&query=7.638942,80.506318",,RainbowPages,https://rainbowpages.lk/vehicle/brake-down-wrecker-services/new-darshana-motors/
+27,Kurunegala,,Tyre Service,Ambepussa-Kurunegala Road,,,7.3392,80.302823,"https://www.google.com/maps/search/?api=1&query=7.3392,80.302823",,OSM,node/5013108623
+28,Kurunegala,,Garage / Vehicle Repair,,,,7.332734,80.028462,"https://www.google.com/maps/search/?api=1&query=7.332734,80.028462",,OSM,way/1414198415
+1,Puttalam,Sujan Garage,Garage / Vehicle Repair,Colombo Road,+94763027185+94723736303,,8.020757,79.833627,"https://www.google.com/maps/search/?api=1&query=8.020757,79.833627",,OSM,node/6865473435
+2,Puttalam,Sivas,Garage / Vehicle Repair,,,,7.361972,79.881421,"https://www.google.com/maps/search/?api=1&query=7.361972,79.881421",,OSM,node/1474112290
+3,Puttalam,Oshadi Motor Service,Motorcycle Repair,,,,8.000793,80.103838,"https://www.google.com/maps/search/?api=1&query=8.000793,80.103838",,OSM,node/9400452486
+4,Puttalam,Garage Road,Garage / Vehicle Repair,", Nattandiya, North Western Province",,,7.408975,79.827096,"https://www.google.com/maps/search/?api=1&query=7.408975,79.827096",,Photon,
+5,Puttalam,Kumara Tyre Center - wholesale,Garage / Vehicle Repair,", Dankotuwa, North Western Province",,,7.298004,79.889416,"https://www.google.com/maps/search/?api=1&query=7.298004,79.889416",,Photon,
+6,Puttalam,Indika Garage,Garage / Vehicle Repair,165 Anuradhapura Road Puttalam,,,8.031658,79.842598,"https://www.google.com/maps/search/?api=1&query=8.031658,79.842598",,RainbowPages,https://rainbowpages.lk/vehicle/brake-down-wrecker-services/indika-garage/
+7,Puttalam,,Motorcycle Repair,,,,8.031171,79.830199,"https://www.google.com/maps/search/?api=1&query=8.031171,79.830199",,OSM,node/6862718522
+1,Anuradhapura,Sampath Motors,Motorcycle Repair,,,,8.078564,80.364754,"https://www.google.com/maps/search/?api=1&query=8.078564,80.364754",,OSM,node/9444222756
+2,Anuradhapura,Vehicle Service Center,Garage / Vehicle Repair,"Kebitigollewa-Padaviya Road , New Town, padaviya, North Central Province",,,8.834585,80.761101,"https://www.google.com/maps/search/?api=1&query=8.834585,80.761101",,Photon,
+3,Anuradhapura,Garage,Garage / Vehicle Repair,"Abdul Halik AHK Road , Galnewa, North Central Province",,,8.033402,80.479499,"https://www.google.com/maps/search/?api=1&query=8.033402,80.479499",,Photon,
+4,Anuradhapura,Garage,Garage / Vehicle Repair,"Jaffna Road , Rambewa, North Central Province",,,8.438984,80.503666,"https://www.google.com/maps/search/?api=1&query=8.438984,80.503666",,Photon,
+5,Anuradhapura,MC workshop,Garage / Vehicle Repair,"Purahala Pedesa 3 Lane , Anuradhapura, North Central Province",,,8.326819,80.407344,"https://www.google.com/maps/search/?api=1&query=8.326819,80.407344",,Photon,
+6,Anuradhapura,Ruhunu Tyre House,Garage / Vehicle Repair,"Galnewa , Galnewa, North Central Province",,,8.035673,80.47986,"https://www.google.com/maps/search/?api=1&query=8.035673,80.47986",,Photon,
+7,Anuradhapura,,Garage / Vehicle Repair,Jaffna-Kandy Road,0718569836,,8.499269,80.512269,"https://www.google.com/maps/search/?api=1&query=8.499269,80.512269",,OSM,node/6271115589
+8,Anuradhapura,,Motorcycle Repair,,,,8.332328,80.408896,"https://www.google.com/maps/search/?api=1&query=8.332328,80.408896",,OSM,node/567004203
+9,Anuradhapura,,Tyre Service,,,,8.124425,80.567429,"https://www.google.com/maps/search/?api=1&query=8.124425,80.567429",,OSM,node/2834985801
+10,Anuradhapura,,Tyre Service,,,,8.55054,80.833641,"https://www.google.com/maps/search/?api=1&query=8.55054,80.833641",,OSM,node/5584399521
+11,Anuradhapura,,Garage / Vehicle Repair,,,,8.147007,80.33808,"https://www.google.com/maps/search/?api=1&query=8.147007,80.33808",,OSM,node/11553872970
+1,Polonnaruwa,Nippon Moters,Garage / Vehicle Repair,,,,7.941155,81.016572,"https://www.google.com/maps/search/?api=1&query=7.941155,81.016572",,OSM,node/2822232345
+2,Polonnaruwa,Motorcycle Service Center,Motorcycle Repair,,,,7.913769,81.005642,"https://www.google.com/maps/search/?api=1&query=7.913769,81.005642",,OSM,node/2838994128
+3,Polonnaruwa,Dharmasiri Tyre House,Tyre Service,"Polonnaruwa-Batticaloa Road , Polonnaruwa, North Central Province",,,7.938529,81.021768,"https://www.google.com/maps/search/?api=1&query=7.938529,81.021768",,OSM,node/8639490244
+4,Polonnaruwa,Dharmasiri Tyre House (PVT),Garage / Vehicle Repair,"Circular Road , Polonnaruwa, North Central Province",,,7.939725,81.001428,"https://www.google.com/maps/search/?api=1&query=7.939725,81.001428",,Photon,
+5,Polonnaruwa,Amra Motors & Chemicals,Garage / Vehicle Repair,Polonnaruwa,,,7.998237,81.04717,"https://www.google.com/maps/search/?api=1&query=7.998237,81.04717",,RainbowPages,https://rainbowpages.lk/essential-services/garage/amra-motors-and-chemicals/
+6,Polonnaruwa,New Jayalath Electricals,Garage / Vehicle Repair,Hospital Junction Polonnaruwa,,,7.94261,81.010651,"https://www.google.com/maps/search/?api=1&query=7.94261,81.010651",,RainbowPages,https://rainbowpages.lk/vehicle/brake-down-wrecker-services/new-jayalath-electricals/
+7,Polonnaruwa,Anura Motors,Garage / Vehicle Repair,Rest House Road Hingurakgoda,,,8.046231,80.953551,"https://www.google.com/maps/search/?api=1&query=8.046231,80.953551",,RainbowPages,https://rainbowpages.lk/vehicle/brake-down-wrecker-services/anura-motors-9/
+1,Badulla,Ishara Tyre House,Tyre Service,Badulla,,,6.984857,81.061834,"https://www.google.com/maps/search/?api=1&query=6.984857,81.061834",,OSM,node/3298105268
+2,Badulla,Toyota Lanka,Garage / Vehicle Repair,Badulla,,,6.988829,81.059899,"https://www.google.com/maps/search/?api=1&query=6.988829,81.059899",,OSM,node/3298298265
+3,Badulla,Chandrasoma Service Station,Garage / Vehicle Repair,Badulla,,,7.014912,81.055587,"https://www.google.com/maps/search/?api=1&query=7.014912,81.055587",,OSM,node/3301935945
+4,Badulla,Sunshine Auto Service,Garage / Vehicle Repair,Badulla,,,7.00707,81.056709,"https://www.google.com/maps/search/?api=1&query=7.00707,81.056709",,OSM,node/3301935957
+5,Badulla,Chandana Tire Shop,Tyre Service,Bogahakumbura,,,6.861226,80.87645,"https://www.google.com/maps/search/?api=1&query=6.861226,80.87645",,OSM,node/3746060385
+6,Badulla,Rathnayaka Garage,Garage / Vehicle Repair,"Passara Road , Badulla, Uva Province",,,6.984834,81.068398,"https://www.google.com/maps/search/?api=1&query=6.984834,81.068398",,OSM,node/3819385457
+7,Badulla,Air condition/Fridge repair,Garage / Vehicle Repair,,,,6.993289,81.051764,"https://www.google.com/maps/search/?api=1&query=6.993289,81.051764",,OSM,node/3827227157
+8,Badulla,Tyre House,Tyre Service,"Mahiyanganaya Road , Badulla, Uva Province",,,6.993908,81.058108,"https://www.google.com/maps/search/?api=1&query=6.993908,81.058108",,OSM,way/254766830
+9,Badulla,garage,Garage / Vehicle Repair,"To Play ground , Diyatalawa, Uva Province",,,6.817126,80.956805,"https://www.google.com/maps/search/?api=1&query=6.817126,80.956805",,Photon,
+10,Badulla,Vechicle service,Garage / Vehicle Repair,"Alugolla Road , Karagasthenna, Uva Province",,,6.850912,80.902458,"https://www.google.com/maps/search/?api=1&query=6.850912,80.902458",,Photon,
+11,Badulla,Gamini Motors,Garage / Vehicle Repair,"387, Mahiyangana Road Badulla",,,7.254042,81.044822,"https://www.google.com/maps/search/?api=1&query=7.254042,81.044822",,RainbowPages,https://rainbowpages.lk/vehicle/brake-down-wrecker-services/gamini-motors-8/
+12,Badulla,Ranasinghe Motors,Garage / Vehicle Repair,Bandarawela,,,6.830482,80.98882,"https://www.google.com/maps/search/?api=1&query=6.830482,80.98882",,RainbowPages,https://rainbowpages.lk/essential-services/garage/ranasinghe-motors-4/
+13,Badulla,Sarath Garage,Garage / Vehicle Repair,No. 33 Station Road Badulla,,,6.980796,81.059836,"https://www.google.com/maps/search/?api=1&query=6.980796,81.059836",,RainbowPages,https://rainbowpages.lk/essential-services/garage/sarath-garage/
+14,Badulla,YN Thaaru Garage,Garage / Vehicle Repair,Temple Andeniya Road Badulla,,,6.997788,81.059659,"https://www.google.com/maps/search/?api=1&query=6.997788,81.059659",,RainbowPages,https://rainbowpages.lk/essential-services/garage/yn-thaaru-garage/
+15,Badulla,,Garage / Vehicle Repair,,,,7.001138,81.057184,"https://www.google.com/maps/search/?api=1&query=7.001138,81.057184",,OSM,node/3769943277
+16,Badulla,,Tyre Service,Ella - Wellawaya Road,,,6.870095,81.040767,"https://www.google.com/maps/search/?api=1&query=6.870095,81.040767",,OSM,node/4742894421
+17,Badulla,,Garage / Vehicle Repair,,,,6.73028,81.036742,"https://www.google.com/maps/search/?api=1&query=6.73028,81.036742",,OSM,node/6690492585
+18,Badulla,,Garage / Vehicle Repair,,,,6.875391,81.067898,"https://www.google.com/maps/search/?api=1&query=6.875391,81.067898",,OSM,node/11486577169
+19,Badulla,,Garage / Vehicle Repair,,,,6.766964,80.954709,"https://www.google.com/maps/search/?api=1&query=6.766964,80.954709",,OSM,node/13569933772
+20,Badulla,,Garage / Vehicle Repair,,,,6.984892,81.064001,"https://www.google.com/maps/search/?api=1&query=6.984892,81.064001",,OSM,way/373559275
+1,Monaragala,Werasewa Gerage,Garage / Vehicle Repair,,,,6.757107,81.236468,"https://www.google.com/maps/search/?api=1&query=6.757107,81.236468",,OSM,way/354208235
+2,Monaragala,Garrage,Garage / Vehicle Repair,"Passara-Moneragala Road , Badalkumbura, Uva Province",,,6.896289,81.237395,"https://www.google.com/maps/search/?api=1&query=6.896289,81.237395",,Photon,
+3,Monaragala,Dinisuru Group,Garage / Vehicle Repair,Monaragala,,,6.872728,81.350578,"https://www.google.com/maps/search/?api=1&query=6.872728,81.350578",,RainbowPages,https://rainbowpages.lk/essential-services/garage/dinisuru-group/
+4,Monaragala,Gunawardena Motors,Garage / Vehicle Repair,"3Rd Mile Post, Ella Road, Wellawaya",,,6.733503,81.100478,"https://www.google.com/maps/search/?api=1&query=6.733503,81.100478",,RainbowPages,https://rainbowpages.lk/vehicle/brake-down-wrecker-services/gunawardena-motors/
+5,Monaragala,,Garage / Vehicle Repair,Katharagama UP,,,6.412419,81.342539,"https://www.google.com/maps/search/?api=1&query=6.412419,81.342539",,OSM,node/2992431852
+1,Ratnapura,Anura Tyres,Tyre Service,,+94457214214,,6.686638,80.395833,"https://www.google.com/maps/search/?api=1&query=6.686638,80.395833",,OSM,node/8407070501
+2,Ratnapura,garage,Motorcycle Repair,"Garage Road , Thennekubura, Sabaragamuwa Province",,,6.710624,80.673629,"https://www.google.com/maps/search/?api=1&query=6.710624,80.673629",,OSM,node/13157941337
+3,Ratnapura,hubugodara tire center,Tyre Service,"Embilipitiya-Middeniya Road, embilipitiya",,,6.30206,80.829032,"https://www.google.com/maps/search/?api=1&query=6.30206,80.829032",,OSM,way/1106413262
+4,Ratnapura,garege,Garage / Vehicle Repair,"Embilipitiya-Middeniya Road , Embilipitiya, Sabaragamuwa Province",,,6.311764,80.836047,"https://www.google.com/maps/search/?api=1&query=6.311764,80.836047",,Photon,
+5,Ratnapura,"Garage, SUSL",Garage / Vehicle Repair,"Araliya Road , Pambahinna, Sabaragamuwa Province",,,6.714095,80.790259,"https://www.google.com/maps/search/?api=1&query=6.714095,80.790259",,Photon,
+6,Ratnapura,G A Jayantha,Garage / Vehicle Repair,Rathnapura,,,6.706542,80.382399,"https://www.google.com/maps/search/?api=1&query=6.706542,80.382399",,RainbowPages,https://rainbowpages.lk/essential-services/garage/g-a-jayantha/
+7,Ratnapura,National Motors,Garage / Vehicle Repair,No:190 Balangoda,,,6.650143,80.698566,"https://www.google.com/maps/search/?api=1&query=6.650143,80.698566",,RainbowPages,https://rainbowpages.lk/vehicle/brake-down-wrecker-services/national-motors-2/
+8,Ratnapura,Malka Motors,Garage / Vehicle Repair,Hospital Road Embilipitiya,,,6.319484,80.838498,"https://www.google.com/maps/search/?api=1&query=6.319484,80.838498",,RainbowPages,https://rainbowpages.lk/essential-services/garage/malka-motors/
+9,Ratnapura,,Garage / Vehicle Repair,,,,6.852387,80.262208,"https://www.google.com/maps/search/?api=1&query=6.852387,80.262208",,OSM,way/1078731565
+1,Kegalle,Ajith - Mechanic,Garage / Vehicle Repair,Mawanella,,,7.254251,80.445276,"https://www.google.com/maps/search/?api=1&query=7.254251,80.445276",,OSM,node/2340215064
+2,Kegalle,Pathirana Engineers,Garage / Vehicle Repair,"No 1, Polgahawela-Kegalle Road, Moragolla",,,7.314507,80.315405,"https://www.google.com/maps/search/?api=1&query=7.314507,80.315405",,OSM,node/3120541020
+3,Kegalle,Orient Engineers,Garage / Vehicle Repair,"Nidahas Mawatha, kegalle",,,7.252129,80.34135,"https://www.google.com/maps/search/?api=1&query=7.252129,80.34135",,OSM,node/3788902811
+4,Kegalle,repair shop,Motorcycle Repair,kunduwatta rd,,,7.314561,80.319037,"https://www.google.com/maps/search/?api=1&query=7.314561,80.319037",,OSM,node/4839369002
+5,Kegalle,Autotechnica,Garage / Vehicle Repair,Molagoda,,,7.254225,80.382751,"https://www.google.com/maps/search/?api=1&query=7.254225,80.382751",,OSM,node/5234547573
+6,Kegalle,Anura Tyre House,Tyre Service,"Dippitiya Aranayake, Dippitiya 71540, Mawanella-Aranayaka-Horawala Road",,,7.175956,80.458399,"https://www.google.com/maps/search/?api=1&query=7.175956,80.458399",,OSM,node/11699356473
+7,Kegalle,Nishan tyre center,Tyre Service,,,,7.235321,80.26492,"https://www.google.com/maps/search/?api=1&query=7.235321,80.26492",,OSM,node/13001412772
+8,Kegalle,Thilaka tire repire shop,Tyre Service,"Polgahawela-Kegalle Road, wattarama",,,7.306198,80.32048,"https://www.google.com/maps/search/?api=1&query=7.306198,80.32048",,OSM,way/399155624
+9,Kegalle,Hybrid Tech,Garage / Vehicle Repair,,,,7.249595,80.460309,"https://www.google.com/maps/search/?api=1&query=7.249595,80.460309",,OSM,way/1287761975
+10,Kegalle,Ruchira Group,Tyre Service,,,,7.249556,80.455106,"https://www.google.com/maps/search/?api=1&query=7.249556,80.455106",,OSM,way/1287766297
+11,Kegalle,Ambulance - Garage,Garage / Vehicle Repair,"Hospital Road , Ganthuna, Sabaragamuwa Province",,,7.133369,80.400425,"https://www.google.com/maps/search/?api=1&query=7.133369,80.400425",,Photon,
+12,Kegalle,Winlak Nile Motors,Garage / Vehicle Repair,"Kandy Road, Ambepussa, Warakapola",,,7.235093,80.206976,"https://www.google.com/maps/search/?api=1&query=7.235093,80.206976",,RainbowPages,https://rainbowpages.lk/vehicle/brake-down-wrecker-services/winlak-nile-motors/
+13,Kegalle,Priyantha Auto Engineers,Garage / Vehicle Repair,Kegalle,,,7.113445,80.32174,"https://www.google.com/maps/search/?api=1&query=7.113445,80.32174",,RainbowPages,https://rainbowpages.lk/essential-services/garage/priyantha-auto-engineers/
+14,Kegalle,Royal Garage,Garage / Vehicle Repair,Ranwala Kegalle,,,7.251136,80.332536,"https://www.google.com/maps/search/?api=1&query=7.251136,80.332536",,RainbowPages,https://rainbowpages.lk/vehicle/brake-down-wrecker-services/royal-garage/
+15,Kegalle,,Garage / Vehicle Repair,,,,6.965125,80.259608,"https://www.google.com/maps/search/?api=1&query=6.965125,80.259608",,OSM,node/11775199839
+16,Kegalle,,Tyre Service,,,,7.237382,80.30149,"https://www.google.com/maps/search/?api=1&query=7.237382,80.30149",,OSM,way/1105805839
+17,Kegalle,,Garage / Vehicle Repair,,,,6.990742,80.217285,"https://www.google.com/maps/search/?api=1&query=6.990742,80.217285",,OSM,way/1200905866

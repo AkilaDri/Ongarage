@@ -1,0 +1,921 @@
+Starting project at /home/akila/Projects/Ongarage/apps/user
+Using src/app as the root directory for Expo Router.
+Expo Autolinking module resolution enabled
+Starting Metro Bundler
+
+warning: Bundler cache is empty, rebuilding (this may take a minute)
+Waiting on http://localhost:8091
+
+An update for expo is available: 57.0.26 → ~57.0.32
+8 other packages may need updating. Run npx expo install --check for details.
+Logs for your project will appear below.
+λ Bundled 135054ms node_modules/expo/node_modules/@expo/cli/node_modules/@expo/router-server/node/render.js (1324 modules)
+λ Bundled 126176ms node_modules/expo/node_modules/@expo/cli/node_modules/@expo/router-server/node/render.js (1 module)
+λ Bundled 119367ms node_modules/expo/node_modules/@expo/cli/node_modules/@expo/router-server/node/render.js (1 module)
+λ Bundled 115982ms node_modules/expo/node_modules/@expo/cli/node_modules/@expo/router-server/node/render.js (1 module)
+λ Bundled 106340ms node_modules/expo/node_modules/@expo/cli/node_modules/@expo/router-server/node/render.js (1 module)
+λ Bundled 96281ms node_modules/expo/node_modules/@expo/cli/node_modules/@expo/router-server/node/render.js (1 module)
+λ Bundled 86072ms node_modules/expo/node_modules/@expo/cli/node_modules/@expo/router-server/node/render.js (1 module)
+λ Bundled 75862ms node_modules/expo/node_modules/@expo/cli/node_modules/@expo/router-server/node/render.js (1 module)
+λ Bundled 65901ms node_modules/expo/node_modules/@expo/cli/node_modules/@expo/router-server/node/render.js (1 module)
+λ Bundled 55788ms node_modules/expo/node_modules/@expo/cli/node_modules/@expo/router-server/node/render.js (1 module)
+λ Bundled 45168ms node_modules/expo/node_modules/@expo/cli/node_modules/@expo/router-server/node/render.js (1 module)
+λ Bundled 35716ms node_modules/expo/node_modules/@expo/cli/node_modules/@expo/router-server/node/render.js (1 module)
+λ Bundled 25635ms node_modules/expo/node_modules/@expo/cli/node_modules/@expo/router-server/node/render.js (1 module)
+λ Bundled 15538ms node_modules/expo/node_modules/@expo/cli/node_modules/@expo/router-server/node/render.js (1 module)
+λ Bundled 5455ms node_modules/expo/node_modules/@expo/cli/node_modules/@expo/router-server/node/render.js (1 module)
+λ Bundled 244ms node_modules/expo/node_modules/@expo/cli/node_modules/@expo/router-server/node/render.js (1 module)
+λ Bundled 434ms node_modules/expo/node_modules/@expo/cli/node_modules/@expo/router-server/node/render.js (1 module)
+λ  WARN  "shadow*" style props are deprecated. Use "boxShadow". 
+λ  WARN  "shadow*" style props are deprecated. Use "boxShadow". 
+λ  WARN  "shadow*" style props are deprecated. Use "boxShadow". 
+λ  WARN  "shadow*" style props are deprecated. Use "boxShadow". 
+λ  WARN  "shadow*" style props are deprecated. Use "boxShadow". 
+λ  WARN  "shadow*" style props are deprecated. Use "boxShadow". 
+λ  WARN  "shadow*" style props are deprecated. Use "boxShadow". 
+λ  WARN  "shadow*" style props are deprecated. Use "boxShadow". 
+λ  WARN  "shadow*" style props are deprecated. Use "boxShadow". 
+λ  WARN  "shadow*" style props are deprecated. Use "boxShadow". 
+λ  WARN  "shadow*" style props are deprecated. Use "boxShadow". 
+λ  WARN  "shadow*" style props are deprecated. Use "boxShadow". 
+λ  WARN  "shadow*" style props are deprecated. Use "boxShadow". 
+λ  WARN  "shadow*" style props are deprecated. Use "boxShadow". 
+λ  WARN  "shadow*" style props are deprecated. Use "boxShadow". 
+Web Bundled 175865ms node_modules/expo-router/entry.js (1286 modules)
+Web Bundled 165862ms node_modules/expo-router/entry.js (1 module)
+Web Bundled 159042ms node_modules/expo-router/entry.js (1 module)
+Web Bundled 155748ms node_modules/expo-router/entry.js (1 module)
+Web Bundled 146191ms node_modules/expo-router/entry.js (1 module)
+Web Bundled 136255ms node_modules/expo-router/entry.js (1 module)
+Web Bundled 126065ms node_modules/expo-router/entry.js (1 module)
+Web Bundled 115872ms node_modules/expo-router/entry.js (1 module)
+Web Bundled 105912ms node_modules/expo-router/entry.js (1 module)
+Web Bundled 95837ms node_modules/expo-router/entry.js (1 module)
+Web Bundled 85270ms node_modules/expo-router/entry.js (1 module)
+Web Bundled 75823ms node_modules/expo-router/entry.js (1 module)
+Web Bundled 65764ms node_modules/expo-router/entry.js (1 module)
+Web Bundled 55697ms node_modules/expo-router/entry.js (1 module)
+Web Bundled 45644ms node_modules/expo-router/entry.js (1 module)
+λ Bundled 247ms node_modules/expo/node_modules/@expo/cli/node_modules/@expo/router-server/node/render.js (1 module)
+λ Bundled 255ms node_modules/expo/node_modules/@expo/cli/node_modules/@expo/router-server/node/render.js (1 module)
+Web Bundled 28776ms node_modules/expo-router/entry.js (1 module)
+Web Bundled 24460ms node_modules/expo-router/entry.js (1 module)
+λ  WARN  "shadow*" style props are deprecated. Use "boxShadow". 
+Web Bundled 4835ms node_modules/expo-router/entry.js (1 module)
+λ  WARN  "shadow*" style props are deprecated. Use "boxShadow". 
+Web Bundled 5156ms node_modules/expo-router/entry.js (1 module)
+λ Bundled 226ms node_modules/expo/node_modules/@expo/cli/node_modules/@expo/router-server/node/render.js (1 module)
+λ  WARN  "shadow*" style props are deprecated. Use "boxShadow". 
+λ  WARN  "shadow*" style props are deprecated. Use "boxShadow". 
+Web Bundled 3910ms node_modules/expo-router/entry.js (1 module)
+λ  WARN  "shadow*" style props are deprecated. Use "boxShadow". 
+λ Bundled 300ms node_modules/expo/node_modules/@expo/cli/node_modules/@expo/router-server/node/render.js (1 module)
+Web Bundled 2809ms node_modules/expo-router/entry.js (1 module)
+λ  WARN  "shadow*" style props are deprecated. Use "boxShadow". 
+λ Bundled 579ms node_modules/expo/node_modules/@expo/cli/node_modules/@expo/router-server/node/render.js (1 module)
+Web Bundled 2298ms node_modules/expo-router/entry.js (1 module)
+λ  WARN  "shadow*" style props are deprecated. Use "boxShadow". 
+Web Bundled 68565ms node_modules/expo-router/entry.js (1286 modules)
+Web  INFO  %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+Web  LOG  Running application "main" with appParams:
+ {"hydrate": undefined, "rootTag": "#root"} 
+Development-level warnings: ON.
+Performance optimizations: OFF.
+Web  WARN  "shadow*" style props are deprecated. Use "boxShadow".
+Web  WARN  "textShadow*" style props are deprecated. Use "textShadow".
+Web  WARN  props.pointerEvents is deprecated. Use style.pointerEvents
+Web  WARN  Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md
+ ERROR  SyntaxError: /home/akila/Projects/Ongarage/apps/user/src/screens/tow/TowOperatorSheet.tsx: Unexpected token, expected "," (60:17)
+
+  58 |       }
+  59 |       footer={
+> 60 |         onChoose && quote ? (
+     |                  ^
+  61 |           <View style={styles.footer}>
+  62 |             <ActionButton label={`මෙම ට්‍රක් තෝරන්න · ${money(quote.total)}`} variant="primary" onPress={onChoose} />
+  63 |           </View>
+    at constructor (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:369:19)
+    at TypeScriptParserMixin.raise (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:6622:19)
+    at TypeScriptParserMixin.unexpected (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:6642:16)
+    at TypeScriptParserMixin.expect (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:6922:12)
+    at TypeScriptParserMixin.parseObjectLike (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:11856:14)
+    at TypeScriptParserMixin.parseExprAtom (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:11370:23)
+    at TypeScriptParserMixin.parseExprAtom (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:4782:20)
+    at TypeScriptParserMixin.parseExprSubscripts (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:11107:23)
+    at TypeScriptParserMixin.parseUpdate (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:11092:21)
+    at TypeScriptParserMixin.parseMaybeUnary (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:11072:23)
+    at TypeScriptParserMixin.parseMaybeUnary (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:9860:18)
+    at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10925:61)
+    at TypeScriptParserMixin.parseExprOps (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10930:23)
+    at TypeScriptParserMixin.parseMaybeConditional (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10907:23)
+    at TypeScriptParserMixin.parseMaybeAssign (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10857:21)
+    at TypeScriptParserMixin.parseMaybeAssign (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:9809:20)
+    at TypeScriptParserMixin.parseMaybeAssign (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10886:25)
+    at TypeScriptParserMixin.parseMaybeAssign (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:9809:20)
+    at TypeScriptParserMixin.parseExpressionBase (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10810:23)
+    at /home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10806:39
+    at TypeScriptParserMixin.allowInAnd (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:12455:16)
+    at TypeScriptParserMixin.parseExpression (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10806:17)
+    at TypeScriptParserMixin.parseStatementContent (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:12929:23)
+    at TypeScriptParserMixin.parseStatementContent (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:9531:18)
+    at TypeScriptParserMixin.parseStatementLike (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:12801:17)
+    at TypeScriptParserMixin.parseModuleItem (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:12778:17)
+    at TypeScriptParserMixin.parseBlockOrModuleBlockBody (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:13350:36)
+    at TypeScriptParserMixin.parseBlockBody (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:13343:10)
+    at TypeScriptParserMixin.parseProgram (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:12656:10)
+    at TypeScriptParserMixin.parseTopLevel (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:12646:25)
+    at TypeScriptParserMixin.parse (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:14522:25)
+    at TypeScriptParserMixin.parse (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10149:18)
+    at parse (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:14535:26)
+    at parser (/home/akila/Projects/Ongarage/node_modules/@babel/core/lib/parser/index.js:41:34)
+    at parser.next (<anonymous>)
+    at normalizeFile (/home/akila/Projects/Ongarage/node_modules/@babel/core/lib/transformation/normalize-file.js:51:37)
+    at normalizeFile.next (<anonymous>)
+    at run (/home/akila/Projects/Ongarage/node_modules/@babel/core/lib/transformation/index.js:22:50)
+    at run.next (<anonymous>)
+    at transform (/home/akila/Projects/Ongarage/node_modules/@babel/core/lib/transform.js:22:33)
+    at transform.next (<anonymous>)
+    at evaluateSync (/home/akila/Projects/Ongarage/node_modules/gensync/index.js:251:28)
+    at sync (/home/akila/Projects/Ongarage/node_modules/gensync/index.js:89:14)
+    at stopHiding - secret - don't use this - v1 (/home/akila/Projects/Ongarage/node_modules/@babel/core/lib/errors/rewrite-stack-trace.js:47:12)
+    at Object.transformSync (/home/akila/Projects/Ongarage/node_modules/@babel/core/lib/transform.js:40:76)
+    at parseWithBabel (/home/akila/Projects/Ongarage/node_modules/@expo/metro-config/build/transformSync.js:75:18)
+    at transformSync (/home/akila/Projects/Ongarage/node_modules/@expo/metro-config/build/transformSync.js:54:16)
+    at Object.transform (/home/akila/Projects/Ongarage/node_modules/@expo/metro-config/build/babel-transformer.js:146:58)
+    at transformJSWithBabel (/home/akila/Projects/Ongarage/node_modules/@expo/metro-config/build/transform-worker/metro-transform-worker.js:495:47)
+    at Object.transform (/home/akila/Projects/Ongarage/node_modules/@expo/metro-config/build/transform-worker/metro-transform-worker.js:614:12)
+Web  ERROR  [TransformError: SyntaxError: /home/akila/Projects/Ongarage/apps/user/src/screens/tow/TowOperatorSheet.tsx: Unexpected token, expected "," (60:17)
+
+  58 |       }
+  59 |       footer={
+> 60 |         onChoose && quote ? (
+     |                  ^
+  61 |           <View style={styles.footer}>
+  62 |             <ActionButton label={`මෙම ට්‍රක් තෝරන්න · ${money(quote.total)}`} variant="primary" onPress={onChoose} />
+  63 |           </View>]
+ ERROR  SyntaxError: /home/akila/Projects/Ongarage/apps/user/src/screens/tow/TowOperatorSheet.tsx: Expected corresponding JSX closing tag for <ScrollView>. (148:4)
+
+  146 |         </View>
+  147 |       )}
+> 148 |     </Sheet>
+      |     ^
+  149 |   );
+  150 | };
+  151 |
+    at constructor (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:369:19)
+    at TypeScriptParserMixin.raise (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:6622:19)
+    at TypeScriptParserMixin.jsxParseElementAt (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:4745:16)
+    at TypeScriptParserMixin.jsxParseElementAt (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:4716:32)
+    at TypeScriptParserMixin.jsxParseElementAt (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:4716:32)
+    at TypeScriptParserMixin.jsxParseElement (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:4767:17)
+    at TypeScriptParserMixin.parseExprAtom (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:4777:19)
+    at TypeScriptParserMixin.parseExprSubscripts (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:11107:23)
+    at TypeScriptParserMixin.parseUpdate (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:11092:21)
+    at TypeScriptParserMixin.parseMaybeUnary (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:11072:23)
+    at TypeScriptParserMixin.parseMaybeUnary (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:9860:18)
+    at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10925:61)
+    at TypeScriptParserMixin.parseExprOps (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10930:23)
+    at TypeScriptParserMixin.parseMaybeConditional (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10907:23)
+    at TypeScriptParserMixin.parseMaybeAssign (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10857:21)
+    at /home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:9798:39
+    at TypeScriptParserMixin.tryParse (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:6930:20)
+    at TypeScriptParserMixin.parseMaybeAssign (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:9798:18)
+    at /home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10826:39
+    at TypeScriptParserMixin.allowInAnd (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:12460:12)
+    at TypeScriptParserMixin.parseMaybeAssignAllowIn (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10826:17)
+    at TypeScriptParserMixin.parseMaybeAssignAllowInOrVoidPattern (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:12527:17)
+    at TypeScriptParserMixin.parseParenAndDistinguishExpression (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:11706:28)
+    at TypeScriptParserMixin.parseExprAtom (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:11362:23)
+    at TypeScriptParserMixin.parseExprAtom (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:4782:20)
+    at TypeScriptParserMixin.parseExprSubscripts (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:11107:23)
+    at TypeScriptParserMixin.parseUpdate (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:11092:21)
+    at TypeScriptParserMixin.parseMaybeUnary (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:11072:23)
+    at TypeScriptParserMixin.parseMaybeUnary (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:9860:18)
+    at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10925:61)
+    at TypeScriptParserMixin.parseExprOps (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10930:23)
+    at TypeScriptParserMixin.parseMaybeConditional (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10907:23)
+    at TypeScriptParserMixin.parseMaybeAssign (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10857:21)
+    at TypeScriptParserMixin.parseMaybeAssign (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:9809:20)
+    at TypeScriptParserMixin.parseExpressionBase (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10810:23)
+    at /home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10806:39
+    at TypeScriptParserMixin.allowInAnd (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:12455:16)
+    at TypeScriptParserMixin.parseExpression (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10806:17)
+    at TypeScriptParserMixin.parseReturnStatement (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:13176:28)
+    at TypeScriptParserMixin.parseStatementContent (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:12832:21)
+    at TypeScriptParserMixin.parseStatementContent (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:9531:18)
+    at TypeScriptParserMixin.parseStatementLike (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:12801:17)
+    at TypeScriptParserMixin.parseStatementListItem (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:12781:17)
+    at TypeScriptParserMixin.parseBlockOrModuleBlockBody (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:13350:61)
+    at TypeScriptParserMixin.parseBlockBody (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:13343:10)
+    at TypeScriptParserMixin.parseBlock (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:13331:10)
+    at TypeScriptParserMixin.parseFunctionBody (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:12134:24)
+    at TypeScriptParserMixin.parseArrowExpression (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:12109:10)
+    at TypeScriptParserMixin.parseParenAndDistinguishExpression (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:11718:12)
+    at TypeScriptParserMixin.parseExprAtom (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:11362:23)
+Web  ERROR  [TransformError: SyntaxError: /home/akila/Projects/Ongarage/apps/user/src/screens/tow/TowOperatorSheet.tsx: Expected corresponding JSX closing tag for <ScrollView>. (148:4)
+
+  146 |         </View>
+  147 |       )}
+> 148 |     </Sheet>
+      |     ^
+  149 |   );
+  150 | };
+  151 |]
+Web  WARN  An error occurred in the <TowOperatorSheet> component.
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://react.dev/link/error-boundaries to learn more about error boundaries.
+Web  ERROR  [ReferenceError: ScrollView is not defined] 
+
+Code: TowOperatorSheet.tsx
+[0m [90m 68 |[39m       [33m<[39m[33mView[39m style[33m=[39m{[styles[33m.[39mpanel[33m,[39m { top }]}[33m>[39m
+ [90m 69 |[39m         {hero}
+[31m[1m>[22m[39m[90m 70 |[39m         [33m<[39m[33mScrollView[39m showsVerticalScrollIndicator[33m=[39m{[36mfalse[39m} contentContainerStyle[33m=[39m{styles[33m.[39mscroll}[33m>[39m
+ [90m    |[39m                                                                                               [31m[1m^[22m[39m
+ [90m 71 |[39m       {o [33m&&[39m (
+ [90m 72 |[39m         [33m<[39m[33mView[39m style[33m=[39m{styles[33m.[39mbody}[33m>[39m
+ [90m 73 |[39m           [33m<[39m[33mView[39m style[33m=[39m{styles[33m.[39mnameRow}[33m>[39m[0m
+Call Stack
+  TowOperatorSheet (apps/user/src/screens/tow/TowOperatorSheet.tsx:70:95) 
+
+Code: TowBidsScreen.tsx
+[0m [90m 388 |[39m             )
+ [90m 389 |[39m           ) [33m:[39m next [33m!==[39m [36mnull[39m [33m?[39m (
+[31m[1m>[22m[39m[90m 390 |[39m             [33m<[39m[33mActionButton[39m label[33m=[39m[32m"තවත් ට්‍රක් සොයන්න"[39m variant[33m=[39m[32m"ghost"[39m onPress[33m=[39m{widen} [33m/[39m[33m>[39m
+ [90m     |[39m                                 [31m[1m^[22m[39m
+ [90m 391 |[39m           ) [33m:[39m [36mnull[39m}
+ [90m 392 |[39m         [33m<[39m[33m/[39m[33mView[39m[33m>[39m
+ [90m 393 |[39m       [33m<[39m[33m/[39m[33mView[39m[33m>[39m[0m
+Call Stack
+  TowBidsScreen (apps/user/src/screens/tow/TowBidsScreen.tsx:390:33)
+  TowFlow (apps/user/src/screens/tow/TowFlow.tsx:161:9)
+  AppShell (apps/user/src/App.tsx:764:11)
+  App (apps/user/src/App.tsx:153:19)
+Web Bundled 3105ms node_modules/expo-router/entry.js (1 module)
+λ Bundled 3926ms node_modules/expo/node_modules/@expo/cli/node_modules/@expo/router-server/node/render.js (1 module)
+λ  WARN  "shadow*" style props are deprecated. Use "boxShadow". 
+Web Bundled 610ms node_modules/expo-router/entry.js (1 module)
+Web  INFO  %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+Web  LOG  Running application "main" with appParams:
+ {"hydrate": undefined, "rootTag": "#root"} 
+Development-level warnings: ON.
+Performance optimizations: OFF.
+Web  WARN  "shadow*" style props are deprecated. Use "boxShadow".
+Web  WARN  "textShadow*" style props are deprecated. Use "textShadow".
+Web  WARN  props.pointerEvents is deprecated. Use style.pointerEvents
+Web  WARN  Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md
+ ERROR  SyntaxError: /home/akila/Projects/Ongarage/apps/user/src/screens/tow/TowOperatorSheet.tsx: Expected corresponding JSX closing tag for <Sheet>. (144:8)
+
+  142 |         </View>
+  143 |       )}
+> 144 |         </ScrollView>
+      |         ^
+  145 |         {footer}
+  146 |       </View>
+  147 |     </View>
+    at constructor (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:369:19)
+    at TypeScriptParserMixin.raise (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:6622:19)
+    at TypeScriptParserMixin.jsxParseElementAt (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:4745:16)
+    at TypeScriptParserMixin.jsxParseElement (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:4767:17)
+    at TypeScriptParserMixin.parseExprAtom (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:4777:19)
+    at TypeScriptParserMixin.parseExprSubscripts (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:11107:23)
+    at TypeScriptParserMixin.parseUpdate (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:11092:21)
+    at TypeScriptParserMixin.parseMaybeUnary (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:11072:23)
+    at TypeScriptParserMixin.parseMaybeUnary (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:9860:18)
+    at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10925:61)
+    at TypeScriptParserMixin.parseExprOps (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10930:23)
+    at TypeScriptParserMixin.parseMaybeConditional (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10907:23)
+    at TypeScriptParserMixin.parseMaybeAssign (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10857:21)
+    at /home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:9798:39
+    at TypeScriptParserMixin.tryParse (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:6930:20)
+    at TypeScriptParserMixin.parseMaybeAssign (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:9798:18)
+    at /home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10826:39
+    at TypeScriptParserMixin.allowInAnd (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:12460:12)
+    at TypeScriptParserMixin.parseMaybeAssignAllowIn (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10826:17)
+    at TypeScriptParserMixin.parseMaybeAssignAllowInOrVoidPattern (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:12527:17)
+    at TypeScriptParserMixin.parseParenAndDistinguishExpression (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:11706:28)
+    at TypeScriptParserMixin.parseExprAtom (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:11362:23)
+    at TypeScriptParserMixin.parseExprAtom (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:4782:20)
+    at TypeScriptParserMixin.parseExprSubscripts (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:11107:23)
+    at TypeScriptParserMixin.parseUpdate (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:11092:21)
+    at TypeScriptParserMixin.parseMaybeUnary (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:11072:23)
+    at TypeScriptParserMixin.parseMaybeUnary (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:9860:18)
+    at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10925:61)
+    at TypeScriptParserMixin.parseExprOps (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10930:23)
+    at TypeScriptParserMixin.parseMaybeConditional (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10907:23)
+    at TypeScriptParserMixin.parseMaybeAssign (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10857:21)
+    at TypeScriptParserMixin.parseMaybeAssign (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:9809:20)
+    at TypeScriptParserMixin.parseExpressionBase (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10810:23)
+    at /home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10806:39
+    at TypeScriptParserMixin.allowInAnd (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:12455:16)
+    at TypeScriptParserMixin.parseExpression (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10806:17)
+    at TypeScriptParserMixin.parseReturnStatement (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:13176:28)
+    at TypeScriptParserMixin.parseStatementContent (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:12832:21)
+    at TypeScriptParserMixin.parseStatementContent (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:9531:18)
+    at TypeScriptParserMixin.parseStatementLike (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:12801:17)
+    at TypeScriptParserMixin.parseStatementListItem (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:12781:17)
+    at TypeScriptParserMixin.parseBlockOrModuleBlockBody (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:13350:61)
+    at TypeScriptParserMixin.parseBlockBody (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:13343:10)
+    at TypeScriptParserMixin.parseBlock (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:13331:10)
+    at TypeScriptParserMixin.parseFunctionBody (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:12134:24)
+    at TypeScriptParserMixin.parseArrowExpression (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:12109:10)
+    at TypeScriptParserMixin.parseParenAndDistinguishExpression (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:11718:12)
+    at TypeScriptParserMixin.parseExprAtom (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:11362:23)
+    at TypeScriptParserMixin.parseExprAtom (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:4782:20)
+    at TypeScriptParserMixin.parseExprSubscripts (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:11107:23)
+Web  ERROR  [TransformError: SyntaxError: /home/akila/Projects/Ongarage/apps/user/src/screens/tow/TowOperatorSheet.tsx: Expected corresponding JSX closing tag for <Sheet>. (144:8)
+
+  142 |         </View>
+  143 |       )}
+> 144 |         </ScrollView>
+      |         ^
+  145 |         {footer}
+  146 |       </View>
+  147 |     </View>]
+Web  WARN  An error occurred in the <TowOperatorSheet> component.
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://react.dev/link/error-boundaries to learn more about error boundaries.
+Web  ERROR  [ReferenceError: Sheet is not defined] 
+
+Code: TowOperatorSheet.tsx
+[0m [90m 63 |[39m     [33m<[39m[33mSheet[39m visible[33m=[39m{[33m![39m[33m![39mop} title[33m=[39m{o[33m?[39m[33m.[39mname [33m?[39m[33m?[39m [32m''[39m} onClose[33m=[39m{onClose} compact hero[33m=[39m{hero} footer[33m=[39m{footer}[33m>[39m
+ [90m 64 |[39m       {o [33m&&[39m (
+[31m[1m>[22m[39m[90m 65 |[39m         [90m// The body is at least this tall, so the sheet rises to the same height as the garage profile (up to its 90% limit) and covers the screen behind it.[39m
+ [90m    |[39m      [31m[1m^[22m[39m
+ [90m 66 |[39m         [33m<[39m[33mView[39m style[33m=[39m{[styles[33m.[39mbody[33m,[39m { minHeight[33m:[39m [33mMath[39m[33m.[39mround(windowH [33m*[39m [35m0.7[39m) }]}[33m>[39m
+ [90m 67 |[39m           [33m<[39m[33mView[39m style[33m=[39m{styles[33m.[39mnameRow}[33m>[39m
+ [90m 68 |[39m             [33m<[39m[33mText[39m style[33m=[39m{styles[33m.[39mname}[33m>[39m{o[33m.[39mname}[33m<[39m[33m/[39m[33mText[39m[33m>[39m[0m
+Call Stack
+  TowOperatorSheet (apps/user/src/screens/tow/TowOperatorSheet.tsx:65:6) 
+
+Code: TowBidsScreen.tsx
+[0m [90m 395 |[39m       {[90m/* A truck's profile: a sheet over the search, so the owner's place in the flow stays the same. Only facts the app holds. */[39m}
+ [90m 396 |[39m       {[90m/* A truck's profile, laid out like a garage's. A truck that has quoted this job can be chosen from it. */[39m}
+[31m[1m>[22m[39m[90m 397 |[39m       [33m<[39m[33mTowOperatorSheet[39m
+ [90m     |[39m       [31m[1m^[22m[39m
+ [90m 398 |[39m         op[33m=[39m{profileOp}
+ [90m 399 |[39m         top[33m=[39m{mapH [33m-[39m [35m24[39m}
+ [90m 400 |[39m         km[33m=[39m{profileKm}[0m
+Call Stack
+  TowBidsScreen (apps/user/src/screens/tow/TowBidsScreen.tsx:397:7)
+  TowFlow (apps/user/src/screens/tow/TowFlow.tsx:161:9)
+  AppShell (apps/user/src/App.tsx:764:11)
+  App (apps/user/src/App.tsx:153:19)
+λ Bundled 1537ms node_modules/expo/node_modules/@expo/cli/node_modules/@expo/router-server/node/render.js (1 module)
+Web Bundled 2387ms node_modules/expo-router/entry.js (1 module)
+λ  WARN  "shadow*" style props are deprecated. Use "boxShadow". 
+Web Bundled 238ms node_modules/expo-router/entry.js (1 module)
+Web  INFO  %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+Web  LOG  Running application "main" with appParams:
+ {"hydrate": undefined, "rootTag": "#root"} 
+Development-level warnings: ON.
+Performance optimizations: OFF.
+Web  WARN  "shadow*" style props are deprecated. Use "boxShadow".
+Web  WARN  "textShadow*" style props are deprecated. Use "textShadow".
+Web  WARN  props.pointerEvents is deprecated. Use style.pointerEvents
+Web  WARN  Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md
+ ERROR  SyntaxError: /home/akila/Projects/Ongarage/apps/user/src/screens/tow/TowOperatorSheet.tsx: Expected corresponding JSX closing tag for <ScrollView>. (145:4)
+
+  143 |         </View>
+  144 |       )}
+> 145 |     </Sheet>
+      |     ^
+  146 |   );
+  147 | };
+  148 |
+    at constructor (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:369:19)
+    at TypeScriptParserMixin.raise (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:6622:19)
+    at TypeScriptParserMixin.jsxParseElementAt (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:4745:16)
+    at TypeScriptParserMixin.jsxParseElementAt (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:4716:32)
+    at TypeScriptParserMixin.jsxParseElement (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:4767:17)
+    at TypeScriptParserMixin.parseExprAtom (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:4777:19)
+    at TypeScriptParserMixin.parseExprSubscripts (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:11107:23)
+    at TypeScriptParserMixin.parseUpdate (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:11092:21)
+    at TypeScriptParserMixin.parseMaybeUnary (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:11072:23)
+    at TypeScriptParserMixin.parseMaybeUnary (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:9860:18)
+    at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10925:61)
+    at TypeScriptParserMixin.parseExprOps (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10930:23)
+    at TypeScriptParserMixin.parseMaybeConditional (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10907:23)
+    at TypeScriptParserMixin.parseMaybeAssign (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10857:21)
+    at /home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:9798:39
+    at TypeScriptParserMixin.tryParse (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:6930:20)
+    at TypeScriptParserMixin.parseMaybeAssign (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:9798:18)
+    at /home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10826:39
+    at TypeScriptParserMixin.allowInAnd (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:12460:12)
+    at TypeScriptParserMixin.parseMaybeAssignAllowIn (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10826:17)
+    at TypeScriptParserMixin.parseMaybeAssignAllowInOrVoidPattern (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:12527:17)
+    at TypeScriptParserMixin.parseParenAndDistinguishExpression (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:11706:28)
+    at TypeScriptParserMixin.parseExprAtom (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:11362:23)
+    at TypeScriptParserMixin.parseExprAtom (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:4782:20)
+    at TypeScriptParserMixin.parseExprSubscripts (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:11107:23)
+    at TypeScriptParserMixin.parseUpdate (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:11092:21)
+    at TypeScriptParserMixin.parseMaybeUnary (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:11072:23)
+    at TypeScriptParserMixin.parseMaybeUnary (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:9860:18)
+    at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10925:61)
+    at TypeScriptParserMixin.parseExprOps (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10930:23)
+    at TypeScriptParserMixin.parseMaybeConditional (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10907:23)
+    at TypeScriptParserMixin.parseMaybeAssign (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10857:21)
+    at TypeScriptParserMixin.parseMaybeAssign (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:9809:20)
+    at TypeScriptParserMixin.parseExpressionBase (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10810:23)
+    at /home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10806:39
+    at TypeScriptParserMixin.allowInAnd (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:12455:16)
+    at TypeScriptParserMixin.parseExpression (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10806:17)
+    at TypeScriptParserMixin.parseReturnStatement (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:13176:28)
+    at TypeScriptParserMixin.parseStatementContent (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:12832:21)
+    at TypeScriptParserMixin.parseStatementContent (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:9531:18)
+    at TypeScriptParserMixin.parseStatementLike (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:12801:17)
+    at TypeScriptParserMixin.parseStatementListItem (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:12781:17)
+    at TypeScriptParserMixin.parseBlockOrModuleBlockBody (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:13350:61)
+    at TypeScriptParserMixin.parseBlockBody (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:13343:10)
+    at TypeScriptParserMixin.parseBlock (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:13331:10)
+    at TypeScriptParserMixin.parseFunctionBody (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:12134:24)
+    at TypeScriptParserMixin.parseArrowExpression (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:12109:10)
+    at TypeScriptParserMixin.parseParenAndDistinguishExpression (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:11718:12)
+    at TypeScriptParserMixin.parseExprAtom (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:11362:23)
+    at TypeScriptParserMixin.parseExprAtom (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:4782:20)
+Web  ERROR  [TransformError: SyntaxError: /home/akila/Projects/Ongarage/apps/user/src/screens/tow/TowOperatorSheet.tsx: Expected corresponding JSX closing tag for <ScrollView>. (145:4)
+
+  143 |         </View>
+  144 |       )}
+> 145 |     </Sheet>
+      |     ^
+  146 |   );
+  147 | };
+  148 |]
+Web  WARN  An error occurred in the <TowOperatorSheet> component.
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://react.dev/link/error-boundaries to learn more about error boundaries.
+Web  ERROR  [ReferenceError: ScrollView is not defined] 
+
+Code: TowOperatorSheet.tsx
+[0m [90m 64 |[39m     [33m<[39m[33mView[39m style[33m=[39m{[styles[33m.[39mpanel[33m,[39m { top }]}[33m>[39m
+ [90m 65 |[39m       {hero}
+[31m[1m>[22m[39m[90m 66 |[39m       [33m<[39m[33mScrollView[39m showsVerticalScrollIndicator[33m=[39m{[36mfalse[39m} contentContainerStyle[33m=[39m{styles[33m.[39mscroll}[33m>[39m
+ [90m    |[39m        [31m[1m^[22m[39m
+ [90m 67 |[39m       {o [33m&&[39m (
+ [90m 68 |[39m         [33m<[39m[33mView[39m style[33m=[39m{styles[33m.[39mbody}[33m>[39m
+ [90m 69 |[39m           [33m<[39m[33mView[39m style[33m=[39m{styles[33m.[39mnameRow}[33m>[39m[0m
+Call Stack
+  TowOperatorSheet (apps/user/src/screens/tow/TowOperatorSheet.tsx:66:8) 
+
+Code: TowBidsScreen.tsx
+[0m [90m 395 |[39m       {[90m/* A truck's profile: a sheet over the search, so the owner's place in the flow stays the same. Only facts the app holds. */[39m}
+ [90m 396 |[39m       {[90m/* A truck's profile, laid out like a garage's. A truck that has quoted this job can be chosen from it. */[39m}
+[31m[1m>[22m[39m[90m 397 |[39m       [33m<[39m[33mTowOperatorSheet[39m
+ [90m     |[39m       [31m[1m^[22m[39m
+ [90m 398 |[39m         op[33m=[39m{profileOp}
+ [90m 399 |[39m         km[33m=[39m{profileKm}
+ [90m 400 |[39m         status[33m=[39m{profileOp [33m?[39m statusOf(profileOp[33m,[39m profileKm) [33m:[39m [32m''[39m}[0m
+Call Stack
+  TowBidsScreen (apps/user/src/screens/tow/TowBidsScreen.tsx:397:7)
+  TowFlow (apps/user/src/screens/tow/TowFlow.tsx:161:9)
+  AppShell (apps/user/src/App.tsx:764:11)
+  App (apps/user/src/App.tsx:153:19)
+ ERROR  SyntaxError: /home/akila/Projects/Ongarage/apps/user/src/screens/tow/TowBidsScreen.tsx: Unexpected token, expected "," (415:6)
+
+  413 |       />
+  414 |
+> 415 |       {askWiden && next !== null && (
+      |       ^
+  416 |         <ModalCard
+  417 |           icon="📡"
+  418 |           tone="primary"
+    at constructor (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:369:19)
+    at TypeScriptParserMixin.raise (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:6622:19)
+    at TypeScriptParserMixin.unexpected (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:6642:16)
+    at TypeScriptParserMixin.expect (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:6922:12)
+    at TypeScriptParserMixin.parseParenAndDistinguishExpression (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:11692:14)
+    at TypeScriptParserMixin.parseExprAtom (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:11362:23)
+    at TypeScriptParserMixin.parseExprAtom (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:4782:20)
+    at TypeScriptParserMixin.parseExprSubscripts (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:11107:23)
+    at TypeScriptParserMixin.parseUpdate (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:11092:21)
+    at TypeScriptParserMixin.parseMaybeUnary (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:11072:23)
+    at TypeScriptParserMixin.parseMaybeUnary (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:9860:18)
+    at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10925:61)
+    at TypeScriptParserMixin.parseExprOpBaseRightExpr (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:11012:34)
+    at TypeScriptParserMixin.parseExprOpRightExpr (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:11007:21)
+    at TypeScriptParserMixin.parseExprOp (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10973:27)
+    at TypeScriptParserMixin.parseExprOp (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:9329:18)
+    at TypeScriptParserMixin.parseExprOps (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10934:17)
+    at TypeScriptParserMixin.parseMaybeConditional (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10907:23)
+    at TypeScriptParserMixin.parseMaybeAssign (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10857:21)
+    at TypeScriptParserMixin.parseMaybeAssign (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:9809:20)
+    at TypeScriptParserMixin.parseExpressionBase (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10810:23)
+    at /home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10806:39
+    at TypeScriptParserMixin.allowInAnd (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:12460:12)
+    at TypeScriptParserMixin.parseExpression (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10806:17)
+    at TypeScriptParserMixin.jsxParseExpressionContainer (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:4650:31)
+    at TypeScriptParserMixin.jsxParseElementAt (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:4729:36)
+    at TypeScriptParserMixin.jsxParseElement (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:4767:17)
+    at TypeScriptParserMixin.parseExprAtom (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:4777:19)
+    at TypeScriptParserMixin.parseExprSubscripts (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:11107:23)
+    at TypeScriptParserMixin.parseUpdate (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:11092:21)
+    at TypeScriptParserMixin.parseMaybeUnary (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:11072:23)
+    at TypeScriptParserMixin.parseMaybeUnary (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:9860:18)
+    at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10925:61)
+    at TypeScriptParserMixin.parseExprOps (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10930:23)
+    at TypeScriptParserMixin.parseMaybeConditional (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10907:23)
+    at TypeScriptParserMixin.parseMaybeAssign (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10857:21)
+    at /home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:9798:39
+    at TypeScriptParserMixin.tryParse (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:6930:20)
+    at TypeScriptParserMixin.parseMaybeAssign (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:9798:18)
+    at /home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10826:39
+    at TypeScriptParserMixin.allowInAnd (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:12460:12)
+    at TypeScriptParserMixin.parseMaybeAssignAllowIn (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10826:17)
+    at TypeScriptParserMixin.parseMaybeAssignAllowInOrVoidPattern (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:12527:17)
+    at TypeScriptParserMixin.parseParenAndDistinguishExpression (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:11706:28)
+    at TypeScriptParserMixin.parseExprAtom (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:11362:23)
+    at TypeScriptParserMixin.parseExprAtom (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:4782:20)
+    at TypeScriptParserMixin.parseExprSubscripts (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:11107:23)
+    at TypeScriptParserMixin.parseUpdate (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:11092:21)
+    at TypeScriptParserMixin.parseMaybeUnary (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:11072:23)
+    at TypeScriptParserMixin.parseMaybeUnary (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:9860:18)
+Web  ERROR  [TransformError: SyntaxError: /home/akila/Projects/Ongarage/apps/user/src/screens/tow/TowBidsScreen.tsx: Unexpected token, expected "," (415:6)
+
+  413 |       />
+  414 |
+> 415 |       {askWiden && next !== null && (
+      |       ^
+  416 |         <ModalCard
+  417 |           icon="📡"
+  418 |           tone="primary"]
+Web Bundled 3751ms node_modules/expo-router/entry.js (1 module)
+λ Bundled 5183ms node_modules/expo/node_modules/@expo/cli/node_modules/@expo/router-server/node/render.js (1 module)
+λ  WARN  "shadow*" style props are deprecated. Use "boxShadow". 
+Web Bundled 254ms node_modules/expo-router/entry.js (1 module)
+Web  INFO  %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+Web  LOG  Running application "main" with appParams:
+ {"hydrate": undefined, "rootTag": "#root"} 
+Development-level warnings: ON.
+Performance optimizations: OFF.
+Web  WARN  "shadow*" style props are deprecated. Use "boxShadow".
+Web  WARN  "textShadow*" style props are deprecated. Use "textShadow".
+Web  WARN  props.pointerEvents is deprecated. Use style.pointerEvents
+Web  WARN  Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md
+λ Bundled 439ms node_modules/expo/node_modules/@expo/cli/node_modules/@expo/router-server/node/render.js (1 module)
+Web Bundled 2931ms node_modules/expo-router/entry.js (1 module)
+λ  WARN  "shadow*" style props are deprecated. Use "boxShadow". 
+Web Bundled 428ms node_modules/expo-router/entry.js (1 module)
+Web  INFO  %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+Web  LOG  Running application "main" with appParams:
+ {"hydrate": undefined, "rootTag": "#root"} 
+Development-level warnings: ON.
+Performance optimizations: OFF.
+Web  WARN  "shadow*" style props are deprecated. Use "boxShadow".
+Web  WARN  "textShadow*" style props are deprecated. Use "textShadow".
+Web  WARN  props.pointerEvents is deprecated. Use style.pointerEvents
+Web  WARN  Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md
+λ Bundled 1349ms node_modules/expo/node_modules/@expo/cli/node_modules/@expo/router-server/node/render.js (1 module)
+Web Bundled 2897ms node_modules/expo-router/entry.js (1 module)
+λ  WARN  "shadow*" style props are deprecated. Use "boxShadow". 
+λ Bundled 2065ms node_modules/expo/node_modules/@expo/cli/node_modules/@expo/router-server/node/render.js (1 module)
+Web Bundled 675ms node_modules/expo-router/entry.js (1 module)
+Web Bundled 4671ms node_modules/expo-router/entry.js (1 module)
+λ  WARN  "shadow*" style props are deprecated. Use "boxShadow". 
+λ Bundled 1151ms node_modules/expo/node_modules/@expo/cli/node_modules/@expo/router-server/node/render.js (1 module)
+Web Bundled 193ms node_modules/expo-router/entry.js (1 module)
+Web Bundled 2909ms node_modules/expo-router/entry.js (1 module)
+λ  WARN  "shadow*" style props are deprecated. Use "boxShadow". 
+Web Bundled 622ms node_modules/expo-router/entry.js (1 module)
+Web  INFO  %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+Web  LOG  Running application "main" with appParams:
+ {"hydrate": undefined, "rootTag": "#root"} 
+Development-level warnings: ON.
+Performance optimizations: OFF.
+Web  WARN  "shadow*" style props are deprecated. Use "boxShadow".
+Web  INFO  %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+Web  LOG  Running application "main" with appParams:
+ {"hydrate": undefined, "rootTag": "#root"} 
+Development-level warnings: ON.
+Performance optimizations: OFF.
+Web  WARN  "shadow*" style props are deprecated. Use "boxShadow".
+Web  INFO  %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+Web  LOG  Running application "main" with appParams:
+ {"hydrate": undefined, "rootTag": "#root"} 
+Development-level warnings: ON.
+Performance optimizations: OFF.
+Web  WARN  "shadow*" style props are deprecated. Use "boxShadow".
+Web  WARN  "textShadow*" style props are deprecated. Use "textShadow".
+Web  WARN  props.pointerEvents is deprecated. Use style.pointerEvents
+Web  WARN  "textShadow*" style props are deprecated. Use "textShadow".
+Web  WARN  props.pointerEvents is deprecated. Use style.pointerEvents
+Web  WARN  "textShadow*" style props are deprecated. Use "textShadow".
+Web  WARN  props.pointerEvents is deprecated. Use style.pointerEvents
+Web  WARN  Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md
+Web  WARN  Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md
+Web  WARN  Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md
+ ERROR  SyntaxError: /home/akila/Projects/Ongarage/apps/user/src/screens/tow/TowBidsScreen.tsx: Expected corresponding JSX closing tag for <View>. (337:18)
+
+  335 |                     <Text style={styles.cardSub}>{`★ ${b.op.rating.toFixed(1)} · ${b.etaMin} min · ${distanceKm(route.pickup.coords, b.op.coords).toFixed(1)} km`}</Text>
+  336 |                     <Text style={styles.profileLink}>ප්‍රොෆයිල් බලන්න ›</Text>
+> 337 |                   </Pressable>
+      |                   ^
+  338 |                   <Text style={styles.bidTotal}>{money(b.quote.total)}</Text>
+  339 |                   {on ? (
+  340 |                     <View style={styles.tickDisc}>
+    at constructor (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:369:19)
+    at TypeScriptParserMixin.raise (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:6622:19)
+    at TypeScriptParserMixin.jsxParseElementAt (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:4745:16)
+    at TypeScriptParserMixin.jsxParseElementAt (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:4716:32)
+    at TypeScriptParserMixin.jsxParseElementAt (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:4716:32)
+    at TypeScriptParserMixin.jsxParseElementAt (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:4716:32)
+    at TypeScriptParserMixin.jsxParseElement (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:4767:17)
+    at TypeScriptParserMixin.parseExprAtom (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:4777:19)
+    at TypeScriptParserMixin.parseExprSubscripts (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:11107:23)
+    at TypeScriptParserMixin.parseUpdate (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:11092:21)
+    at TypeScriptParserMixin.parseMaybeUnary (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:11072:23)
+    at TypeScriptParserMixin.parseMaybeUnary (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:9860:18)
+    at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10925:61)
+    at TypeScriptParserMixin.parseExprOps (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10930:23)
+    at TypeScriptParserMixin.parseMaybeConditional (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10907:23)
+    at TypeScriptParserMixin.parseMaybeAssign (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10857:21)
+    at /home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:9798:39
+    at TypeScriptParserMixin.tryParse (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:6930:20)
+    at TypeScriptParserMixin.parseMaybeAssign (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:9798:18)
+    at /home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10826:39
+    at TypeScriptParserMixin.allowInAnd (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:12460:12)
+    at TypeScriptParserMixin.parseMaybeAssignAllowIn (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10826:17)
+    at TypeScriptParserMixin.parseMaybeAssignAllowInOrVoidPattern (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:12527:17)
+    at TypeScriptParserMixin.parseParenAndDistinguishExpression (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:11706:28)
+    at TypeScriptParserMixin.parseExprAtom (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:11362:23)
+    at TypeScriptParserMixin.parseExprAtom (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:4782:20)
+    at TypeScriptParserMixin.parseExprSubscripts (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:11107:23)
+    at TypeScriptParserMixin.parseUpdate (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:11092:21)
+    at TypeScriptParserMixin.parseMaybeUnary (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:11072:23)
+    at TypeScriptParserMixin.parseMaybeUnary (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:9860:18)
+    at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10925:61)
+    at TypeScriptParserMixin.parseExprOps (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10930:23)
+    at TypeScriptParserMixin.parseMaybeConditional (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10907:23)
+    at TypeScriptParserMixin.parseMaybeAssign (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10857:21)
+    at TypeScriptParserMixin.parseMaybeAssign (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:9809:20)
+    at TypeScriptParserMixin.parseExpressionBase (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10810:23)
+    at /home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10806:39
+    at TypeScriptParserMixin.allowInAnd (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:12455:16)
+    at TypeScriptParserMixin.parseExpression (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10806:17)
+    at TypeScriptParserMixin.parseReturnStatement (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:13176:28)
+    at TypeScriptParserMixin.parseStatementContent (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:12832:21)
+    at TypeScriptParserMixin.parseStatementContent (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:9531:18)
+    at TypeScriptParserMixin.parseStatementLike (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:12801:17)
+    at TypeScriptParserMixin.parseStatementListItem (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:12781:17)
+    at TypeScriptParserMixin.parseBlockOrModuleBlockBody (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:13350:61)
+    at TypeScriptParserMixin.parseBlockBody (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:13343:10)
+    at TypeScriptParserMixin.parseBlock (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:13331:10)
+    at TypeScriptParserMixin.parseFunctionBody (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:12134:24)
+    at TypeScriptParserMixin.parseArrowExpression (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:12109:10)
+    at TypeScriptParserMixin.parseParenAndDistinguishExpression (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:11718:12)
+Web  ERROR  [TransformError: SyntaxError: /home/akila/Projects/Ongarage/apps/user/src/screens/tow/TowBidsScreen.tsx: Expected corresponding JSX closing tag for <View>. (337:18)
+
+  335 |                     <Text style={styles.cardSub}>{`★ ${b.op.rating.toFixed(1)} · ${b.etaMin} min · ${distanceKm(route.pickup.coords, b.op.coords).toFixed(1)} km`}</Text>
+  336 |                     <Text style={styles.profileLink}>ප්‍රොෆයිල් බලන්න ›</Text>
+> 337 |                   </Pressable>
+      |                   ^
+  338 |                   <Text style={styles.bidTotal}>{money(b.quote.total)}</Text>
+  339 |                   {on ? (
+  340 |                     <View style={styles.tickDisc}>]
+Web  ERROR  [TransformError: SyntaxError: /home/akila/Projects/Ongarage/apps/user/src/screens/tow/TowBidsScreen.tsx: Expected corresponding JSX closing tag for <View>. (337:18)
+
+  335 |                     <Text style={styles.cardSub}>{`★ ${b.op.rating.toFixed(1)} · ${b.etaMin} min · ${distanceKm(route.pickup.coords, b.op.coords).toFixed(1)} km`}</Text>
+  336 |                     <Text style={styles.profileLink}>ප්‍රොෆයිල් බලන්න ›</Text>
+> 337 |                   </Pressable>
+      |                   ^
+  338 |                   <Text style={styles.bidTotal}>{money(b.quote.total)}</Text>
+  339 |                   {on ? (
+  340 |                     <View style={styles.tickDisc}>]
+Web  ERROR  [TransformError: SyntaxError: /home/akila/Projects/Ongarage/apps/user/src/screens/tow/TowBidsScreen.tsx: Expected corresponding JSX closing tag for <View>. (337:18)
+
+  335 |                     <Text style={styles.cardSub}>{`★ ${b.op.rating.toFixed(1)} · ${b.etaMin} min · ${distanceKm(route.pickup.coords, b.op.coords).toFixed(1)} km`}</Text>
+  336 |                     <Text style={styles.profileLink}>ප්‍රොෆයිල් බලන්න ›</Text>
+> 337 |                   </Pressable>
+      |                   ^
+  338 |                   <Text style={styles.bidTotal}>{money(b.quote.total)}</Text>
+  339 |                   {on ? (
+  340 |                     <View style={styles.tickDisc}>]
+Web  ERROR  [TransformError: SyntaxError: /home/akila/Projects/Ongarage/apps/user/src/screens/tow/TowBidsScreen.tsx: Expected corresponding JSX closing tag for <View>. (337:18)
+
+  335 |                     <Text style={styles.cardSub}>{`★ ${b.op.rating.toFixed(1)} · ${b.etaMin} min · ${distanceKm(route.pickup.coords, b.op.coords).toFixed(1)} km`}</Text>
+  336 |                     <Text style={styles.profileLink}>ප්‍රොෆයිල් බලන්න ›</Text>
+> 337 |                   </Pressable>
+      |                   ^
+  338 |                   <Text style={styles.bidTotal}>{money(b.quote.total)}</Text>
+  339 |                   {on ? (
+  340 |                     <View style={styles.tickDisc}>]
+ ERROR  SyntaxError: /home/akila/Projects/Ongarage/apps/user/src/screens/tow/TowBidsScreen.tsx: Expected corresponding JSX closing tag for <View>. (340:18)
+
+  338 |                     <Text style={styles.cardSub}>{`★ ${b.op.rating.toFixed(1)} · ${b.etaMin} min · ${distanceKm(route.pickup.coords, b.op.coords).toFixed(1)} km`}</Text>
+  339 |                     <Text style={styles.profileLink}>ප්‍රොෆයිල් බලන්න ›</Text>
+> 340 |                   </Pressable>
+      |                   ^
+  341 |                   <Text style={styles.bidTotal}>{money(b.quote.total)}</Text>
+  342 |                   {on ? (
+  343 |                     <View style={styles.tickDisc}>
+    at constructor (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:369:19)
+    at TypeScriptParserMixin.raise (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:6622:19)
+    at TypeScriptParserMixin.jsxParseElementAt (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:4745:16)
+    at TypeScriptParserMixin.jsxParseElementAt (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:4716:32)
+    at TypeScriptParserMixin.jsxParseElementAt (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:4716:32)
+    at TypeScriptParserMixin.jsxParseElementAt (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:4716:32)
+    at TypeScriptParserMixin.jsxParseElement (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:4767:17)
+    at TypeScriptParserMixin.parseExprAtom (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:4777:19)
+    at TypeScriptParserMixin.parseExprSubscripts (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:11107:23)
+    at TypeScriptParserMixin.parseUpdate (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:11092:21)
+    at TypeScriptParserMixin.parseMaybeUnary (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:11072:23)
+    at TypeScriptParserMixin.parseMaybeUnary (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:9860:18)
+    at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10925:61)
+    at TypeScriptParserMixin.parseExprOps (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10930:23)
+    at TypeScriptParserMixin.parseMaybeConditional (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10907:23)
+    at TypeScriptParserMixin.parseMaybeAssign (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10857:21)
+    at /home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:9798:39
+    at TypeScriptParserMixin.tryParse (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:6930:20)
+    at TypeScriptParserMixin.parseMaybeAssign (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:9798:18)
+    at /home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10826:39
+    at TypeScriptParserMixin.allowInAnd (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:12460:12)
+    at TypeScriptParserMixin.parseMaybeAssignAllowIn (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10826:17)
+    at TypeScriptParserMixin.parseMaybeAssignAllowInOrVoidPattern (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:12527:17)
+    at TypeScriptParserMixin.parseParenAndDistinguishExpression (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:11706:28)
+    at TypeScriptParserMixin.parseExprAtom (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:11362:23)
+    at TypeScriptParserMixin.parseExprAtom (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:4782:20)
+    at TypeScriptParserMixin.parseExprSubscripts (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:11107:23)
+    at TypeScriptParserMixin.parseUpdate (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:11092:21)
+    at TypeScriptParserMixin.parseMaybeUnary (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:11072:23)
+    at TypeScriptParserMixin.parseMaybeUnary (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:9860:18)
+    at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10925:61)
+    at TypeScriptParserMixin.parseExprOps (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10930:23)
+    at TypeScriptParserMixin.parseMaybeConditional (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10907:23)
+    at TypeScriptParserMixin.parseMaybeAssign (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10857:21)
+    at TypeScriptParserMixin.parseMaybeAssign (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:9809:20)
+    at TypeScriptParserMixin.parseExpressionBase (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10810:23)
+    at /home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10806:39
+    at TypeScriptParserMixin.allowInAnd (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:12455:16)
+    at TypeScriptParserMixin.parseExpression (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:10806:17)
+    at TypeScriptParserMixin.parseReturnStatement (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:13176:28)
+    at TypeScriptParserMixin.parseStatementContent (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:12832:21)
+    at TypeScriptParserMixin.parseStatementContent (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:9531:18)
+    at TypeScriptParserMixin.parseStatementLike (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:12801:17)
+    at TypeScriptParserMixin.parseStatementListItem (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:12781:17)
+    at TypeScriptParserMixin.parseBlockOrModuleBlockBody (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:13350:61)
+    at TypeScriptParserMixin.parseBlockBody (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:13343:10)
+    at TypeScriptParserMixin.parseBlock (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:13331:10)
+    at TypeScriptParserMixin.parseFunctionBody (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:12134:24)
+    at TypeScriptParserMixin.parseArrowExpression (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:12109:10)
+    at TypeScriptParserMixin.parseParenAndDistinguishExpression (/home/akila/Projects/Ongarage/node_modules/@babel/parser/lib/index.js:11718:12)
+Web  ERROR  [TransformError: SyntaxError: /home/akila/Projects/Ongarage/apps/user/src/screens/tow/TowBidsScreen.tsx: Expected corresponding JSX closing tag for <View>. (340:18)
+
+  338 |                     <Text style={styles.cardSub}>{`★ ${b.op.rating.toFixed(1)} · ${b.etaMin} min · ${distanceKm(route.pickup.coords, b.op.coords).toFixed(1)} km`}</Text>
+  339 |                     <Text style={styles.profileLink}>ප්‍රොෆයිල් බලන්න ›</Text>
+> 340 |                   </Pressable>
+      |                   ^
+  341 |                   <Text style={styles.bidTotal}>{money(b.quote.total)}</Text>
+  342 |                   {on ? (
+  343 |                     <View style={styles.tickDisc}>]
+Web  ERROR  [TransformError: SyntaxError: /home/akila/Projects/Ongarage/apps/user/src/screens/tow/TowBidsScreen.tsx: Expected corresponding JSX closing tag for <View>. (340:18)
+
+  338 |                     <Text style={styles.cardSub}>{`★ ${b.op.rating.toFixed(1)} · ${b.etaMin} min · ${distanceKm(route.pickup.coords, b.op.coords).toFixed(1)} km`}</Text>
+  339 |                     <Text style={styles.profileLink}>ප්‍රොෆයිල් බලන්න ›</Text>
+> 340 |                   </Pressable>
+      |                   ^
+  341 |                   <Text style={styles.bidTotal}>{money(b.quote.total)}</Text>
+  342 |                   {on ? (
+  343 |                     <View style={styles.tickDisc}>]
+Web  ERROR  [TransformError: SyntaxError: /home/akila/Projects/Ongarage/apps/user/src/screens/tow/TowBidsScreen.tsx: Expected corresponding JSX closing tag for <View>. (340:18)
+
+  338 |                     <Text style={styles.cardSub}>{`★ ${b.op.rating.toFixed(1)} · ${b.etaMin} min · ${distanceKm(route.pickup.coords, b.op.coords).toFixed(1)} km`}</Text>
+  339 |                     <Text style={styles.profileLink}>ප්‍රොෆයිල් බලන්න ›</Text>
+> 340 |                   </Pressable>
+      |                   ^
+  341 |                   <Text style={styles.bidTotal}>{money(b.quote.total)}</Text>
+  342 |                   {on ? (
+  343 |                     <View style={styles.tickDisc}>]
+Web  ERROR  [TransformError: SyntaxError: /home/akila/Projects/Ongarage/apps/user/src/screens/tow/TowBidsScreen.tsx: Expected corresponding JSX closing tag for <View>. (340:18)
+
+  338 |                     <Text style={styles.cardSub}>{`★ ${b.op.rating.toFixed(1)} · ${b.etaMin} min · ${distanceKm(route.pickup.coords, b.op.coords).toFixed(1)} km`}</Text>
+  339 |                     <Text style={styles.profileLink}>ප්‍රොෆයිල් බලන්න ›</Text>
+> 340 |                   </Pressable>
+      |                   ^
+  341 |                   <Text style={styles.bidTotal}>{money(b.quote.total)}</Text>
+  342 |                   {on ? (
+  343 |                     <View style={styles.tickDisc}>]
+Web Bundled 6389ms node_modules/expo-router/entry.js (1 module)
+λ Bundled 7135ms node_modules/expo/node_modules/@expo/cli/node_modules/@expo/router-server/node/render.js (1 module)
+λ  WARN  "shadow*" style props are deprecated. Use "boxShadow". 
+Web Bundled 573ms node_modules/expo-router/entry.js (1 module)
+Web  INFO  %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+Web  LOG  Running application "main" with appParams:
+ {"hydrate": undefined, "rootTag": "#root"} 
+Development-level warnings: ON.
+Performance optimizations: OFF.
+Web  WARN  "shadow*" style props are deprecated. Use "boxShadow".
+Web  WARN  "textShadow*" style props are deprecated. Use "textShadow".
+Web  WARN  props.pointerEvents is deprecated. Use style.pointerEvents
+Web  WARN  Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md
+Web  WARN  An error occurred in the <TowBidsScreen> component.
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://react.dev/link/error-boundaries to learn more about error boundaries.
+Web  ERROR  [ReferenceError: showNearby is not defined] 
+
+Code: TowBidsScreen.tsx
+[0m [90m 370 |[39m                     [33m<[39m[33m/[39m[33mView[39m[33m>[39m
+ [90m 371 |[39m                     {[90m/* The same straight-line distance the search circle uses, so the card and the map agree. */[39m}
+[31m[1m>[22m[39m[90m 372 |[39m                     [33m<[39m[33mText[39m style[33m=[39m{styles[33m.[39mcardSub}[33m>[39m{[32m`★ ${b.op.rating.toFixed(1)} · ${b.etaMin} min · ${distanceKm(route.pickup.coords, b.op.coords).toFixed(1)} km${b.quote.siteFee > 0 ? ` · ස්ථාන වැඩ ${money(b.quote.siteFee)}` : ''}`[39m}[33m<[39m[33m/[39m[33mText[39m[33m>[39m
+ [90m     |[39m                                                 [31m[1m^[22m[39m
+ [90m 373 |[39m                     [33m<[39m[33m/[39m[33mView[39m[33m>[39m
+ [90m 374 |[39m                   [33m<[39m[33m/[39m[33mPressable[39m[33m>[39m
+ [90m 375 |[39m                   [33m<[39m[33mText[39m style[33m=[39m{styles[33m.[39mbidTotal}[33m>[39m{money(b[33m.[39mquote[33m.[39mtotal)}[33m<[39m[33m/[39m[33mText[39m[33m>[39m[0m
+Call Stack
+  quotes.map$argument_0 (apps/user/src/screens/tow/TowBidsScreen.tsx:372:49) 
+
+Code: TowFlow.tsx
+[0m [90m 159 |[39m     [36mcase[39m [32m'bids'[39m[33m:[39m
+ [90m 160 |[39m       [36mreturn[39m (
+[31m[1m>[22m[39m[90m 161 |[39m         [33m<[39m[33mTowBidsScreen[39m
+ [90m     |[39m         [31m[1m^[22m[39m
+ [90m 162 |[39m           vehicle[33m=[39m{phase[33m.[39mvehicle}
+ [90m 163 |[39m           route[33m=[39m{phase[33m.[39mroute}
+ [90m 164 |[39m           onClose[33m=[39m{onClose}[0m
+Call Stack
+  TowFlow (apps/user/src/screens/tow/TowFlow.tsx:161:9)
+  AppShell (apps/user/src/App.tsx:764:11)
+  App (apps/user/src/App.tsx:153:19)
+λ Bundled 421ms node_modules/expo/node_modules/@expo/cli/node_modules/@expo/router-server/node/render.js (1 module)
+λ  WARN  "shadow*" style props are deprecated. Use "boxShadow". 
+Web Bundled 2710ms node_modules/expo-router/entry.js (1 module)
+Web Bundled 652ms node_modules/expo-router/entry.js (1 module)
+Web  INFO  %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+Web  LOG  Running application "main" with appParams:
+ {"hydrate": undefined, "rootTag": "#root"} 
+Development-level warnings: ON.
+Performance optimizations: OFF.
+Web  WARN  "shadow*" style props are deprecated. Use "boxShadow".
+Web  WARN  "textShadow*" style props are deprecated. Use "textShadow".
+Web  WARN  props.pointerEvents is deprecated. Use style.pointerEvents
+Web  WARN  Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md
+λ Bundled 5774ms node_modules/expo/node_modules/@expo/cli/node_modules/@expo/router-server/node/render.js (1 module)
+Web Bundled 6042ms node_modules/expo-router/entry.js (1 module)
+λ  WARN  "shadow*" style props are deprecated. Use "boxShadow". 
+Web Bundled 266ms node_modules/expo-router/entry.js (1 module)
+Web  INFO  %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+Web  LOG  Running application "main" with appParams:
+ {"hydrate": undefined, "rootTag": "#root"} 
+Development-level warnings: ON.
+Performance optimizations: OFF.
+Web  WARN  "shadow*" style props are deprecated. Use "boxShadow".
+Web  WARN  "textShadow*" style props are deprecated. Use "textShadow".
+Web  WARN  props.pointerEvents is deprecated. Use style.pointerEvents
+Web  WARN  Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md
+Web Bundled 4844ms node_modules/expo-router/entry.js (1 module)
+λ Bundled 5945ms node_modules/expo/node_modules/@expo/cli/node_modules/@expo/router-server/node/render.js (1 module)
+λ  WARN  "shadow*" style props are deprecated. Use "boxShadow". 
+Web Bundled 345ms node_modules/expo-router/entry.js (1 module)
+Web  INFO  %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+Web  LOG  Running application "main" with appParams:
+ {"hydrate": undefined, "rootTag": "#root"} 
+Development-level warnings: ON.
+Performance optimizations: OFF.
+Web  WARN  "shadow*" style props are deprecated. Use "boxShadow".
+Web  WARN  "textShadow*" style props are deprecated. Use "textShadow".
+Web  WARN  props.pointerEvents is deprecated. Use style.pointerEvents
+Web  WARN  Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md
+λ Bundled 3593ms node_modules/expo/node_modules/@expo/cli/node_modules/@expo/router-server/node/render.js (1 module)
+Web Bundled 4507ms node_modules/expo-router/entry.js (1 module)
+λ  WARN  "shadow*" style props are deprecated. Use "boxShadow". 
+λ Bundled 635ms node_modules/expo/node_modules/@expo/cli/node_modules/@expo/router-server/node/render.js (1 module)
+Web Bundled 2140ms node_modules/expo-router/entry.js (1 module)
+λ  WARN  "shadow*" style props are deprecated. Use "boxShadow". 
+Web Bundled 298ms node_modules/expo-router/entry.js (1 module)
+Web  INFO  %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+Web  LOG  Running application "main" with appParams:
+ {"hydrate": undefined, "rootTag": "#root"} 
+Development-level warnings: ON.
+Performance optimizations: OFF.
+Web  WARN  "shadow*" style props are deprecated. Use "boxShadow".
+Web  WARN  "textShadow*" style props are deprecated. Use "textShadow".
+Web  WARN  props.pointerEvents is deprecated. Use style.pointerEvents
+Web  WARN  Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md
+λ Bundled 623ms node_modules/expo/node_modules/@expo/cli/node_modules/@expo/router-server/node/render.js (1 module)
+Web Bundled 3148ms node_modules/expo-router/entry.js (1 module)
+λ  WARN  "shadow*" style props are deprecated. Use "boxShadow". 
+Web Bundled 389ms node_modules/expo-router/entry.js (1 module)
+Web  INFO  %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+Web  LOG  Running application "main" with appParams:
+ {"hydrate": undefined, "rootTag": "#root"} 
+Development-level warnings: ON.
+Performance optimizations: OFF.
+Web  WARN  "shadow*" style props are deprecated. Use "boxShadow".
+Web  WARN  "textShadow*" style props are deprecated. Use "textShadow".
+Web  WARN  props.pointerEvents is deprecated. Use style.pointerEvents
+Web  WARN  Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md
+λ Bundled 947ms node_modules/expo/node_modules/@expo/cli/node_modules/@expo/router-server/node/render.js (1 module)
+Web Bundled 2075ms node_modules/expo-router/entry.js (1 module)
+λ  WARN  "shadow*" style props are deprecated. Use "boxShadow". 
+Web Bundled 547ms node_modules/expo-router/entry.js (1 module)
+Web  INFO  %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+Web  LOG  Running application "main" with appParams:
+ {"hydrate": undefined, "rootTag": "#root"} 
+Development-level warnings: ON.
+Performance optimizations: OFF.
+Web  WARN  "shadow*" style props are deprecated. Use "boxShadow".
+Web  WARN  "textShadow*" style props are deprecated. Use "textShadow".
+Web  WARN  props.pointerEvents is deprecated. Use style.pointerEvents
+Web  WARN  Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md

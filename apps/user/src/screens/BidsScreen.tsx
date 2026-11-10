@@ -12,7 +12,7 @@ import { FONTS } from '@ongarage/shared';
 import { SERVICE_CATEGORIES } from '@ongarage/shared';
 import { useVehicles } from '../context/VehiclesContext';
 import { Icon, ClipboardLineIcon, ReceiptLineIcon, ScheduleLineIcon } from '@ongarage/shared';
-import { GoogleMap, zoomToFit } from '@ongarage/shared';
+import { zoomToFit } from '@ongarage/shared';
 import { ActionButton, EmptyState, GlassIcon, ModalCard, SwipeCard } from '@ongarage/shared';
 import { OwnerDetailView } from '../components/OwnerDetailView';
 import { GarageReviewsSheet, garageForBid } from '../components/GarageReviewsSheet';
@@ -26,6 +26,7 @@ import { useWorkshops } from '../context/WorkshopContext';
 import { usePayStanding } from '../context/PayStanding';
 import { directionsUrl } from '@ongarage/shared';
 import type { Bid, JobDraft, RepairJob } from '@ongarage/shared';
+import { AppMap } from '../components/map/AppMap';
 
 export type BidsTab = 'received' | 'pending' | 'expired';
 
@@ -400,7 +401,7 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, onRepu
       }}
     >
       {/* The map fills the whole tab; the sheet slides over it. */}
-      <GoogleMap
+      <AppMap
         style={mapArea > 0 ? [styles.mapAnchored, { height: mapArea }] : styles.fullMap}
         center={mapCenter}
         zoom={mapZoom}

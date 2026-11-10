@@ -9,6 +9,24 @@ export const BRAND = {
   orange: '#EE5E16',
 } as const;
 
+/**
+ * The app's band palette (the header bands, the active pills and their accents). Roles:
+ * deep = the dark band and dark-mode band; brown = the band in light mode and the active pill;
+ * orange = a secondary accent, never on SOS; amber = small badges only (dark ink on it); cream = the title on the band and light tints.
+ * SOS keeps its own orange; these colours never appear on SOS surfaces. Contrast pairs were checked against WCAG (see the skill's usage log).
+ */
+export const BAND = {
+  deep: '#1C1008',
+  brown: '#5C2E0D',
+  orange: '#B45309',
+  amber: '#F59E0B',
+  cream: '#FEF3C7',
+  /** A quieter cream for the line under a title on the band (7.5:1 on brown). */
+  creamSoft: '#E4CFA8',
+  /** The pill behind the band's controls (13.5:1 with cream). */
+  pill: '#3D1F09',
+} as const;
+
 const dark = {
   // Background
   bgBody: '#07090e',

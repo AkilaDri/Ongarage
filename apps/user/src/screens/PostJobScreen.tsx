@@ -21,6 +21,7 @@ import type { JobDraft, VoiceNote } from '@ongarage/shared';
 import { MediaAttachments } from '../components/MediaAttachments';
 import { SPARE_PARTS } from '../constants/labels';
 import { CategoryPhoto } from '../components/home/CategoryPhoto';
+import { AppMap } from '../components/map/AppMap';
 
 type Question = { id: string; question: string; options: string[] };
 type Profile = {
@@ -550,7 +551,7 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, defaultVehi
   };
 
   const renderMap = (style: React.ComponentProps<typeof GoogleMap>['style'], zoom: number) => (
-    <GoogleMap
+    <AppMap
       style={style}
       center={user.coords}
       zoom={zoom}

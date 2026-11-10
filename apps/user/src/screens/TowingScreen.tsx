@@ -15,7 +15,6 @@ import {
   FONTS,
   Gradient,
   getThemeMode,
-  GoogleMap,
   LkPlate,
   geocodeAddress,
   reverseGeocode,
@@ -44,6 +43,7 @@ import { TowCover, TowOperatorCard } from '../components/TowOperatorCard';
 import { Sheet } from '../components/Sheet';
 import { ThreeStateSheet, type SheetApi, type SheetState } from '../components/ThreeStateSheet';
 import { cardGlow, pageBg } from '../utils/material';
+import { AppMap } from '../components/map/AppMap';
 
 /** The request form, one question at a time. */
 const TOW_STEPS = ['වාහනය', 'තත්වය', 'ගමනාන්තය', 'Operator'];
@@ -142,7 +142,7 @@ const MapShell: React.FC<{
     <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
       <View style={[styles.topArea, !showMap && styles.topAreaBare, fullMap && styles.topAreaFull]} onLayout={(e) => setTopH(Math.round(e.nativeEvent.layout.height))}>
         {showMap && topH > 0 && (
-          <GoogleMap
+          <AppMap
             style={StyleSheet.absoluteFill}
             center={mapFocus ?? (atMe ? pickup : mid)}
             zoom={mapFocus ? 15 : atMe ? 16 : zoom}
@@ -344,7 +344,7 @@ const LiveShell: React.FC<{
     <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
       <View style={styles.flex1} onLayout={(e) => setArea(Math.round(e.nativeEvent.layout.height))}>
         {area > 0 && (
-          <GoogleMap
+          <AppMap
             style={StyleSheet.absoluteFill}
             center={center}
             zoom={atMe ? 16 : zoom}

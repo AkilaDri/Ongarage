@@ -19,6 +19,14 @@ export const TOW_CONDITIONS: Record<TowCondition, { trucks: TowTruckKind[]; reco
 };
 export const TOW_CONDITION_LIST: TowCondition[] = ['rolls', 'wontRoll', 'stuck', 'accident'];
 
+/** What the pickup spot is like. The owner names these before the trucks quote, so each truck prices the real job. */
+export type TowSite = 'mud' | 'rocks' | 'winch' | 'tightAccess';
+export const TOW_SITE_LIST: TowSite[] = ['mud', 'rocks', 'winch', 'tightAccess'];
+/** Sites where the vehicle has to be pulled out (mud, rocks, a slope) need a winch truck and extra labour. */
+const WINCH_SITES: TowSite[] = ['mud', 'rocks', 'winch'];
+/** The labour for those sites: this share of the operator's recovery fee, charged once. */
+export const SITE_LABOUR_SHARE = 0.5;
+
 /** Straight-line distance times this is the road distance. */
 export const ROAD_FACTOR = 1.3;
 /** The operator's average speed to the pickup (km/h) and the time to get the truck ready (minutes). */
@@ -39,6 +47,8 @@ export type TowOperator = {
   rating: number;
   reviews: number;
   trucks: TowTruckKind[];
+  /** Has a winch to pull a vehicle out of mud, off rocks or up a slope. */
+  winch: boolean;
   /** LKR. */
   baseFee: number;
   /** LKR per road km of the trip. */
@@ -56,6 +66,8 @@ export type TowQuote = {
   /** The truck's drive to the pickup beyond the free distance. */
   pickupFee: number;
   recoveryFee: number;
+  /** Extra work the named site needs (labour for pulling out). */
+  siteFee: number;
   nightFee: number;
   total: number;
   /** The most the final price may be without the owner's approval. */
@@ -76,15 +88,21 @@ export const towEtaMin = (km: number) => Math.ceil((km / TOW_SPEED_KMH) * 60) + 
 export const canTow = (op: TowOperator, condition: TowCondition) => op.available && op.trucks.some((t) => TOW_CONDITIONS[condition].trucks.includes(t));
 
 /** The quote for one operator: the trip (pickup to destination), the truck's drive to the pickup, a recovery fee when the vehicle must be pulled out, a night surcharge. */
-export const towQuote = (op: TowOperator, pickupKm: number, tripKm: number, condition: TowCondition, now: number): TowQuote => {
+export const towQuote = (op: TowOperator, pickupKm: number, tripKm: number, condition: TowCondition, now: number, sites: TowSite[] = []): TowQuote => {
   const tripFee = tripKm * op.perKm;
   const pickupFee = Math.max(0, pickupKm - DEADHEAD_FREE_KM) * op.perKm * 0.5;
   const recoveryFee = TOW_CONDITIONS[condition].recovery ? op.recoveryFee : 0;
-  const subtotal = op.baseFee + tripFee + pickupFee + recoveryFee;
+  const siteFee = siteLabourFee(op, sites);
+  const subtotal = op.baseFee + tripFee + pickupFee + recoveryFee + siteFee;
   const nightFee = isNight(now) ? subtotal * NIGHT_SURCHARGE : 0;
   const total = round10(subtotal + nightFee);
-  return { baseFee: op.baseFee, tripKm, tripFee: round10(tripFee), pickupFee: round10(pickupFee), recoveryFee, nightFee: round10(nightFee), total, limit: round10(total * (1 + TOW_OVERRUN_PCT / 100)) };
+  return { baseFee: op.baseFee, tripKm, tripFee: round10(tripFee), pickupFee: round10(pickupFee), recoveryFee, siteFee: round10(siteFee), nightFee: round10(nightFee), total, limit: round10(total * (1 + TOW_OVERRUN_PCT / 100)) };
 };
+
+/** Whether the operator can handle the named sites: a site that needs pulling out requires a winch. */
+export const canDoSites = (op: TowOperator, sites: TowSite[] = []) => !sites.some((s) => WINCH_SITES.includes(s)) || op.winch;
+/** The labour for the named sites, charged once when any of them needs pulling out. */
+export const siteLabourFee = (op: TowOperator, sites: TowSite[] = []) => (sites.some((s) => WINCH_SITES.includes(s)) ? round10(op.recoveryFee * SITE_LABOUR_SHARE) : 0);
 
 export type TowOption = { op: TowOperator; quote: TowQuote; pickupKm: number; etaMin: number };
 
@@ -92,13 +110,13 @@ export type TowOption = { op: TowOperator; quote: TowQuote; pickupKm: number; et
  * The operators that can do the job, cheapest first; a tie goes to the one that arrives sooner, then to the better rating. Operators that are busy or have no suitable
  * truck are left out. Nothing a operator pays can move it up.
  */
-export const rankTowOperators = (ops: TowOperator[], pickup: LatLng, dest: LatLng, condition: TowCondition, now: number): TowOption[] => {
+export const rankTowOperators = (ops: TowOperator[], pickup: LatLng, dest: LatLng, condition: TowCondition, now: number, sites: TowSite[] = []): TowOption[] => {
   const tripKm = roadKm(pickup, dest);
   return ops
-    .filter((op) => canTow(op, condition))
+    .filter((op) => canTow(op, condition) && canDoSites(op, sites))
     .map((op) => {
       const pickupKm = roadKm(op.coords, pickup);
-      return { op, quote: towQuote(op, pickupKm, tripKm, condition, now), pickupKm, etaMin: towEtaMin(pickupKm) };
+      return { op, quote: towQuote(op, pickupKm, tripKm, condition, now, sites), pickupKm, etaMin: towEtaMin(pickupKm) };
     })
     .sort((a, b) => a.quote.total - b.quote.total || a.etaMin - b.etaMin || b.op.rating - a.op.rating);
 };

@@ -2,7 +2,7 @@ import { EmptyState } from '@ongarage/shared';
 import { elevation1, outline } from '../utils/material';
 import React, { useEffect, useState } from 'react';
 import { Image, Linking, Pressable, ScrollView, StyleSheet, Share, Text, View, type ImageSourcePropType } from 'react-native';
-import { ActionButton, Colors, directionsUrl, FONTS, getThemeMode, GoogleMap, LevelBadge, LEVELS, RATING_DIMENSIONS, SERVICE_CATEGORIES, themedStyles, type Bid, type Garage } from '@ongarage/shared';
+import { ActionButton, Colors, directionsUrl, FONTS, getThemeMode, LevelBadge, LEVELS, RATING_DIMENSIONS, SERVICE_CATEGORIES, themedStyles, type Bid, type Garage } from '@ongarage/shared';
 import { MakeLogoStrip } from './MakeLogo';
 import { MOCK_GARAGES } from '../constants/mockData';
 import { GARAGE_COVERS, GARAGE_INFO } from '../constants/home';
@@ -13,6 +13,7 @@ import { ago, money } from '../utils/format';
 import { Sheet } from './Sheet';
 import { RatingSummary, ReviewCard, ReviewsSection } from './ReviewCard';
 import { BookedTag } from './BookedTag';
+import { AppMap } from './map/AppMap';
 
 /** The garage behind a bid: its full profile when known, else what the bid carries. */
 export const garageForBid = (b: Bid): Garage =>
@@ -420,7 +421,7 @@ export const GarageReviewsSheet: React.FC<{
       <Text style={styles.sectionTitle}>📍 ගරාජය ඇති ස්ථානය</Text>
       <View style={styles.mapCard}>
         <View style={styles.mapBox}>
-          <GoogleMap
+          <AppMap
             style={StyleSheet.absoluteFill}
             center={g.coords}
             zoom={15}

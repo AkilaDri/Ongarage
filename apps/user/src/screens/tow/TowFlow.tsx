@@ -3,7 +3,8 @@ import { BackHandler, Platform } from 'react-native';
 import { useTowRecords, type TowRecord } from '../../context/TowRecordsContext';
 import { useVehicles } from '../../context/VehiclesContext';
 import { TowVehicleScreen, type TowVehicleFull } from './TowVehicleScreen';
-import { TowRouteScreen, type TowRouteDraft } from './TowRouteScreen';
+import { TowRouteScreen, type Role, type TowPlaces, type TowRouteDraft, type TowTiming } from './TowRouteScreen';
+import { TowTimingScreen } from './TowTimingScreen';
 import { TowBidsScreen, type TowBidsDraft } from './TowBidsScreen';
 import { TowTrackingScreen, type TowTrackingStage } from './TowTrackingScreen';
 import { TowDropScreen, type TowFinalDraft } from './TowDropScreen';
@@ -12,14 +13,16 @@ import { TowRateScreen } from './TowRateScreen';
 import { TowHoldScreen, type TowHoldDraft } from './TowHoldScreen';
 
 /**
- * The towing flow, screens 1 to 7 in order (screen 1 holds the vehicle and what happened to it). Each screen hands its result on and the flow moves to the next one by itself.
+ * The towing flow, six steps: 1 the vehicle and what happened to it, 2 the two places, 3 now or later, 4 the bids, then the trip, payment and rating. Each screen hands its result on and the flow moves to the next one by itself.
  * Back goes one screen; close is only offered before a truck has accepted (after that the job is locked, as in SOS).
  * A scheduled tow is held after the bid, and its record is kept in Activity until the slot or a cancellation.
  * Once a truck has accepted, the owner can minimise the tow: the flow keeps running and Home shows a return bar.
  */
 type Phase =
   | { name: 'vehicle' }
-  | { name: 'route'; vehicle: TowVehicleFull }
+  /** `edit` is set when the owner came back from the timing step to change one place; the timing so far is kept. */
+  | { name: 'route'; vehicle: TowVehicleFull; edit?: { places: TowPlaces; timing: TowTiming; role: Role } }
+  | { name: 'timing'; vehicle: TowVehicleFull; places: TowPlaces; timing?: TowTiming }
   | { name: 'bids'; vehicle: TowVehicleFull; route: TowRouteDraft }
   | { name: 'hold'; draft: TowBidsDraft }
   | { name: 'tracking'; draft: TowBidsDraft }
@@ -32,6 +35,7 @@ export type TowStatus = { running: boolean; label: string; needsInput: boolean }
 const IDLE: TowStatus = { running: false, label: '', needsInput: false };
 
 const TRACK_LABEL: Record<TowTrackingStage, { label: string; needsInput: boolean }> = {
+  requested: { label: 'ට්‍රක් පිළිගන්නා තුරු බලා සිටිනවා', needsInput: false },
   enroute: { label: 'ට්‍රක් එනවා', needsInput: false },
   arrived: { label: 'ට්‍රක් ආවා — තහවුරු කරන්න', needsInput: true },
   loading: { label: 'flatbed එකට — තහවුරු කරන්න', needsInput: true },
@@ -81,10 +85,14 @@ export const TowFlow: React.FC<{
           onClose();
           break;
         case 'route':
-          setPhase({ name: 'vehicle' });
+          if (phase.edit) setPhase({ name: 'timing', vehicle: phase.vehicle, places: phase.edit.places, timing: phase.edit.timing });
+          else setPhase({ name: 'vehicle' });
+          break;
+        case 'timing':
+          setPhase({ name: 'route', vehicle: phase.vehicle });
           break;
         case 'bids':
-          setPhase({ name: 'route', vehicle: phase.vehicle });
+          setPhase({ name: 'timing', vehicle: phase.vehicle, places: { pickup: phase.route.pickup, drop: phase.route.drop }, timing: phase.route.timing });
           break;
         case 'tracking':
         case 'drop':
@@ -127,10 +135,24 @@ export const TowFlow: React.FC<{
   switch (phase.name) {
     case 'vehicle':
       return <TowVehicleScreen onClose={onClose} onNext={(vehicle) => setPhase({ name: 'route', vehicle })} />;
-    case 'route':
+    case 'route': {
+      const edit = phase.edit;
       return (
         <TowRouteScreen
-          onBack={() => setPhase({ name: 'vehicle' })}
+          onClose={onClose}
+          start={edit ? { places: edit.places, role: edit.role } : undefined}
+          onBack={edit ? () => setPhase({ name: 'timing', vehicle: phase.vehicle, places: edit.places, timing: edit.timing }) : undefined}
+          onNext={(places) => setPhase({ name: 'timing', vehicle: phase.vehicle, places, timing: edit?.timing })}
+        />
+      );
+    }
+    case 'timing':
+      return (
+        <TowTimingScreen
+          places={phase.places}
+          initialTiming={phase.timing}
+          onBack={() => setPhase({ name: 'route', vehicle: phase.vehicle })}
+          onEditPlace={(role, timing) => setPhase({ name: 'route', vehicle: phase.vehicle, edit: { places: phase.places, timing, role } })}
           onClose={onClose}
           onNext={(route) => setPhase({ name: 'bids', vehicle: phase.vehicle, route })}
         />
@@ -142,6 +164,8 @@ export const TowFlow: React.FC<{
           route={phase.route}
           onClose={onClose}
           onMinimize={onMinimize}
+          slotLabel={slotOf(phase.route) ?? undefined}
+          onChangeTime={() => setPhase({ name: 'timing', vehicle: phase.vehicle, places: { pickup: phase.route.pickup, drop: phase.route.drop }, timing: phase.route.timing })}
           // A scheduled tow is held until its slot; a tow needed now goes straight to tracking.
           onNext={(draft) => setPhase(draft.route.timing.mode === 'scheduled' ? { name: 'hold', draft } : { name: 'tracking', draft })}
         />

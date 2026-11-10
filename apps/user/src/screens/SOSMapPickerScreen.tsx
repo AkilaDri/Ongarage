@@ -7,7 +7,6 @@ import { Colors, FONTS, getThemeMode, themedStyles } from '@ongarage/shared';
 import { LOCATION_SUGGESTIONS } from '../constants/mockData';
 import Svg, { Circle, Line } from 'react-native-svg';
 import { Gradient, GRADIENTS } from '@ongarage/shared';
-import { GoogleMap } from '@ongarage/shared';
 import { useUserLocation } from '../context/LocationContext';
 import {
   autocompletePlaces,
@@ -17,11 +16,21 @@ import {
   type PlaceSuggestion,
 } from '@ongarage/shared';
 import type { LatLng, PickedLocation } from '@ongarage/shared';
+import { AppMap } from '../components/map/AppMap';
 
-interface SOSMapPickerScreenProps {
+/** The map picker is shared: SOS uses its defaults, and the towing flow passes its own wording and blue. */
+export interface SOSMapPickerScreenProps {
   initialLocation: PickedLocation | null;
   onConfirm: (location: PickedLocation) => void;
   onClose: () => void;
+  /** The title on the bottom card (default: the SOS breakdown question). */
+  title?: string;
+  /** The label on the centre pin (default: the SOS one). */
+  pinLabel?: string;
+  /** The confirm button text (default: the SOS one). */
+  confirmLabel?: string;
+  /** The flow's colour: the pin and the confirm button. Default: SOS red. */
+  accent?: { color: string; stops: { offset: string; color: string }[] };
 }
 
 const MIN_ZOOM = 11;
@@ -34,7 +43,7 @@ const offlineSuggestions = (query: string): PlaceSuggestion[] =>
     secondaryText: '',
   }));
 
-export const SOSMapPickerScreen: React.FC<SOSMapPickerScreenProps> = ({ initialLocation, onConfirm, onClose }) => {
+export const SOSMapPickerScreen: React.FC<SOSMapPickerScreenProps> = ({ initialLocation, onConfirm, onClose, title = 'බ්‍රේක්ඩවුන් ස්ථානය තෝරන්න', pinLabel = '🚗  මෙතැනද?', confirmLabel = 'මෙතැන තහවුරු කරන්න', accent }) => {
   const { notify } = useNotice();
   const user = useUserLocation();
   const [searchText, setSearchText] = useState('');
@@ -45,8 +54,12 @@ export const SOSMapPickerScreen: React.FC<SOSMapPickerScreenProps> = ({ initialL
   const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const geocodeSeq = useRef(0);
+  // Whether the owner has placed the pin by hand (a tap, a search or a pick), as opposed to the GPS starting point.
+  const [picked, setPicked] = useState(!!initialLocation);
+  const isCoords = (t: string) => /^-?\d+\.\d+,\s*-?\d+\.\d+$/.test(t.trim());
 
   const moveTo = async (coords: LatLng, knownAddress?: string) => {
+    setPicked(true);
     setCenter(coords);
     const seq = ++geocodeSeq.current;
     if (knownAddress) {
@@ -125,7 +138,7 @@ export const SOSMapPickerScreen: React.FC<SOSMapPickerScreenProps> = ({ initialL
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       {/* PickMe-style: the map fills the screen; the close button and search float over it, and a card at the bottom confirms. */}
       <View style={styles.mapArea}>
-        <GoogleMap
+        <AppMap
           style={styles.mapCanvas}
           center={center}
           zoom={zoom}
@@ -133,17 +146,23 @@ export const SOSMapPickerScreen: React.FC<SOSMapPickerScreenProps> = ({ initialL
             setShowSuggestions(false);
             moveTo(coords);
           }}
+          onRegionChange={(coords, nextZoom) => {
+            // Dragging or pinching the map moves the pin's place; the zoom buttons and the gesture stay in step.
+            setShowSuggestions(false);
+            setZoom(nextZoom);
+            moveTo(coords);
+          }}
         >
           {/* The pin: a label on a stem, a dot, and its shadow on the ground. */}
           <View style={styles.centerMarker} pointerEvents="none">
-            <View style={styles.pinBubble}>
-              <Text style={styles.pinText}>🚗  මෙතැනද?</Text>
+            <View style={[styles.pinBubble, accent && { backgroundColor: accent.color, shadowColor: accent.color }]}>
+              <Text style={styles.pinText}>{pinLabel}</Text>
             </View>
-            <View style={styles.pinStem} />
-            <View style={styles.pinPoint} />
+            <View style={[styles.pinStem, accent && { backgroundColor: accent.color }]} />
+            <View style={[styles.pinPoint, accent && { backgroundColor: accent.color }]} />
             <View style={styles.pinShadow} />
           </View>
-        </GoogleMap>
+        </AppMap>
 
         <View style={styles.topBar}>
           <Pressable style={styles.roundBtn} onPress={onClose} accessibilityLabel="Close location picker">
@@ -219,25 +238,26 @@ export const SOSMapPickerScreen: React.FC<SOSMapPickerScreenProps> = ({ initialL
 
       <View style={styles.bottomSheet}>
         <View style={styles.handle} />
-        <Text style={styles.sheetTitle}>Breakdown ස්ථානය තෝරන්න</Text>
+        <Text style={styles.sheetTitle}>{title}</Text>
         <View style={styles.locationRow}>
           <View style={styles.locationDisc}>
             <Text style={styles.locationIcon}>📍</Text>
           </View>
           <View style={styles.flex1}>
+            {/* A place with no readable name shows as "ස්ථානය තෝරා ඇත"; the coordinates appear once, small. */}
             <Text style={styles.locationName} numberOfLines={2}>
-              {address}
+              {isCoords(address) ? 'ස්ථානය තෝරා ඇත' : address}
             </Text>
             <Text style={styles.locationStatus}>
-              {center.latitude.toFixed(5)}, {center.longitude.toFixed(5)}
-              {user.status === 'ready' ? ' • GPS Locked' : ''}
+              {picked ? 'අතින් තෝරා ඇත' : 'GPS ස්ථානය'}
+              {` · ${center.latitude.toFixed(5)}, ${center.longitude.toFixed(5)}`}
             </Text>
           </View>
           {resolving && <ActivityIndicator size="small" color={Colors.primary} />}
         </View>
         <Pressable style={({ pressed }) => [styles.confirmBtn, pressed && { opacity: 0.92, transform: [{ scale: 0.99 }] }]} onPress={() => onConfirm({ address, coords: center })}>
-          <Gradient stops={GRADIENTS.sos} />
-          <Text style={styles.confirmBtnText}>ස්ථානය තහවුරු කර ඉදිරියට යන්න</Text>
+          <Gradient stops={accent?.stops ?? GRADIENTS.sos} />
+          <Text style={styles.confirmBtnText}>📍  {confirmLabel}</Text>
         </Pressable>
       </View>
     </SafeAreaView>
@@ -260,20 +280,20 @@ const styles = themedStyles(() => StyleSheet.create({
   searchPill: { flex: 1, height: 46, flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: 16, paddingRight: 5, borderRadius: 23, backgroundColor: Colors.bgCard, ...SOFT_SHADOW },
   searchIcon: { fontSize: 14 },
   // No browser focus outline on the web; the pill itself is the field.
-  input: { flex: 1, color: Colors.textMain, fontSize: 12.5, fontFamily: FONTS.bodyMedium, paddingVertical: 0, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as object) : {}) },
+  input: { flex: 1, color: Colors.textMain, fontSize: 14, lineHeight: 20, fontFamily: FONTS.bodyMedium, paddingVertical: 0, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as object) : {}) },
   searchGo: { width: 36, height: 36, borderRadius: 18, backgroundColor: Colors.primary, justifyContent: 'center', alignItems: 'center' },
   searchGoText: { fontSize: 16, fontWeight: '800', color: '#fff' },
   suggestionsDropdown: { position: 'absolute', top: 66, left: 16, right: 16, backgroundColor: Colors.bgCard, borderRadius: 12, borderWidth: 1, borderColor: outline(), overflow: 'hidden', zIndex: 100, ...elevation1() },
   suggestionItem: { paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: Colors.borderColor },
-  suggestionText: { fontSize: 14, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
+  suggestionText: { fontSize: 14, lineHeight: 20, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
   suggestionSubText: { fontSize: 12, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 2, marginLeft: 20 },
   mapControls: { position: 'absolute', right: 16, bottom: 40, gap: 10 },
   mapControlText: { fontSize: 19, color: Colors.textMain, fontWeight: '700' },
 
   // The pin (its dot sits on the map's centre)
   centerMarker: { alignItems: 'center', transform: [{ translateY: -30 }] },
-  pinBubble: { backgroundColor: '#dc2626', paddingHorizontal: 14, paddingVertical: 7, borderRadius: 18, shadowColor: '#dc2626', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.35, shadowRadius: 12, elevation: 6 },
-  pinText: { fontSize: 11.5, fontFamily: FONTS.bodyBold, color: '#fff' },
+  pinBubble: { backgroundColor: '#dc2626', paddingHorizontal: 14, paddingVertical: 7, borderRadius: 18, borderWidth: 2, borderColor: '#ffffff', shadowColor: '#dc2626', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.35, shadowRadius: 12, elevation: 6 },
+  pinText: { fontSize: 12, lineHeight: 17, fontFamily: FONTS.bodyBold, color: '#fff' },
   pinStem: { width: 3, height: 16, backgroundColor: '#dc2626' },
   pinPoint: { width: 14, height: 14, borderRadius: 7, backgroundColor: '#dc2626', borderWidth: 3, borderColor: '#fff', marginTop: -2 },
   pinShadow: { width: 18, height: 6, borderRadius: 9, backgroundColor: 'rgba(15, 23, 42, 0.22)', marginTop: 2 },
@@ -281,12 +301,12 @@ const styles = themedStyles(() => StyleSheet.create({
   // Bottom card, overlapping the map with rounded corners
   bottomSheet: { marginTop: -24, backgroundColor: Colors.bgCard, paddingHorizontal: 24, paddingTop: 12, paddingBottom: 20, gap: 12, borderTopLeftRadius: 28, borderTopRightRadius: 28, shadowColor: '#3c4043', shadowOffset: { width: 0, height: -2 }, shadowOpacity: 0.14, shadowRadius: 8, elevation: 8 },
   handle: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: Colors.subtleBorder, marginBottom: 4 },
-  sheetTitle: { fontSize: 20, lineHeight: 28, fontFamily: FONTS.titleBold, color: Colors.textMain },
+  sheetTitle: { fontSize: 20, lineHeight: 30, fontFamily: FONTS.titleBold, color: Colors.textMain },
   locationRow: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 12, borderWidth: 1, borderColor: outline(), backgroundColor: Colors.bgCard },
   locationDisc: { width: 40, height: 40, borderRadius: 20, backgroundColor: getThemeMode() === 'dark' ? 'rgba(239, 68, 68, 0.18)' : '#fee2e2', justifyContent: 'center', alignItems: 'center' },
   locationIcon: { fontSize: 18 },
-  locationName: { fontSize: 15, fontFamily: FONTS.titleBold, color: Colors.textMain },
-  locationStatus: { fontSize: 12, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 2 },
+  locationName: { fontSize: 15, lineHeight: 22, fontFamily: FONTS.titleBold, color: Colors.textMain },
+  locationStatus: { fontSize: 12, lineHeight: 18, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 2 },
   confirmBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 16, borderRadius: 28, overflow: 'hidden' },
-  confirmBtnText: { fontSize: 14, fontFamily: FONTS.bodyBold, color: '#fff' },
+  confirmBtnText: { fontSize: 15, lineHeight: 20, fontFamily: FONTS.bodyBold, color: '#fff' },
 }));

@@ -54,14 +54,15 @@ export const TowRateScreen: React.FC<{
               </View>
             )}
         </View>
-        <View style={styles.progressRow}>
-          {[0, 1, 2, 3].map((i) => (
-            <View key={i} style={[styles.progressBar, styles.progressBarOn]} />
-          ))}
-        </View>
       </View>
 
       <View style={styles.sheet}>
+        <View style={styles.handle} />
+        <View style={styles.progressRow}>
+          {[0, 1, 2, 3, 4, 5].map((i) => (
+            <View key={i} style={[styles.progressBar, styles.progressBarOn]} />
+          ))}
+        </View>
         <ScrollView contentContainerStyle={styles.body}>
           {!rated && (
             <>
@@ -117,9 +118,10 @@ const styles = themedStyles(() =>
     stepNo: { color: '#1d367f', fontFamily: FONTS.bodyBold },
     pillTitle: { fontSize: 13.5, fontFamily: FONTS.titleBold, color: Colors.textMain },
     pillSub: { fontSize: 12, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
-    progressRow: { position: 'absolute', left: 16, right: 16, bottom: 14, flexDirection: 'row', gap: 6 },
-    progressBar: { flex: 1, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.3)' },
-    progressBarOn: { backgroundColor: '#ffffff' },
+    handle: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: Colors.subtleBorder, marginTop: 10 },
+    progressRow: { flexDirection: 'row', gap: 6, paddingHorizontal: 18, paddingTop: 12 },
+    progressBar: { flex: 1, height: 5, borderRadius: 3, backgroundColor: Colors.subtleBorder },
+    progressBarOn: { backgroundColor: '#1a73e8' },
     sheet: { flex: 1, marginTop: -24, backgroundColor: Colors.bgBody, borderTopLeftRadius: 28, borderTopRightRadius: 28, overflow: 'hidden' },
     body: { padding: 18, gap: 12, paddingBottom: 40 },
     card: { padding: 16, borderRadius: 18, backgroundColor: Colors.bgCard, gap: 10 },

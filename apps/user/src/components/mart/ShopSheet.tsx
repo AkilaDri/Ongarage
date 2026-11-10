@@ -2,7 +2,7 @@ import { EmptyState } from '@ongarage/shared';
 import { elevation1, outline } from '../../utils/material';
 import React from 'react';
 import { Image, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { ActionButton, catalogueSummary, Colors, FONTS, categoryInfo, directionsUrl, getThemeMode, GoogleMap, martDeals, MART_STOCK, money, shopServiceScore, themedStyles, type ShopListing } from '@ongarage/shared';
+import { ActionButton, catalogueSummary, Colors, FONTS, categoryInfo, directionsUrl, getThemeMode, martDeals, MART_STOCK, money, shopServiceScore, themedStyles, type ShopListing } from '@ongarage/shared';
 import { OnMartAsk } from '@ongarage/shared';
 import { GARAGE_COVERS } from '../../constants/home';
 import { useUserLocation } from '../../context/LocationContext';
@@ -10,6 +10,7 @@ import { useChat } from '../../context/ChatContext';
 import { Sheet } from '../Sheet';
 import { CATEGORIES, OTHER, categoryOf } from './stockCategories';
 import { StockSearchSheet } from './StockSearchSheet';
+import { AppMap } from '../map/AppMap';
 
 const AVATAR_COLORS = ['#2457e6', '#0e9f6e', '#e5483d', '#8b5cf6', '#f59e0b', '#0891b2', '#db2777'];
 const hash = (id: string) => [...id].reduce((n, ch) => n + ch.charCodeAt(0), 0);
@@ -345,7 +346,7 @@ export const ShopSheet: React.FC<{ shop: ShopListing | null; onClose: () => void
         <Text style={styles.pfTitle}>ස්ථානය</Text>
         <View style={styles.mapCard}>
           <View style={styles.mapBox}>
-            <GoogleMap
+            <AppMap
               style={StyleSheet.absoluteFill}
               center={s.coords}
               zoom={15}

@@ -10,7 +10,6 @@ import { GarageTile } from '../components/home/GarageTile';
 import { GARAGE_INFO } from '../constants/home';
 import { GARAGE_SUB_SERVICES } from '../constants/garageSubServices';
 import { CategoryPhoto } from '../components/home/CategoryPhoto';
-import { GoogleMap } from '@ongarage/shared';
 import { Icon, Gradient } from '@ongarage/shared';
 import { useUserLocation } from '../context/LocationContext';
 import { useNotice } from '../context/NoticeContext';
@@ -21,6 +20,7 @@ import { PlaceSheet } from '../components/PlaceSheet';
 import { AMENITY_ICON, AMENITY_LABEL, placesOfCategory } from '../constants/places';
 import { useVehicles } from '../context/VehiclesContext';
 import type { Garage, LatLng, ServiceCategory } from '@ongarage/shared';
+import { AppMap } from '../components/map/AppMap';
 
 const COLLAPSED_HEIGHT = 420;
 /** The blue of the Free Quotes banner on Home. */
@@ -377,7 +377,7 @@ export const ServiceBrowseScreen: React.FC<ServiceBrowseScreenProps> = ({ servic
       }}>
         {/* The map is clipped to a rounded top, sitting 24px into the band: the same round edge as the sheets. */}
         <Animated.View style={[styles.mapClip, { opacity: enter }]} pointerEvents="box-none">
-        <GoogleMap
+        <AppMap
           // The map keeps one size whatever the sheet does (it slides over it): the height of the map area with the search bar shown, less the peeking sheet.
           // The map's top edge sits 24px into the blue band, so its rounded corners show over it (as the sheets do on the other screens).
           style={[StyleSheet.absoluteFill, { top: 0, bottom: peekHeight - 20 }]}

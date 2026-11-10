@@ -1,12 +1,13 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Easing, Image, Linking, PanResponder, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { ActionButton, ago, LkPlate, martShop, basketProgress, Colors, FONTS, getAi, getThemeMode, money, shopCoverage, SUGGEST_MIN_CONFIDENCE, cartLeftMin, directionsUrl, GoogleMap, PartTypeChip, partTypesOf, PurchaseCode, ringKm, shopsNear, themedStyles, type LatLng, type ShopOffer } from '@ongarage/shared';
+import { ActionButton, ago, LkPlate, martShop, basketProgress, Colors, FONTS, getAi, getThemeMode, money, shopCoverage, SUGGEST_MIN_CONFIDENCE, cartLeftMin, directionsUrl, PartTypeChip, partTypesOf, PurchaseCode, ringKm, shopsNear, themedStyles, type LatLng, type ShopOffer } from '@ongarage/shared';
 import { useMart, type MartEnquiry } from '../../context/MartContext';
 import { openShopFor } from '../../utils/martBridge';
 import { elevation1, outline } from '../../utils/material';
 import { Sheet } from '../Sheet';
 import { BatchCompare } from './BatchCompare';
 import { CartPanel } from './CartSheet';
+import { AppMap } from '../map/AppMap';
 
 /** The lowest-price line breathes gently (a soft pulse and glow) and a light streak sweeps across it now and then, so the eye finds the best price first. */
 const BestPriceGlow: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -119,7 +120,7 @@ const ReachCanvas: React.FC<{ coords: LatLng; status: Record<string, 'good' | 'b
   const zoom = reachZoom(km, height);
   const radiusPx = km === 'all' ? 0 : (km * 1000) / ((156543.03392 * Math.cos((coords.latitude * Math.PI) / 180)) / 2 ** zoom);
   return (
-    <GoogleMap
+    <AppMap
       center={coords}
       zoom={zoom}
       style={{ height, borderRadius: 10 }}
@@ -248,7 +249,7 @@ const RouteMap: React.FC<{ from: LatLng; to: LatLng; km: number }> = ({ from, to
   const mid = { latitude: (from.latitude + to.latitude) / 2, longitude: (from.longitude + to.longitude) / 2 };
   const zoom = reachZoom(Math.max(1, km) * 1.4, 150);
   return (
-    <GoogleMap
+    <AppMap
       center={mid}
       zoom={zoom}
       style={{ height: 150, borderRadius: 10 }}
@@ -288,7 +289,7 @@ const ReservedMap: React.FC<{ coords: LatLng; shops: { id: string; name: string;
       </View>
       <Pressable onPress={onOpen} accessibilityLabel="Open the reserved shops">
         <View pointerEvents="none">
-          <GoogleMap
+          <AppMap
             center={coords}
             zoom={zoom}
             style={{ height: 105, borderRadius: 10 }}

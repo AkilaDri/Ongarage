@@ -5,6 +5,12 @@ import { distanceKm } from '../utils/geo';
 export { distanceKm };
 
 export const GOOGLE_MAPS_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ?? '';
+/**
+ * Which map draws the maps. OpenStreetMap when there is no Google key (development), or when EXPO_PUBLIC_MAP_PROVIDER=osm.
+ * Google when the key is set, or when EXPO_PUBLIC_MAP_PROVIDER=google.
+ */
+const MAP_PROVIDER_SETTING = process.env.EXPO_PUBLIC_MAP_PROVIDER ?? '';
+export const MAP_PROVIDER: 'osm' | 'google' = MAP_PROVIDER_SETTING === 'osm' || (MAP_PROVIDER_SETTING !== 'google' && !GOOGLE_MAPS_API_KEY) ? 'osm' : 'google';
 
 const LANGUAGE = 'si';
 const REGION = 'lk';
