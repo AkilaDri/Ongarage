@@ -35,6 +35,8 @@ interface GoogleMapProps {
 type View = { center: LatLng; zoom: number };
 
 const distance = (a: { pageX: number; pageY: number }, b: { pageX: number; pageY: number }) => Math.hypot(a.pageX - b.pageX, a.pageY - b.pageY);
+/** How many fingers are on the map now. */
+const touchCount = (e: { nativeEvent: object }) => ((e.nativeEvent as { touches?: unknown[] }).touches ?? []).length;
 
 export const GoogleMap: React.FC<GoogleMapProps> = ({
   center,
@@ -70,13 +72,15 @@ export const GoogleMap: React.FC<GoogleMapProps> = ({
   const gesture = useRef({ x0: 0, y0: 0, moved: false, pinching: false, startDist: 0, startZoom: zoom, startView: { center, zoom } as View });
   const lastTap = useRef<{ t: number; x: number; y: number } | null>(null);
 
+  // Every map zooms with a pinch. Drag and taps are on when the map has a handler for them; a map without one still lets a single finger
+  // through to the things under it (a sheet, a pin), so only two fingers take the map.
   const interactive = !!(onPressCoordinate || onRegionChange);
 
   const responder = useMemo(
     () =>
       PanResponder.create({
-        onStartShouldSetPanResponder: () => interactive,
-        onMoveShouldSetPanResponder: () => interactive,
+        onStartShouldSetPanResponder: (e) => interactive || touchCount(e) >= 2,
+        onMoveShouldSetPanResponder: (e) => interactive || touchCount(e) >= 2,
         onPanResponderGrant: (e) => {
           const ne = e.nativeEvent as unknown as { locationX?: number; locationY?: number; offsetX?: number; offsetY?: number; touches?: { pageX: number; pageY: number }[] };
           gesture.current.x0 = ne.locationX ?? ne.offsetX ?? 0;
@@ -94,6 +98,12 @@ export const GoogleMap: React.FC<GoogleMapProps> = ({
           const { width: w, height: h } = sizeRef.current;
           if (w === 0) return;
           // Two fingers: pinch to zoom, around the middle of the map.
+          // The second finger may land after the first: the pinch starts from the spread at that moment.
+          if (touches.length >= 2 && gesture.current.startDist === 0) {
+            gesture.current.startDist = distance(touches[0], touches[1]);
+            gesture.current.startZoom = live.current.zoom;
+            gesture.current.startView = live.current;
+          }
           if (touches.length >= 2 && gesture.current.startDist > 0) {
             gesture.current.pinching = true;
             gesture.current.moved = true;
@@ -150,7 +160,7 @@ export const GoogleMap: React.FC<GoogleMapProps> = ({
   };
 
   return (
-    <View style={[styles.container, style]} onLayout={(e) => setSize(e.nativeEvent.layout)} {...(interactive ? responder.panHandlers : {})}>
+    <View style={[styles.container, style]} onLayout={(e) => setSize(e.nativeEvent.layout)} {...responder.panHandlers}>
       {MAP_PROVIDER === 'osm' ? (
         <OsmTiles center={view.center} zoom={view.zoom} width={size.width} height={size.height} />
       ) : url && !failed ? (

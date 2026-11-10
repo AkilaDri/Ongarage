@@ -974,13 +974,13 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
         </View>
         <View style={styles.flex1}>
           <Text style={styles.cardTitle}>ළඟම ගරාජය / කාර්මිකයා සොයමින්...</Text>
-          <Text style={styles.cardSub}>km {radius} ක් ඇතුළත සොයා ඔබව සම්බන්ධ කරනු ඇත.</Text>
+          <Text style={styles.cardSub}>{radius} km ක් ඇතුළත සොයා ඔබව සම්බන්ධ කරනු ඇත.</Text>
         </View>
       </View>
 
       <View style={styles.statsRow}>
         <View style={styles.statBox}>
-          <Text style={styles.statValue}>km {radius}</Text>
+          <Text style={styles.statValue}>{radius} km</Text>
           <Text style={styles.statLabel}>සෙවුම් කලාපය</Text>
         </View>
         <View style={styles.statBox}>
@@ -1105,7 +1105,7 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
     <>
       <View style={[styles.card, styles.centerCard]}>
         <GlassIcon emoji="📍" />
-        <Text style={styles.heroTitle}>km {radius} ක් ඇතුළත පිළිතුරක් නැත</Text>
+        <Text style={styles.heroTitle}>{radius} km ඇතුළත පිළිතුරක් නැත</Text>
         <Text style={styles.heroText}>මෙම කලාපයේ කිසිවෙක් ප්‍රතිචාර දැක්වූයේ නැත.</Text>
         <Text style={styles.heroNote}>ළඟම OnGarage ලියාපදිංචි ගරාජ සහ කාර්මිකයන් පහතින්. ප්‍රොෆයිල් බලා කැමති කෙනෙකු සම්බන්ධ කරගන්න.</Text>
       </View>
@@ -1802,7 +1802,7 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
           tone="primary"
           title="සෙවුම් කලාපය පුළුල් කරමින්"
           rows={[
-            { label: 'Search radius', value: `km ${radius} → km ${radius + RADIUS_STEP_KM}` },
+            { label: 'Search radius', value: `${radius} km → ${radius + RADIUS_STEP_KM} km` },
             { label: 'Call-out fee', value: `${money(calloutFeeFor(radius))} → ${money(calloutFeeFor(radius + RADIUS_STEP_KM))}` },
           ]}
           body={`\nමෙම කලාපයේ ගරාජයක් හෝ කාර්මිකයෙක් නැත. ඒ නිසා සෙවුම් කලාපය වැඩි කරන්න ද ?`}

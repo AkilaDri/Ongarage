@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle, Line } from 'react-native-svg';
-import { Colors, distanceKm, FONTS, geocodeAddress, reverseGeocode, themedStyles, TOW_SITE_LIST, zoomToFit, type LatLng, type TowSite } from '@ongarage/shared';
+import { ActionButton, Colors, distanceKm, FONTS, geocodeAddress, ModalCard, reverseGeocode, themedStyles, TOW_SITE_LIST, zoomToFit, type LatLng, type TowSite } from '@ongarage/shared';
 import { useUserLocation } from '../../context/LocationContext';
 import { TOW_SITE_TEXT } from '../../constants/towSites';
 import { elevation1, outline } from '../../utils/material';
@@ -39,28 +39,35 @@ const scaleBar = (lat: number, zoom: number) => {
   return { px: Math.round(step / metresPerPx), label: step >= 1000 ? `${step / 1000} km` : `${step} m` };
 };
 const ROLE_PIN = { pickup: '🚗  මෙතැනද?', drop: '🛻  මෙතැනටද?' };
+/** The time choice, merged into this step: days shown before "තවත්", and the hours offered. */
+const DAY_COLLAPSED = 3;
+const DAY_CHIPS = [0, 1, 2, 3, 4, 5, 6, 7];
+const HOUR_CHIPS = [7, 9, 11, 13, 15, 17];
+/** Today and tomorrow are one word each; later days keep the date and the weekday. */
+const dayLabel = (offset: number) => (offset === 0 ? 'අද' : offset === 1 ? 'හෙට' : new Date(Date.now() + offset * 86400000).toLocaleDateString('si-LK', { weekday: 'short', day: 'numeric' }));
 
 export const TowRouteScreen: React.FC<{
   onClose: () => void;
-  /** Both places are set and the owner confirmed them: the flow moves on to the timing step. */
-  onNext: (places: TowPlaces) => void;
-  /** Opened from the timing step to change a place: the overview opens with both places, on the place chosen. */
-  start?: { places: TowPlaces; role: Role };
-  /** With `start`, the back arrow returns to the timing step without changing anything. */
+  /** The places and the time are set and the owner confirmed the request: the flow moves on to the trucks. */
+  onNext: (route: TowRouteDraft) => void;
+  /** Opened from the bids to change the time or a place: the overview opens with both places and the time as they were. */
+  start?: TowRouteDraft;
+  /** The back arrow: back to the bids when this step was opened from them, otherwise back to the vehicle. */
   onBack?: () => void;
 }> = ({ onClose, onNext, start, onBack }) => {
   const user = useUserLocation();
+  const { height: windowH } = useWindowDimensions();
   const gps: TowPlace = useMemo(() => ({ id: 'here', name: 'ඔබ සිටින තැන', address: user.address, coords: user.coords }), [user.address, user.coords]);
 
   // The pickup follows GPS until the owner moves it; the drop-off starts empty (unless we are editing a chosen place).
-  const [pickup, setPickup] = useState<TowPlace>(start?.places.pickup ?? gps);
+  const [pickup, setPickup] = useState<TowPlace>(start?.pickup ?? gps);
   const pickupTouched = useRef(!!start);
-  const [drop, setDrop] = useState<TowPlace | null>(start?.places.drop ?? null);
-  const [active, setActive] = useState<Role>(start?.role ?? 'pickup');
+  const [drop, setDrop] = useState<TowPlace | null>(start?.drop ?? null);
+  const [active, setActive] = useState<Role>('pickup');
   // What the pickup spot is like. Optional: the owner names what the trucks must be ready for.
-  const [sites, setSites] = useState<TowSite[]>(start?.places.sites ?? []);
+  const [sites, setSites] = useState<TowSite[]>(start?.sites ?? []);
   const toggleSite = (s: TowSite) => setSites((cur) => (cur.includes(s) ? cur.filter((x) => x !== s) : [...cur, s]));
-  const [center, setCenter] = useState<LatLng>(start ? start.places[start.role].coords : user.coords);
+  const [center, setCenter] = useState<LatLng>(start ? start.pickup.coords : user.coords);
   const [zoom, setZoom] = useState(14);
   const [resolving, setResolving] = useState(false);
   // The spinner shows only when the address lookup is slow; a quick lookup needs no sign.
@@ -75,9 +82,16 @@ export const TowRouteScreen: React.FC<{
   }, [resolving]);
   // Placing: the centre pin moves a place. Overview: both places on the map, for checking the trip.
   // Opened from the timing step, the map is live at once on the place chosen (no extra tap needed).
-  const [editing, setEditing] = useState(true);
+  const [editing, setEditing] = useState(!start);
   const [query, setQuery] = useState('');
   const [note, setNote] = useState('');
+  // The time, chosen in the overview once both places are set.
+  const [mode, setMode] = useState<'now' | 'scheduled'>(start?.timing.mode ?? 'now');
+  const [dayOffset, setDayOffset] = useState<number | null>(start?.timing.mode === 'scheduled' ? start.timing.dayOffset : null);
+  const [hour, setHour] = useState<number | null>(start?.timing.mode === 'scheduled' ? start.timing.hour : null);
+  const [showAllDays, setShowAllDays] = useState(false);
+  // The confirm card before the request goes out.
+  const [askConfirm, setAskConfirm] = useState(false);
   const geocodeSeq = useRef(0);
 
   useEffect(() => {
@@ -138,10 +152,25 @@ export const TowRouteScreen: React.FC<{
     setEditing(false);
   };
 
-  // Opened from the timing step: confirming the place goes straight back to the timing step with both places.
-  const confirmForTiming = () => {
-    if (!drop || tooClose) return;
-    onNext({ pickup, drop, sites });
+  // The time as the request carries it, and whether it is complete enough to send.
+  const timing: TowTiming = mode === 'now' ? { mode: 'now' } : { mode: 'scheduled', dayOffset: dayOffset ?? 0, hour: hour ?? HOUR_CHIPS[0] };
+  const timingReady = mode === 'now' || (dayOffset !== null && hour !== null);
+  const daysOpen = showAllDays || (dayOffset !== null && dayOffset >= DAY_COLLAPSED);
+  // What the scheduled choice means, and the cancellation rule for it (the same tiers as the hold).
+  const scheduleHelper = dayOffset === null || hour === null ? 'දිනය සහ වේලාව තෝරන්න.' : `${dayLabel(dayOffset)} ${hour}:00 ට ඉල්ලීම යවා, ඒ වේලාවට නිදහස් ට්‍රක් තහවුරු කරයි.`;
+  const scheduleRule =
+    dayOffset === null
+      ? null
+      : dayOffset >= 3
+        ? 'දින 3ක් හෝ ඊට වැඩි නම් නොමිලේ අවලංගු කළ හැක.'
+        : dayOffset >= 1
+          ? 'දින 1–2ක් ඇතිව අවලංගු කළොත් ගාස්තුවෙන් 5%ක් අයවේ.'
+          : 'අදම අවලංගු කළොත් ගාස්තුවෙන් 10%ක් අයවේ.';
+  const nowRule = 'ට්‍රක් කෙනෙක් ඉල්ලීම පිළිගන්නා තුරු නොමිලේ අවලංගු කළ හැක.';
+  // Sent only after the owner has seen the summary and confirmed it.
+  const send = () => {
+    setAskConfirm(false);
+    if (drop && !tooClose && timingReady) onNext({ pickup, drop, sites, timing });
   };
 
   // The overview fits both places once, when it opens.
@@ -180,7 +209,7 @@ export const TowRouteScreen: React.FC<{
     setZoom(zoomToFit(Math.max(km * 1.8, 2), mid.latitude, 380));
   };
   const tooClose = trip !== null && trip < MIN_TRIP_KM;
-  const ready = !!drop && !tooClose;
+  const ready = !!drop && !tooClose && timingReady;
   const label = (role: Role) => (role === 'pickup' ? 'වාහනය දැන් ඉන්නේ' : 'ගෙනයන්න ඕන තැන');
 
   return (
@@ -251,7 +280,7 @@ export const TowRouteScreen: React.FC<{
               <Text style={styles.pillTitle} numberOfLines={1}>Ongarage Towing</Text>
               <View style={styles.stepRow}>
                 <View style={styles.stepChip}>
-                  <Text style={styles.stepNo}>2/6</Text>
+                  <Text style={styles.stepNo}>2/5</Text>
                 </View>
               </View>
             </View>
@@ -291,7 +320,7 @@ export const TowRouteScreen: React.FC<{
 
         {drop && trip !== null && editing && (
           <View style={styles.distChip} pointerEvents="none">
-            <Text style={styles.distText}>{`km ${trip.toFixed(1)}`}</Text>
+            <Text style={styles.distText}>{`${trip.toFixed(1)} km`}</Text>
           </View>
         )}
 
@@ -328,6 +357,7 @@ export const TowRouteScreen: React.FC<{
       {/* The bottom card: one row per place. The row chosen is the one the centre pin moves. */}
       <View style={styles.sheet}>
         <View style={styles.handle} />
+        <ScrollView style={{ maxHeight: Math.round(windowH * 0.52) }} contentContainerStyle={styles.sheetBody} showsVerticalScrollIndicator={false}>
         <Text style={styles.sheetTitle}>{editing ? 'ස්ථාන දෙක තෝරන්න' : 'ඔබේ ගමන'}</Text>
         {(['pickup', 'drop'] as Role[]).map((role) => {
           const p = role === 'pickup' ? pickup : drop;
@@ -353,7 +383,7 @@ export const TowRouteScreen: React.FC<{
 
         {trip !== null && (
           <Text style={[styles.tripText, tooClose && styles.tripWarn]}>
-            {tooClose ? 'ආරම්භ තැනට ඉතා ළඟයි. වෙනත් තැනක් තෝරන්න.' : `දුර: km ${trip.toFixed(1)}`}
+            {tooClose ? 'ආරම්භ තැනට ඉතා ළඟයි. වෙනත් තැනක් තෝරන්න.' : `දුර: ${trip.toFixed(1)} km`}
           </Text>
         )}
 
@@ -374,16 +404,81 @@ export const TowRouteScreen: React.FC<{
           </View>
         )}
 
+        {/* The time, in the overview once both places are set: now, or a day and an hour. */}
+        {!editing && drop && (
+          <View style={styles.timeBox}>
+            <Text style={styles.siteTitle}>සේවය ලබා ගැනීමට අවශ්‍යය කවදා ද?</Text>
+            <View style={styles.segment}>
+              <Pressable style={[styles.segBtn, mode === 'now' && styles.segBtnOn]} onPress={() => setMode('now')} accessibilityLabel="Tow now" accessibilityState={{ selected: mode === 'now' }}>
+                <Text style={[styles.segText, mode === 'now' && styles.segTextOn]}>මේ මොහොතේ</Text>
+              </Pressable>
+              <Pressable style={[styles.segBtn, mode === 'scheduled' && styles.segBtnOn]} onPress={() => setMode('scheduled')} accessibilityLabel="Schedule a tow" accessibilityState={{ selected: mode === 'scheduled' }}>
+                <Text style={[styles.segText, mode === 'scheduled' && styles.segTextOn]}>ඉදිරි දිනක</Text>
+              </Pressable>
+            </View>
+            {mode === 'now' ? (
+              <Text style={styles.helper}>{`දැන් ට්‍රක් සොයනවා. ℹ ${nowRule}`}</Text>
+            ) : (
+              <>
+                <View style={styles.grid}>
+                  {(daysOpen ? DAY_CHIPS : DAY_CHIPS.slice(0, DAY_COLLAPSED)).map((d) => (
+                    <Pressable key={d} style={[styles.chip, styles.gridDay, dayOffset === d && styles.chipOn]} onPress={() => setDayOffset(d)} accessibilityLabel={`Day ${dayLabel(d)}`} accessibilityState={{ selected: dayOffset === d }}>
+                      <Text style={[styles.chipText, dayOffset === d && styles.chipTextOn]} numberOfLines={1}>{dayLabel(d)}</Text>
+                    </Pressable>
+                  ))}
+                  {!daysOpen && (
+                    <Pressable style={[styles.chip, styles.gridDay, styles.chipMore]} onPress={() => setShowAllDays(true)} accessibilityLabel="Show more days">
+                      <Text style={styles.moreText}>තවත්</Text>
+                    </Pressable>
+                  )}
+                </View>
+                {dayOffset !== null && (
+                  <View style={styles.grid}>
+                    {HOUR_CHIPS.map((h) => (
+                      <Pressable key={h} style={[styles.chip, styles.gridHour, hour === h && styles.chipOn]} onPress={() => setHour(h)} accessibilityLabel={`Hour ${h}:00`} accessibilityState={{ selected: hour === h }}>
+                        <Text style={[styles.chipText, hour === h && styles.chipTextOn]}>{`${h}:00`}</Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                )}
+                <Text style={styles.helper}>{scheduleHelper}</Text>
+                {scheduleRule && <Text style={styles.helper}>{`ℹ ${scheduleRule}`}</Text>}
+              </>
+            )}
+          </View>
+        )}
+        </ScrollView>
+
         {editing ? (
-          <Pressable style={[styles.action, start && (!drop || tooClose) && styles.actionOff]} disabled={!!start && (!drop || tooClose)} onPress={start ? confirmForTiming : confirmPlace} accessibilityLabel="Confirm this place">
-            <Text style={styles.actionText}>{start ? (tooClose ? 'ස්ථාන දෙක වෙනස් කරන්න' : 'මෙතැන තහවුරු කරන්න') : !drop && active === 'pickup' ? 'ඊළඟ: ගෙනයන තැන' : 'මෙතැන තහවුරු කරන්න'}</Text>
+          <Pressable style={styles.action} onPress={confirmPlace} accessibilityLabel="Confirm this place">
+            <Text style={styles.actionText}>{!drop && active === 'pickup' ? 'ඊළඟ: ගෙනයන තැන' : 'මෙතැන තහවුරු කරන්න'}</Text>
           </Pressable>
         ) : (
-          <Pressable style={[styles.action, !ready && styles.actionOff]} disabled={!ready} onPress={() => drop && onNext({ pickup, drop, sites })} accessibilityLabel="Confirm both places">
-            <Text style={[styles.actionText, !ready && styles.actionTextOff]}>{tooClose ? 'ස්ථාන දෙක වෙනස් කරන්න' : 'ස්ථාන දෙක තහවුරු කරන්න'}</Text>
+          <Pressable style={[styles.action, !ready && styles.actionOff]} disabled={!ready} onPress={() => setAskConfirm(true)} accessibilityLabel="Confirm the trip">
+            <Text style={[styles.actionText, !ready && styles.actionTextOff]}>
+              {tooClose ? 'ස්ථාන දෙක වෙනස් කරන්න' : !timingReady ? 'දිනය සහ වේලාව තෝරන්න' : mode === 'now' ? 'ට්‍රක් සොයන්න' : 'ඉල්ලීම යවන්න'}
+            </Text>
           </Pressable>
         )}
       </View>
+
+      {/* The confirm card: the owner sees what goes out, and the cancellation rule, before the trucks are asked. */}
+      {askConfirm && drop && (
+        <ModalCard
+          icon="📨"
+          tone="primary"
+          title="ඉල්ලීම යවන්න ද?"
+          rows={[
+            { label: 'ගෙනයන තැන', value: placeTitle(drop) },
+            { label: 'වේලාව', value: mode === 'now' ? 'මේ මොහොතේ' : `${dayLabel(dayOffset ?? 0)} ${hour ?? HOUR_CHIPS[0]}:00` },
+            { label: 'ස්ථානයේ තත්ත්වය', value: sites.length ? sites.map((s) => TOW_SITE_TEXT[s]).join(', ') : 'සාමාන්‍ය' },
+          ]}
+          body={`\n${mode === 'now' ? nowRule : (scheduleRule ?? nowRule)}`}
+        >
+          <ActionButton label="නැහැ" variant="ghost" compact onPress={() => setAskConfirm(false)} />
+          <ActionButton label="ඉල්ලීම යවන්න" variant="primary" compact onPress={send} />
+        </ModalCard>
+      )}
     </SafeAreaView>
   );
 };
@@ -456,9 +551,26 @@ const styles = themedStyles(() =>
     siteBox: { gap: 6 },
     siteTitle: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
     siteRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-    siteChip: { minHeight: 36, paddingHorizontal: 12, borderRadius: 18, backgroundColor: Colors.subtleFill, alignItems: 'center', justifyContent: 'center' },
+    siteChip: { minHeight: 44, paddingHorizontal: 12, borderRadius: 18, backgroundColor: Colors.subtleFill, alignItems: 'center', justifyContent: 'center' },
     siteChipOn: { backgroundColor: '#1d367f' },
     siteText: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
     siteTextOn: { color: '#ffffff' },
+    sheetBody: { gap: 10 },
+    timeBox: { gap: 8, paddingTop: 4 },
+    segment: { flexDirection: 'row', padding: 4, borderRadius: 14, backgroundColor: Colors.subtleFill, gap: 4 },
+    segBtn: { flex: 1, height: 40, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
+    segBtnOn: { backgroundColor: '#1d367f' },
+    segText: { fontSize: 14, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
+    segTextOn: { color: '#ffffff', fontFamily: FONTS.bodyBold },
+    helper: { fontSize: 13, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 19 },
+    grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 8 },
+    gridDay: { width: '23.5%' },
+    gridHour: { width: '31%' },
+    chip: { minHeight: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.subtleFill, paddingHorizontal: 6 },
+    chipMore: { backgroundColor: 'transparent', borderWidth: 1, borderColor: outline() },
+    chipOn: { backgroundColor: '#1d367f' },
+    chipText: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
+    chipTextOn: { color: '#ffffff' },
+    moreText: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: '#1d367f' },
   })
 );

@@ -127,7 +127,7 @@ export const TowOperatorSheet: React.FC<{
               <Text style={styles.line}>{`ආරම්භක ගාස්තුව ${money(o.baseFee)}`}</Text>
               <Text style={styles.line}>{`කි.මී. ගාස්තුව ${money(o.perKm)}`}</Text>
               <Text style={styles.line}>{`ට්‍රක් ගෙන යාමේ ගාස්තුව ${money(o.recoveryFee)} (ගල්ගැසුණු / අනතුරු වාහනයට)`}</Text>
-              {quote && quote.siteFee > 0 && <Text style={styles.line}>{`ස්ථාන වැඩ ගාස්තුව ${money(quote.siteFee)} (මඩ / ගල්වලින් ඇදීම)`}</Text>}
+              {quote && quote.siteFee > 0 && <Text style={styles.line}>{`ඇදීමේ ගාස්තුව ${money(quote.siteFee)}`}</Text>}
               <Text style={styles.note}>රාත්‍රියේ අමතර ගාස්තුවක් අයවිය හැක. මිල ඔබේ ගමනට ලැබුණු ඉල්ලීම අනුව පෙන්වයි.</Text>
             </View>
           )}

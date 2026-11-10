@@ -3,7 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CloseCode, Colors, FONTS, Gradient, makeCloseCode, themedStyles } from '@ongarage/shared';
 import { money } from '../../utils/format';
-import type { TowFinalDraft } from './TowDropScreen';
+import type { TowFinalDraft } from './TowTrackingScreen';
 
 /** Screen 6 of the towing flow: the owner pays the final amount, then shows the closing code to the driver. The job closes when the driver scans it. */
 export type TowPaidDraft = TowFinalDraft & { closeCode: string; paid: boolean };
@@ -53,7 +53,7 @@ export const TowPayScreen: React.FC<{
       <View style={styles.sheet}>
         <View style={styles.handle} />
         <View style={styles.progressRow}>
-          {[0, 1, 2, 3, 4, 5].map((i) => (
+          {[0, 1, 2, 3, 4].map((i) => (
             <View key={i} style={[styles.progressBar, styles.progressBarOn]} />
           ))}
         </View>

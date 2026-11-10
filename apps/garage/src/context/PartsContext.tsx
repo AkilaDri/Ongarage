@@ -209,7 +209,7 @@ export const PartsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const garage = { id: profile.id, name: profile.name, phone: profile.phone, address: profile.address, coords: profile.coords, rating: rating.average };
       const r: PartsRequest = { ...input, garage, id: `pr-${now}`, createdAt: now, quoteUntil: now + windowMin * MIN, status: 'open', searching: true };
       setRequests((prev) => [r, ...prev]);
-      notify({ icon: '📨', title: 'කොටස් ඉල්ලීම යැව්වා', body: `km ${r.radiusKm} ඇතුළත කොටස් වෙළඳසැල් වෙත.`, tone: 'primary' });
+      notify({ icon: '📨', title: 'කොටස් ඉල්ලීම යැව්වා', body: `${r.radiusKm} km ඇතුළත කොටස් වෙළඳසැල් වෙත.`, tone: 'primary' });
       runSearch(r, allowedTypes(r));
       return r.id;
     },

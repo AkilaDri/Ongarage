@@ -55,7 +55,7 @@ export const TowHoldScreen: React.FC<{
       <View style={styles.sheet}>
         <View style={styles.handle} />
         <View style={styles.progressRow}>
-          {[0, 1, 2, 3, 4, 5].map((i) => (
+          {[0, 1, 2, 3, 4].map((i) => (
             <View key={i} style={[styles.progressBar, styles.progressBarOn]} />
           ))}
         </View>

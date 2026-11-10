@@ -250,7 +250,7 @@ export const TowBidsScreen: React.FC<{
               <Text style={styles.pillTitle} numberOfLines={1}>Ongarage Towing</Text>
               <View style={styles.stepRow}>
                 <View style={styles.stepChip}>
-                  <Text style={styles.stepNo}>4/6</Text>
+                  <Text style={styles.stepNo}>3/5</Text>
                 </View>
                 <Text style={styles.pillSub} numberOfLines={1}>{slotLabel ? (quotes.length > 0 ? '· තහවුරු කිරීම්' : '· ට්‍රක් තහවුරු කරමින්') : quotes.length > 0 ? '· මිල ගණන්' : '· ට්‍රක් සොයමින්'}</Text>
               </View>
@@ -269,8 +269,8 @@ export const TowBidsScreen: React.FC<{
       <View style={styles.sheet}>
         <View style={styles.handle} />
         <View style={styles.progressRow}>
-          {[0, 1, 2, 3, 4, 5].map((i) => (
-            <View key={i} style={[styles.progressBar, i <= 3 && styles.progressBarOn]} />
+          {[0, 1, 2, 3, 4].map((i) => (
+            <View key={i} style={[styles.progressBar, i <= 2 && styles.progressBarOn]} />
           ))}
         </View>
 
@@ -294,18 +294,16 @@ export const TowBidsScreen: React.FC<{
                     : searching
                       ? `${slotLabel} සඳහා ට්‍රක් තහවුරු කරමින්...`
                       : 'ඒ වේලාවට ට්‍රක් නැහැ'
-                  : quotes.length > 0
-                    ? `ට්‍රක් ${quotes.length} ක් මිල දුන්නා`
-                    : searching
-                      ? 'ළඟම ට්‍රක් සොයමින්...'
-                      : 'ට්‍රක් මිල දුන්නේ නැහැ'}
+                  : quotes.length > 0 || (!stopped && !askWiden && next !== null)
+                    ? 'ළඟම ට්‍රක් සොයමින්...'
+                    : 'ට්‍රක් මිල දුන්නේ නැහැ'}
               </Text>
               <Text style={styles.cardSub}>
                 {slotLabel
                   ? !searching && quotes.length === 0
                     ? 'වෙනත් වේලාවක් තෝරන්න.'
                     : `${slotLabel} · km ${radius}`
-                  : `km ${radius}${farther ? ' · දුරින් එන ට්‍රක් ද ඇත' : ''}${route.sites?.length ? ` · ${route.sites.map((s) => TOW_SITE_TEXT[s]).join(', ')}` : ''}`}
+                  : `${radius} km${farther ? ' · දුරින් එන ට්‍රක් ද ඇත' : ''}${route.sites?.length ? ` · ${route.sites.map((s) => TOW_SITE_TEXT[s]).join(', ')}` : ''}`}
               </Text>
             </View>
           </View>
@@ -313,7 +311,7 @@ export const TowBidsScreen: React.FC<{
           {/* The three numbers, as on the SOS search: the search area, the cheapest price, and the trucks that have answered. */}
           <View style={styles.statRow}>
             <View style={styles.statTile}>
-              <Text style={styles.statValue}>{`km ${radius}`}</Text>
+              <Text style={styles.statValue}>{`${radius} km`}</Text>
               <Text style={styles.statLabel}>සෙවුම් කලාපය</Text>
             </View>
             <View style={styles.statTile}>
@@ -354,7 +352,7 @@ export const TowBidsScreen: React.FC<{
                       <Text style={styles.nameChevron}>›</Text>
                     </View>
                     {/* The same straight-line distance the search circle uses, so the card and the map agree. */}
-                    <Text style={styles.cardSub}>{`★ ${b.op.rating.toFixed(1)} · ${b.etaMin} min · ${distanceKm(route.pickup.coords, b.op.coords).toFixed(1)} km${b.quote.siteFee > 0 ? ` · ස්ථාන වැඩ ${money(b.quote.siteFee)}` : ''}`}</Text>
+                    <Text style={styles.cardSub}>{`★ ${b.op.rating.toFixed(1)} · ${b.etaMin} min · ${distanceKm(route.pickup.coords, b.op.coords).toFixed(1)} km${b.quote.siteFee > 0 ? ` · ඇදීමේ ගාස්තුව ${money(b.quote.siteFee)}` : ''}`}</Text>
                     </View>
                   </Pressable>
                   <Text style={styles.bidTotal}>{money(b.quote.total)}</Text>
@@ -453,7 +451,7 @@ export const TowBidsScreen: React.FC<{
           icon="📡"
           tone="primary"
           title="සෙවුම් කලාපය පුළුල් කරමින්"
-          rows={[{ label: 'Search radius', value: `km ${radius} → km ${next}` }]}
+          rows={[{ label: 'Search radius', value: `${radius} km → ${next} km` }]}
           body={'\nමෙම කලාපයේ ට්‍රක් නැත. ඒ නිසා සෙවුම් කලාපය වැඩි කරන්න ද?'}
         >
           <ActionButton label="නැහැ, නැවත සොයන්න" variant="ghost" compact onPress={keepRadius} />

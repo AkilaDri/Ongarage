@@ -84,7 +84,7 @@ export const TowVehicleScreen: React.FC<{
             <View style={styles.pillDisc}><Text style={styles.pillEmoji}>🛻</Text></View>
             <View style={styles.flex1}>
               <Text style={styles.pillTitle} numberOfLines={1}>Ongarage Towing</Text>
-              <View style={styles.stepRow}><View style={styles.stepChip}><Text style={styles.stepNo}>1/6</Text></View><Text style={styles.pillSub} numberOfLines={1}>· විස්තර තහවුරු කිරීම</Text></View>
+              <View style={styles.stepRow}><View style={styles.stepChip}><Text style={styles.stepNo}>1/5</Text></View><Text style={styles.pillSub} numberOfLines={1}>· විස්තර තහවුරු කිරීම</Text></View>
             </View>
           </View>
         </View>
@@ -93,7 +93,7 @@ export const TowVehicleScreen: React.FC<{
       <View style={styles.sheet}>
         <View style={styles.handle} />
         <View style={styles.progressRow}>
-          {[0, 1, 2, 3, 4, 5].map((i) => (
+          {[0, 1, 2, 3, 4].map((i) => (
             <View key={i} style={[styles.progressBar, i === 0 && styles.progressBarOn]} />
           ))}
         </View>
