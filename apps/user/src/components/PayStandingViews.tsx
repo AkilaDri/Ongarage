@@ -55,7 +55,7 @@ export const PayReliabilityCard: React.FC = () => {
       {rated.map((w) => (
         <CustomerRatingView key={w.id} workshop={w} />
       ))}
-      <Text style={styles.fine}>දින {OVERDUE_LIMIT_DAYS}ක් හෝ රු. {OWED_LIMIT.toLocaleString('en-US')} ක් ප්‍රමාද වුවහොත් නව වැඩ නවතී.</Text>
+      <Text style={styles.fine}>දින {OVERDUE_LIMIT_DAYS}ක් හෝ LKR {OWED_LIMIT.toLocaleString('en-US')} ක් ප්‍රමාද වුවහොත් නව වැඩ නවතී.</Text>
     </View>
   );
 };
@@ -95,7 +95,7 @@ export const PayFirstSheet: React.FC<{ visible: boolean; onClose: () => void; on
       }
     >
       <Text style={styles.text}>
-        දින {s.overdueDays}ක් ප්‍රමාද වූ රු. {s.owed.toLocaleString('en-US')} ක හිඟ මුදල් ගෙවීමක් ඇත. එය ගරාජයට ගෙවා ගරාජය මගින්ද සහතික කළ පසු අලුත් රැකියා පළ කිරීම, ලංසු පිළිගැනීම සහ සෘජු වෙන් කිරීම නැවත විවෘත වේ.
+        දින {s.overdueDays}ක් ප්‍රමාද වූ LKR {s.owed.toLocaleString('en-US')} ක හිඟ මුදල් ගෙවීමක් ඇත. එය ගරාජයට ගෙවා ගරාජය මගින්ද සහතික කළ පසු අලුත් රැකියා පළ කිරීම, ලංසු පිළිගැනීම සහ සෘජු වෙන් කිරීම නැවත විවෘත වේ.
       </Text>
       <Text style={styles.fine}>SOS, OnChat, OnMart සහ ගෙවීම් සැමවිටම විවෘතයි.</Text>
     </Sheet>

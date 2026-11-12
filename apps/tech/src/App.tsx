@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Easing, Modal, Platform, StyleSheet, View } from 'react-native';
+import { Animated, Easing, Modal, Platform, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
@@ -10,7 +10,7 @@ import {
   NotoSansSinhala_600SemiBold,
   NotoSansSinhala_700Bold,
 } from '@expo-google-fonts/noto-sans-sinhala';
-import { BottomNav, type NavAlert, TitleBand, Colors, ThemeProvider, themedStyles, useTheme, headerBand, getThemeMode, setAppShape } from '@ongarage/shared';
+import { BottomNav, pageHeaderBlue, type NavAlert, TitleBand, Colors, ThemeProvider, themedStyles, useTheme, headerBand, getThemeMode, setAppShape } from '@ongarage/shared';
 
 // This app has PickMe's shapes too (big rounded cards, pill buttons and chips, light edges, soft shadows), like the garage app. Set before the first screen is drawn.
 setAppShape('pickme');
@@ -22,6 +22,7 @@ import { TechHeader } from './components/TechHeader';
 import { Toast } from './components/Toast';
 import { ChatProvider } from './context/ChatContext';
 import { ChatHeaderButton } from './components/ChatHeaderButton';
+import { AppPageHeader } from './components/AppPageHeader';
 import { JobsScreen } from './screens/JobsScreen';
 import { GaragesScreen } from './screens/GaragesScreen';
 import { EarningsScreen } from './screens/EarningsScreen';
@@ -90,15 +91,17 @@ function AppShell() {
   }, [isDark, fade]);
 
   if (!fontsLoaded) return null;
+  // Garages and Earnings start with the shared page header (its ONCHAT pill replaces the floating chat icon) and a plain sheet.
+  const titled = tab === 'garages' || tab === 'earnings';
 
   return (
     <SafeAreaProvider>
       <StatusBar style={isDark ? 'light' : 'dark'} />
-      <SafeAreaView style={[styles.container, tab === 'me' && styles.containerFull]} edges={['top']}>
+      <SafeAreaView style={[styles.container, (tab === 'me' || titled) && styles.containerFull, titled && { backgroundColor: pageHeaderBlue().from }]} edges={['top']}>
         <Animated.View style={{ flex: 1, opacity: pageAnim, transform: [{ translateY: pageAnim.interpolate({ inputRange: [0, 1], outputRange: [14, 0] }) }] }}>
-        {tab === 'jobs' ? <TechHeader /> : TAB_TITLES[tab] ? <TitleBand title={TAB_TITLES[tab]!} /> : null}
+        {tab === 'jobs' ? <TechHeader /> : tab === 'garages' ? <AppPageHeader title="ගරාජ" subtitle={TAB_TITLES.garages} icon={<Text style={styles.headerEmoji}>🛠️</Text>} /> : tab === 'earnings' ? <AppPageHeader title="ආදායම" subtitle={TAB_TITLES.earnings} icon={<Text style={styles.headerEmoji}>💰</Text>} /> : null}
         {/* The tab's screen overlaps the header band with rounded top corners, like the owner app. */}
-        <View style={[styles.sheet, tab === 'me' && styles.sheetFull]}>
+        <View style={[styles.sheet, (tab === 'me' || titled) && styles.sheetFull]}>
           {tab === 'jobs' && <JobsScreen />}
           {tab === 'garages' && <GaragesScreen />}
           {tab === 'earnings' && <EarningsScreen />}
@@ -108,10 +111,12 @@ function AppShell() {
         <View style={styles.nav}>
           <BottomNav items={tabs} activeTab={tab} onTabChange={setTab} />
         </View>
-        {/* OnChat: the icon stays at the top right on every tab */}
-        <View style={styles.floatChat} pointerEvents="box-none">
-          <ChatHeaderButton />
-        </View>
+        {/* OnChat: the icon floats at the bottom right, above the tab bar */}
+        {!titled && (
+          <View style={styles.floatChat} pointerEvents="box-none">
+            <ChatHeaderButton />
+          </View>
+        )}
         {/* Waiting for the garage to approve a repair charge: stays on every tab with a call button. */}
         <ApprovalWaitingBar />
         <Toast />
@@ -139,6 +144,8 @@ const styles = themedStyles(() =>
     flex1: { flex: 1 },
     sheet: { flex: 1, marginTop: -18, borderTopLeftRadius: 24, borderTopRightRadius: 24, overflow: 'hidden', backgroundColor: Colors.bgBody },
     nav: { position: 'absolute', left: 0, right: 0, bottom: 0 },
-    floatChat: { position: 'absolute', top: 10, right: 14, zIndex: 50 },
+    // The OnChat pill floats at the bottom right, just above the tab bar (72px high).
+    floatChat: { position: 'absolute', top: 'auto', bottom: 84, right: 14, zIndex: 50 },
+    headerEmoji: { fontSize: 22 },
   })
 );

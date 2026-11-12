@@ -35,7 +35,7 @@ export const makePayment = (total: number, received: number, opts: { promisedAt?
 /** Money still owed on a job (0 when paid, or no record yet). */
 export const paymentOwed = (p?: JobPayment) => (p ? p.balance : 0);
 
-const rs = (n: number) => `රු. ${Math.round(n).toLocaleString('en-US')}`;
+const rs = (n: number) => `LKR ${Math.round(n).toLocaleString('en-US')}`;
 /** A day as 2026-10-15. */
 export const dayText = (t: number) => {
   const d = new Date(t);

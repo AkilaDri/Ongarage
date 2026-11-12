@@ -236,11 +236,11 @@ export const BOOKINGS: Booking[] = [
     progress: newWorkshopProgress(), warrantyMonths: 3,
   },
   {
-    id: 'b7', source: 'bid', title: 'Suspension Check', icon: '🔩', customer: c('රුවන් අබේසිංහ', '0779876515'),
+    id: 'b7', source: 'bid', title: 'Suspension Check', icon: '🔩', customer: c('LKR න් අබේසිංහ', '0779876515'),
     vehicle: v('Axio', 'CAA-3398', 'Sedan'), address: 'ගාල්ල කොටුව', coords: { latitude: 6.0287, longitude: 80.2165 },
     doorstep: false, scheduledAt: Date.now() + DAY, price: 12500, status: 'cancelled',
     warrantyMonths: 3,
-    cancelled: { at: Date.now() - 3 * HOUR, by: 'owner', reason: 'වෙනත් ගරාජයක් තෝරා ගත්තා', note: 'ළඟම ගරාජයකින් අද ම හදා ගත්තා.', rating: 4, compensation: 1500, workDone: 'වාහනය භාර ගෙන පරීක්ෂා කර ඇත', feeNote: 'වන්දි රු. 1,500 ඔබට ලැබේ.' },
+    cancelled: { at: Date.now() - 3 * HOUR, by: 'owner', reason: 'වෙනත් ගරාජයක් තෝරා ගත්තා', note: 'ළඟම ගරාජයකින් අද ම හදා ගත්තා.', rating: 4, compensation: 1500, workDone: 'වාහනය භාර ගෙන පරීක්ෂා කර ඇත', feeNote: 'වන්දි LKR 1,500 ඔබට ලැබේ.' },
   },
   {
     id: 'b3', source: 'sos', title: 'ටයර් පන්චර්', icon: '🛞', customer: c('සචිනි පෙරේරා', '0779876509'),
@@ -300,7 +300,7 @@ const EARLIER_JOBS: Booking[] = [
   earlier('e4', 'direct', 'Full Service', '🛠️', c('නුවන් ජයවර්ධන', '0779876513'), v('Premio', 'CAD-4410', 'Sedan'), 120, 14500, 5, 'ගියර් ඔයිල් සහ බ්‍රේක් ෆ්ලුයිඩ් ද මාරු කළා.'),
   earlier('e5', 'sos', 'ටයර් පන්චර්', '🛞', c('නුවන් ජයවර්ධන', '0779876513'), v('Premio', 'CAD-4410', 'Sedan'), 260, 3500, 4),
   // Ruwan (suspension check booked): one job more than a year ago -> lapsed
-  earlier('e6', 'bid', 'Wheel Alignment', '🛞', c('රුවන් අබේසිංහ', '0779876515'), v('Axio', 'CAA-3398', 'Sedan'), 430, 4500, 5),
+  earlier('e6', 'bid', 'Wheel Alignment', '🛞', c('LKR න් අබේසිංහ', '0779876515'), v('Axio', 'CAA-3398', 'Sedan'), 430, 4500, 5),
   // Dulan and Malsha (direct requests waiting): one and three before
   earlier('e7', 'direct', 'A/C Gas Refill', '❄', c('දුලාන් අබේසේකර', '0779876511'), v('Fit GP5', 'CAK-6610', 'Hatchback'), 70, 6500, 5),
   earlier('e8', 'bid', 'Oil Change', '🛢️', c('මල්ෂා කරුණාරත්න', '0779876512'), v('Wagon R', 'CAP-2045', 'Hatchback'), 25, 4200, 5),

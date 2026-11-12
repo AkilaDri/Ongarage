@@ -86,7 +86,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onSOSPress, onPostJob, o
         <Animated.View style={[styles.contentInner, collapsePx > 0 && { transform: [{ translateY: scrollAnim.interpolate({ inputRange: [0, collapsePx], outputRange: [0, collapsePx], extrapolate: 'clamp' }) }] }]}>
         {/* Categories: cut-out icons, two rows, slide sideways. They scroll away with the page. */}
         <View style={styles.categoriesBlock}>
-        <CategoryStrip onSelect={onServicePress} scrollHint />
+          <CategoryStrip onSelect={onServicePress} scrollHint />
         </View>
 
         {/* Ads: they scroll with the page and fold away with the sheet, like everything else; nothing but the banners stays pinned */}

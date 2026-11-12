@@ -415,6 +415,8 @@ export type ExtraWorkRequest = {
   decision?: OwnerDecision;
   /** The owner couldn't be reached: the job waits (free for the garage) until they answer or the garage picks another way. */
   waitingSince?: number;
+  /** A report with no lines to approve (what the garage found or did after starting the work): nothing waits for an answer. */
+  noteOnly?: boolean;
 };
 
 /** What kind of routine service was done. */
@@ -435,6 +437,12 @@ export type ServiceDetails = {
   notes?: string;
 };
 
+/**
+ * Work or a part the garage adds at handover, done or bought without an approval in the app (agreed on the phone or in person, or a part bought
+ * outside): how the owner agreed, and for a part the receipt. It goes into the final bill and the owner sees it before closing the job.
+ */
+export type LateLine = DiagnosisLine & { via: 'phone' | 'inPerson' | 'other'; receipt?: string[] };
+
 export type HandoverReport = {
   /** Routine service only: what was done, the mileage and the next service (the garage fills this in). */
   service?: ServiceDetails;
@@ -443,6 +451,8 @@ export type HandoverReport = {
   afterPhotos?: string[];
   /** Replaced parts kept for the owner to see (a simple anti-fraud habit). */
   oldPartsKept: boolean;
+  /** Extra work or parts added at handover (not approved in the app): already part of `bill`, shown to the owner for the close code. */
+  lateLines?: LateLine[];
   bill: { labour: number; parts: number; total: number };
   readyAt: number;
 };
@@ -576,8 +586,14 @@ export type WorkshopProgress = {
   receivedAt?: number;
   /** The owner confirmed (in their app) that they really handed the vehicle over, after the garage said it had received it. */
   handoverConfirmedAt?: number;
+  /** 'bill': the owner never answered, but opening the bill the garage sent counts as the confirmation (the garage's check-in photos are its record). */
+  handoverConfirmedVia?: 'owner' | 'bill';
   diagnosis?: DiagnosisReport;
   decision?: OwnerDecision;
+  /** The garage went on with the agreed work without writing an inspection report (a quick job): nothing was proposed, so only the agreed price (and anything added later) is billed. */
+  diagnosisSkipped?: boolean;
+  /** When the garage pressed "start the work": the garage's own work timer counts from here (the owner does not see it). */
+  workStartedAt?: number;
   extras?: ExtraWorkRequest[];
   /** Waiting for ordered parts (the garage's parts request). */
   waitingForParts?: boolean;
@@ -586,6 +602,10 @@ export type WorkshopProgress = {
   /** Owner's QR / 6-digit code that closes the job. */
   closeCode: string;
   closedAt?: number;
+  /** When the garage sent the final bill to the customer (a PDF): the job can only be closed with the owner's code after that. */
+  billSharedAt?: number;
+  /** When the customer first opened that bill. Only then can the closing QR / code be made: the job ends together with the bill. */
+  billOpenedAt?: number;
   /** Warranty from the bid, counted from closing. */
   warrantyUntil?: number;
   warrantyClaim?: WarrantyClaim;

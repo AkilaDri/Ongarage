@@ -86,7 +86,7 @@ export const StockEditSheet: React.FC<{ target: StockTarget | null; onClose: () 
       )}
       <Text style={styles.label}>ඒකක මිල</Text>
       <View style={styles.priceBox}>
-        <Text style={styles.currency}>රු.</Text>
+        <Text style={styles.currency}>LKR </Text>
         <TextInput style={styles.priceInput} keyboardType="number-pad" value={price} onChangeText={(t) => setPrice(t.replace(/[^0-9]/g, ''))} maxLength={7} accessibilityLabel="Unit price" />
       </View>
       {name.trim().length > 1 && <Text style={styles.sub}>සාමාන්‍ය වෙළඳපොළ මිල ({type}): {money(listPrice(name.trim(), type))}</Text>}

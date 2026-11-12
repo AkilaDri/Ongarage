@@ -110,7 +110,7 @@ export const QuoteSheet: React.FC<{ request: IncomingRequest | null; onClose: ()
               </Text>
             </View>
             <View style={styles.priceBox}>
-              <Text style={styles.currency}>රු.</Text>
+              <Text style={styles.currency}>LKR </Text>
               <TextInput
                 style={styles.priceInput}
                 keyboardType="number-pad"
@@ -143,7 +143,7 @@ export const QuoteSheet: React.FC<{ request: IncomingRequest | null; onClose: ()
         <View style={styles.priceRow}>
           <Text style={[styles.sub, styles.flex1]}>බෙදාහැරීමේ ගාස්තුව (0 = නොමිලේ)</Text>
           <View style={styles.priceBox}>
-            <Text style={styles.currency}>රු.</Text>
+            <Text style={styles.currency}>LKR </Text>
             <TextInput style={styles.priceInput} keyboardType="number-pad" value={ownFee} onChangeText={(t) => setOwnFee(t.replace(/[^0-9]/g, ''))} maxLength={5} />
           </View>
         </View>

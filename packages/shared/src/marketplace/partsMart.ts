@@ -229,7 +229,7 @@ export const planReply = (shopId: string, partName: string, hasStock: boolean): 
 export const replyMessage = (o: Pick<ShopOffer, 'reply' | 'available' | 'unitPrice' | 'total'>, neighbourNames: string[] = []): string => {
   switch (offerReply(o)) {
     case 'have':
-      return o.unitPrice > 0 ? `✅ තියෙනවා — ඒකකයක් රු. ${o.unitPrice.toLocaleString('en-US')} (මුළු රු. ${o.total.toLocaleString('en-US')}). වෙන් කර ගන්න, නැත්නම් මෙතැනින් අසන්න.` : '✅ තියෙනවා — මිල කවුන්ටරයේදී කියමි (අවශ්‍ය නම් මෙතැනින් අසන්න). වෙන් කර ගන්න.';
+      return o.unitPrice > 0 ? `✅ තියෙනවා — ඒකකයක් LKR ${o.unitPrice.toLocaleString('en-US')} (මුළු LKR ${o.total.toLocaleString('en-US')}). වෙන් කර ගන්න, නැත්නම් මෙතැනින් අසන්න.` : '✅ තියෙනවා — මිල කවුන්ටරයේදී කියමි (අවශ්‍ය නම් මෙතැනින් අසන්න). වෙන් කර ගන්න.';
     case 'check':
       return '⏳ පරීක්ෂා කර ටිකකින් දන්වමි.';
     default:

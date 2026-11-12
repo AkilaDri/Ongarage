@@ -6,7 +6,7 @@ import { jobIdOf, useChat } from '../context/ChatContext';
 import { money } from '../utils/format';
 import { Toast } from './Toast';
 
-type SheetId = 'checkIn' | 'diagnosis' | 'extra' | 'extraPhone' | 'handover' | null;
+type SheetId = 'checkIn' | 'diagnosis' | 'skip' | 'extra' | 'extraPhone' | 'handover' | null;
 
 /**
  * What the technician can do about the job from the customer's chat: for a workshop job, receive the vehicle (with photos), write
@@ -14,7 +14,7 @@ type SheetId = 'checkIn' | 'diagnosis' | 'extra' | 'extraPhone' | 'handover' | n
  * or open the job. Each step also goes into the chat as a message.
  */
 export const ChatJobActions: React.FC<{ jobId: string }> = ({ jobId }) => {
-  const { jobs, notify, receiveVehicle, sendDiagnosis, editDiagnosis, editExtraWork, requestExtraWork, approveExtraByPhone, holdExtraForOwner, deferExtraWork, markReadyForHandover, markArrived, openSOS } = useTech();
+  const { jobs, notify, receiveVehicle, sendDiagnosis, editDiagnosis, editExtraWork, requestExtraWork, approveExtraByPhone, holdExtraForOwner, deferExtraWork, skipDiagnosis, markReadyForHandover, markArrived, openSOS } = useTech();
   const { logCall, editReq, clearEditReq, rewriteReport } = useChat();
   const [sheet, setSheet] = useState<SheetId>(null);
   const j = jobs.find((x) => x.id === jobId);
@@ -66,7 +66,7 @@ export const ChatJobActions: React.FC<{ jobId: string }> = ({ jobId }) => {
   if (onHold) {
     // (no steps)
   } else if (p.stage === 'booked') actions.push({ id: 'checkIn', icon: '🚗', label: w.doorstep ? 'පැමිණියා' : 'ලැබුණා', primary: true });
-  if (!onHold && (p.stage === 'received' || p.stage === 'diagnosing')) actions.push({ id: 'diagnosis', icon: '🔍', label: 'වාර්තාව', primary: true });
+  if (!onHold && (p.stage === 'received' || p.stage === 'diagnosing')) actions.push({ id: 'skip', icon: '🔧', label: 'වැඩ ආරම්භ කරන්න', primary: true });
   if (!onHold && p.stage === 'repairing' && !extraWaiting) actions.push({ id: 'extra', icon: '➕', label: 'අමතර' });
   if (!onHold && p.stage === 'repairing') actions.push({ id: 'handover', icon: '✅', label: 'අවසන්', primary: !extraWaiting });
   if (!onHold && p.stage === 'repairing' && extraWaiting) actions.push({ id: 'extraPhone', icon: '📞', label: 'ඇමතුම' });
@@ -80,7 +80,7 @@ export const ChatJobActions: React.FC<{ jobId: string }> = ({ jobId }) => {
       {actions.length > 0 && (
         <View style={styles.row}>
           {actions.map((a) => (
-            <Pressable key={a.id} style={[styles.btn, a.primary && styles.primary]} onPress={() => setSheet(a.id)} accessibilityLabel={a.label}>
+            <Pressable key={a.id} style={[styles.btn, a.primary && styles.primary]} onPress={() => (a.id === 'skip' ? skipDiagnosis(jobId) : setSheet(a.id))} accessibilityLabel={a.label}>
               <Text style={styles.icon}>{a.icon}</Text>
               <Text style={[styles.label, a.primary && styles.labelPrimary]}>{a.label}</Text>
             </Pressable>

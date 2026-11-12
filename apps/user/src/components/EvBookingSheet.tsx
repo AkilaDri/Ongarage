@@ -120,7 +120,7 @@ export const EvBookingSheet: React.FC<{ place: Place | null; vehicleId?: string;
             <View style={styles.estimate}>
               <Text style={styles.estimateTitle}>ඇස්තමේන්තුව</Text>
               <Text style={styles.estimateText}>
-                ≈ {est.kwh} kWh · රු. {est.cost} (රු. {connector!.price}/kWh). ගෙවන්නේ charger එකේදී; මෙය ඇස්තමේන්තුවක් පමණයි.
+                ≈ {est.kwh} kWh · LKR {est.cost} (LKR {connector!.price}/kWh). ගෙවන්නේ charger එකේදී; මෙය ඇස්තමේන්තුවක් පමණයි.
               </Text>
               <Text style={styles.estimateNote}>
                 වෙන් කළ වේලාවෙන් මිනිත්තු {NO_SHOW_GRACE_MIN}ක් ඇතුළත ළඟා වී QR එක scan කරන්න. නැත්නම් slot එක අහිමි වේ.
@@ -172,7 +172,7 @@ export const EvBookingCard: React.FC<{ booking: EvBooking; placeName: string }> 
           <View style={styles.stats}>
             <Stat label="Battery" value={`${Math.round(s.pct)}%`} />
             <Stat label="kWh" value={String(s.kwh)} />
-            <Stat label="ඇස්තමේන්තු ගාස්තුව" value={`රු. ${s.cost}`} />
+            <Stat label="ඇස්තමේන්තු ගාස්තුව" value={`LKR ${s.cost}`} />
             <Stat label="වේලාව" value={`මිනි. ${s.minutes}`} />
           </View>
           <ActionButton label="Charging නවත්වන්න" icon="⏹" variant="ghost" compact onPress={() => ev.stopSession(b.id)} />
@@ -183,7 +183,7 @@ export const EvBookingCard: React.FC<{ booking: EvBooking; placeName: string }> 
         <View style={styles.stats}>
           <Stat label="Battery" value={`${Math.round(b.session?.startPct ?? 0)} → ${Math.round(s.pct)}%`} />
           <Stat label="kWh" value={String(s.kwh)} />
-          <Stat label="ඇස්තමේන්තු ගාස්තුව" value={`රු. ${s.cost}`} />
+          <Stat label="ඇස්තමේන්තු ගාස්තුව" value={`LKR ${s.cost}`} />
         </View>
       )}
     </View>

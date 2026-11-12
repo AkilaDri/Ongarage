@@ -185,7 +185,7 @@ export const OfferSheet: React.FC<{ request: CustomerRequest | null; onClose: ()
                     <Chip key={t} label={t} on={d.type === t} onPress={() => pickType(i, t)} />
                   ))}
                 </View>
-                <Text style={styles.label}>ඒකකයක මිල (රු.) — විකල්ප · වෙළඳපොළ {money(listPrice(b.name, d.type))}</Text>
+                <Text style={styles.label}>ඒකකයක මිල (LKR ) — විකල්ප · වෙළඳපොළ {money(listPrice(b.name, d.type))}</Text>
                 <TextInput style={styles.input} value={d.price} onChangeText={(t) => set(i, { price: t.replace(/[^0-9]/g, '') })} keyboardType="number-pad" placeholder="මිල නොදී “තිබේ” යැයි පමණක් පිළිතුරු දිය හැක" placeholderTextColor={Colors.textMuted} accessibilityLabel={`Price of ${b.name}`} />
                 {!!liveDeal(b.name, d.type) && <Text style={styles.sub}>🏷️ ඔබගේ දීමනාව (−{liveDeal(b.name, d.type)!.discountPercent}%) ක්‍රියාත්මකයි — මිල ස්වයංක්‍රීයව අඩු කර ඇත.</Text>}
                 <Text style={styles.label}>වගකීම (මාස)</Text>
@@ -220,7 +220,7 @@ export const OfferSheet: React.FC<{ request: CustomerRequest | null; onClose: ()
         <Pressable style={styles.checkRow} onPress={() => setDeliver(!deliver)} accessibilityRole="checkbox" accessibilityState={{ checked: deliver }}>
           <View style={[styles.check, deliver && styles.checkOn]}>{deliver && <Text style={styles.checkMark}>✓</Text>}</View>
           <Text style={[styles.sub, styles.flex1]}>
-            {method === 'courier' ? `🛵 ${COURIER} මගින් බෙදාහැරීම` : '🚚 අපගේ රියදුරෙකු මගින් බෙදාහැරීම'} · රු. {fee.toLocaleString()}
+            {method === 'courier' ? `🛵 ${COURIER} මගින් බෙදාහැරීම` : '🚚 අපගේ රියදුරෙකු මගින් බෙදාහැරීම'} · LKR {fee.toLocaleString()}
           </Text>
         </Pressable>
       )}

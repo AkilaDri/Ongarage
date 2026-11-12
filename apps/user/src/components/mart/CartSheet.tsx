@@ -68,7 +68,7 @@ export const CartPanel: React.FC<{ items: MartEnquiry[] }> = ({ items }) => {
   return (
     <>
       <View style={styles.panel}>
-        {mine.length > 0 && <Text style={styles.sub}>කොටස් {mine.length} ක් · රු. {total.toLocaleString()}</Text>}
+        {mine.length > 0 && <Text style={styles.sub}>කොටස් {mine.length} ක් · LKR {total.toLocaleString()}</Text>}
         {mine.length === 0 && <EmptyState icon="🛒" title="Cart එක හිස්" text="“වෙළඳසැල් අනුව සංසන්දනය” tab එකෙන් shop එකක quotation එක Add to cart කරන්න." />}
         {cheapGroups.length > 0 && (
           <View style={styles.mixWrap} accessibilityLabel="Cheapest for every part">

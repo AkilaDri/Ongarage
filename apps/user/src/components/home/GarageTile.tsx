@@ -86,7 +86,7 @@ export const GarageTile: React.FC<{
         {content && (
           <View style={styles.details}>
             <InfoChip text={today?.open ? `🕒 ${today.open}` : '🕒 අද වසා ඇත'} />
-            {estimate !== undefined && <InfoChip text={`💰 ආසන්න මිල රු. ${estimate.toLocaleString()} සිට`} />}
+            {estimate !== undefined && <InfoChip text={`💰 ආසන්න මිල LKR ${estimate.toLocaleString()} සිට`} />}
             {/* The makes the garage works on as their logos (a round badge each), not as words. */}
             {content.brands.length > 0 && (
               <View style={styles.logos} accessibilityLabel={`Works on ${content.brands.slice(0, 4).join(', ')}`}>

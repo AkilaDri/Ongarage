@@ -24,8 +24,11 @@ import {
   getThemeMode,
 } from '@ongarage/shared';
 import { useGarage } from '../context/GarageContext';
+import { useNotice } from '../context/NoticeContext';
 import { useParts } from '../context/PartsContext';
 import { Toast } from './Toast';
+import { WorkTimer } from './WorkTimer';
+import { sendJobBill } from '../utils/jobBill';
 import { FitRequestNote } from './FitRequestNote';
 import { PaymentNote } from './PaymentNote';
 import { CustomerRatingNote } from './CustomerRatingNote';
@@ -55,10 +58,13 @@ export const ServiceModeNote: React.FC<{ booking: Booking }> = ({ booking: b }) 
   // The garage has said it received the vehicle: now it waits for the customer to confirm, in their own app, that they handed it over (the report can be written meanwhile).
   if (b.progress && b.progress.stage !== 'booked') {
     const confirmed = !!b.progress.handoverConfirmedAt;
+    // When the work is done this line carries the bill's step (the bill goes to the customer first, then the owner's code closes the job).
+    const billStep = b.progress.stage === 'readyForHandover' && !b.progress.cancelRequest;
+    const billText = !b.progress.billSharedAt ? '📄 පළමුව බිල්පත පාරිභෝගිකයාට යවන්න. ඔවුන් එය විවෘත කළාට පසු QR කේතයෙන් රැකියාව අවසන් කරන්න.' : !b.progress.billOpenedAt ? '⏳ පාරිභෝගිකයා බිල්පත විවෘත කරන තුරු රැඳී සිටින්න — එවිට කේතය සාදයි.' : '✓ පාරිභෝගිකයා බිල්පත විවෘත කළා — QR කේතයෙන් රැකියාව අවසන් කරන්න.';
     return (
-      <View style={[styles.note, styles.noteWalkin, { flexDirection: 'row', alignItems: 'center', gap: 10 }]}>
-        <Text style={[styles.noteTitle, { flex: 1 }]}>{confirmed ? '✓ පාරිභෝගිකයා වාහනය ලබා දුන් බව සනාථ කළා' : 'පාරිභෝගිකයා වාහනය ලබා දුන් බව සනාථ කරන තෙක් රැඳී සිටී'}</Text>
-        {!confirmed && <DrivingToGarage />}
+      <View style={[styles.note, styles.noteWalkin, { flexDirection: 'row', alignItems: 'center', gap: 10 }, billStep && !b.progress.billSharedAt && { backgroundColor: getThemeMode() === 'dark' ? 'rgba(202, 138, 4, 0.1)' : '#fef8e3', borderColor: getThemeMode() === 'dark' ? 'rgba(202, 138, 4, 0.25)' : '#f7e6b0' }]}>
+        <Text style={[styles.noteTitle, { flex: 1 }, billStep && !b.progress.billSharedAt && { color: getThemeMode() === 'dark' ? '#fde68a' : '#111111' }]}>{billStep ? billText + (!confirmed ? ' · ⚠ වාහනය ලබා දුන් බව පාරිභෝගිකයා සනාථ කර නැත (ඔබේ ඡායාරූප වාර්තාවේ ඇත).' : b.progress.handoverConfirmedVia === 'bill' ? ' · (බිල්පත විවෘත කිරීමෙන් වාහනය ලැබීම සනාථ විය).' : '') : confirmed ? '✓ පාරිභෝගිකයා වාහනය ලබා දුන් බව සනාථ කළා' : 'පාරිභෝගිකයා වාහනය ලබා දුන් බව සනාථ කරන තෙක් රැඳී සිටී'}</Text>
+        {!confirmed && !billStep && <DrivingToGarage />}
       </View>
     );
   }
@@ -82,15 +88,15 @@ export const WorkshopStatus: React.FC<{ booking: Booking }> = ({ booking: b }) =
   );
 };
 
-type SheetId = 'checkIn' | 'diagnosis' | 'extra' | 'extraPhone' | 'handover' | 'close' | null;
+type SheetId = 'checkIn' | 'diagnosis' | 'report' | 'extra' | 'extraPhone' | 'handover' | 'close' | null;
 
 /**
  * The same controls on every upcoming booking: call the customer, then either
  * directions (garage goes to them) or send the garage's location (they come in),
  * then the next workshop step — receive, diagnose, hand over, close with the owner's code.
  */
-export const BookingActions: React.FC<{ booking: Booking }> = ({ booking: b }) => {
-  const { profile, shareLocation, receiveVehicle, sendDiagnosis, requestExtraWork, approveExtraByPhone, holdExtraForOwner, deferExtraWork, markReadyForHandover, startRework, closeWorkshopJob } = useGarage();
+export const BookingActions: React.FC<{ booking: Booking; /** The work timer on its own line (the Schedule card shows it beside its report chip instead). */ timer?: boolean }> = ({ booking: b, timer = true }) => {
+  const { profile, shareLocation, receiveVehicle, sendDiagnosis, requestExtraWork, approveExtraByPhone, holdExtraForOwner, deferExtraWork, skipDiagnosis, addWorkNote, markReadyForHandover, markBillShared, startRework, closeWorkshopJob } = useGarage();
   const { requestFor, requestsFor, toOrderFor, ownerPending } = useParts();
   const mode = serviceMode(b);
   const [sheet, setSheet] = useState<SheetId>(null);
@@ -102,6 +108,19 @@ export const BookingActions: React.FC<{ booking: Booking }> = ({ booking: b }) =
     logCall(b.id);
   };
   const unreadChat = unread(chatKey(b.id));
+  const { notify } = useNotice();
+  // The final bill as a PDF (a share sheet on a phone, the print dialog on the web), to send to the customer.
+  const sendBill = async () => {
+    const how = await sendJobBill(b, profile);
+    if (!how) return;
+    markBillShared(b.id);
+    if (how === 'print') notify({ icon: '📄', title: 'බිල්පත සූදානම්', body: 'මුද්‍රණ කවුළුවෙන් “PDF ලෙස සුරකින්න” තෝරන්න.', tone: 'success' });
+  };
+  const billSent = !!b.progress?.billSharedAt;
+  // The closing code can be made only once the customer has opened the bill.
+  const billOpened = !!b.progress?.billOpenedAt;
+  // Before the job is closed the bill is a step you must do (primary until it is sent); afterwards it is a button to send it again.
+  const billButton = b.progress?.handover ? <ActionButton pill={false} nudge={!billSent && b.status !== 'completed'} label={billSent ? 'බිල්පත නැවත යවන්න' : 'බිල්පත පාරිභෝගිකයාට යවන්න'} icon="📄" variant={billSent || b.status === 'completed' ? 'ghost' : 'primary'} compact onPress={sendBill} /> : null;
   const p = b.progress;
   const subject = { title: b.title, vehicle: `${b.vehicle.name} · ${b.vehicle.plate}` };
   const parts = requestFor(b.id);
@@ -112,7 +131,8 @@ export const BookingActions: React.FC<{ booking: Booking }> = ({ booking: b }) =
       <View style={styles.wrap}>
         {b.status === 'completed' && <PaymentNote booking={b} />}
         {b.status === 'completed' && <CustomerRatingNote booking={b} />}
-        <ActionButton label="පාරිභෝගිකයා අමතන්න" icon="📞" variant="ghost" compact onPress={placeCall} />
+        {b.status === 'completed' && billButton}
+        <ActionButton pill={false} label="පාරිභෝගිකයා අමතන්න" icon="📞" variant="ghost" compact onPress={placeCall} />
       </View>
     );
   }
@@ -136,41 +156,53 @@ export const BookingActions: React.FC<{ booking: Booking }> = ({ booking: b }) =
     if (p.cancelRequest) return <Text style={styles.waiting}>⏸ අයිතිකරුගේ අවලංගු කිරීමේ ඉල්ලීම සමථයකට පත් වන තුරු වැඩ නවතා ඇත.</Text>;
     switch (p.stage) {
       case 'booked':
-        return <ActionButton label={mode === 'doorstep' ? 'අයිතිකරු වෙත පැමිණියා' : 'වාහනය ලැබුණා'} icon="🚗" variant="primary" compact onPress={() => setSheet('checkIn')} />;
+        return <ActionButton pill={false} nudge label={mode === 'doorstep' ? 'අයිතිකරු වෙත පැමිණියා' : 'වාහනය ලැබුණා'} icon="🚗" variant="primary" compact onPress={() => setSheet('checkIn')} />;
       case 'received':
       case 'diagnosing':
-        return <ActionButton label="පරීක්ෂා වාර්තාව ලියන්න" icon="🔍" variant="primary" compact onPress={() => setSheet('diagnosis')} />;
+        // One step: start the work (no inspection report is asked for; extra work is asked for when it turns up, and the handover closes the job).
+        return <ActionButton pill={false} nudge label="වැඩ ආරම්භ කරන්න" icon="🔧" variant="primary" compact onPress={() => skipDiagnosis(b.id)} />;
       case 'awaitingApproval':
         return <Text style={styles.waiting}>⏳ {b.customer.name} වාර්තාව කියවමින් — අනුමත කළ පේළි පමණක් අය කෙරේ.</Text>;
       case 'repairing':
         return (
           <>
+            {timer && !!p.workStartedAt && <WorkTimer startedAt={p.workStartedAt} />}
             {extraWaiting && (
               <>
                 <Text style={styles.waiting}>
                   ⏳ අමතර වැඩ ({money(extraWaiting.lines.reduce((s, l) => s + l.price, 0))}) අයිතිකරුගේ අනුමැතියට — එතෙක් එම කොටස් ඇණවුම් කරන්න එපා.
                   {extraWaiting.waitingSince ? ' අයිතිකරු සම්බන්ධ කර ගත නොහැකි නිසා රැඳී සිටී (නොමිලේ).' : ''}
                 </Text>
-                <ActionButton label="දුරකථනයෙන් අයිතිකරු සමඟ" icon="📞" variant="ghost" compact onPress={() => setSheet('extraPhone')} />
+                <ActionButton pill={false} label="දුරකථනයෙන් අයිතිකරු සමඟ" icon="📞" variant="ghost" compact onPress={() => setSheet('extraPhone')} />
               </>
             )}
             <View style={styles.row}>
               <View style={styles.flex1}>
-                <ActionButton label="අමතර වැඩක්" icon="➕" variant="ghost" compact disabled={!!extraWaiting} onPress={() => setSheet('extra')} />
+                <ActionButton pill={false} label="වාර්තාවක්" icon="📋" variant="ghost" compact disabled={!!extraWaiting} onPress={() => setSheet('report')} />
               </View>
-              <View style={styles.flex2}>
-                <ActionButton label="භාරදීමට සූදානම්" icon="✓" variant="success" compact onPress={() => setSheet('handover')} />
+              <View style={styles.flex1}>
+                <ActionButton pill={false} label="අමතර වැඩක්" icon="➕" variant="ghost" compact disabled={!!extraWaiting} onPress={() => setSheet('extra')} />
+              </View>
+              <View style={styles.flex1}>
+                <ActionButton pill={false} nudge label="වැඩ අවසන්" icon="✓" variant="success" compact onPress={() => setSheet('handover')} />
               </View>
             </View>
           </>
         );
       case 'readyForHandover':
-        return <ActionButton label="අයිතිකරුගේ කේතයෙන් අවසන් කරන්න" icon="🔳" variant="success" compact onPress={() => setSheet('close')} />;
+        return (
+          <>
+            {timer && !!p.workStartedAt && <WorkTimer startedAt={p.workStartedAt} endedAt={p.handover?.readyAt} />}
+            {billButton}
+            {/* The job ends with the bill sent to the customer and the owner's code (both are required). */}
+            <ActionButton pill={false} nudge label="අයිතිකරුගේ කේතයෙන් අවසන් කරන්න" icon="🔳" variant="success" compact disabled={!billOpened} onPress={() => setSheet('close')} />
+          </>
+        );
       case 'disputed':
         return (
           <View style={styles.dispute}>
             <Text style={styles.disputeTitle}>⚠️ {b.customer.name}: “{p.dispute?.text}”</Text>
-            <ActionButton label="නැවත පරීක්ෂා කර හදන්න" icon="🔧" variant="primary" compact onPress={() => startRework(b.id)} />
+            <ActionButton pill={false} label="නැවත පරීක්ෂා කර හදන්න" icon="🔧" variant="primary" compact onPress={() => startRework(b.id)} />
           </View>
         );
       default:
@@ -197,7 +229,7 @@ export const BookingActions: React.FC<{ booking: Booking }> = ({ booking: b }) =
                 }}
               />
             ) : (
-              <ActionButton label="දිශාවන්" icon="🗺️" variant="ghost" compact onPress={() => openDirections(b, profile)} />
+              <ActionButton pill={false} label="දිශාවන්" icon="🗺️" variant="ghost" compact onPress={() => openDirections(b, profile)} />
             )}
           </View>
         </View>
@@ -232,6 +264,23 @@ export const BookingActions: React.FC<{ booking: Booking }> = ({ booking: b }) =
             viewerCoords={profile.coords}
             showCommission
             onSend={(r) => requestExtraWork(b.id, { id: `x-${Date.now()}`, reason: r.findings, photos: r.photos, voiceNotes: r.voiceNotes, lines: r.lines, sentAt: Date.now() })}
+          />
+          {/* A report written after the work started: with lines to approve it is an extra-work request, with none it is only a message (nothing waits for an answer). */}
+          <DiagnosisSheet
+            visible={sheet === 'report'}
+            onClose={close}
+            overlay={<Toast topOffset={40} />}
+            subject={subject}
+            agreedPrice={bill.total}
+            ownerPartType={b.job?.sparePart}
+            priceFor={partMarketPrice}
+            viewerCoords={profile.coords}
+            showCommission
+            onSend={(r) => {
+              const x = { id: `x-${Date.now()}`, reason: r.findings, photos: r.photos, voiceNotes: r.voiceNotes, lines: r.lines, sentAt: Date.now() };
+              if (r.lines.length) requestExtraWork(b.id, x);
+              else addWorkNote(b.id, x);
+            }}
           />
           <ExtraByPhoneSheet
             visible={sheet === 'extraPhone'}

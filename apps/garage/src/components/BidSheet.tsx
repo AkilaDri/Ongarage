@@ -108,7 +108,7 @@ export const BidSheet: React.FC<BidSheetProps> = ({ job, existing, onClose }) =>
             )}
             <Text style={styles.label}>ඔබගේ මිල</Text>
             <View style={styles.priceBox}>
-              <Text style={styles.currency}>රු.</Text>
+              <Text style={styles.currency}>LKR </Text>
               <TextInput style={styles.priceInput} keyboardType="number-pad" value={price} onChangeText={(t) => setPrice(t.replace(/[^0-9]/g, ''))} maxLength={7} />
             </View>
             <Text style={styles.sub}>
@@ -124,7 +124,7 @@ export const BidSheet: React.FC<BidSheetProps> = ({ job, existing, onClose }) =>
                 </Text>
                 <Text style={styles.farLabel}>ගමන් වන්දි ගාස්තුව</Text>
                 <View style={styles.priceBox}>
-                  <Text style={styles.currency}>රු.</Text>
+                  <Text style={styles.currency}>LKR </Text>
                   <TextInput style={styles.farInput} keyboardType="number-pad" value={travel} onChangeText={(t) => setTravel(t.replace(/[^0-9]/g, ''))} maxLength={6} accessibilityLabel="Travel compensation fee" />
                 </View>
                 <Text style={styles.farSum}>

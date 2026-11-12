@@ -138,6 +138,13 @@ export const getAppShape = () => shape;
 
 const LIGHT_EDGE: Record<string, string> = { '#dadce0': '#eceff3', '#e8eaed': '#f1f3f4', '#d2e3fc': '#dbe8fd' };
 
+/** The one corner every card and panel has in all four apps (the PickMe shape used to enlarge each corner by 1.6, so cards differed from 16 to 28). */
+const CARD_CORNER = 12;
+/** The padding inside every card and panel (vertical: two less). */
+const CARD_PAD = 16;
+/** The space between the lines of content inside a card. */
+const CARD_GAP = 24;
+
 const reshapePickMe = <T extends object>(sheet: T): T => {
   const out: Record<string, unknown> = {};
   for (const [name, style] of Object.entries(sheet)) {
@@ -146,15 +153,30 @@ const reshapePickMe = <T extends object>(sheet: T): T => {
       continue;
     }
     const st = { ...(style as Record<string, unknown>) };
-    // Corners: a button or chip (a fixed height with side padding) becomes a pill; a card or panel gets a much bigger corner; a circle stays a circle.
+    // Corners: a button or chip (a fixed height with side padding) becomes a pill; a card or panel gets the one shared corner (CARD_CORNER); a circle stays a circle.
     const r = st.borderRadius;
-    if (typeof r === 'number' && r < 500) {
+    // A chip (a style named chip / tag) has the same corner as a card, whatever its height (a round count badge stays round).
+    if (typeof r === 'number' && r < 500 && /chip|Chip|^tag|Tag/.test(name) && !(typeof st.width === 'number' && st.width === st.height)) {
+      st.borderRadius = typeof st.height === 'number' ? Math.min(CARD_CORNER, Math.round(st.height / 2)) : CARD_CORNER;
+    } else if (typeof r === 'number' && r < 500) {
       const h = typeof st.height === 'number' ? st.height : typeof st.minHeight === 'number' ? st.minHeight : 0;
       const w = typeof st.width === 'number' ? st.width : 0;
       const circle = (h && w && h === w && r >= h / 2 - 1) || (h && r >= h / 2);
       if (!circle) {
         if (h >= 26 && h <= 64 && r >= 5 && r <= 16 && (st.paddingHorizontal !== undefined || st.flexDirection === 'row' || st.alignItems === 'center')) st.borderRadius = Math.round(h / 2);
-        else if (r >= 5) st.borderRadius = Math.min(28, Math.round(r * 1.6));
+        else if (r >= 10) {
+          st.borderRadius = CARD_CORNER;
+          // Room inside the card is the same everywhere too: a card's own padding (when it has some and is not a fixed-height control) is lifted to the shared level.
+          if (!h) {
+            const lift = (v: unknown, to: number) => (typeof v === 'number' && v >= 6 && v <= 20 ? to : v);
+            if (st.padding !== undefined) st.padding = lift(st.padding, CARD_PAD);
+            if (st.paddingHorizontal !== undefined) st.paddingHorizontal = lift(st.paddingHorizontal, CARD_PAD);
+            if (typeof st.gap === 'number' && st.gap >= 4 && st.gap < CARD_GAP) st.gap = CARD_GAP;
+            if (st.paddingLeft !== undefined) st.paddingLeft = lift(st.paddingLeft, CARD_PAD);
+            if (st.paddingRight !== undefined) st.paddingRight = lift(st.paddingRight, CARD_PAD);
+            if (st.paddingVertical !== undefined) st.paddingVertical = lift(st.paddingVertical, CARD_PAD - 2);
+          }
+        }
       }
     }
     // Edges: the hard grey outline becomes a very light edge.

@@ -83,7 +83,7 @@ export const GuaranteeSheet: React.FC<{ workshop: OwnerWorkshop | null; onClose:
             style={styles.input}
             value={amount}
             onChangeText={(t) => setAmount(t.replace(/[^0-9]/g, ''))}
-            placeholder="නිවැරදි කිරීමට වියදම (රු.) — වෙනත් ගරාජයක ඇස්තමේන්තුව"
+            placeholder="නිවැරදි කිරීමට වියදම (LKR ) — වෙනත් ගරාජයක ඇස්තමේන්තුව"
             placeholderTextColor={Colors.textMuted}
             keyboardType="number-pad"
             accessibilityLabel="Guarantee amount"

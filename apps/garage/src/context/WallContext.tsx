@@ -42,7 +42,7 @@ const SEED: WallPost[] = [
     vehicle: 'Honda Fit GP1 2011', photos: [SAMPLE_UPLOAD_PHOTOS[0]], baseLikes: 21,
   },
   {
-    id: 'w4', author: 'රුවන් සිල්වා', place: 'ගාල්ල', at: T0 - 26 * H, categoryId: '1', part: 'Nissan Sunny B13 timing cover',
+    id: 'w4', author: 'LKR න් සිල්වා', place: 'ගාල්ල', at: T0 - 26 * H, categoryId: '1', part: 'Nissan Sunny B13 timing cover',
     description: 'පරණ Sunny B13 එකකට timing cover එක ඕනේ. අලුත් හම්බවෙන්නේ නෑ, හොඳ used එකක් වුනත් ඇති.',
     vehicle: 'Nissan Sunny B13 1994', photos: [], baseLikes: 8,
   },

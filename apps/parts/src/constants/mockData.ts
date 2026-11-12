@@ -25,7 +25,7 @@ export const SHOP: ShopProfile = {
   referralPercent: ps1.referralPercent ?? 3,
   liveStock: ps1.liveStock,
   staff: [
-    { id: 's1', name: 'රුවන් ද සිල්වා', phone: '0771230011' },
+    { id: 's1', name: 'LKR න් ද සිල්වා', phone: '0771230011' },
     { id: 's2', name: 'ඉසුරු මධුෂාන්', phone: '0771230012' },
   ],
 };

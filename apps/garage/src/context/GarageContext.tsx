@@ -356,11 +356,18 @@ type GarageState = {
   /** The owner can't be reached: the job waits for them, free for the garage. */
   holdExtraForOwner: (id: string, extraId: string) => void;
   /** The owner can't be reached: put the extra work aside and finish the agreed work. */
-  deferExtraWork: (id: string, extraId: string) => void;  markReadyForHandover: (id: string, report: HandoverReport) => void;
+  deferExtraWork: (id: string, extraId: string) => void;
+  /** Go on with the agreed work without an inspection report (a quick job): the job moves to repairing and only the agreed price is billed. */
+  skipDiagnosis: (id: string) => void;
+  /** A report written after the work started that has nothing to approve (findings, photos): it goes to the owner as a message and the job goes on. */
+  addWorkNote: (id: string, note: ExtraWorkRequest) => void;
+  markReadyForHandover: (id: string, report: HandoverReport) => void;
   /** The owner reported a problem at handover: back to repairing. */
   startRework: (id: string) => void;
   /** The owner's QR / code checked out: close, start the warranty, book the money. */
   closeWorkshopJob: (id: string) => void;
+  /** The final bill was sent to the customer: closing with the owner's code is allowed from now on. */
+  markBillShared: (id: string) => void;
   assignTech: (id: string, memberId: string) => void;
 
   replyReview: (id: string, text: string) => void;
@@ -788,7 +795,7 @@ export const GarageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             const asked = quote > 0 ? Math.round((quote * 1.3) / 50) * 50 : 2500;
             if (asked > quote) {
               patch(id, { priceApproval: { amount: asked, status: 'pending', askedAt: Date.now() } });
-              notify({ icon: '🚨', title: 'SOS — ක්ෂණික අනුමැතියක් අවශ්‍යයි', body: `${techName(id)} අලුත්වැඩියාවට රු. ${asked.toLocaleString()} ඉල්ලයි (ඇස්තමේන්තුව රු. ${quote.toLocaleString()}).`, tone: 'danger' });
+              notify({ icon: '🚨', title: 'SOS — ක්ෂණික අනුමැතියක් අවශ්‍යයි', body: `${techName(id)} අලුත්වැඩියාවට LKR ${asked.toLocaleString()} ඉල්ලයි (ඇස්තමේන්තුව LKR ${quote.toLocaleString()}).`, tone: 'danger' });
             } else {
               patch(id, { repair: { amount: asked, needed: true } });
               continueRepair(id);
@@ -979,9 +986,14 @@ export const GarageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         );
         setTimeout(() => who && notify({ icon: '✅', title: 'පාරිභෝගිකයා වාහනය ලබා දුන් බව සනාථ කළා', body: who, tone: 'success' }), 0);
       }, 20000);
+      // Half an hour on and still no answer: a reminder (the garage's check-in photos stay as its record).
+      later(() => {
+        const cur = findBooking(id);
+        if (cur?.progress && !cur.progress.handoverConfirmedAt) notify({ icon: '⏰', title: 'පාරිභෝගිකයා තවමත් වාහනය ලැබීම සනාථ කර නැත', body: `${cur.customer.name} · ${cur.title} — චැට් එකෙන් හෝ ඇමතුමකින් මතක් කරන්න.`, tone: 'primary' });
+      }, 30 * 60 * 1000);
       notify({ icon: '🚗', title: 'වාහනය ලැබුණා — පාරිභෝගිකයා සනාථ කරන තෙක් රැඳී සිටී', body: 'පරීක්ෂා කර වාර්තාව අයිතිකරුට යවන්න.', tone: 'primary' });
     },
-    [notify, patchProgress]
+    [later, notify, patchProgress]
   );
 
   const sendDiagnosis = useCallback(
@@ -1070,17 +1082,17 @@ export const GarageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const compensation = Math.max(0, Math.round(input.compensation));
       const quotedAt = Date.now();
       patchProgress(id, { cancelRequest: { ...req, status: 'quoted', compensation, workDone: input.workDone.trim() || undefined, quotedAt } });
-      notify({ icon: '💰', title: 'වන්දි යෝජනාව යැවුවා', body: `${b.customer.name} ට රු. ${compensation.toLocaleString('en-US')} ක වන්දියක් දැනුම් දුන්නා.`, tone: 'primary' });
+      notify({ icon: '💰', title: 'වන්දි යෝජනාව යැවුවා', body: `${b.customer.name} ට LKR ${compensation.toLocaleString('en-US')} ක වන්දියක් දැනුම් දුන්නා.`, tone: 'primary' });
       // Simulated owner: a fair compensation is accepted (the job is cancelled and the garage rated), a very high one is turned down and the work goes on.
       later(() => {
         const cur = findBooking(id);
         const cr = cur?.progress?.cancelRequest;
         if (!cur || !cr || cr.status !== 'quoted' || cr.quotedAt !== quotedAt) return;
         if (compensation <= cur.price * 0.6) {
-          const cancelled = { at: Date.now(), by: 'owner' as const, reason: cr.reason, note: cr.note, rating: 4, compensation, workDone: cr.workDone, feeNote: compensation ? `වන්දි රු. ${compensation.toLocaleString('en-US')} ඔබට ලැබේ.` : 'ගාස්තුවක් නැත.' };
+          const cancelled = { at: Date.now(), by: 'owner' as const, reason: cr.reason, note: cr.note, rating: 4, compensation, workDone: cr.workDone, feeNote: compensation ? `වන්දි LKR ${compensation.toLocaleString('en-US')} ඔබට ලැබේ.` : 'ගාස්තුවක් නැත.' };
           patchProgress(id, { cancelRequest: undefined, cancelled });
           setBookings((prev) => prev.map((x) => (x.id === id ? { ...x, status: 'cancelled' as const, cancelled } : x)));
-          notify({ icon: '❌', title: `${cur.customer.name} රැකියාව අවලංගු කළා`, body: `වන්දිය රු. ${compensation.toLocaleString('en-US')} ක් පිළිගත්තා.`, tone: 'primary' });
+          notify({ icon: '❌', title: `${cur.customer.name} රැකියාව අවලංගු කළා`, body: `වන්දිය LKR ${compensation.toLocaleString('en-US')} ක් පිළිගත්තා.`, tone: 'primary' });
         } else {
           patchProgress(id, { cancelRequest: undefined });
           notify({ icon: '↩️', title: `${cur.customer.name} ඉල්ලීම ඉවත් කළා`, body: 'වන්දිය වැඩි යැයි සලකා රැකියාව දිගටම කරගෙන යයි.', tone: 'primary' });
@@ -1165,6 +1177,29 @@ export const GarageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     [notify, patchExtra]
   );
 
+  const skipDiagnosis = useCallback(
+    (id: string) => {
+      const b = findBooking(id);
+      if (!b?.progress || (b.progress.stage !== 'received' && b.progress.stage !== 'diagnosing')) return;
+      patchProgress(id, { stage: 'repairing', diagnosisSkipped: true, workStartedAt: Date.now() });
+      notify({ icon: '🔧', title: 'වැඩ ආරම්භයි', body: 'පරීක්ෂා වාර්තාවක් නොමැතිව එකඟ වූ වැඩ කරගෙන යයි. අවසන් වූ විට “අවසන්” ඔබන්න.', tone: 'primary' });
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [notify, patchProgress]
+  );
+
+  const addWorkNote = useCallback(
+    (id: string, note: ExtraWorkRequest) => {
+      const b = findBooking(id);
+      if (!b?.progress || b.progress.stage !== 'repairing') return;
+      const answered: ExtraWorkRequest = { ...note, lines: [], noteOnly: true, decision: { approvedLineIds: [], declinedLineIds: [], decidedAt: Date.now(), via: 'app' } };
+      patchProgress(id, { extras: [...(b.progress.extras ?? []), answered] });
+      notify({ icon: '📋', title: 'වාර්තාව යැව්වා', body: 'අයිතිකරුට පණිවිඩයක් ලෙස ලැබේ. වැඩ දිගටම කරගෙන යන්න.', tone: 'primary' });
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [notify, patchProgress]
+  );
+
   const markReadyForHandover = useCallback(
     (id: string, report: HandoverReport) => {
       patchProgress(id, { stage: 'readyForHandover', handover: report, dispute: undefined });
@@ -1204,8 +1239,8 @@ export const GarageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setPayPromptId(null);
       notify(
         payment.status === 'paid'
-          ? { icon: '💰', title: 'ගෙවීම සටහන් කළා', body: `රු. ${total.toLocaleString('en-US')} සම්පූර්ණයි.`, tone: 'success' }
-          : { icon: '📝', title: 'ඉතිරි මුදල සටහන් කළා', body: `${b.customer.name} ඉතිරි රු. ${payment.balance.toLocaleString('en-US')} ක් පොරොන්දු දිනයට ගෙවිය යුතුයි.`, tone: 'primary' }
+          ? { icon: '💰', title: 'ගෙවීම සටහන් කළා', body: `LKR ${total.toLocaleString('en-US')} සම්පූර්ණයි.`, tone: 'success' }
+          : { icon: '📝', title: 'ඉතිරි මුදල සටහන් කළා', body: `${b.customer.name} ඉතිරි LKR ${payment.balance.toLocaleString('en-US')} ක් පොරොන්දු දිනයට ගෙවිය යුතුයි.`, tone: 'primary' }
       );
       // Simulated customer: confirms the record a little later.
       if (payment.status === 'partial')
@@ -1261,7 +1296,7 @@ export const GarageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       notify(
         next.balance <= 0
           ? { icon: '💰', title: 'ඉතිරි ගෙවීම ලැබුණා', body: `${b.customer.name} සම්පූර්ණයෙන් ගෙවා අවසන්.`, tone: 'success' }
-          : { icon: '📝', title: 'ගෙවීමක් සටහන් කළා', body: `ඉතිරි රු. ${next.balance.toLocaleString('en-US')} ක් ${dayText(next.promisedAt ?? Date.now())} දිනට.`, tone: 'primary' }
+          : { icon: '📝', title: 'ගෙවීමක් සටහන් කළා', body: `ඉතිරි LKR ${next.balance.toLocaleString('en-US')} ක් ${dayText(next.promisedAt ?? Date.now())} දිනට.`, tone: 'primary' }
       );
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1296,6 +1331,22 @@ export const GarageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [notify, patchProgress]
+  );
+
+  // The bill goes to the customer; the customer opening it (simulated a few seconds later) is what lets the job be closed with their code.
+  const markBillShared = useCallback(
+    (id: string) => {
+      patchProgress(id, { billSharedAt: Date.now(), billOpenedAt: undefined });
+      later(() => {
+        const cur = findBooking(id);
+        const unconfirmed = !cur?.progress?.handoverConfirmedAt;
+        patchProgress(id, { billOpenedAt: Date.now(), ...(unconfirmed ? { handoverConfirmedAt: Date.now(), handoverConfirmedVia: 'bill' as const } : {}) });
+        const b = findBooking(id);
+        if (b) notify({ icon: '👀', title: `${b.customer.name} බිල්පත විවෘත කළා`, body: 'දැන් ඔවුන්ගේ QR / කේතයෙන් රැකියාව අවසන් කළ හැක.', tone: 'success' });
+      }, 6000);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [later, notify, patchProgress]
   );
 
   const closeWorkshopJob = useCallback(
@@ -1430,7 +1481,7 @@ export const GarageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     (id: SubscriptionPlanId) => {
       const plan = PLANS.find((p) => p.id === id)!;
       setSubscription({ plan, since: Date.now() });
-      notify({ icon: '⭐', title: `${plan.name} දායකත්වය ආරම්භ විය`, body: `මසකට රු. ${plan.fee.toLocaleString()} · ඔබ දිනූ වැඩ ගාස්තුව මෙන් 5 ගුණයකට අඩු නම් වෙනස ආපසු ලැබේ.`, tone: 'success' });
+      notify({ icon: '⭐', title: `${plan.name} දායකත්වය ආරම්භ විය`, body: `මසකට LKR ${plan.fee.toLocaleString()} · ඔබ දිනූ වැඩ ගාස්තුව මෙන් 5 ගුණයකට අඩු නම් වෙනස ආපසු ලැබේ.`, tone: 'success' });
     },
     [notify]
   );
@@ -1537,9 +1588,12 @@ export const GarageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     approveExtraByPhone,
     holdExtraForOwner,
     deferExtraWork,
+    skipDiagnosis,
+    addWorkNote,
     markReadyForHandover,
     startRework,
     closeWorkshopJob,
+    markBillShared,
     assignTech,
     dismissNotice,
   };

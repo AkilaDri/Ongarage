@@ -77,7 +77,7 @@ export const VerifyPurchaseSheet: React.FC<{ visible: boolean; sale?: ShopSale |
           {referred && <Text style={styles.referral}>🤝 {target.purchase.jobRef!.garage.name} ගරාජය නිර්දේශ කළ ගනුදෙනුවකි — මිල ලැයිස්තුගත මිලට වඩා වැඩි නොවිය යුතුයි.</Text>}
         </View>
       )}
-      <Text style={styles.label}>ගෙවූ මුදල (රු.)</Text>
+      <Text style={styles.label}>ගෙවූ මුදල (LKR )</Text>
       <TextInput style={styles.input} value={amount} onChangeText={(t) => { setAmount(t.replace(/[^0-9]/g, '')); setError(null); }} keyboardType="number-pad" accessibilityLabel="Amount paid" />
       <Text style={styles.label}>බිල්පත් අංකය (විකල්ප)</Text>
       <TextInput style={styles.input} value={invoice} onChangeText={setInvoice} placeholder="උදා: INV-0412" placeholderTextColor={Colors.textMuted} autoCapitalize="characters" />

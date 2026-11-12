@@ -84,7 +84,12 @@ type TechState = {
   /** The owner can't be reached: the job waits for them, free for the garage. */
   holdExtraForOwner: (id: string, extraId: string) => void;
   /** The owner can't be reached: put the extra work aside and finish the agreed work. */
-  deferExtraWork: (id: string, extraId: string) => void;  markReadyForHandover: (id: string, report: HandoverReport) => void;
+  deferExtraWork: (id: string, extraId: string) => void;
+  /** Go on with the agreed work without an inspection report (a quick job). */
+  skipDiagnosis: (id: string) => void;
+  markReadyForHandover: (id: string, report: HandoverReport) => void;
+  /** The bill was sent to the customer; their opening it (simulated) is what lets the job be closed with their code. */
+  markBillShared: (id: string) => void;
   /** Close with the owner's QR / 6-digit code: the job is done and paid to the technician. */
   closeWorkshopJob: (id: string, code: string) => boolean;
   /** The job just closed with the owner's code and its payment has not been recorded: the prompt for it is open. */
@@ -294,8 +299,8 @@ export const TechProvider: React.FC<{ children: React.ReactNode }> = ({ children
           patch(id, { stage: 'repairing', approval: { amount, status: ok ? 'approved' : 'rejected' }, repair: { amount: final, needed: final > 0 } });
           notify(
             ok
-              ? { icon: '✅', title: 'කළමනාකරු අනුමත කළා', body: `අලුත්වැඩියා ගාස්තුව රු. ${final.toLocaleString()}`, tone: 'success' }
-              : { icon: '↩️', title: 'කළමනාකරු ඇස්තමේන්තුවම තබා ගත්තා', body: `අලුත්වැඩියා ගාස්තුව රු. ${final.toLocaleString()}`, tone: 'danger' }
+              ? { icon: '✅', title: 'කළමනාකරු අනුමත කළා', body: `අලුත්වැඩියා ගාස්තුව LKR ${final.toLocaleString()}`, tone: 'success' }
+              : { icon: '↩️', title: 'කළමනාකරු ඇස්තමේන්තුවම තබා ගත්තා', body: `අලුත්වැඩියා ගාස්තුව LKR ${final.toLocaleString()}`, tone: 'danger' }
           );
         }, APPROVAL_MS);
         return;
@@ -359,7 +364,7 @@ export const TechProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const collected = method === 'cash' ? total : 0;
       patch(id, { stage: 'done', completedAt: Date.now(), collected, paidOnline: method === 'online' });
       addEarning(j, collected);
-      notify({ icon: '💰', title: 'රැකියාව අවසන්', body: `ඔබට රු. ${j.pay.toLocaleString()}${collected ? ` · ගරාජයට භාර දිය යුතු මුදල් රු. ${collected.toLocaleString()}` : ''}`, tone: 'success' });
+      notify({ icon: '💰', title: 'රැකියාව අවසන්', body: `ඔබට LKR ${j.pay.toLocaleString()}${collected ? ` · ගරාජයට භාර දිය යුතු මුදල් LKR ${collected.toLocaleString()}` : ''}`, tone: 'success' });
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [notify, patch]
@@ -526,12 +531,37 @@ export const TechProvider: React.FC<{ children: React.ReactNode }> = ({ children
     [notify, patchExtra]
   );
 
+  const skipDiagnosis = useCallback(
+    (id: string) => {
+      const p = find(id)?.workshop?.progress;
+      if (!p || (p.stage !== 'received' && p.stage !== 'diagnosing')) return;
+      patchProgress(id, { stage: 'repairing', diagnosisSkipped: true });
+      notify({ icon: '🔧', title: 'වැඩ ආරම්භයි', body: 'පරීක්ෂා වාර්තාවක් නොමැතිව එකඟ වූ වැඩ කරගෙන යයි.', tone: 'primary' });
+    },
+    [notify, patchProgress]
+  );
+
   const markReadyForHandover = useCallback(
     (id: string, report: HandoverReport) => {
       patchProgress(id, { stage: 'readyForHandover', handover: report });
       notify({ icon: '🔑', title: 'භාරදීමට සූදානම්', body: 'අයිතිකරු පරීක්ෂා කර ඔවුන්ගේ QR / කේතය පෙන්වයි.', tone: 'primary' });
     },
     [notify, patchProgress]
+  );
+
+  const markBillShared = useCallback(
+    (id: string) => {
+      patchProgress(id, { billSharedAt: Date.now(), billOpenedAt: undefined });
+      later(() => {
+        const cur = find(id);
+        const unconfirmed = !cur?.workshop?.progress?.handoverConfirmedAt;
+        patchProgress(id, { billOpenedAt: Date.now(), ...(unconfirmed ? { handoverConfirmedAt: Date.now(), handoverConfirmedVia: 'bill' as const } : {}) });
+        const j = find(id);
+        if (j) notify({ icon: '👀', title: `${j.customer.name} බිල්පත විවෘත කළා`, body: 'දැන් ඔවුන්ගේ QR / කේතයෙන් රැකියාව අවසන් කළ හැක.', tone: 'success' });
+      }, 6000);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [later, notify, patchProgress]
   );
 
   const closeWorkshopJob = useCallback(
@@ -544,7 +574,7 @@ export const TechProvider: React.FC<{ children: React.ReactNode }> = ({ children
       addEarning(j, 0);
       // Handed over is not the same as paid: ask what the customer actually paid.
       setPayPromptId(id);
-      notify({ icon: '✅', title: 'රැකියාව අවසන්', body: `${j.customer.name} කේතයෙන් තහවුරු කළා · ඔබට රු. ${j.pay.toLocaleString()}`, tone: 'success' });
+      notify({ icon: '✅', title: 'රැකියාව අවසන්', body: `${j.customer.name} කේතයෙන් තහවුරු කළා · ඔබට LKR ${j.pay.toLocaleString()}`, tone: 'success' });
       return true;
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -561,8 +591,8 @@ export const TechProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setPayPromptId(null);
       notify(
         payment.status === 'paid'
-          ? { icon: '💰', title: 'ගෙවීම සටහන් කළා', body: `රු. ${total.toLocaleString('en-US')} සම්පූර්ණයි.`, tone: 'success' }
-          : { icon: '📝', title: 'ඉතිරි මුදල සටහන් කළා', body: `${j.customer.name} ඉතිරි රු. ${payment.balance.toLocaleString('en-US')} ක් පොරොන්දු දිනයට ගෙවිය යුතුයි.`, tone: 'primary' }
+          ? { icon: '💰', title: 'ගෙවීම සටහන් කළා', body: `LKR ${total.toLocaleString('en-US')} සම්පූර්ණයි.`, tone: 'success' }
+          : { icon: '📝', title: 'ඉතිරි මුදල සටහන් කළා', body: `${j.customer.name} ඉතිරි LKR ${payment.balance.toLocaleString('en-US')} ක් පොරොන්දු දිනයට ගෙවිය යුතුයි.`, tone: 'primary' }
       );
       return true;
     },
@@ -643,7 +673,9 @@ export const TechProvider: React.FC<{ children: React.ReactNode }> = ({ children
     approveExtraByPhone,
     holdExtraForOwner,
     deferExtraWork,
+    skipDiagnosis,
     markReadyForHandover,
+    markBillShared,
     closeWorkshopJob,
     payPromptId,
     recordPayment,

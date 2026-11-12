@@ -119,7 +119,7 @@ export const garageProfileContent = (g: Garage): GarageProfileContent => {
     { name: 'කසුන් පෙරේරා', role: 'ප්‍රධාන කාර්මික ශිල්පී', cert: 'NVQ Level 5' },
     { name: 'නිමල් ජයසිංහ', role: 'එන්ජින් / ස්කෑනින් විශේෂඥ', cert: 'Bosch සහතික' },
     { name: 'චමින්ද සිල්වා', role: 'විදුලි පද්ධති තාක්ෂණික', cert: 'NVQ Level 4' },
-    { name: 'රුවන් ප්‍රනාන්දු', role: 'AC / හයිබ්‍රිඩ් කාර්මික', cert: 'Toyota Hybrid පුහුණුව' },
+    { name: 'LKR න් ප්‍රනාන්දු', role: 'AC / හයිබ්‍රිඩ් කාර්මික', cert: 'Toyota Hybrid පුහුණුව' },
     { name: 'සුරංග ගුණවර්ධන', role: 'බොඩි / පේන්ට් ශිල්පී', cert: 'NVQ Level 4' },
   ];
   const staff: GarageStaff[] = pick(staffPool, 3, 0).map((s, i) => ({ id: `st-${i}`, ...s, years: 5 + ((seed * (i + 2)) % 14) }));
@@ -145,7 +145,7 @@ export const garageProfileContent = (g: Garage): GarageProfileContent => {
     { id: 'w-offer', icon: '🎁', label: 'අලුත් දීමනාවක්', title: offers[0].title, ago: 3 * HOUR + (seed % 5) * HOUR },
     ...(newService ? [{ id: 'w-service', icon: '🛠️', label: 'අලුත් සේවාවක්', title: newService.name, ago: 20 * HOUR + (seed % 7) * HOUR }] : []),
     { id: 'w-photos', icon: '📸', label: 'අලුත් ඡායාරූප', title: `${gallery[0].caption} ඇතුළුව ඡායාරූප ${gallery.length}ක්`, ago: 30 * HOUR + (seed % 9) * HOUR, image: gallery[0].source },
-    { id: 'w-gig', icon: '⚡', label: 'අලුත් පැකේජයක්', title: `${gigs[0].title} · රු. ${gigs[0].price.toLocaleString()}`, ago: 52 * HOUR + (seed % 11) * HOUR },
+    { id: 'w-gig', icon: '⚡', label: 'අලුත් පැකේජයක්', title: `${gigs[0].title} · LKR ${gigs[0].price.toLocaleString()}`, ago: 52 * HOUR + (seed % 11) * HOUR },
     { id: 'w-reel', icon: '🎬', label: 'අලුත් වීඩියෝවක්', title: reels[0].title, ago: 76 * HOUR + (seed % 13) * HOUR, image: reels[0].thumb },
     ...(replied ? [{ id: 'w-reply', icon: '💬', label: 'සමාලෝචනයකට පිළිතුරු', title: `${replied.customer}ට පිළිතුරු දුන්නා`, ago: 100 * HOUR + (seed % 17) * HOUR }] : []),
   ].sort((a, b) => a.ago - b.ago);

@@ -145,7 +145,7 @@ export const DiagnosisSheet: React.FC<{
           </>
         )}
         <View style={styles.priceBox}>
-          <Text style={styles.currency}>රු.</Text>
+          <Text style={styles.currency}>LKR </Text>
           <TextInput
             style={styles.priceInput}
             keyboardType="number-pad"
@@ -190,7 +190,7 @@ export const DiagnosisSheet: React.FC<{
       subtitle={`${subject.title} · ${subject.vehicle}`}
       onClose={onClose}
       overlay={overlay}
-      footer={<ActionButton label={`${initial ? 'වෙනස්කම් සුරකින්න' : 'අයිතිකරුගේ අනුමැතියට යවන්න'} · ${money(total)}`} icon="📨" variant="primary" disabled={!valid} onPress={send} />}
+      footer={<ActionButton label={initial ? `වෙනස්කම් සුරකින්න · ${money(total)}` : !extra && lines.length === 0 ? 'වාර්තාව යවන්න' : `අයිතිකරුගේ අනුමැතියට යවන්න · ${money(total)}`} icon="📨" variant="primary" disabled={!valid} onPress={send} />}
     >
       {extra && <Text style={styles.hint}>අලුත්වැඩියාව අතරතුර හමු වූ දෙයක්: අයිතිකරු අනුමත කරන තුරු මෙම කොටස් ඇණවුම් කරන්න හෝ වැඩ කරන්න එපා. පිළිතුර ලැබෙන තුරු භාරදීම නතර වේ.</Text>}
       <Text style={styles.label}>{extra ? 'හමු වූ දේ සහ හේතුව' : 'සොයා ගත් දේ'}</Text>
@@ -239,7 +239,7 @@ export const DiagnosisSheet: React.FC<{
           style={[styles.input, styles.labourPrice]}
           value={labourPrice}
           onChangeText={(t) => setLabourPrice(t.replace(/[^0-9]/g, ''))}
-          placeholder="රු."
+          placeholder="LKR "
           placeholderTextColor={Colors.textMuted}
           keyboardType="number-pad"
           accessibilityLabel="New labour price"

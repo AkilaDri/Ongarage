@@ -33,13 +33,13 @@ module.exports = spec('Parts shop · customer enquiry, purchase code and referra
   await t.clickText('තහවුරු කර මුදල් ලබා ගන්න');
   t.check('a wrong purchase code is rejected', await t.has('කේතය නොගැළපේ'));
   await t.type('Purchase code', code);
-  const listed = await t.page.evaluate(() => Number(document.body.innerText.match(/ලැයිස්තුගත මුළු මිල රු\. ([0-9,]+)/)?.[1].replace(/,/g, '')));
+  const listed = await t.page.evaluate(() => Number(document.body.innerText.match(/ලැයිස්තුගත මුළු මිල LKR ([0-9,]+)/)?.[1].replace(/,/g, '')));
   await t.type('Amount paid', String(listed + 500));
   await t.clickText('තහවුරු කර මුදල් ලබා ගන්න');
   t.check('a referred buyer cannot be charged above the listed price', await t.has('ලැයිස්තුගත මිලට'));
   await t.type('Amount paid', String(listed));
   await t.clickText('තහවුරු කර මුදල් ලබා ගන්න');
-  t.check('sale confirmed and paid', await t.has('ලැබුණා රු.'));
+  t.check('sale confirmed and paid', await t.has('ලැබුණා LKR '));
 
   // The referral moves on: fitted, then the job closes and the commission is earned
   await t.wait(15000);

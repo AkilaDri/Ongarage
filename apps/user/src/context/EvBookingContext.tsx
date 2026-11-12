@@ -68,7 +68,7 @@ export const EvBookingProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     notify({
       icon: '🔋',
       title: why === 'full' ? 'Battery 100% — charge කළා' : 'Charging අවසානයි',
-      body: `${place?.name ?? ''}: kWh ${end.kwh} · ඇස්තමේන්තු ගාස්තුව රු. ${end.cost} (charger එකේදී ගෙවන්න).`,
+      body: `${place?.name ?? ''}: kWh ${end.kwh} · ඇස්තමේන්තු ගාස්තුව LKR ${end.cost} (charger එකේදී ගෙවන්න).`,
       tone: 'success',
     });
   }, [notify]);

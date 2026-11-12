@@ -279,7 +279,7 @@ const styles = themedStyles(() =>
     nextChipLate: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(242, 139, 130, 0.2)' : '#fce8e6' },
     nextChipText: { fontSize: 11.5, fontFamily: FONTS.bodyBold, color: Colors.textMain },
     recordsSub: { fontSize: 12, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 1 },
-    recordsCount: { minWidth: 22, height: 22, paddingHorizontal: 6, borderRadius: 11, alignItems: 'center', justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.34)' : '#d2e3fc' },
+    recordsCount: { minWidth: 16, height: 16, paddingHorizontal: 4, borderRadius: 6, alignItems: 'center', justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.34)' : '#d2e3fc' },
     recordsCountText: { fontSize: 11.5, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
     editDetails: { marginHorizontal: 16, marginBottom: 14, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: outline() },
     editDetailsText: { fontSize: 13.5, fontFamily: FONTS.bodySemiBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },

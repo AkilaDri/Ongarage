@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Colors, EmptyState, FONTS, RELATION_HELP, RELATION_LABEL, RELATION_PRIVACY, RelationSummary, RelationTag, categoryInfo, getThemeMode, relationLevel, themedStyles } from '@ongarage/shared';
+import { Colors, EmptyState, FONTS, RELATION_LABEL, RELATION_PRIVACY, RelationTag, categoryInfo, getThemeMode, relationLevel, themedStyles, MoneyText } from '@ongarage/shared';
 import { Sheet } from './Sheet';
 import { useWorkshops } from '../context/WorkshopContext';
 import { useVehicles } from '../context/VehiclesContext';
@@ -72,7 +72,22 @@ export const GarageHistorySheet: React.FC<{ visible: boolean; onClose: () => voi
       <View style={styles.levelRow}>
         <RelationTag level={level} />
       </View>
-      {done.length > 0 && <RelationSummary jobs={done.length} since={Math.min(...times)} last={Math.max(...times)} total={total} avgRating={rated.length ? rated.reduce((n, x) => n + x, 0) / rated.length : undefined} />}
+      {done.length > 0 && (
+        <View style={styles.summary}>
+          <View style={styles.sumCol}>
+            <Text style={styles.sumValue}>{money(total)}</Text>
+            <Text style={styles.sumLabel}>මුළු වටිනාකම</Text>
+          </View>
+          <View style={styles.sumCol}>
+            <Text style={styles.sumValue}>{formatDate(Math.max(...times))}</Text>
+            <Text style={styles.sumLabel}>රැකියා දිනය</Text>
+          </View>
+          <View style={styles.sumCol}>
+            <Text style={styles.sumValue}>{rated.length ? `★ ${(rated.reduce((n, x) => n + x, 0) / rated.length).toFixed(1)}` : '—'}</Text>
+            <Text style={styles.sumLabel}>ඔබ දුන් ශ්‍රේණිගත කිරීම</Text>
+          </View>
+        </View>
+      )}
       {running > 0 && <Text style={styles.running}>🔧 දැනට මෙම ගරාජය සමඟ පවතින රැකියා {running}</Text>}
       {cancelled > 0 && <Text style={styles.running}>✕ අවලංගු වූ / ප්‍රතික්ෂේප වූ වෙන්කිරීම් {cancelled}</Text>}
       {done.length === 0 ? (
@@ -96,12 +111,11 @@ export const GarageHistorySheet: React.FC<{ visible: boolean; onClose: () => voi
                   🛡️ මාස {w.warrantyMonths} වගකීම{rating ? ` · ${'★'.repeat(Math.round(rating))}${'☆'.repeat(5 - Math.round(rating))}` : ''}
                 </Text>
               </View>
-              <Text style={styles.price}>{money(w.progress.handover?.bill.total ?? w.agreedPrice)}</Text>
+              <MoneyText style={styles.price}>{money(w.progress.handover?.bill.total ?? w.agreedPrice)}</MoneyText>
             </View>
           );
         })
       )}
-      <Text style={styles.help}>{RELATION_HELP}</Text>
       <Text style={styles.help}>🔒 {RELATION_PRIVACY}</Text>
     </Sheet>
   );
@@ -122,6 +136,10 @@ const styles = themedStyles(() =>
     tagTextNew: { color: Colors.textMuted },
     totals: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 10, paddingHorizontal: 14, borderRadius: 10, backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe' },
     totalText: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
+    summary: { flexDirection: 'row', gap: 12, padding: 16, borderRadius: 16, backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.1)' : '#e8f0fe' },
+    sumCol: { flex: 1, gap: 2 },
+    sumValue: { fontSize: 15, fontFamily: FONTS.titleBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
+    sumLabel: { fontSize: 11, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
     running: { fontSize: 12.5, fontFamily: FONTS.bodyMedium, color: Colors.warning },
     row: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 16, borderRadius: 14, borderWidth: 1, borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#e8eaed', backgroundColor: Colors.bgCard },
     icon: { fontSize: 22, width: 30, textAlign: 'center' },

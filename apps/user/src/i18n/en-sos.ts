@@ -46,7 +46,7 @@ export const EN_SOS: Record<string, string> = {
   'අධිවේගී මාර්ග හදිසි ඇමතුම': 'Expressway emergency',
   'ඔබගේ SOS ඉල්ලීම ඔබේ ස්ථානයේ සිට සෙවුම් කලාපය (km 1 න් ආරම්භ වී, පුළුල් කරන සෑම වාරයකටම km 1 බැගින් වැඩි වේ) ඇතුළත ලියාපදිංචි ගරාජ සහ කාර්මිකයන් වෙත දැනුම් දෙයි.':
     'Your SOS request goes to the registered garages and mechanics inside the search range from your place (it starts at 1 km and grows by 1 km each time it is widened).',
-  'පැමිණීමේ ගාස්තුව: OnGarage අනුමත රු. 500 ක්. කලාපය පුළුල් වන සෑම km 1 කටම රු. 250 ක් එකතු වේ. අලුත්වැඩියාවක් අවශ්‍ය නොවුණත් මෙය කාර්මිකයාට ගෙවිය යුතුය.':
+  'පැමිණීමේ ගාස්තුව: OnGarage අනුමත LKR 500 ක්. කලාපය පුළුල් වන සෑම km 1 කටම LKR 250 ක් එකතු වේ. අලුත්වැඩියාවක් අවශ්‍ය නොවුණත් මෙය කාර්මිකයාට ගෙවිය යුතුය.':
     'Call-out fee: Rs. 500 approved by OnGarage. Rs. 250 is added for every 1 km the range is widened. It is payable to the mechanic even if no repair is needed.',
   'අලුත්වැඩියා ගාස්තුව: කාර්මිකයා ඇස්තමේන්තුව ඉදිරිපත් කර ඔබ අනුමත කළ පසු පමණක් අලුත්වැඩියාව ආරම්භ වේ. අනුමැතියෙන් ඔබ්බට වැඩ හෝ ගාස්තු කෙරෙන්නේ නැත.':
     'Repair fee: the repair starts only after the mechanic gives an estimate and you approve it. No work or charge goes beyond your approval.',
@@ -58,7 +58,7 @@ export const EN_SOS: Record<string, string> = {
   'ඔබගේ දුරකථන අංකය මෙම රැකියාව සඳහා පමණක් කාර්මිකයාට පෙන්වයි. ගෙවීම් සහ සන්නිවේදනය යෙදුම තුළම සිදු කිරීමෙන් OnGarage ආරක්ෂිත රැකියා වගකීම ඔබට හිමි වේ.':
     'Your phone number is shown to the mechanic for this job only. By paying and talking inside the app you keep the OnGarage protected-job guarantee.',
   'පක්ෂපාතී ත්‍යාගය': 'Loyalty reward',
-  'ඊළඟ අලුත්වැඩියාවට රු. 250 ක වට්ටමක්': 'Rs. 250 off your next repair',
+  'ඊළඟ අලුත්වැඩියාවට LKR 250 ක වට්ටමක්': 'Rs. 250 off your next repair',
   'ඉක්මන් අලුත්වැඩියා ප්‍රසාද': 'Quick-repair bonus',
   'නොමිලේ වාහන සෞඛ්‍ය පරීක්ෂාවක්': 'A free vehicle health check',
   'මාර්ග වීරයා': 'Road hero',

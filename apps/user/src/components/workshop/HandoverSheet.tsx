@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { ActionButton, CloseCode, Colors, FONTS, PhotoStrip, themedStyles } from '@ongarage/shared';
+import { ActionButton, CloseCode, Colors, FONTS, LATE_VIA_LABEL, PhotoStrip, themedStyles } from '@ongarage/shared';
 import { useWorkshops, type OwnerWorkshop } from '../../context/WorkshopContext';
 import { formatDate, money } from '../../utils/format';
 import { Sheet } from '../Sheet';
@@ -11,9 +11,15 @@ import { Sheet } from '../Sheet';
  * warranty. Not happy → report a problem instead.
  */
 export const HandoverSheet: React.FC<{ workshop: OwnerWorkshop | null; onClose: () => void; onProblem: () => void; onRate?: () => void }> = ({ workshop, onClose, onProblem, onRate }) => {
-  const { showCloseCode, acknowledgeClosed } = useWorkshops();
+  const { showCloseCode, acknowledgeClosed, openBill } = useWorkshops();
   const [shown, setShown] = useState(workshop);
   const [codeShown, setCodeShown] = useState(false);
+
+  // This sheet shows the bill: opening it is what lets the owner's code be made.
+  useEffect(() => {
+    if (workshop?.progress.billSharedAt && !workshop.progress.billOpenedAt) openBill(workshop.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workshop?.id, workshop?.progress.billSharedAt]);
 
   useEffect(() => {
     if (!workshop) return;
@@ -56,10 +62,11 @@ export const HandoverSheet: React.FC<{ workshop: OwnerWorkshop | null; onClose: 
             </View>
             <View style={styles.flex2}>
               <ActionButton
-                label="හරි — කේතය පෙන්වන්න"
+                label={w.progress.billSharedAt ? 'හරි — කේතය පෙන්වන්න' : '⏳ ගරාජය බිල්පත එවන තුරු'}
                 icon="🔳"
                 variant="success"
                 compact
+                disabled={!w.progress.billSharedAt}
                 onPress={() => {
                   setCodeShown(true);
                   showCloseCode(w.id);
@@ -95,10 +102,25 @@ export const HandoverSheet: React.FC<{ workshop: OwnerWorkshop | null; onClose: 
             {h.oldPartsKept && <Text style={styles.note}>♻️ ඉවත් කළ පැරණි කොටස් ඔබට බැලීමට තබා ඇත.</Text>}
             {(w.progress.recon ?? []).filter((r) => r.status === 'approved').map((r) => (
               <Text key={r.id} style={styles.note}>
-                ♻️ ඔබගේ අවසරයෙන් Recon යෙදුවා: {r.partNames.join(', ')} · රු. {(r.genuinePrice - r.reconPrice).toLocaleString()} ක් අඩු විය
+                ♻️ ඔබගේ අවසරයෙන් Recon යෙදුවා: {r.partNames.join(', ')} · LKR {(r.genuinePrice - r.reconPrice).toLocaleString()} ක් අඩු විය
               </Text>
             ))}
           </View>
+          {!!h.lateLines?.length && (
+            <View style={styles.box}>
+              <Text style={styles.note}>🧾 ගරාජය භාරදීමේදී එකතු කළ දේ (ඇප් එකෙන් අනුමැතිය නොගත්): මේවා ඔබ එකඟ වුණා නම් පමණක් කේතය පෙන්වන්න.</Text>
+              {h.lateLines.map((l) => (
+                <View key={l.id}>
+                  <Row label={(l.kind === 'part' ? '🔩 ' : '🔧 ') + l.name} value={money(l.price)} />
+                  <Text style={styles.note}>
+                    {LATE_VIA_LABEL[l.via]}
+                    {l.receipt?.length ? ' · රිසිට් පත ඇමුණුම්' : ''}
+                  </Text>
+                  {!!l.receipt?.length && <PhotoStrip photos={l.receipt} height={56} />}
+                </View>
+              ))}
+            </View>
+          )}
           <View style={styles.box}>
             <Row label="🔧 වැඩ ගාස්තුව" value={money(h.bill.labour)} />
             <Row label="🔩 කොටස් (වෙනම බිල්පත)" value={money(h.bill.parts)} />

@@ -36,7 +36,7 @@ const DealCard: React.FC<{ d: DealView; now: number; onOpen: (d: DealView) => vo
           <Text style={styles.now}>{money(d.now)}</Text>
           <Text style={styles.was}>{money(d.was)}</Text>
         </View>
-        <Text style={styles.save}>රු. {d.saving.toLocaleString()} ඉතිරියි</Text>
+        <Text style={styles.save}>LKR {d.saving.toLocaleString()} ඉතිරියි</Text>
       </View>
     </Pressable>
   );

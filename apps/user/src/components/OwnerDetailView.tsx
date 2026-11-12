@@ -1,4 +1,4 @@
-import { EmptyState } from '@ongarage/shared';
+import { EmptyState, MoneyText } from '@ongarage/shared';
 import { useChat } from '../context/ChatContext';
 import { MOCK_GARAGES } from '../constants/mockData';
 import { VehicleLine } from '@ongarage/shared';
@@ -169,7 +169,7 @@ export const OwnerDetailView: React.FC<{
                         ★ {b.rating.toFixed(1)} ({b.reviews}) · km {b.distanceKm} · {ago(now - b.submittedAt)}
                       </Text>
                     </View>
-                    <Text style={styles.price}>{money(b.price)}</Text>
+                    <MoneyText style={styles.price}>{money(b.price)}</MoneyText>
                   </View>
                   <Text style={styles.sub}>
                     🛡️ මාස {b.warrantyMonths} වගකීම · ⏱️ පැය {b.estHours}
@@ -311,12 +311,6 @@ export const OwnerDetailView: React.FC<{
               <Icon name="x" size={16} color={Colors.textMain} />
             </Pressable>
             <Text style={styles.headerTitle}>{job ? 'රැකියා විස්තර' : 'වෙන්කිරීම් විස්තර'}</Text>
-            {(() => {
-              const bid = job?.bids.find((x) => x.id === job.acceptedBidId);
-              if (job && bid) return <ChatButton size={36} target={{ id: job.id, title: bid.garageName, subtitle: cat.name, phone: MOCK_GARAGES.find((g) => g.name === bid.garageName)?.phone, vehicle }} />;
-              if (booking) return <ChatButton size={36} target={{ id: booking.id, title: booking.garage.name, subtitle: cat.name, phone: booking.garage.phone, vehicle }} />;
-              return null;
-            })()}
             <View style={[styles.kindPill, booking ? styles.kindDirect : styles.kindBid]}>
               <Icon name={booking ? 'calendar' : 'tag'} size={12} color={booking ? Colors.success : Colors.primary} />
               <Text style={[styles.kindText, { color: booking ? Colors.success : Colors.primary }]}>{booking ? 'ඍජු වෙන්කිරීම' : 'ලංසු සඳහා'}</Text>
@@ -333,6 +327,15 @@ export const OwnerDetailView: React.FC<{
                 </Text>
                 <VehicleLine vehicle={vehicle} textStyle={styles.sub} extra={ago(now - (job?.submittedAt ?? booking!.requestedAt))} />
                 <TxnTag kind={job ? 'JOB' : 'BKG'} source={job ? job.id : booking!.id} />
+              </View>
+              {/* The way to reach the garage (the call icon with the unread count) sits at the right end of the job's title row. */}
+              <View style={styles.rowChat}>
+              {(() => {
+                const bid = job?.bids.find((x) => x.id === job.acceptedBidId);
+                if (job && bid) return <ChatButton size={36} target={{ id: job.id, title: bid.garageName, subtitle: cat.name, phone: MOCK_GARAGES.find((g) => g.name === bid.garageName)?.phone, vehicle }} />;
+                if (booking) return <ChatButton size={36} target={{ id: booking.id, title: booking.garage.name, subtitle: cat.name, phone: booking.garage.phone, vehicle }} />;
+                return null;
+              })()}
               </View>
             </View>
 
@@ -417,6 +420,8 @@ const styles = themedStyles(() =>
     flex1: { flex: 1 },
     root: { flex: 1, backgroundColor: pageBg() },
     row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    // The call icon stays level with the top of the title, not the middle of the row.
+    rowChat: { alignSelf: 'flex-start', paddingTop: 2 },
     rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
     actions: { flexDirection: 'row', gap: 8 },
     header: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 6, minHeight: 56, backgroundColor: Colors.bgCard, borderBottomWidth: 1, borderBottomColor: outline(), ...elevation1() },

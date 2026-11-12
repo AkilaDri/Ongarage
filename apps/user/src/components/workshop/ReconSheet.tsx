@@ -58,7 +58,7 @@ export const ReconSheet: React.FC<{ workshop: OwnerWorkshop | null; reconId?: st
           <View style={[styles.col, styles.colRecon]}>
             <Text style={styles.label}>Recon</Text>
             <Text style={[styles.price, { color: Colors.success }]}>{money(r.reconPrice)}</Text>
-            <Text style={styles.sub}>දැන් ලබා ගත හැක · රු. {(r.genuinePrice - r.reconPrice).toLocaleString()} අඩුයි</Text>
+            <Text style={styles.sub}>දැන් ලබා ගත හැක · LKR {(r.genuinePrice - r.reconPrice).toLocaleString()} අඩුයි</Text>
           </View>
         </View>
       </View>

@@ -914,17 +914,18 @@ const wa = themedStyles(() => {
   });
 });
 
-/** The round 💬 button on a job card: opens the chat; a red dot with a count shows unread messages. */
-export const ChatIconButton: React.FC<{ onPress: () => void; unread?: number; label?: string; /** The button's diameter (34 by default). */ size?: number; /** A tab on the card's top right corner instead of a round button. */ tag?: boolean; /** Just the icon, without the round tinted background. */ plain?: boolean }> = ({ onPress, unread = 0, label = 'Chat', size = 34, tag, plain }) => (
+/** The 💬 button on a job card: opens the chat; the count of unread messages takes the place of "ON" inside the icon (with none, it says ON). */
+export const ChatIconButton: React.FC<{ onPress: () => void; unread?: number; /** Of the unread, how many are calls from the other side (the rest are messages). */ calls?: number; label?: string; /** The button's diameter (34 by default). */ size?: number; /** A tab on the card's top right corner instead of a round button. */ tag?: boolean; /** Just the icon, without the round tinted background. */ plain?: boolean }> = ({ onPress, unread = 0, calls = 0, label = 'Chat', size = 34, tag, plain }) => {
+  // The call icon is the default. A call that came in shows the call icon with the number of calls; otherwise a message that came in shows the message icon with the number of messages.
+  const messages = Math.max(0, unread - calls);
+  const kind = calls === 0 && messages > 0 ? 'message' : 'call';
+  const count = kind === 'message' ? messages : calls;
+  return (
   <Pressable style={tag ? btn.tag : [btn.btn, size !== 34 && { width: size, height: size, borderRadius: size / 2 }, plain && { backgroundColor: 'transparent' }]} onPress={onPress} hitSlop={6} accessibilityLabel={label}>
-    <OnChatIcon width={tag || plain ? 40 : Math.round(size * 1.1)} color="#ffffff" fill={getThemeMode() === 'dark' ? '#3b6fd4' : '#1a73e8'} short />
-    {unread > 0 && (
-      <View style={[btn.badge, tag && { top: 1, right: 1 }]}>
-        <Text style={btn.badgeText}>{unread > 9 ? '9+' : unread}</Text>
-      </View>
-    )}
+    <OnChatIcon width={tag || plain ? 26 : Math.round(size * 0.75)} color={getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8'} outline kind={kind} short label={count > 0 ? (count > 9 ? '9+' : String(count)) : undefined} />
   </Pressable>
-);
+  );
+};
 
 const btn = themedStyles(() =>
   StyleSheet.create({
@@ -932,7 +933,5 @@ const btn = themedStyles(() =>
     icon: { fontSize: 16 },
     // A tab fixed in the card's top right corner: it follows the card's rounded corner and sits flush against it.
     tag: { position: 'absolute', top: 0, right: 0, zIndex: 3, height: 30, paddingHorizontal: 9, alignItems: 'center', justifyContent: 'center', borderTopRightRadius: 11, borderBottomLeftRadius: 12, backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe' },
-    badge: { position: 'absolute', top: -5, right: -5, minWidth: 17, height: 17, paddingHorizontal: 4, borderRadius: 9, borderWidth: 1.5, borderColor: Colors.bgCard, backgroundColor: '#ef4444', alignItems: 'center', justifyContent: 'center' },
-    badgeText: { fontSize: 9.5, fontWeight: '800', color: '#ffffff' },
   })
 );

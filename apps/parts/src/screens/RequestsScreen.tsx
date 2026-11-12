@@ -1,4 +1,4 @@
-import { VehicleLine } from '@ongarage/shared';
+import { SegmentTabs, VehicleLine } from '@ongarage/shared';
 import React, { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { ActionButton, categoryInfo, Colors, EmptyState, FONTS, GlassIcon, Icon, SwipeCard, themedStyles, vehicleIcon, type IconName, softEdge, softShadow, NAVY, softFill, getThemeMode, PinnedEdge, usePinnedEdge, ReferralBadge, InfoChip, CountdownPill } from '@ongarage/shared';
@@ -297,21 +297,7 @@ export const RequestsScreen: React.FC = () => {
     <View style={styles.flex1}>
       <View style={styles.tabBar}>
         <PinnedEdge progress={edge} />
-        {segments.map((t) => {
-          const active = segment === t.id;
-          return (
-            <Pressable key={t.id} style={[styles.tab, active && styles.tabActive]} onPress={() => setSegment(t.id)}>
-              <Text style={[styles.tabText, active && styles.tabTextActive]} numberOfLines={1}>
-                {t.label}
-              </Text>
-              {t.count > 0 && (
-                <View style={[styles.tabCount, active && styles.tabCountActive, t.alert && styles.tabCountAlert]}>
-                  <Text style={[styles.tabCountText, (active || t.alert) && { color: '#fff' }]}>{t.count}</Text>
-                </View>
-              )}
-            </Pressable>
-          );
-        })}
+        <SegmentTabs items={segments.map((s) => ({ id: s.id, label: s.label, count: s.count, alert: s.alert }))} value={segment} onChange={setSegment} />
       </View>
 
       <ScrollView style={styles.flex1} {...scrollProps} contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
@@ -359,7 +345,7 @@ const styles = themedStyles(() =>
     row: { flexDirection: 'row', alignItems: 'center', gap: 10 },
     rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
     actions: { flexDirection: 'row', gap: 8 },
-    tabBar: { zIndex: 5, flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 6 },
+    tabBar: { zIndex: 5, paddingHorizontal: 12, paddingTop: 10, paddingBottom: 6 },
     tab: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10, paddingHorizontal: 8, borderRadius: 22, backgroundColor: softFill() },
     tabActive: { backgroundColor: NAVY, shadowColor: NAVY, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.28, shadowRadius: 8, elevation: 4 },
     tabText: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
@@ -411,7 +397,7 @@ const styles = themedStyles(() =>
     chipAccent: { backgroundColor: 'rgba(56, 189, 248, 0.12)' },
     chipWarn: { backgroundColor: 'rgba(245, 158, 11, 0.14)' },
     chipText: { fontSize: 11, fontFamily: FONTS.bodyMedium, color: Colors.textMuted },
-    price: { fontSize: 14, fontFamily: FONTS.titleBold, color: Colors.success },
+    price: { alignSelf: 'flex-end', fontSize: 14, fontFamily: FONTS.titleBold, color: Colors.success },
     status: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: 10 },
     statusText: { fontSize: 10.5, fontFamily: FONTS.bodySemiBold },
     link: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.primary },

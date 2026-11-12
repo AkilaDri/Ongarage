@@ -61,7 +61,7 @@ export const PaymentReceivedSheet: React.FC<{
 
       <Text style={styles.label}>ඔබට ලැබුණු මුදල</Text>
       <View style={styles.box}>
-        <Text style={styles.currency}>රු.</Text>
+        <Text style={styles.currency}>LKR </Text>
         <TextInput style={styles.input} keyboardType="number-pad" value={amount} onChangeText={(t) => setAmount(t.replace(/[^0-9]/g, ''))} maxLength={8} accessibilityLabel="Amount received" />
       </View>
       <Pressable style={styles.full} onPress={() => setAmount(String(total))} accessibilityLabel="Received in full">

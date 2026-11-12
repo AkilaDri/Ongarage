@@ -44,6 +44,9 @@ const initialsOf = (name: string) =>
  * A garage as owners judge it: its level, the four rating dimensions, and reviews with
  * the garage's public replies. Every review comes from a job closed with an owner's code.
  */
+/** A review card in the overview's sideways rail (like the place cards on a map): about 80% of the screen so the next one peeks in. */
+const REVIEW_CARD_W = 290;
+
 export const GarageReviewsSheet: React.FC<{
   garage: Garage | null;
   onClose: () => void;
@@ -245,6 +248,7 @@ export const GarageReviewsSheet: React.FC<{
       onClose={onClose}
       hero={hero}
       compact
+      roomy
       noDividers
       footer={
         bid && onAccept ? (
@@ -284,7 +288,7 @@ export const GarageReviewsSheet: React.FC<{
             </View>
             {!!bid.travelFee && (
               <View style={[styles.bidHeroChip, { backgroundColor: 'rgba(245, 158, 11, 0.25)' }]} accessibilityLabel="Bid includes travel fee">
-                <Text style={styles.bidHeroChipText}>🚗 ගමන් ගාස්තුව ඇතුළුව · රු. {bid.travelFee.toLocaleString()}</Text>
+                <Text style={styles.bidHeroChipText}>🚗 ගමන් ගාස්තුව ඇතුළුව · LKR {bid.travelFee.toLocaleString()}</Text>
               </View>
             )}
           </View>
@@ -394,7 +398,7 @@ export const GarageReviewsSheet: React.FC<{
           <View key={gg.id} style={styles.gig} accessibilityLabel={`Gig ${gg.title}`}>
             <Image source={gg.image} style={styles.gigImg} resizeMode="cover" />
             <View style={[styles.gigTag, { backgroundColor: gg.color }]}>
-              <Text style={styles.gigTagText}>රු. {gg.price.toLocaleString()}</Text>
+              <Text style={styles.gigTagText}>LKR {gg.price.toLocaleString()}</Text>
             </View>
             <View style={styles.gigBody}>
               <Text style={styles.gigTitle} numberOfLines={2}>
@@ -416,6 +420,29 @@ export const GarageReviewsSheet: React.FC<{
           </View>
         ))}
       </ScrollView>
+
+
+
+      {/* A few of the reviews, at the foot of the overview: a touch on one goes to the main reviews tab. */}
+      {!!g.recentReviews?.length && (
+        <>
+          <View style={styles.sectionHead}>
+            <Text style={styles.sectionTitleBare}>⭐ සමාලෝචන</Text>
+            <Pressable onPress={() => setTab('reviews')} hitSlop={8} accessibilityLabel="See all reviews">
+              <Text style={styles.seeAll}>සියල්ල ›</Text>
+            </Pressable>
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} snapToInterval={REVIEW_CARD_W + 10} decelerationRate="fast" contentContainerStyle={styles.reviewRail}>
+          {g.recentReviews.slice(0, 5).map((r) => (
+            <Pressable key={r.id} style={styles.reviewSlot} onPress={() => setTab('reviews')} accessibilityLabel={`Reviews: ${r.customer}`}>
+              <View pointerEvents="none">
+                <ReviewCard review={{ id: r.id, name: r.customer, rating: r.rating, at: r.at, text: r.text, meta: '✓ කේතයෙන් අවසන් කළ රැකියාවක්', reply: r.reply ? { by: g.name, text: r.reply.text, at: r.reply.at } : undefined }} />
+              </View>
+            </Pressable>
+          ))}
+          </ScrollView>
+        </>
+      )}
 
       <Text style={styles.sectionTitle}>📍 ගරාජය ඇති ස්ථානය</Text>
       <View style={styles.mapCard}>
@@ -451,7 +478,7 @@ export const GarageReviewsSheet: React.FC<{
         <View style={styles.box}>
           <LevelBadge level={level.id} />
           <Text style={styles.sub}>{level.note} · OnGarage මට්ටම් තීරණය වන්නේ අවසන් කළ රැකියා, ශ්‍රේණිය සහ ගැටලු අනුපාතය අනුවය.</Text>
-          {level.id === 'premier' && <Text style={styles.protected}>🛡️ මෙම ගරාජයේ රැකියා OnGarage Guarantee මගින් ආරක්ෂිතයි (උපරිම රු. 50,000).</Text>}
+          {level.id === 'premier' && <Text style={styles.protected}>🛡️ මෙම ගරාජයේ රැකියා OnGarage Guarantee මගින් ආරක්ෂිතයි (උපරිම LKR 50,000).</Text>}
         </View>
       )}
 
@@ -572,7 +599,7 @@ export const GarageReviewsSheet: React.FC<{
                 <Text style={styles.rateName} numberOfLines={1}>
                   {r.icon} {r.name}
                 </Text>
-                <Text style={styles.ratePrice}>රු. {r.labour.toLocaleString()} සිට</Text>
+                <Text style={styles.ratePrice}>LKR {r.labour.toLocaleString()} සිට</Text>
               </View>
             ))}
             <Text style={styles.sub}>ශ්‍රම ගාස්තු පමණි (කොටස් වෙනම). නිශ්චිත මිල ලැබෙන්නේ වාහනය පරීක්ෂා කළ පසුවය. පැකේජ මිල ගණන් සඳහා “දළ විස්තරය” බලන්න.</Text>
@@ -661,13 +688,16 @@ const styles = themedStyles(() =>
     tabText: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
     tabTextOn: { color: '#1a73e8', fontFamily: FONTS.bodyBold },
     // The profile's sections breathe: 22px above every section heading and 4px more under it, and the cards / chips of a row sit 10px apart.
-    sectionTitle: { fontSize: 14, fontFamily: FONTS.bodyBold, color: Colors.primary, letterSpacing: 0.2, marginTop: 22, marginBottom: 4 },
+    sectionTitle: { fontSize: 14, fontFamily: FONTS.bodyBold, color: Colors.primary, letterSpacing: 0.2, marginTop: 30, marginBottom: 8 },
     hRow: { gap: 10, paddingRight: 10 },
     offerCard: { width: 150, padding: 8, borderRadius: 12, gap: 2 },
     offerCardIcon: { fontSize: 22 },
     offerCardTitle: { fontSize: 13, fontFamily: FONTS.titleBold, color: '#ffffff', lineHeight: 17 },
     offerCardDetail: { fontSize: 10.5, fontFamily: FONTS.bodyMedium, color: 'rgba(255,255,255,0.85)' },
-    sectionHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 22, marginBottom: 4 },
+    sectionHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 30, marginBottom: 8 },
+    reviewRail: { gap: 10, paddingRight: 16 },
+    reviewSlot: { width: REVIEW_CARD_W },
+    seeAll: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
     sectionTitleBare: { fontSize: 14, fontFamily: FONTS.bodyBold, color: Colors.primary, letterSpacing: 0.2 },
     jobsPill: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, backgroundColor: 'rgba(16, 185, 129, 0.15)' },
     jobsPillText: { fontSize: 11, fontFamily: FONTS.bodyBold, color: Colors.success },

@@ -313,7 +313,7 @@ export const PartsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       patchRequest(r.id, { status: 'received' });
       const total = orderTotal(o, q);
       addPartsCost(r.bookingId, total);
-      notify({ icon: '✅', title: 'කොටස් ලැබුණා', body: `රු. ${total.toLocaleString()} — වාහන හිමිකරුගේ කොටස් බිල්පතට එක් විය.`, tone: 'success' });
+      notify({ icon: '✅', title: 'කොටස් ලැබුණා', body: `LKR ${total.toLocaleString()} — වාහන හිමිකරුගේ කොටස් බිල්පතට එක් විය.`, tone: 'success' });
     },
     [addPartsCost, notify, patchOrder, patchRequest]
   );

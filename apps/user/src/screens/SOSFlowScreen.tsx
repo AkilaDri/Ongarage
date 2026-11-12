@@ -146,7 +146,7 @@ type TechnicianSeed = {
 const SOS_TECHNICIANS: TechnicianSeed[] = [
   { id: 't1', name: 'කසුන් ජයසිංහ', skill: 'එන්ජින් සහ විදුලි දෝෂ', van: 'සේවා යතුරුපැදිය', phone: '0712223344', rating: 4.8, reviews: 96, jobs: 412, years: 9, languages: 'සිංහල · English', responseMin: 6, distanceKm: 4.1, bearing: 70 },
   { id: 't2', name: 'චමින්ද සිල්වා', skill: 'ටයර්, බැටරි සහ ජම්ප් ස්ටාට්', van: 'Suzuki Every සේවා වෑන්', phone: '0773334455', rating: 4.7, reviews: 128, jobs: 530, years: 12, languages: 'සිංහල · தமிழ்', responseMin: 8, distanceKm: 5.2, bearing: 200 },
-  { id: 't3', name: 'රුවන් පෙරේරා', skill: 'බ්‍රේක්, ක්ලච් සහ ටෝවිං', van: 'Toyota Dyna ටෝ ට්‍රක්', phone: '0764445566', rating: 4.9, reviews: 74, jobs: 301, years: 7, languages: 'සිංහල · English', responseMin: 10, distanceKm: 6.4, bearing: 330 },
+  { id: 't3', name: 'LKR න් පෙරේරා', skill: 'බ්‍රේක්, ක්ලච් සහ ටෝවිං', van: 'Toyota Dyna ටෝ ට්‍රක්', phone: '0764445566', rating: 4.9, reviews: 74, jobs: 301, years: 7, languages: 'සිංහල · English', responseMin: 10, distanceKm: 6.4, bearing: 330 },
 ];
 
 const SOS_WORKSHOPS: WorkshopSeed[] = [
@@ -211,7 +211,7 @@ const EMERGENCY_NUMBERS = [
 // The SOS conditions the owner can read at any time.
 const SOS_TERMS = [
   'ඔබගේ SOS ඉල්ලීම ඔබේ ස්ථානයේ සිට සෙවුම් කලාපය (km 1 න් ආරම්භ වී, පුළුල් කරන සෑම වාරයකටම km 1 බැගින් වැඩි වේ) ඇතුළත ලියාපදිංචි ගරාජ සහ කාර්මිකයන් වෙත දැනුම් දෙයි.',
-  'පැමිණීමේ ගාස්තුව: OnGarage අනුමත රු. 500 ක්. කලාපය පුළුල් වන සෑම km 1 කටම රු. 250 ක් එකතු වේ. අලුත්වැඩියාවක් අවශ්‍ය නොවුණත් මෙය කාර්මිකයාට ගෙවිය යුතුය.',
+  'පැමිණීමේ ගාස්තුව: OnGarage අනුමත LKR 500 ක්. කලාපය පුළුල් වන සෑම km 1 කටම LKR 250 ක් එකතු වේ. අලුත්වැඩියාවක් අවශ්‍ය නොවුණත් මෙය කාර්මිකයාට ගෙවිය යුතුය.',
   'අලුත්වැඩියා ගාස්තුව: කාර්මිකයා ඇස්තමේන්තුව ඉදිරිපත් කර ඔබ අනුමත කළ පසු පමණක් අලුත්වැඩියාව ආරම්භ වේ. අනුමැතියෙන් ඔබ්බට වැඩ හෝ ගාස්තු කෙරෙන්නේ නැත.',
   'කාර්මිකයා පැමිණි බව ඔහුගේ app එකෙන් තහවුරු කරයි. එතැන් සිට මෙම SOS රැකියාව ඔහුට සම්බන්ධ වේ.',
   'රැකියාව අවසන් වන්නේ ඔබගේ ඉලක්කම් 6 ක කේතය (හෝ QR) කාර්මිකයා ඇතුළත් කළ පසුවය. කේතය වෙනත් අයට නොදෙන්න.',
@@ -251,7 +251,7 @@ const TRACKING_MS = 20000;
 const REPAIR_MS = 60000;
 
 const REWARDS = [
-  { title: 'පක්ෂපාතී ත්‍යාගය', description: 'ඊළඟ අලුත්වැඩියාවට රු. 250 ක වට්ටමක්', points: 250 },
+  { title: 'පක්ෂපාතී ත්‍යාගය', description: 'ඊළඟ අලුත්වැඩියාවට LKR 250 ක වට්ටමක්', points: 250 },
   { title: 'ඉක්මන් අලුත්වැඩියා ප්‍රසාද', description: 'නොමිලේ වාහන සෞඛ්‍ය පරීක්ෂාවක්', points: 100 },
   { title: 'මාර්ග වීරයා', description: 'OnGarage ලකුණු 500 ක් එකතු විය', points: 500 },
 ];
@@ -276,7 +276,7 @@ const BAD_TAGS = ['ප්‍රමාද විය', 'මිල වැඩිය�
 const ratingLabel = (r: number) =>
   r === 0 ? 'තරුවක් තට්ටු කරන්න' : r === 5 ? 'විශිෂ්ටයි!' : r === 4 ? 'ඉතා හොඳ සේවාවක්!' : r === 3 ? 'හොඳ සේවාවක්' : 'වැඩිදියුණු විය යුතුයි';
 
-const money = (n: number) => `රු. ${n.toLocaleString()}`;
+const money = (n: number) => `LKR ${n.toLocaleString()}`;
 
 interface SOSFlowScreenProps {
   location: PickedLocation;
@@ -1626,7 +1626,7 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
           bodySuffix="(අලුත්වැඩියාවක් අවශ්‍ය නොවුණත් මෙය අදාළ වේ.)"
         >
           <ActionButton label="අවලංගු" variant="ghost" compact onPress={() => setStep('confirm')} />
-          <ActionButton label={`SOS යවන්න · රු. ${money(BASE_FEE)}`} variant="sos" compact onPress={startSearch} />
+          <ActionButton label={`SOS යවන්න · LKR ${money(BASE_FEE)}`} variant="sos" compact onPress={startSearch} />
         </ModalCard>
       )}
 

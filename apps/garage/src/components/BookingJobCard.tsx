@@ -22,6 +22,7 @@ import { useGarage } from '../context/GarageContext';
 import { callCustomer, serviceMode } from '../utils/contact';
 import { formatDate, formatTime, money } from '../utils/format';
 import { JobCardUpdates } from './JobCardUpdates';
+import { VehiclePlateTap } from './VehiclePlateTap';
 import { ChatButton } from './ChatButton';
 import { useChat } from '../context/ChatContext';
 import { NoPhotoAnimation } from './NoPhotoAnimation';
@@ -80,7 +81,9 @@ export const BookingJobCard: React.FC<{ booking: Booking }> = ({ booking: b }) =
         </View>
         {/* The OnChat icon (the Home page's blue bubble) stands at the right end of the number plate's line. */}
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-          <LkPlate plate={b.vehicle.plate} stacked={b.vehicle.type === 'Motorbike'} />
+          <VehiclePlateTap booking={b}>
+            <LkPlate plate={b.vehicle.plate} stacked={b.vehicle.type === 'Motorbike'} />
+          </VehiclePlateTap>
           {/* At the right end: the call icon, and the OnChat icon right after it. */}
           <View style={{ marginLeft: 'auto', flexDirection: 'row', alignItems: 'center', gap: 10 }}>
             <Pressable

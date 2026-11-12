@@ -13,7 +13,7 @@ import {
   NotoSansSinhala_700Bold,
 } from '@expo-google-fonts/noto-sans-sinhala';
 import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
-import { Icon, Colors, DialogButton, FONTS, getThemeMode, Gradient, ModalCard, Pulse, themedStyles } from '@ongarage/shared';
+import { Icon, CalendarGridIcon, HeaderIconButton, pageHeaderBlue, Colors, DialogButton, FONTS, getThemeMode, Gradient, ModalCard, Pulse, themedStyles } from '@ongarage/shared';
 import { ThemeProvider, useTheme, setAppShape } from '@ongarage/shared';
 
 // This app has PickMe's shapes too (big rounded cards, pill buttons and chips, light edges, soft shadows), like the garage app. Set before the first screen is drawn.
@@ -46,6 +46,7 @@ import { QuoteOutline } from './components/home/QuoteOutline';
 import { GarageReviewsSheet } from './components/GarageReviewsSheet';
 import { MartHeader } from './components/mart/MartHeader';
 import { ChatHeaderButton } from './components/ChatHeaderButton';
+import { AppPageHeader } from './components/AppPageHeader';
 import { ServiceReminders } from './components/ServiceReminders';
 import { PaymentReminders } from './components/PaymentReminders';
 import { PayFirstSheet, PayStandingBanner } from './components/PayStandingViews';
@@ -380,7 +381,7 @@ function AppShell() {
     <ChatProvider inboxReturn={activeTab === 'home'}>
     <SafeAreaProvider>
       <StatusBar style={isDark ? "light" : "dark"} />
-      <SafeAreaView style={[styles.container, styles.containerFull]} edges={['top']}>
+      <SafeAreaView style={[styles.container, styles.containerFull, (activeTab === 'activity' || activeTab === 'mart') && { backgroundColor: pageHeaderBlue().from }]} edges={['top']}>
         {/* The header band (greeting, sky, active vehicle) is Home's alone: the other tabs start at the top of the screen. */}
         {activeTab === 'home' && (
           <View onLayout={(e) => setHeaderH(Math.round(e.nativeEvent.layout.height))}>
@@ -389,35 +390,29 @@ function AppShell() {
         )}
         {/* Every other tab starts with its title; it folds away with the page scroll like the old header did. */}
         {activeTab !== 'home' && activeTab !== 'bids' && !!TAB_TITLES[activeTab] && (
-          <Animated.View style={{ height: martHeaderCollapse.interpolate({ inputRange: [0, 1], outputRange: [PAGE_TITLE_H, 0] }), overflow: 'hidden' }}>
-            <View style={styles.pageTitleBar}>
-              {(() => {
-                // The icon of the tab that was chosen in the bottom bar, in its open (dark navy) colours.
-                const TabIcon = USER_TABS.find((t) => t.id === activeTab)?.icon;
-                return TabIcon ? <TabIcon active size={36} /> : null;
-              })()}
-              <Text style={styles.pageTitle} numberOfLines={1}>
-                {TAB_TITLES[activeTab]}
-              </Text>
-              {activeTab === 'mart' && martSegment === 'wall' && (
-                <>
-                  <View style={styles.flex1} />
-                  {/* The hamburger menu: the record of what I liked, commented on, shared and messaged on the On Feed. */}
-                  <Pressable style={styles.calendarBtn} onPress={openFeedRecord} accessibilityLabel="Open my On Feed record">
-                    <Text style={styles.hamburger}>☰</Text>
-                  </Pressable>
-                </>
-              )}
-              {activeTab === 'activity' && (
-                <>
-                  <View style={styles.flex1} />
-                  {/* The calendar: pick a day to see the repairs done on it. */}
-                  <Pressable style={styles.calendarBtn} onPress={openActivityCalendar} accessibilityLabel="Open calendar">
-                    <Icon name="calendar" size={26} color="#1a73e8" />
-                  </Pressable>
-                </>
-              )}
-            </View>
+          <Animated.View style={{ height: martHeaderCollapse.interpolate({ inputRange: [0, 1], outputRange: [PAGE_TITLE_H, 0] }), overflow: 'hidden', backgroundColor: pageHeaderBlue().from }}>
+            {(() => {
+              // The icon of the tab that was chosen in the bottom bar, in its open colours; the page's own button (the calendar, or the On Feed record) before the ONCHAT pill.
+              const TabIcon = USER_TABS.find((t) => t.id === activeTab)?.icon;
+              return (
+                <AppPageHeader
+                  title={TAB_TITLES[activeTab]!}
+                  subtitle={activeTab === 'activity' ? 'ඔබගේ රැකියා සහ ගනුදෙනු' : 'කොටස් වෙළඳපොළ'}
+                  icon={TabIcon ? <TabIcon active size={26} /> : undefined}
+                  actions={
+                    activeTab === 'mart' && martSegment === 'wall' ? (
+                      <HeaderIconButton onPress={openFeedRecord} label="Open my On Feed record" background={pageBg()}>
+                        <Text style={styles.hamburger}>☰</Text>
+                      </HeaderIconButton>
+                    ) : activeTab === 'activity' ? (
+                      <HeaderIconButton onPress={openActivityCalendar} label="Open calendar" background={pageBg()}>
+                        <CalendarGridIcon size={32} color={Colors.textMain} />
+                      </HeaderIconButton>
+                    ) : undefined
+                  }
+                />
+              );
+            })()}
           </Animated.View>
         )}
 
@@ -632,12 +627,14 @@ function AppShell() {
         <ServiceReminders />
         <PaymentReminders />
         {/* The chat icon stays put at the top right however the header folds away while the page scrolls. */}
-        <Animated.View
-          style={[styles.floatChat, activeTab !== 'home' && { top: -2 }, { opacity: chatHide.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }), transform: [{ translateY: Animated.multiply(activeTab === 'home' ? sheetScroll : martHeaderCollapse, chatDockDrop) }, { translateY: chatHide.interpolate({ inputRange: [0, 1], outputRange: [0, -24] }) }] }]}
-          pointerEvents={chatBlocked ? 'none' : 'box-none'}
-        >
-          <ChatHeaderButton scrolled={activeTab === 'home' ? sheetScroll : martHeaderCollapse} />
-        </Animated.View>
+        {activeTab !== 'bids' && activeTab !== 'activity' && activeTab !== 'mart' && (
+          <Animated.View
+            style={[styles.floatChat, activeTab === 'home' ? styles.floatChatHome : { top: -2 }, { opacity: chatHide.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }), transform: [{ translateY: activeTab === 'home' ? 0 : Animated.multiply(martHeaderCollapse, chatDockDrop) }, { translateY: chatHide.interpolate({ inputRange: [0, 1], outputRange: [0, -24] }) }] }]}
+            pointerEvents={chatBlocked ? 'none' : 'box-none'}
+          >
+            <ChatHeaderButton scrolled={activeTab === 'home' ? sheetScroll : martHeaderCollapse} />
+          </Animated.View>
+        )}
       </SafeAreaView>
 
       <Modal visible={sosStage === 'map'} animationType="fade" statusBarTranslucent onRequestClose={closeSOS}>
@@ -777,7 +774,9 @@ const styles = themedStyles(() => StyleSheet.create({
   pageTitle: { flexShrink: 1, fontSize: 18, fontFamily: FONTS.titleBold, color: Colors.textMain },
   pageTitleAction: { paddingHorizontal: 12, height: 32, borderRadius: 16, justifyContent: 'center', backgroundColor: '#e8f0fe', borderWidth: 1, borderColor: '#d2e3fc' },
   pageTitleActionText: { fontSize: 12, fontFamily: FONTS.bodyBold, color: '#1a73e8' },
-  floatChat: { position: 'absolute', top: 10, right: 14, zIndex: 50, width: 66, height: 66, backgroundColor: 'transparent' },
+  // On Home the OnChat pill floats at the bottom right, just above the tab bar (72px high).
+  floatChatHome: { top: 'auto', bottom: 84 },
+  floatChat: { position: 'absolute', top: 10, right: 14, zIndex: 50, height: 44, backgroundColor: 'transparent' },
   // The tab's screen overlaps the header band with rounded top corners.
   sheet: { flex: 1, backgroundColor: pageBg() },
   sosLayer: { zIndex: 50, backgroundColor: Colors.bgBody },

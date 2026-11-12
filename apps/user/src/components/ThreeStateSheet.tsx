@@ -41,8 +41,10 @@ export const ThreeStateSheet: React.FC<{
   onStateChange?: (state: SheetState) => void;
   /** Hands out the animated height (once), so something on the map can ride on the sheet's top edge. */
   onHeight?: (height: Animated.Value) => void;
+  /** Holds the sheet open to the top (no map to see behind it); it goes back to its middle height when released. */
+  locked?: boolean;
   children: (api: SheetApi) => React.ReactNode;
-}> = ({ areaHeight, peekHeight, collapsedRatio = 0.55, bottomInset = 0, expandedExtra = 0, peek, onStateChange, onHeight, children }) => {
+}> = ({ areaHeight, peekHeight, collapsedRatio = 0.55, bottomInset = 0, expandedExtra = 0, peek, onStateChange, onHeight, locked, children }) => {
   // The top height is the same before and after the bar folds: (smaller area + its extra) = (bigger area + nothing).
   const full = Math.max(areaHeight - bottomInset + expandedExtra, peekHeight + 120);
   const collapsed = Math.max(peekHeight + 60, Math.round(full * collapsedRatio));
@@ -67,7 +69,10 @@ export const ThreeStateSheet: React.FC<{
     return () => height.removeListener(id);
   }, [height]);
 
+  const lockedRef = useRef(!!locked);
+  lockedRef.current = !!locked;
   const animateTo = (target: SheetState, velocity = 0) => {
+    if (lockedRef.current) target = 'expanded';
     setState(target);
     stateRef.current = target;
     onStateChange?.(target);
@@ -77,6 +82,15 @@ export const ThreeStateSheet: React.FC<{
     }
     Animated.spring(height, { toValue: sizes.current[target], velocity, stiffness: 210, damping: 26, useNativeDriver: false }).start();
   };
+
+  const wasLocked = useRef(!!locked);
+  useEffect(() => {
+    if (!!locked !== wasLocked.current) {
+      wasLocked.current = !!locked;
+      animateTo(locked ? 'expanded' : 'collapsed');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [locked]);
 
   // Re-snap when the area is measured or changes.
   useEffect(() => {
@@ -147,6 +161,8 @@ export const ThreeStateSheet: React.FC<{
   tapRef.current = () => animateTo(stateRef.current === 'peek' ? 'collapsed' : stateRef.current === 'collapsed' ? 'expanded' : 'collapsed');
 
   const reveal = height.interpolate({ inputRange: [peekHeight, peekHeight + 90], outputRange: [0, 1], extrapolate: 'clamp' });
+  // Open to the top the sheet runs straight on from the title bar above it: no shadow line between them.
+  const lift = height.interpolate({ inputRange: [Math.max(full - 60, peekHeight + 1), Math.max(full, peekHeight + 2)], outputRange: [0.18, 0], extrapolate: 'clamp' });
   const radius = height.interpolate({ inputRange: [Math.max(full - 60, peekHeight + 1), Math.max(full, peekHeight + 2)], outputRange: [26, 0], extrapolate: 'clamp' });
   // The grip strip melts away as the sheet reaches the top, so the list sits right under the top bar.
   const gripRange = [Math.max(full - 70, peekHeight + 1), Math.max(full, peekHeight + 2)];
@@ -169,7 +185,7 @@ export const ThreeStateSheet: React.FC<{
   };
 
   return (
-    <Animated.View ref={sheetNode} style={[styles.sheet, NO_SELECT, { bottom: bottomInset, height, borderTopLeftRadius: radius, borderTopRightRadius: radius }]} {...pan.panHandlers}>
+    <Animated.View ref={sheetNode} style={[styles.sheet, NO_SELECT, { bottom: bottomInset, height, borderTopLeftRadius: radius, borderTopRightRadius: radius, shadowOpacity: lift, elevation: lift.interpolate({ inputRange: [0, 0.18], outputRange: [0, 14] }) }]} {...pan.panHandlers}>
       <Animated.View style={[styles.handleArea, { paddingVertical: gripSpace }]} {...handlePan.panHandlers} accessibilityLabel="Sheet handle">
         <Animated.View style={[styles.handle, { width: handleWidth, height: gripHeight, opacity: gripOpacity }]} />
       </Animated.View>

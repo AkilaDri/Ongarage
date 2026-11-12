@@ -1,5 +1,5 @@
 import React from 'react';
-import Svg, { Circle, Line, Path, Polyline } from 'react-native-svg';
+import Svg, { Circle, Line, Path, Polyline, Rect } from 'react-native-svg';
 
 // Minimal stroke icons (Feather geometry) so status icons share one weight and tint.
 export type IconName = 'check-circle' | 'clock' | 'alert-triangle' | 'chevron-down' | 'x' | 'inbox' | 'tag' | 'calendar' | 'trash' | 'phone' | 'camera' | 'send' | 'search' | 'arrow-left' | 'message-circle' | 'check-check' | 'paperclip' | 'mic' | 'smile' | 'image' | 'plus-circle';
@@ -38,10 +38,15 @@ export const Icon: React.FC<{ name: IconName; size?: number; color: string; stro
     )}
     {name === 'calendar' && (
       <>
-        <Path d="M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z" />
-        <Line x1="16" y1="2" x2="16" y2="6" />
-        <Line x1="8" y1="2" x2="8" y2="6" />
-        <Line x1="3" y1="10" x2="21" y2="10" />
+        <Rect x="3.5" y="5" width="17" height="15.5" rx="3.5" />
+        <Line x1="8" y1="3" x2="8" y2="7" />
+        <Line x1="16" y1="3" x2="16" y2="7" />
+        <Line x1="3.5" y1="10" x2="20.5" y2="10" />
+        <Circle cx="8.5" cy="14" r="1.05" fill={color} stroke="none" />
+        <Circle cx="12" cy="14" r="1.05" fill={color} stroke="none" />
+        <Circle cx="15.5" cy="14" r="1.05" fill={color} stroke="none" />
+        <Circle cx="8.5" cy="17.2" r="1.05" fill={color} stroke="none" />
+        <Circle cx="12" cy="17.2" r="1.05" fill={color} stroke="none" />
       </>
     )}
     {name === 'trash' && (

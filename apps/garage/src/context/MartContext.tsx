@@ -242,7 +242,7 @@ const shopReply = (offer: ShopOffer | undefined, quick?: PartsQuickAsk): string 
     case 'available':
       return offerReply(offer) === 'check' ? 'තවම පරීක්ෂා කරමින් — ටිකකින් දන්වමි.' : offer.available ? `ඔව්, ඇත — ${offer.qty} ක්.` : 'සමාවෙන්න, දැනට නැහැ.';
     case 'price':
-      return !offer.available ? 'කොටස නැති නිසා මිලක් නැහැ.' : offer.unitPrice > 0 ? `ඒකකයක් රු. ${offer.unitPrice.toLocaleString()} (මුළු රු. ${offer.total.toLocaleString()}).` : 'මිල කවුන්ටරයේදී කියමි — කොටස දැක ගෙන තීරණය කරන්න.';
+      return !offer.available ? 'කොටස නැති නිසා මිලක් නැහැ.' : offer.unitPrice > 0 ? `ඒකකයක් LKR ${offer.unitPrice.toLocaleString()} (මුළු LKR ${offer.total.toLocaleString()}).` : 'මිල කවුන්ටරයේදී කියමි — කොටස දැක ගෙන තීරණය කරන්න.';
     case 'fits':
       return offer.fitmentConfirmed ? 'ඔබගේ චැසි අංකයට ගැළපෙන බව මම තහවුරු කළා.' : 'චැසි / එන්ජින් අංකය එවන්න — ගැළපෙන්නේදැයි තහවුරු කර කියමි.';
     case 'holdIt':
@@ -250,7 +250,7 @@ const shopReply = (offer: ShopOffer | undefined, quick?: PartsQuickAsk): string 
     case 'photo':
       return 'දැන් කොටසේ ඡායාරූපයක් එවමි.';
     case 'delivery':
-      return offer.delivery ? `${offer.delivery.courier ?? 'අපගේ රියදුරා'} මගින් රු. ${offer.delivery.fee.toLocaleString()} · මිනිත්තු ${offer.delivery.etaMin}ක්.` : 'දැනට කවුන්ටරයෙන් පමණක් ලබා ගත හැක.';
+      return offer.delivery ? `${offer.delivery.courier ?? 'අපගේ රියදුරා'} මගින් LKR ${offer.delivery.fee.toLocaleString()} · මිනිත්තු ${offer.delivery.etaMin}ක්.` : 'දැනට කවුන්ටරයෙන් පමණක් ලබා ගත හැක.';
     default:
       return 'හරි, ස්තූතියි. විස්තර OnMart තුළම එවන්න.';
   }
@@ -345,7 +345,7 @@ export const MartProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setThreads((prev) => (prev.some((t) => t.id === key) ? prev.map((t) => (t.id === key ? { ...t, messages: [...t.messages, line] } : t)) : [...prev, { id: key, enquiryId: e.id, shopId: shop.id, messages: [line] }]));
           if (!announce) return;
           const where = `${shop.distanceKm < 10 ? shop.distanceKm.toFixed(1) : Math.round(shop.distanceKm)} km`;
-          if (p.kind === 'have') notify({ icon: '📨', title: `${shop.name} සතුව ${brief.name} ඇත`, body: `${offer.unitPrice ? `රු. ${offer.unitPrice.toLocaleString()}` : 'මිල කවුන්ටරයේදී'} · ${where}`, tone: 'success' });
+          if (p.kind === 'have') notify({ icon: '📨', title: `${shop.name} සතුව ${brief.name} ඇත`, body: `${offer.unitPrice ? `LKR ${offer.unitPrice.toLocaleString()}` : 'මිල කවුන්ටරයේදී'} · ${where}`, tone: 'success' });
           else if (p.kind === 'check') notify({ icon: '⏳', title: `${shop.name} පරීක්ෂා කර දන්වයි`, body: `${brief.name} · ${where}`, tone: 'primary' });
         };
         later(() => {
@@ -375,7 +375,7 @@ export const MartProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const line: ShopStockLine = { name: brief.name, partType: type, price: Math.round((partMarketPrice(brief.name, type) * candidate.stats.priceLevel) / 50) * 50, qty: brief.qty };
             const offer = makeOffer(cur.enquiry, brief, candidate, line);
             setOffers((prev) => [...prev.filter((o) => o.id !== offer.id), offer]);
-            notify({ icon: '🔔', title: `${candidate.name} දැන් ${brief.name} ලැයිස්තුගත කළා`, body: `ඔබගේ විවෘත පෝස්ට් එකට පිළිතුරක් · රු. ${offer.unitPrice.toLocaleString()}`, tone: 'success' });
+            notify({ icon: '🔔', title: `${candidate.name} දැන් ${brief.name} ලැයිස්තුගත කළා`, body: `ඔබගේ විවෘත පෝස්ට් එකට පිළිතුරක් · LKR ${offer.unitPrice.toLocaleString()}`, tone: 'success' });
           }, last + 24000);
         }
       }
@@ -628,13 +628,13 @@ export const MartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const first = offersOf[0];
       const rows = offersOf.map((o) => {
         const b = es.find((m) => m.enquiry.id === o.enquiryId)?.enquiry.briefs.find((x) => x.id === o.briefId);
-        return `• ${b?.name ?? 'කොටස'}${o.qty > 1 ? ` ×${o.qty}` : ''} — ${o.total ? `රු. ${o.total.toLocaleString()}` : 'මිල කවුන්ටරයේදී'}`;
+        return `• ${b?.name ?? 'කොටස'}${o.qty > 1 ? ` ×${o.qty}` : ''} — ${o.total ? `LKR ${o.total.toLocaleString()}` : 'මිල කවුන්ටරයේදී'}`;
       });
       const sum = offersOf.reduce((t, o) => t + o.total, 0);
       const line: PartsMessage = {
         id: `m-${Date.now()}-cart`,
         from: 'buyer',
-        text: `🛒 ඇණවුම තහවුරු කළා:\n${rows.join('\n')}${sum ? `\nඑකතුව රු. ${sum.toLocaleString()}` : ''}\nකරුණාකර කොටස් වල විස්තර (වර්ගය, අංකය) සහ තොගය තහවුරු කරන්න.`,
+        text: `🛒 ඇණවුම තහවුරු කළා:\n${rows.join('\n')}${sum ? `\nඑකතුව LKR ${sum.toLocaleString()}` : ''}\nකරුණාකර කොටස් වල විස්තර (වර්ගය, අංකය) සහ තොගය තහවුරු කරන්න.`,
         at: Date.now(),
       };
       const key = `${first.enquiryId}:${shopId}`;
@@ -672,7 +672,7 @@ export const MartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setStatus(cur.purchase.enquiryId, 'bought');
       // A part a garage asked the owner to buy: the garage is told the shop verified the purchase.
       if (cur.purchase.jobRef) markPartBought(cur.purchase.jobRef.bookingId, cur.purchase.jobRef.lineId, { shopName: cur.offer.shop.name, amount: cur.offer.total });
-      notify({ icon: '✅', title: 'කොටස මිලදී ගත්තා', body: `${cur.offer.shop.name} · ${cur.brief.name} · රු. ${cur.offer.total.toLocaleString()}`, tone: 'success' });
+      notify({ icon: '✅', title: 'කොටස මිලදී ගත්තා', body: `${cur.offer.shop.name} · ${cur.brief.name} · LKR ${cur.offer.total.toLocaleString()}`, tone: 'success' });
     },
     [markPartBought, moveStage, notify, setStatus]
   );

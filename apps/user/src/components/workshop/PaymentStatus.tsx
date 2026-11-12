@@ -37,7 +37,7 @@ const DisputeSheet: React.FC<{ workshop: OwnerWorkshop | null; onClose: () => vo
         />
       }
     >
-      <Text style={styles.text}>ගරාජය කියන්නේ ඔබ රු. {pay.received.toLocaleString('en-US')} ක් ගෙවා ඇති බවයි, ඉතිරි රු. {pay.balance.toLocaleString('en-US')}. වෙනස කුමක්ද?</Text>
+      <Text style={styles.text}>ගරාජය කියන්නේ ඔබ LKR {pay.received.toLocaleString('en-US')} ක් ගෙවා ඇති බවයි, ඉතිරි LKR {pay.balance.toLocaleString('en-US')}. වෙනස කුමක්ද?</Text>
       <TextInput style={styles.input} multiline placeholder="උදා: මම සම්පූර්ණ මුදල ගෙවා ඇත (රිසිට් අංකය…)" placeholderTextColor={Colors.textMuted} value={note} onChangeText={setNote} maxLength={200} accessibilityLabel="Payment dispute note" />
     </Sheet>
   );
@@ -158,7 +158,7 @@ export const PaymentStatus: React.FC<{ workshop: OwnerWorkshop; /** The short fo
           )}
 
           {pay.claim?.status === 'pending' ? (
-            <Text style={styles.text}>🧾 ඔබ රු. {pay.claim.amount.toLocaleString('en-US')} ගෙවූ බව දැනුම් දුන්නා — {w.garageName} තහවුරු කරන තුරු.</Text>
+            <Text style={styles.text}>🧾 ඔබ LKR {pay.claim.amount.toLocaleString('en-US')} ගෙවූ බව දැනුම් දුන්නා — {w.garageName} තහවුරු කරන තුරු.</Text>
           ) : (
             <>
               {pay.claim?.status === 'denied' && <Text style={[styles.text, { color: Colors.errorText }]}>✖ {w.garageName} කියන්නේ ගෙවීම ලැබී නැති බවයි.</Text>}

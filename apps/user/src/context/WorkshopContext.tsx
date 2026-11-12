@@ -182,6 +182,8 @@ type WorkshopState = {
   confirmCancel: (id: string, input: { rating?: number }) => void;
   /** The owner opened their code at handover; the garage scans it (simulated). */
   showCloseCode: (id: string) => void;
+  /** The owner opens the bill the garage sent: only then can their closing code be made. */
+  openBill: (id: string) => void;
   /** The owner dismissed the closing screen. */
   acknowledgeClosed: (id: string) => void;
   /** The owner confirms (or denies) that the vehicle was handed over to the garage. */
@@ -224,7 +226,7 @@ const simulatedDiagnosis = (w: OwnerWorkshop): DiagnosisReport => {
 };
 
 /** Who the simulated garage puts on the job. */
-const technicianFor = (garageName: string) => (garageName.startsWith('TOPCODE') ? 'කසුන් ජයසිංහ' : garageName.startsWith('Speed Works') ? 'රුවන් පෙරේරා' : 'චමින්ද සිල්වා');
+const technicianFor = (garageName: string) => (garageName.startsWith('TOPCODE') ? 'කසුන් ජයසිංහ' : garageName.startsWith('Speed Works') ? 'LKR න් පෙරේරා' : 'චමින්ද සිල්වා');
 
 /** Past jobs (closed with the owner's code), for history, receipts and warranty. */
 const pastJob = (o: {
@@ -367,7 +369,7 @@ export const WorkshopProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const patch = useCallback(
     (id: string, change: Partial<WorkshopProgress>) =>
       // A cancelled job, or one with a cancellation request open, is on hold: the simulated garage does nothing more on it.
-      setWorkshops((prev) => (prev[id] && ((!prev[id].progress.cancelled && !prev[id].progress.cancelRequest) || 'cancelled' in change || 'cancelRequest' in change) ? { ...prev, [id]: { ...prev[id], progress: { ...prev[id].progress, ...change } } } : prev)),
+      setWorkshops((prev) => (prev[id] && ((!prev[id].progress.cancelled && !prev[id].progress.cancelRequest) || 'cancelled' in change || 'cancelRequest' in change) ? { ...prev, [id]: { ...prev[id], progress: { ...prev[id].progress, ...change, ...(change.stage === 'repairing' && !prev[id].progress.workStartedAt ? { workStartedAt: Date.now() } : {}) } } } : prev)),
     []
   );
   const patchJob = useCallback(
@@ -429,7 +431,7 @@ export const WorkshopProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       patch(id, { payment: { ...pay, confirm: ok ? 'confirmed' : 'disputed', disputeNote: ok ? undefined : note?.trim() || undefined, decidedAt: Date.now() } });
       notify(
         ok
-          ? { icon: '✅', title: 'ගෙවීම් සටහන තහවුරු කළා', body: `ඉතිරි රු. ${pay.balance.toLocaleString('en-US')} ක් ${w.garageName} ට පොරොන්දු දිනයට ගෙවන්න.`, tone: 'success' }
+          ? { icon: '✅', title: 'ගෙවීම් සටහන තහවුරු කළා', body: `ඉතිරි LKR ${pay.balance.toLocaleString('en-US')} ක් ${w.garageName} ට පොරොන්දු දිනයට ගෙවන්න.`, tone: 'success' }
           : { icon: '⚠️', title: 'ගෙවීම් සටහනට එකඟ නොවන බව දැනුම් දුන්නා', body: `${w.garageName} ඔබගේ සටහන සලකා බලයි.`, tone: 'primary' }
       );
     },
@@ -480,7 +482,7 @@ export const WorkshopProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const pay = w?.progress.payment;
       if (!w || !pay || pay.balance <= 0) return;
       patch(id, { payment: reschedulePay(pay, at) });
-      notify({ icon: '📅', title: 'නව ගෙවීම් දිනය දැනුම් දුන්නා', body: `${w.garageName} ට ඉතිරි රු. ${pay.balance.toLocaleString('en-US')} ක් එදින ගෙවන බව දැන්වුවා.`, tone: 'primary' });
+      notify({ icon: '📅', title: 'නව ගෙවීම් දිනය දැනුම් දුන්නා', body: `${w.garageName} ට ඉතිරි LKR ${pay.balance.toLocaleString('en-US')} ක් එදින ගෙවන බව දැන්වුවා.`, tone: 'primary' });
     },
     [notify, patch]
   );
@@ -492,7 +494,7 @@ export const WorkshopProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         const pay = w.progress.payment;
         if (!pay || paymentDue(pay) !== 'overdue' || pay.confirm !== 'confirmed' || pay.missedAt || pay.claim?.status === 'pending') continue;
         patch(w.id, { payment: markPaymentMissed(pay) });
-        notify({ icon: '⏰', title: `${w.garageName}: ගෙවීම ලැබී නැත`, body: `ඉතිරි රු. ${pay.balance.toLocaleString('en-US')} ක් — ගෙවන්න හෝ නව දිනයක් දන්වන්න.`, tone: 'danger' });
+        notify({ icon: '⏰', title: `${w.garageName}: ගෙවීම ලැබී නැත`, body: `ඉතිරි LKR ${pay.balance.toLocaleString('en-US')} ක් — ගෙවන්න හෝ නව දිනයක් දන්වන්න.`, tone: 'danger' });
       }
     }, 9000);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -533,7 +535,7 @@ export const WorkshopProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         if (!cur || !req || req.status !== 'requested' || req.requestedAt !== requestedAt) return;
         const { amount, workDone } = cancelCompensationFor(cur.progress, cur.agreedPrice);
         patch(id, { cancelRequest: { ...req, status: 'quoted', compensation: amount, workDone, quotedAt: Date.now() } });
-        notify({ icon: '💰', title: `${cur.garageName} ඔබගේ ඉල්ලීමට පිළිතුරු දුන්නා`, body: `වන්දිය රු. ${amount.toLocaleString('en-US')} — සලකා බලා තීරණය කරන්න.`, tone: 'primary' });
+        notify({ icon: '💰', title: `${cur.garageName} ඔබගේ ඉල්ලීමට පිළිතුරු දුන්නා`, body: `වන්දිය LKR ${amount.toLocaleString('en-US')} — සලකා බලා තීරණය කරන්න.`, tone: 'primary' });
       }, 7000);
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -571,9 +573,9 @@ export const WorkshopProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const compensation = req.compensation ?? 0;
       patch(id, {
         cancelRequest: undefined,
-        cancelled: { at: Date.now(), by: 'owner', reason: req.reason, note: req.note, rating: input.rating, compensation, workDone: req.workDone, feeNote: compensation ? `ගරාජයට වන්දි රු. ${compensation.toLocaleString('en-US')} ගෙවිය යුතුයි.` : 'ගාස්තුවක් නැත.' },
+        cancelled: { at: Date.now(), by: 'owner', reason: req.reason, note: req.note, rating: input.rating, compensation, workDone: req.workDone, feeNote: compensation ? `ගරාජයට වන්දි LKR ${compensation.toLocaleString('en-US')} ගෙවිය යුතුයි.` : 'ගාස්තුවක් නැත.' },
       });
-      notify({ icon: '❌', title: 'රැකියාව අවලංගු කළා', body: `${w.garageName} ට වන්දිය රු. ${compensation.toLocaleString('en-US')} ගෙවන්න.`, tone: 'primary' });
+      notify({ icon: '❌', title: 'රැකියාව අවලංගු කළා', body: `${w.garageName} ට වන්දිය LKR ${compensation.toLocaleString('en-US')} ගෙවන්න.`, tone: 'primary' });
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [notify, patch]
@@ -624,6 +626,13 @@ export const WorkshopProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           },
         });
         notify({ icon: '🔑', title: `${w.garageName}: භාරදීමට සූදානම්`, body: 'වාහනය පරීක්ෂා කර, හරි නම් ඔබගේ කේතය පෙන්වන්න.', tone: 'success' });
+        // The garage sends the bill a few seconds later; the owner's code can be made only after they open it.
+        later(() => {
+          const cur = live.current[id];
+          if (!cur || cur.progress.stage !== 'readyForHandover' || cur.progress.billSharedAt) return;
+          patch(id, { billSharedAt: Date.now() });
+          notify({ icon: '📄', title: `${cur.garageName} බිල්පත එවා`, body: 'බිල්පත විවෘත කරන්න — එවිට ඔබගේ QR කේතය සාදයි.', tone: 'primary' });
+        }, 4000);
       }, REPAIR_MS);
     },
     [later, notify, patch]
@@ -733,7 +742,7 @@ export const WorkshopProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       });
       notify(
         approve
-          ? { icon: '✅', title: 'Recon අනුමත කළා', body: `රු. ${(r.genuinePrice - r.reconPrice).toLocaleString()} ක් අඩු වේ · ${w.garageName} අලුත්වැඩියාව කරගෙන යයි.`, tone: 'success' }
+          ? { icon: '✅', title: 'Recon අනුමත කළා', body: `LKR ${(r.genuinePrice - r.reconPrice).toLocaleString()} ක් අඩු වේ · ${w.garageName} අලුත්වැඩියාව කරගෙන යයි.`, tone: 'success' }
           : { icon: '⏳', title: 'Genuine බලාපොරොත්තුවෙන්', body: `${w.garageName} Genuine සොයා ගනී — අමතර දිනයක් ගත විය හැක.`, tone: 'primary' }
       );
       repairThenHandover(id);
@@ -759,7 +768,7 @@ export const WorkshopProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           if (c2?.status !== 'garageResponded') return;
           const split = claimSplit(amount);
           patch(id, { guaranteeClaim: { ...c2, status: 'approved', split: { garagePays: split.garagePays, guaranteePays: split.guaranteePays } } });
-          notify({ icon: '✅', title: 'Guarantee ඉල්ලීම අනුමතයි', body: `OnGarage රු. ${split.guaranteePays.toLocaleString()} · ගරාජය රු. ${split.garagePays.toLocaleString()} ගෙවයි.`, tone: 'success' });
+          notify({ icon: '✅', title: 'Guarantee ඉල්ලීම අනුමතයි', body: `OnGarage LKR ${split.guaranteePays.toLocaleString()} · ගරාජය LKR ${split.garagePays.toLocaleString()} ගෙවයි.`, tone: 'success' });
         }, CLAIM_REPLY_MS);
       }, CLAIM_REPLY_MS - 1000);
     },
@@ -832,14 +841,26 @@ export const WorkshopProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const w = live.current[id];
       if (!w || w.progress.stage !== 'awaitingApproval' || receiptPending(id)) return;
       patch(id, { stage: 'declined', closedAt: Date.now() });
-      notify({ icon: '↩️', title: 'රැකියාව අවලංගු කළා', body: `පරීක්ෂා ගාස්තුව රු. ${INSPECTION_FEE.toLocaleString()} පමණක් ගෙවිය යුතුයි.`, tone: 'primary' });
+      notify({ icon: '↩️', title: 'රැකියාව අවලංගු කළා', body: `පරීක්ෂා ගාස්තුව LKR ${INSPECTION_FEE.toLocaleString()} පමණක් ගෙවිය යුතුයි.`, tone: 'primary' });
     },
     [notify, patch]
+  );
+
+  const openBill = useCallback(
+    (id: string) => {
+      const w = live.current[id];
+      if (!w || !w.progress.billSharedAt || w.progress.billOpenedAt) return;
+      patch(id, { billOpenedAt: Date.now() });
+      // Opening the bill also counts as confirming that the vehicle was handed over.
+      if (!w.receiptConfirmed) patchJob(id, { receiptConfirmed: true });
+    },
+    [patch, patchJob]
   );
 
   const showCloseCode = useCallback(
     (id: string) => {
       if (receiptPending(id)) return;
+      if (!live.current[id]?.progress.billOpenedAt) return;
       later(() => {
         const w = live.current[id];
         if (!w || w.progress.stage !== 'readyForHandover') return;
@@ -928,7 +949,7 @@ export const WorkshopProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   );
 
   return (
-    <WorkshopContext.Provider value={{ workshops, startWorkshop, approveDiagnosis, decideExtra, decideRecon, claimGuarantee, rateJob, declineDiagnosis, changeDiagnosisDecision, changeExtraDecision, changeReconDecision, confirmPayment, claimPayment, reschedulePayment, replyToCustomerRating, disputeCustomerRating, requestFit, requestCancel, editCancelRequest, withdrawCancel, confirmCancel, showCloseCode, acknowledgeClosed, confirmReceived, reportProblem, escalate, claimWarranty, markPartBought }}>
+    <WorkshopContext.Provider value={{ workshops, openBill, startWorkshop, approveDiagnosis, decideExtra, decideRecon, claimGuarantee, rateJob, declineDiagnosis, changeDiagnosisDecision, changeExtraDecision, changeReconDecision, confirmPayment, claimPayment, reschedulePayment, replyToCustomerRating, disputeCustomerRating, requestFit, requestCancel, editCancelRequest, withdrawCancel, confirmCancel, showCloseCode, acknowledgeClosed, confirmReceived, reportProblem, escalate, claimWarranty, markPartBought }}>
       {children}
     </WorkshopContext.Provider>
   );

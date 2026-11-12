@@ -1,5 +1,5 @@
 import { GarageHistoryTag, useUsedGarages } from '../components/GarageHistory';
-import { LkPlate, bidWork } from '@ongarage/shared';
+import { Gradient, LkPlate, PhotoStrip, VoiceNotePlayer, bidWork, marketPrice, MoneyText } from '@ongarage/shared';
 import { cardGlow, elevation1, outline, pageBg } from '../utils/material';
 import React, { useEffect, useRef, useState } from 'react';
 import Svg, { Circle, Path, Polyline, Rect } from 'react-native-svg';
@@ -19,6 +19,8 @@ import { ThreeStateSheet, type SheetApi } from '../components/ThreeStateSheet';
 import { GARAGE_COVERS } from '../constants/home';
 import { CategoryPhoto } from '../components/home/CategoryPhoto';
 import { money } from '../utils/format';
+import { Sheet } from '../components/Sheet';
+import { sparePartLabel } from '../constants/labels';
 import { biddingEndsAt, isExpired, lowestBidId, useBids } from '../context/BidsContext';
 import { useUserLocation } from '../context/LocationContext';
 import { useWorkshops } from '../context/WorkshopContext';
@@ -70,6 +72,10 @@ interface BidsScreenProps {
 const PEEK_HEIGHT = 128;
 /** The floating tab bar the sheet must clear. */
 const NAV_HEIGHT = 72;
+/** A bid's price on its card: "LKR 12,500". */
+const lkr = (n: number) => `LKR ${Math.round(n).toLocaleString()}`;
+const ZERO = new Animated.Value(0);
+const ONE = new Animated.Value(1);
 /** 3,700 → "3.7k": a price short enough for a small badge. */
 const shortMoney = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(n % 1000 === 0 ? 0 : 1)}k` : String(n));
 
@@ -77,11 +83,14 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
   // "Garages I have used": narrows the received bids to the garages the owner has finished a job with before.
   const isUsed = useUsedGarages();
   const [usedOnly, setUsedOnly] = useState(false);
-  const { jobs, acceptBid, removeBid } = useBids();
+  const [bidSort, setBidSort] = useState<BidSort>('price');
+  const { jobs, acceptBid, removeBid, removeJob, postJob } = useBids();
   const { workshops } = useWorkshops();
   const { findVehicle } = useVehicles();
   const user = useUserLocation();
   const [now, setNow] = useState(Date.now());
+  // A waiting or expired job the owner is about to delete (asked first).
+  const [deleting, setDeleting] = useState<RepairJob | null>(null);
   const [confirming, setConfirming] = useState<{ job: RepairJob; bid: Bid } | null>(null);
   const standing = usePayStanding();
   const askAccept = (v: { job: RepairJob; bid: Bid }) => (standing.limited ? onPayFirst() : setConfirming(v));
@@ -89,14 +98,37 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
   // Height of the tab (the map and the sheet's expanded height).
   const [area, setArea] = useState(0);
   const [sheetH, setSheetH] = useState<Animated.Value | null>(null);
+  // How close to the top the sheet is (0 = low, 1 = open): the heading, the tabs and the map controls fade with the sheet's height instead of popping when it settles.
+  const topFull = Math.max(area - NAV_HEIGHT, PEEK_HEIGHT + 120);
+  const topP = sheetH ? sheetH.interpolate({ inputRange: [topFull - 140, topFull], outputRange: [0, 1], extrapolate: 'clamp' }) : ZERO;
+  const mapP = sheetH ? sheetH.interpolate({ inputRange: [topFull - 130, topFull - 60], outputRange: [1, 0], extrapolate: 'clamp' }) : ONE;
   const [sheetState, setSheetState] = useState<'peek' | 'collapsed' | 'expanded'>('collapsed');
   // The map keeps the height the tab has with the top band showing (the smallest it ever measures) and stays anchored to the
   // bottom: when the band folds away and the tab grows upward, the map does not move or re-centre; only the sheet rises over it.
   const [mapArea, setMapArea] = useState(0);
+  // An old job the owner wants to put out again: its summary opens first (post it as it was, or edit it), not an empty form.
+  const [repub, setRepub] = useState<RepairJob | null>(null);
   const [bidView, setBidView] = useState<{ job: RepairJob; bid: Bid } | null>(null);
   const [booked, setBooked] = useState<{ job: RepairJob; bid: Bid } | null>(null);
   // The bid whose pin on the map was touched: shown as a small record card over the map.
   const [pinBid, setPinBid] = useState<{ job: RepairJob; bid: Bid } | null>(null);
+  // The garage's card on the map closes as soon as the sheet is pulled up over it.
+  const pinOpenH = useRef<number | null>(null);
+  const lastSheetH = useRef(0);
+  useEffect(() => {
+    if (!sheetH) return;
+    const id = sheetH.addListener(({ value }) => {
+      lastSheetH.current = value;
+      if (pinOpenH.current !== null && value > pinOpenH.current + 8) {
+        pinOpenH.current = null;
+        setPinBid(null);
+      }
+    });
+    return () => sheetH.removeListener(id);
+  }, [sheetH]);
+  useEffect(() => {
+    pinOpenH.current = pinBid ? lastSheetH.current : null;
+  }, [pinBid]);
   // Swipe (or tap the header of) a job card for everything about it.
   const [detailId, setDetailId] = useState<string | null>(null);
   const pressStart = useRef({ x: 0, y: 0 });
@@ -148,10 +180,18 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
   ];
 
   /** The details link sits in the card's bottom right corner. */
-  const detailsCorner = (job: RepairJob) => (
-    <Pressable style={styles.detailsCorner} onPress={() => setDetailId(job.id)} hitSlop={8} accessibilityLabel="Job details">
-      <Text style={styles.detailsLink}>විස්තර ›</Text>
-    </Pressable>
+  /** The details link at the end of a card; with `onDelete` a delete link stands in front of it. */
+  const detailsCorner = (job: RepairJob, onDelete?: () => void) => (
+    <View style={styles.detailsCorner}>
+      {!!onDelete && (
+        <Pressable onPress={onDelete} hitSlop={8} accessibilityLabel="Delete this job">
+          <Text style={styles.deleteLink}>🗑️ මකන්න</Text>
+        </Pressable>
+      )}
+      <Pressable onPress={() => setDetailId(job.id)} hitSlop={8} accessibilityLabel="Job details">
+        <Text style={styles.detailsLink}>විස්තර ›</Text>
+      </Pressable>
+    </View>
   );
   const jobHeader = (job: RepairJob, badge: React.ReactNode) => {
     const cat = SERVICE_CATEGORIES.find((c) => c.id === job.categoryId);
@@ -186,6 +226,73 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
     );
   };
 
+  /** The summary of a job being put out again: what was posted, then "post again" as it was or "edit first". */
+  const renderRepublish = () => {
+    const job = repub;
+    const vehicle = job ? findVehicle(job.vehicleId) : undefined;
+    const rows: [string, string][] = job
+      ? [
+          ['🛠️ සේවාව', SERVICE_CATEGORIES.find((c) => c.id === job.categoryId)?.name ?? 'Service'],
+          ['🚗 වාහනය', vehicle ? `${vehicle.name} · ${vehicle.plate}` : '—'],
+          ['🔩 කොටස්', sparePartLabel(job.sparePart)],
+          ['📍 ස්ථානය', job.doorstep ? `ගරාජය ඔබ ළඟට එයි · ${job.address}` : job.address],
+          ['⏱️ ලංසු කාලය', `පැය ${job.biddingHours}`],
+        ]
+      : [];
+    return (
+      <Sheet
+        visible={!!job}
+        title="නැවත පළ කරන්න"
+        subtitle="ඔබ පළ කළ ලංසු ඉල්ලීමේ සාරාංශය"
+        onClose={() => setRepub(null)}
+        footer={
+          job ? (
+            <View style={styles.repubBtns}>
+              <ActionButton
+                label="නැවත පළ කරන්න"
+                icon="🔁"
+                variant="sos"
+                onPress={() => {
+                  const { id, submittedAt, bids, acceptedBidId, ...rest } = job;
+                  setRepub(null);
+                  postJob({ ...rest, replacesJobId: id });
+                }}
+              />
+              <ActionButton
+                label="සංස්කරණය කර පළ කරන්න"
+                icon="📝"
+                variant="ghost"
+                onPress={() => {
+                  const j = job;
+                  setRepub(null);
+                  onRepublish(draftFor(j));
+                }}
+              />
+            </View>
+          ) : undefined
+        }
+      >
+        {job && (
+          <>
+            <View style={styles.repubCard}>
+              {rows.map(([k, v]) => (
+                <View key={k} style={styles.repubRow}>
+                  <Text style={styles.repubKey}>{k}</Text>
+                  <Text style={styles.repubVal}>{v}</Text>
+                </View>
+              ))}
+            </View>
+            <Text style={styles.repubDesc}>{job.description}</Text>
+            <Text style={styles.repubSection}>ඡායාරූප {job.photos?.length ? `(${job.photos.length})` : ''}</Text>
+            <PhotoStrip photos={job.photos ?? []} height={110} emptyText="ඡායාරූප එවා නැත" />
+            <Text style={styles.repubSection}>හඬ සටහන් {job.voiceNotes?.length ? `(${job.voiceNotes.length})` : ''}</Text>
+            {job.voiceNotes?.length ? job.voiceNotes.map((n, i) => <VoiceNotePlayer key={n.id} note={n} index={i} />) : <Text style={styles.repubDesc}>හඬ සටහන් එවා නැත</Text>}
+          </>
+        )}
+      </Sheet>
+    );
+  };
+
   const draftFor = (job: RepairJob): JobDraft => ({
     categoryId: job.categoryId,
     description: job.description,
@@ -199,58 +306,72 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
   };
 
   const renderBidCard = (job: RepairJob, bid: Bid) => {
+    const market = marketNote(job, bid);
     const isLowest = bid.id === lowestBidId(job.bids);
     const isAccepted = job.acceptedBidId === bid.id;
     const garage = garageForBid(bid);
     return (
       <SwipeCard key={bid.id} style={[styles.bidCard, isLowest && !job.acceptedBidId && styles.bidCardLowest, isAccepted && styles.bidCardAccepted]} onOpen={() => setBidView({ job, bid })}>
-        <Pressable onPress={() => setBidView({ job, bid })} accessibilityLabel={`${bid.garageName} bid details`}>
-          <Image source={GARAGE_COVERS[garage.id]} style={styles.bidCover} resizeMode="cover" />
-          {!isAccepted && (
-            <Pressable style={styles.deleteBtn} onPress={() => removeBidAndPin(job.id, bid.id)} hitSlop={8} accessibilityLabel={`Delete bid from ${bid.garageName}`}><Icon name="trash" size={15} color="#ffffff" /></Pressable>
-          )}
-          <View style={styles.pricePill}>
-            <Text style={styles.priceText}>{bid.travelFee ? '🚗 ' : ''}{money(bid.price)}</Text>
-          </View>
-          {isLowest && !job.acceptedBidId && (
-            <View style={styles.lowestTag}>
-              <Text style={styles.lowestTagText}>💰 අඩුම ලංසුව</Text>
-            </View>
-          )}
-          <View style={styles.bidBody}>
-            <Text style={styles.cardTitle} numberOfLines={1}>
-              {bid.level ? `${LEVELS.find((l) => l.id === bid.level)?.icon} ` : ''}
+        {/* Laid out like a Facebook post: who (photo, name, when) with a "more" menu, the content, a counts line, a rule, then the equal action buttons. */}
+        <View style={styles.fbHead}>
+          <Image source={GARAGE_COVERS[garage.id]} style={styles.bidAvatar} accessibilityLabel={`${bid.garageName} photo`} />
+          <View style={styles.flex1}>
+            {/* Like a profile name on a post: bold, with the level as a small badge after it (where a page shows its tick). */}
+            <View style={styles.fbNameRow}>
+            <Text style={[styles.fbName, styles.fbNameText]} numberOfLines={1}>
               {bid.garageName}
+              {bid.level ? <Text style={styles.fbBadge}>{` ${LEVELS.find((l) => l.id === bid.level)?.icon}`}</Text> : null}
             </Text>
-            <View style={styles.metaRow}>
-              <Text style={styles.metaItem}>
-                <Text style={styles.star}>★ {bid.rating.toFixed(1)}</Text> ({bid.reviews})
-              </Text>
-              <Text style={styles.metaItem}>📍 {bid.distanceKm} km</Text>
-              <Text style={styles.metaItem}>🛡️ මාස {bid.warrantyMonths}</Text>
-              <Text style={styles.metaItem}>⏱️ පැය {bid.estHours}</Text>
+            {/* The New / returning tag stands right after the name. */}
+            <GarageHistoryTag garage={garage} part="tag" />
             </View>
-            <GarageHistoryTag garage={garage} />
-            {!!bid.travelFee && (
-              <View style={styles.travelNote} accessibilityLabel="Bid includes travel fee">
-                <Text style={styles.travelNoteTitle}>🚗 දුර ගමන් ගාස්තුව ඇතුළු ලංසුවකි</Text>
-                <Text style={styles.travelNoteText}>
-                  ගරාජය ඔබෙන් km {bid.distanceKm} ක් ඈතයි · රැකියාව {money(bidWork(bid))} + ගමන් වන්දිය {money(bid.travelFee)}
-                </Text>
-              </View>
-            )}
+            <Text style={styles.fbRating} numberOfLines={1}>
+              <Text style={styles.fbStars}>{'★'.repeat(Math.round(bid.rating))}{'☆'.repeat(5 - Math.round(bid.rating))}</Text> {bid.rating.toFixed(1)} ({bid.reviews})
+            </Text>
           </View>
+          {!isAccepted && (
+            <Pressable style={styles.fbMore} onPress={() => removeBidAndPin(job.id, bid.id)} hitSlop={8} accessibilityLabel={`Delete bid from ${bid.garageName}`}>
+              <Icon name="trash" size={16} color={Colors.textMuted} />
+            </Pressable>
+          )}
+        </View>
+        <Text style={styles.fbSubLine} numberOfLines={1}>
+          {ago(now - bid.submittedAt)} · {SERVICE_CATEGORIES.find((c) => c.id === job.categoryId)?.name ?? 'Service'}{isLowest && !job.acceptedBidId ? ' · 💰 අඩුම ලංසුව' : ''}
+        </Text>
+        <Pressable style={styles.fbContent} onPress={() => setBidView({ job, bid })} accessibilityLabel={`${bid.garageName} bid details`}>
+          <MoneyText style={styles.fbPrice}>{bid.travelFee ? '🚗 ' : ''}{lkr(bid.price)}</MoneyText>
+          <Text style={styles.fbText}>
+            🛡️ මාස {bid.warrantyMonths} වගකීම · ⏱️ පැය {bid.estHours}{bid.travelFee ? ` · 🚗 ගමන් ගාස්තුව ${money(bid.travelFee)} ඇතුළුව` : ''}
+          </Text>
+          <GarageHistoryTag garage={garage} part="line" />
+          {!!market && <Text style={[styles.marketNote, market.cheaper ? styles.marketCheaper : styles.marketDearer]}>{market.text}</Text>}
+          {!!bid.travelFee && (
+            <View style={styles.travelNote} accessibilityLabel="Bid includes travel fee">
+              <Text style={styles.travelNoteTitle}>🚗 දුර ගමන් ගාස්තුව ඇතුළු ලංසුවකි</Text>
+              <Text style={styles.travelNoteText}>
+                ගරාජය ඔබෙන් km {bid.distanceKm} ක් ඈතයි · රැකියාව {money(bidWork(bid))} + ගමන් වන්දිය {money(bid.travelFee)}
+              </Text>
+            </View>
+          )}
         </Pressable>
-        <View style={styles.bidAction}>
+        <View style={styles.fbCounts}>
+          <Text style={styles.fbCountText}>📍 {bid.distanceKm} km</Text>
+        </View>
+        <View style={styles.fbActions}>
+          <Pressable style={styles.fbAction} onPress={() => setBidView({ job, bid })} accessibilityLabel="Open bid details">
+            <Text style={styles.fbActionText}>📄 විස්තර</Text>
+          </Pressable>
+          <Pressable style={styles.fbAction} onPress={() => Linking.openURL(directionsUrl(bid.coords, user.coords))} accessibilityLabel="Directions to the garage">
+            <Text style={styles.fbActionText}>🗺️ දිශාවන්</Text>
+          </Pressable>
           {isAccepted ? (
-            <View style={styles.rowBetween}>
-              <Text style={[styles.cardSub, { color: Colors.successText }]}>✓ වෙන් කිරීම තහවුරුයි</Text>
-              <Pressable onPress={() => Linking.openURL(directionsUrl(bid.coords, user.coords))}>
-                <Text style={styles.link}>🗺️ දිශාවන්</Text>
-              </Pressable>
+            <View style={styles.fbAction}>
+              <Text style={[styles.fbActionText, { color: Colors.successText }]}>✓ තහවුරුයි</Text>
             </View>
           ) : (
-            <ActionButton label={isLowest ? 'අඩුම ලංසුව පිළිගන්න' : 'ලංසුව පිළිගන්න'} variant={isLowest ? 'success' : 'primary'} compact onPress={() => askAccept({ job, bid })} />
+            <Pressable style={styles.fbAction} onPress={() => askAccept({ job, bid })} accessibilityLabel={`Accept the bid of ${bid.garageName}`}>
+              <Text style={[styles.fbActionText, styles.fbActionPrimary]}>✓ පිළිගන්න</Text>
+            </Pressable>
           )}
         </View>
       </SwipeCard>
@@ -269,7 +390,7 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
             {bid.garageName}
           </Text>
           <Text style={styles.bidRowSub} numberOfLines={1}>
-            ★ {bid.rating.toFixed(1)} ({bid.reviews}) · km {bid.distanceKm} · මාස {bid.warrantyMonths}{isLowest && !job.acceptedBidId ? ' · 💰 අඩුම' : ''}
+            ★ {bid.rating.toFixed(1)} ({bid.reviews}) · km {bid.distanceKm} · මාස {bid.warrantyMonths}{isLowest && !job.acceptedBidId ? ' · 💰 අඩුම' : ''}{marketNote(job, bid) ? ` · ${marketNote(job, bid)!.short}` : ''}
           </Text>
         </View>
         <Text style={styles.bidRowPrice}>{money(bid.price)}</Text>
@@ -284,37 +405,80 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
     );
   };
 
-  // Above the tabs: the cards / rows hamburger, then the map icon, which lowers the sheet so the map shows in full.
-  const renderMapButton = (api: SheetApi) => (
-    <View style={styles.mapRow}>
-      {tab === 'received' && (
-        <Pressable
-          style={[styles.mapViewBtn, rowsView && styles.mapViewBtnOn]}
-          onPress={onToggleRows}
-          hitSlop={6}
-          accessibilityRole="button"
-          accessibilityState={{ selected: rowsView }}
-          accessibilityLabel={rowsView ? 'Show the bids as cards' : 'Show all the bids as rows'}
-        >
-          <Text style={styles.sheetHamburger}>{rowsView ? '▤' : '☰'}</Text>
-        </Pressable>
-      )}
-      <Pressable style={styles.mapViewBtn} onPress={api.minimize} hitSlop={6} accessibilityRole="button" accessibilityLabel="See the whole map">
-        <Svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="#1a73e8" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
-          <Path d="M9 4 3 6.5v13L9 17l6 3 6-2.5v-13L15 7 9 4Z" />
-          <Path d="M9 4v13M15 7v13" />
-        </Svg>
-      </Pressable>
-    </View>
+  // The three tabs (received / waiting / expired): over the map while the sheet is low, in the sheet once it is open to the top.
+  const renderTabs = () => (
+    <>
+          {tabs.map((t) => {
+            const active = tab === t.id;
+            return (
+              <Pressable
+                key={t.id}
+                style={[styles.segChip, active && styles.segChipOn]}
+                onPress={() => onTabChange(t.id)}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: active }}
+              >
+                <t.icon active={active} size={20} />
+                <Text style={[styles.segChipText, active && styles.segChipTextOn]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
+                  {t.label}
+                </Text>
+                {t.count > 0 && (
+                  <PopCount value={t.count} style={styles.tabCount} textStyle={styles.tabCountText} />
+                )}
+              </Pressable>
+            );
+          })}
+    </>
   );
 
+  // The cards / rows hamburger and the map icon (which lowers the sheet so the map shows in full): at the end of the sheet's top line while the map is in view, in the app's
+  // "Bids" heading row at the top of the bar once the sheet is open to the top.
+  const iconButtons = (api: SheetApi) => (
+    <>
+      <Pressable
+        style={[styles.mapViewBtn, rowsView && styles.mapViewBtnOn]}
+        onPress={onToggleRows}
+        hitSlop={6}
+        accessibilityRole="button"
+        accessibilityState={{ selected: rowsView }}
+        accessibilityLabel={rowsView ? 'Show the bids as cards' : 'Show all the bids as rows'}
+      >
+        <Text style={styles.sheetHamburger}>{rowsView ? '▤' : '☰'}</Text>
+      </Pressable>
+      {/* The close mark lowers the sheet to its strip, so the whole map shows (from the top or from the middle). */}
+      <Pressable style={styles.closeCircle} onPress={api.minimize} hitSlop={6} accessibilityRole="button" accessibilityLabel="Close, lower the sheet">
+        <Svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="#1a73e8" strokeWidth={2.6} strokeLinecap="round">
+          <Path d="M6 6l12 12M18 6 6 18" />
+        </Svg>
+      </Pressable>
+    </>
+  );
+  const renderMapButton = (api: SheetApi) => {
+    return (
+      <View style={[styles.mapRow, styles.mapRowWide]}>
+        {tab === 'received' && (
+          <FreeQuoteTag onPress={onNewBid} />
+        )}
+        {tab === 'received' && iconButtons(api)}
+      </View>
+    );
+  };
   // Under the tabs, pinned while the list scrolls: the used-garages filter (received bids).
   const renderTools = () =>
-    tab === 'received' && received.some((j) => j.bids.some((b) => isUsed(garageForBid(b)))) ? (
+    tab === 'received' && received.some((j) => j.bids.length > 0) ? (
       <View style={styles.receivedTools}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.sortRow}>
+          {SORTS.map((s) => (
+            <Pressable key={s.id} style={[styles.sortChip, bidSort === s.id && styles.sortChipOn]} onPress={() => setBidSort(s.id)} accessibilityRole="button" accessibilityState={{ selected: bidSort === s.id }} accessibilityLabel={`Sort bids: ${s.label}`}>
+              <Text style={[styles.sortText, bidSort === s.id && styles.sortTextOn]}>{s.label}</Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+        {received.some((j) => j.bids.some((b) => isUsed(garageForBid(b)))) && (
         <Pressable style={[styles.usedChip, usedOnly && styles.usedChipOn]} onPress={() => setUsedOnly((v) => !v)} accessibilityRole="button" accessibilityState={{ selected: usedOnly }} accessibilityLabel="Only garages I have used">
           <Text style={[styles.usedChipText, usedOnly && styles.usedChipTextOn]}>↻ මා කලින් භාවිතා කළ ගරාජ පමණක්</Text>
         </Pressable>
+        )}
       </View>
     ) : null;
 
@@ -324,7 +488,7 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
         <EmptyState icon="📥" title="තවම ලංසු ලැබී නැත" text="ගරාජ ඔබගේ රැකියාවලට ලංසු තැබූ විට ඒවා මෙහි පෙන්වනු ඇත." />
       ) : (
         received.map((job) => {
-          const shown = (job.acceptedBidId ? job.bids.filter((b) => b.id === job.acceptedBidId) : [...job.bids].sort((a, b) => a.price - b.price)).filter((b) => !usedOnly || isUsed(garageForBid(b)));
+          const shown = (job.acceptedBidId ? job.bids.filter((b) => b.id === job.acceptedBidId) : sortBids(job.bids, bidSort)).filter((b) => !usedOnly || isUsed(garageForBid(b)));
           return (
             <View key={job.id} style={styles.card}>
               {jobHeader(
@@ -382,9 +546,9 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
               label={isPending ? 'සාරාංශය බලන්න / සංස්කරණය' : 'නැවත පළ කරන්න'}
               icon={isPending ? '📝' : '🔁'}
               variant={isPending ? 'primary' : 'sos'}
-              onPress={() => onRepublish(draftFor(job))}
+              onPress={() => setRepub(job)}
             />
-            {detailsCorner(job)}
+            {detailsCorner(job, () => setDeleting(job))}
           </View>
         );
       })
@@ -411,6 +575,7 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
       }}
     >
       {/* The map fills the whole tab; the sheet slides over it. */}
+      {tab === 'received' && (
       <GoogleMap
         style={mapArea > 0 ? [styles.mapAnchored, { height: mapArea }] : styles.fullMap}
         center={mapCenter}
@@ -422,7 +587,7 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
               return p ? (
                 <View key={bid.id} style={[styles.pinAnchor, { left: p.x, top: p.y }]} pointerEvents="box-none">
                   <Pressable
-                    style={[styles.pricePin, lowest && styles.pricePinLowest, pinBid?.bid.id === bid.id && styles.pricePinOn]}
+                    style={[styles.pricePin, lowest && styles.pricePinLowest, !lowest && !marketNote(job, bid).cheaper && styles.pricePinDear, pinBid?.bid.id === bid.id && styles.pricePinOn]}
                     onPress={() => setPinBid({ job, bid })}
                     accessibilityLabel={`Bid pin ${bid.garageName}`}
                     hitSlop={8}
@@ -439,19 +604,18 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
           </>
         )}
       />
+      )}
 
       {/* The tab bar floats over the bottom 72px and its top corners are round: this strip, in the sheet's colour, fills what shows behind those corners. */}
       <View style={styles.navBackfill} pointerEvents="none" />
 
-      {/* "＋ නව ලංසුවක්": a floating chip over the map, at its top left corner. */}
-      {/* Under the sheet (zIndex 0): it stays on the map and is covered, not drawn over the sheet, when the sheet opens to the top. */}
-      <Pressable style={styles.floatNewBid} onPress={onNewBid} accessibilityLabel="New bid request">
-        <Text style={styles.floatNewBidText}>＋ නව ලංසුවක්</Text>
-      </Pressable>
+      <Animated.View style={[styles.floatTabs, { opacity: mapP }]} pointerEvents={sheetState === 'expanded' ? 'none' : 'box-none'}>
+        <View style={styles.floatChips}>{renderTabs()}</View>
+      </Animated.View>
 
       {/* My location: a round button on the map that rides the sheet's top edge (right side), so it always sits just above the sheet; it reads the GPS again and shows the owner's dot. */}
-      {sheetH && sheetState !== 'expanded' && (
-        <Animated.View style={[styles.myLocation, { bottom: Animated.add(sheetH, NAV_HEIGHT + 12) }]} pointerEvents="box-none">
+      {sheetH && (
+        <Animated.View style={[styles.myLocation, { bottom: Animated.add(sheetH, NAV_HEIGHT + 12), opacity: mapP }]} pointerEvents={sheetState === 'expanded' ? 'none' : 'box-none'}>
         <Pressable
           style={styles.myLocationBtn}
           onPress={() => {
@@ -469,7 +633,7 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
         </Animated.View>
       )}
 
-      {pinBid && (
+      {pinBid && tab === 'received' && (
         <View style={styles.pinCard} accessibilityLabel="Bid record">
           <View style={styles.pinCardHead}>
             <View style={styles.flex1}>
@@ -486,7 +650,7 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
             </Pressable>
           </View>
           <View style={styles.pinCardRow}>
-            <Text style={styles.pinCardPrice}>{money(pinBid.bid.price)}</Text>
+            <MoneyText style={styles.pinCardPrice}>{money(pinBid.bid.price)}</MoneyText>
             <Text style={styles.pinCardMeta}>
               ★ {pinBid.bid.rating.toFixed(1)} ({pinBid.bid.reviews}) · km {pinBid.bid.distanceKm}
             </Text>
@@ -494,22 +658,39 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
           <Text style={styles.pinCardMeta}>
             🛡️ මාස {pinBid.bid.warrantyMonths} වගකීම · ⏱️ පැය {pinBid.bid.estHours}{pinBid.bid.travelFee ? ` · 🚗 ගමන් ගාස්තුව ${money(pinBid.bid.travelFee)} ඇතුළුව` : ''}
           </Text>
-          <Pressable
-            style={styles.pinCardBtn}
-            onPress={() => {
-              const v = pinBid;
-              setPinBid(null);
-              setBidView(v);
-            }}
-            accessibilityLabel="Open bid details"
-          >
-            <Text style={styles.pinCardBtnText}>සම්පූර්ණ විස්තර බලන්න ›</Text>
-          </Pressable>
+          <View style={styles.pinCardBtns}>
+            <Pressable
+              style={styles.pinCardBtn}
+              onPress={() => {
+                const v = pinBid;
+                setPinBid(null);
+                setBidView(v);
+              }}
+              accessibilityLabel="Open bid details"
+            >
+              <Text style={styles.pinCardBtnText}>සම්පූර්ණ විස්තර ›</Text>
+            </Pressable>
+            <Pressable style={styles.pinCardBtn} onPress={() => Linking.openURL(directionsUrl(pinBid.bid.coords, user.coords))} accessibilityLabel="Directions to the garage">
+              <Text style={styles.pinCardBtnText}>🗺️ දිශාවන්</Text>
+            </Pressable>
+            <Pressable
+              style={styles.pinCardAccept}
+              onPress={() => {
+                const v = pinBid;
+                setPinBid(null);
+                askAccept(v);
+              }}
+              accessibilityLabel="Accept this bid"
+            >
+              <Text style={styles.pinCardAcceptText}>පිළිගන්න</Text>
+            </Pressable>
+          </View>
         </View>
       )}
 
       {area > 0 && (
         <ThreeStateSheet
+          locked={tab !== 'received'}
           onHeight={setSheetH}
           areaHeight={area}
           peekHeight={PEEK_HEIGHT}
@@ -518,7 +699,7 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
           // The title bar at the top folds away while the sheet is opened to the top, and the chat icon drops below the tabs; both come back as it settles lower.
           onStateChange={(st) => {
             setSheetState(st);
-            onHeaderVisibilityChange?.(st !== 'expanded');
+            onHeaderVisibilityChange?.(st !== 'expanded' || tab !== 'received');
             lastScrollY.current = 0;
             applyChip(true, st === 'expanded');
             if (st !== 'expanded') headRowH.current = 0;
@@ -553,38 +734,31 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
         >
           {(api) => (
             <>
-      <View
-        style={[styles.tabBar, sheetState === 'expanded' && styles.tabBarTop]}
+      <Animated.View
+        style={[styles.tabBar, { paddingTop: topP.interpolate({ inputRange: [0, 1], outputRange: [2, 14] }) }]}
         onLayout={(e) => {
           tabBarH.current = Math.round(e.nativeEvent.layout.height);
           syncDock();
         }}
       >
-        {renderMapButton(api)}
+        <Animated.View style={{ height: topP.interpolate({ inputRange: [0, 1], outputRange: [0, 54] }), opacity: topP, overflow: 'hidden' }} pointerEvents={sheetState === 'expanded' ? 'auto' : 'none'}>
+          <View style={styles.titleRow}>
+            <FreeQuoteTag onPress={onNewBid} />
+            <View style={styles.flex1} />
+            {tab === 'received' && iconButtons(api)}
+          </View>
+        </Animated.View>
         <View style={styles.segRow}>
-        {tabs.map((t) => {
-          const active = tab === t.id;
-          return (
-            <Pressable
-              key={t.id}
-              style={[styles.segChip, active && styles.segChipOn]}
-              onPress={() => onTabChange(t.id)}
-              accessibilityRole="tab"
-              accessibilityState={{ selected: active }}
-            >
-              <t.icon active={active} size={20} />
-              <Text style={[styles.segChipText, active && styles.segChipTextOn]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
-                {t.label}
-              </Text>
-              {t.count > 0 && (
-                <PopCount value={t.count} style={styles.tabCount} textStyle={styles.tabCountText} />
-              )}
-            </Pressable>
-          );
-        })}
+        <Animated.View style={[styles.tabsLayer, { opacity: topP }]} pointerEvents={sheetState === 'expanded' ? 'auto' : 'none'}>
+          {renderTabs()}
+        </Animated.View>
+        {/* While the map is in view the free-quote tag and the two icons stand on the tab line; open to the top the bar starts with its "Bids" heading, the icons at its end. */}
+        <Animated.View style={[styles.mapLayer, { opacity: mapP }]} pointerEvents={sheetState === 'expanded' ? 'none' : 'auto'}>
+          {renderMapButton(api)}
+        </Animated.View>
         </View>
         {renderTools()}
-      </View>
+      </Animated.View>
 
               <ScrollView
                 ref={api.scrollRef}
@@ -608,8 +782,9 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
         target={detailJob ? { kind: 'job', job: detailJob } : null}
         onClose={() => setDetailId(null)}
         onAcceptBid={(job, bid) => askAccept({ job, bid })}
-        onRepublish={(job) => onRepublish(draftFor(job))}
+        onRepublish={(job) => setRepub(job)}
       />
+      {renderRepublish()}
       <GarageReviewsSheet
         garage={bidView ? garageForBid(bidView.bid) : null}
         bid={bidView?.bid}
@@ -624,6 +799,21 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
             : undefined
         }
       />
+
+      {deleting && (
+        <ModalCard icon="🗑️" tone="danger" title="මෙම රැකියාව මකන්නද?" body="ලංසු ඉල්ලීම ඉවත් වේ. මෙය ආපසු ගත නොහැක.">
+          <ActionButton label="අවලංගු" variant="ghost" compact onPress={() => setDeleting(null)} />
+          <ActionButton
+            label="මකන්න"
+            variant="sos"
+            compact
+            onPress={() => {
+              removeJob(deleting.id);
+              setDeleting(null);
+            }}
+          />
+        </ModalCard>
+      )}
 
       {confirming && (
         <ModalCard
@@ -677,6 +867,38 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
   );
 };
 
+type BidSort = 'price' | 'rating' | 'near' | 'fast';
+const SORTS: { id: BidSort; label: string }[] = [
+  { id: 'price', label: '💰 අඩුම මිල' },
+  { id: 'rating', label: '★ ඉහළම ශ්‍රේණිය' },
+  { id: 'near', label: '📍 ළඟම' },
+  { id: 'fast', label: '⏱️ වේගවත්ම' },
+];
+/** The bids of a job in the order the owner chose; the price breaks every tie. */
+const sortBids = (bids: Bid[], by: BidSort) =>
+  [...bids].sort((a, b) => {
+    const k = by === 'rating' ? b.rating - a.rating : by === 'near' ? a.distanceKm - b.distanceKm : by === 'fast' ? a.estHours - b.estHours : 0;
+    return k || a.price - b.price;
+  });
+/** How a bid stands against the usual price of the job's service (a far garage's travel fee is left out). */
+const marketNote = (job: RepairJob, bid: Bid) => {
+  const base = marketPrice(job.categoryId);
+  const pct = Math.round(((bidWork(bid) - base) / base) * 100);
+  if (Math.abs(pct) < 3) return { cheaper: true, text: '≈ සාමාන්‍ය වෙළඳපොළ මිල', short: '≈ වෙළඳපොළ මිල' };
+  return pct < 0 ? { cheaper: true, text: `📉 වෙළඳපොළ මිලට වඩා ${-pct}% අඩුයි`, short: `${-pct}% අඩු` } : { cheaper: false, text: `📈 වෙළඳපොළ මිලට වඩා ${pct}% වැඩියි`, short: `${pct}% වැඩි` };
+};
+
+/** The "Free Quote" tag: a navy gradient pill with a white round plus at its end. */
+const FreeQuoteTag: React.FC<{ onPress?: () => void }> = ({ onPress }) => (
+  <Pressable style={styles.freeQuote} onPress={onPress} accessibilityLabel="Post a job and get free quotes">
+    <Gradient stops={[{ offset: '0', color: '#1f4fd1' }, { offset: '1', color: '#0b1f6b' }]} />
+    <Text style={styles.freeQuoteText}>Free Quote</Text>
+    <View style={styles.freeQuotePlus}>
+      <Text style={styles.freeQuotePlusText}>+</Text>
+    </View>
+  </Pressable>
+);
+
 const styles = themedStyles(() => StyleSheet.create({
   // Transparent: the rounded sheet in App.tsx supplies the background.
   container: { flex: 1 },
@@ -688,8 +910,8 @@ const styles = themedStyles(() => StyleSheet.create({
   myLocation: { position: 'absolute', right: 14, zIndex: 6 },
   myLocationBtn: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? '#1c2b4a' : '#ffffff', shadowColor: '#1e3a8a', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 10, elevation: 6 },
   navBackfill: { position: 'absolute', left: 0, right: 0, bottom: 0, height: NAV_HEIGHT, backgroundColor: getThemeMode() === 'dark' ? Colors.bgBody : '#f0f0f0' },
-  floatNewBid: { position: 'absolute', top: 12, left: 12, zIndex: 0, paddingHorizontal: 10, height: 28, borderRadius: 14, justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? '#1c2b4a' : '#ffffff', shadowColor: '#1e3a8a', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 10, elevation: 6 },
-  floatNewBidText: { fontSize: 11, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
+  floatNewBid: { position: 'absolute', top: 12, left: 12, zIndex: 0, paddingHorizontal: 14, height: 36, borderRadius: 18, justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? '#1c2b4a' : '#ffffff', shadowColor: '#1e3a8a', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 10, elevation: 6 },
+  floatNewBidText: { fontSize: 13, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
   newBidChip: { paddingHorizontal: 14, height: 34, borderRadius: 17, justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe', borderWidth: 1, borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#d2e3fc' },
   newBidText: { fontSize: 13, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
   sheetHamburger: { fontSize: 20, lineHeight: 22, color: '#1a73e8' },
@@ -697,21 +919,35 @@ const styles = themedStyles(() => StyleSheet.create({
   minBtn: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(56, 189, 248, 0.12)', borderWidth: 1, borderColor: 'rgba(56, 189, 248, 0.45)' },
   // One white surface with a thin outline and a light elevation; the selected tab has a line under it (Material primary tabs).
   // The three views (received, waiting, expired) are three separate chips, like the garage app's: each its own outlined chip, the selected one tonal blue.
-  tabBar: { paddingHorizontal: 6, paddingTop: 2, paddingBottom: 6, gap: 10 },
+  tabBar: { paddingHorizontal: 6, paddingTop: 2, paddingBottom: 8 },
+  tabsLayer: { flex: 1, flexDirection: 'row', gap: 6 },
+  mapLayer: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, flexDirection: 'row' },
   // Opened to the top, the grip is gone, so the chips get some room above them.
-  tabBarTop: { paddingTop: 16 },
-  segRow: { flexDirection: 'row', gap: 8 },
-  segChip: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, height: 44, paddingHorizontal: 6, borderRadius: 12, borderWidth: 1, borderColor: outline(), backgroundColor: Colors.bgCard, ...elevation1() },
+  tabBarTop: { paddingTop: 14 },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 40, paddingHorizontal: 6 },
+  sheetTitle: { fontSize: 20, fontFamily: FONTS.titleBold, color: Colors.textMain },
+  mapRowWide: { flex: 1 },
+  freeQuote: { marginRight: 'auto', flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: 16, paddingRight: 5, height: 38, borderRadius: 19, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.35)' },
+  freeQuoteText: { fontSize: 14, fontFamily: FONTS.bodyBold, color: '#ffffff' },
+  freeQuotePlus: { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: '#ffffff' },
+  freeQuotePlusText: { fontSize: 18, lineHeight: 20, fontFamily: FONTS.bodyBold, color: '#0b1f6b', includeFontPadding: false },
+  segRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 6 },
+  floatTabs: { position: 'absolute', top: 56, left: 12, right: 12, zIndex: 1, gap: 8 },
+  headRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 6 },
+  floatTitle: { fontSize: 20, fontFamily: FONTS.titleBold, color: Colors.textMain },
+  floatChips: { flexDirection: 'row', gap: 6 },
+  segChip: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, height: 40, paddingHorizontal: 6, borderRadius: 8, borderWidth: 1, borderColor: outline(), backgroundColor: Colors.bgCard, ...elevation1() },
   segChipOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe', borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#d2e3fc' },
   segChipText: { flexShrink: 1, fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
   segChipTextOn: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
   // The count is a soft blue pill (like a small info chip) on the corner, so the label row never wraps on narrow tabs.
   // The count is a blue round tag on the chip's top right edge (a white ring round it), not inside the chip.
-  tabCount: { position: 'absolute', top: -10, right: 8, minWidth: 22, height: 22, paddingHorizontal: 5, borderRadius: 11, alignItems: 'center', justifyContent: 'center', backgroundColor: '#1a73e8', borderWidth: 2, borderColor: pageBg() },
-  mapRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: 22 },
-  mapViewBtnOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#d2e3fc' },
-  mapViewBtn: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe' },
-  receivedTools: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  tabCount: { position: 'absolute', top: -10, right: 8, minWidth: 16, height: 16, paddingHorizontal: 4, borderRadius: 6, alignItems: 'center', justifyContent: 'center', backgroundColor: '#1a73e8', borderWidth: 2, borderColor: pageBg() },
+  mapRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  mapViewBtnOn: {},
+  mapViewBtn: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
+  closeCircle: { marginLeft: 12, marginRight: 10, width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: '#1a73e8' },
+  receivedTools: { gap: 8, marginTop: 14 },
   viewToggle: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: outline(), backgroundColor: Colors.bgCard },
   viewToggleOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe', borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#d2e3fc' },
   bidRows: { gap: 8 },
@@ -725,13 +961,21 @@ const styles = themedStyles(() => StyleSheet.create({
   bidRowAccept: { paddingHorizontal: 12, height: 32, justifyContent: 'center', borderRadius: 16, backgroundColor: '#1a73e8' },
   bidRowAcceptLowest: { backgroundColor: '#188038' },
   bidRowAcceptText: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: '#ffffff' },
+  sortRow: { gap: 10, paddingRight: 16 },
+  sortChip: { paddingHorizontal: 14, height: 34, justifyContent: 'center', borderRadius: 17, borderWidth: 1, borderColor: outline(), backgroundColor: Colors.bgCard },
+  sortChipOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe', borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#d2e3fc' },
+  sortText: { fontSize: 12.5, fontFamily: FONTS.bodyMedium, color: Colors.textMuted },
+  sortTextOn: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8', fontFamily: FONTS.bodySemiBold },
+  marketNote: { fontSize: 12, fontFamily: FONTS.bodySemiBold },
+  marketCheaper: { color: Colors.successText },
+  marketDearer: { color: Colors.warning },
   usedChip: { alignSelf: 'flex-start', paddingHorizontal: 14, height: 34, justifyContent: 'center', borderRadius: 17, borderWidth: 1, borderColor: outline(), backgroundColor: Colors.bgCard },
   usedChipOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe', borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#d2e3fc' },
   usedChipText: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
   usedChipTextOn: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
   tabCountText: { fontSize: 10.5, fontFamily: FONTS.bodyBold, color: '#ffffff' },
   tabCountTextActive: {},
-  body: { paddingHorizontal: 6, paddingTop: 4, gap: 12, paddingBottom: 24 },
+  body: { paddingHorizontal: 4, paddingTop: 4, gap: 12, paddingBottom: 24 },
   fullMap: { ...StyleSheet.absoluteFill },
   // Fixed height, stuck to the bottom of the tab: it does not move when the tab grows upward as the band folds away.
   mapAnchored: { position: 'absolute', left: 0, right: 0, bottom: 0 },
@@ -750,8 +994,9 @@ const styles = themedStyles(() => StyleSheet.create({
   link: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
   // Soft shadow instead of an outline (an outline only on dark, where a shadow would not show), like the Home garage tiles.
   // The same look as the Activity cards: a roomy white card, big round corners, no hard outline, a soft wide shadow.
-  card: { backgroundColor: Colors.bgCard, borderWidth: getThemeMode() === 'dark' ? 1 : 0, borderColor: Colors.borderColor, borderRadius: 24, paddingVertical: 16, paddingHorizontal: 8, gap: 12, ...cardGlow(), elevation: 3 },
-  detailsCorner: { alignSelf: 'flex-end' },
+  card: { backgroundColor: Colors.bgCard, borderWidth: getThemeMode() === 'dark' ? 1 : 0, borderColor: Colors.borderColor, borderRadius: 24, paddingVertical: 16, paddingHorizontal: 2, gap: 12, ...cardGlow(), elevation: 3 },
+  detailsCorner: { alignSelf: 'flex-end', flexDirection: 'row', alignItems: 'center', gap: 16 },
+  deleteLink: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.errorText },
   cardExpired: { borderColor: 'rgba(239, 68, 68, 0.4)' },
   cardTitle: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.textMain },
   travelNote: { marginTop: 6, gap: 2, padding: 8, borderRadius: 10, backgroundColor: 'rgba(245, 158, 11, 0.14)', borderWidth: 1, borderColor: 'rgba(245, 158, 11, 0.5)' },
@@ -769,14 +1014,44 @@ const styles = themedStyles(() => StyleSheet.create({
   badgeDanger: { backgroundColor: 'rgba(239, 68, 68, 0.12)', borderColor: 'rgba(239, 68, 68, 0.45)' },
   badgeText: { fontSize: 10, fontFamily: FONTS.bodySemiBold },
   // Photo tile: the garage's cover with the price on it, then name and one line of details.
-  bidCard: { borderRadius: 20, borderWidth: 1, borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#dadce0', backgroundColor: Colors.bgCard, overflow: 'hidden' },
+  bidCard: { borderRadius: 20, borderWidth: 1, borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#dadce0', backgroundColor: getThemeMode() === 'dark' ? Colors.bgCard : '#ffffff', shadowColor: '#0f172a', shadowOffset: { width: 0, height: 8 }, shadowOpacity: getThemeMode() === 'dark' ? 0.6 : 0.3, shadowRadius: 22, elevation: 12 },
   bidCardLowest: { borderColor: 'rgba(16, 185, 129, 0.55)' },
   bidCardAccepted: { borderColor: Colors.success },
-  bidCover: { width: '100%', height: 120 },
-  bidBody: { paddingHorizontal: 8, paddingTop: 10, gap: 3 },
+  bidCover: { width: '100%', height: 48 },
+  bidBody: { padding: 12, gap: 6 },
+  fbHead: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: 16, paddingRight: 16, paddingTop: 12, paddingBottom: 8 },
+  fbName: { fontSize: 15, lineHeight: 19, fontFamily: FONTS.titleBold, color: Colors.textMain },
+  fbNameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  fbNameText: { flexShrink: 1 },
+  fbBadge: { fontSize: 13 },
+  fbSubLine: { fontSize: 12, lineHeight: 16, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, paddingLeft: 16, paddingRight: 16, paddingBottom: 8, marginTop: -2 },
+  fbSub: { fontSize: 12, lineHeight: 16, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 0 },
+  fbMore: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+  fbContent: { paddingLeft: 16, paddingRight: 16, paddingBottom: 10, gap: 6 },
+  fbPrice: { marginVertical: 6, fontSize: 22, fontFamily: FONTS.titleBold, color: Colors.success },
+  fbText: { fontSize: 15, fontFamily: FONTS.bodyRegular, color: Colors.textMain, lineHeight: 22 },
+  fbRating: { fontSize: 12, lineHeight: 16, fontFamily: FONTS.bodyMedium, color: Colors.textMain, marginTop: 1 },
+  fbCounts: { flexDirection: 'row', justifyContent: 'flex-start', paddingLeft: 16, paddingRight: 16, paddingVertical: 8 },
+  fbStars: { color: '#f5a623', letterSpacing: 1 },
+  fbCountText: { fontSize: 13.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
+  fbActions: { flexDirection: 'row', marginHorizontal: 8, marginBottom: 4, paddingVertical: 2, borderTopWidth: 1, borderTopColor: getThemeMode() === 'dark' ? Colors.borderColor : '#e4e6eb' },
+  fbAction: { flex: 1, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 8 },
+  fbActionText: { fontSize: 14, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
+  fbActionPrimary: { color: '#1a73e8' },
+  repubBtns: { gap: 8 },
+  repubCard: { borderRadius: 14, backgroundColor: Colors.subtleFill, padding: 12, gap: 10 },
+  repubRow: { flexDirection: 'row', gap: 10 },
+  repubKey: { width: 104, fontSize: 12.5, fontFamily: FONTS.bodyMedium, color: Colors.textMuted },
+  repubVal: { flex: 1, fontSize: 13.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
+  repubSection: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.textMain, marginTop: 6 },
+  repubDesc: { fontSize: 14, fontFamily: FONTS.bodyRegular, color: Colors.textMain, lineHeight: 21, padding: 4 },
+  bidAvatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: Colors.subtleFill },
+  bidTap: { gap: 6 },
+  lowestInline: { alignSelf: 'flex-start', fontSize: 10.5, fontFamily: FONTS.bodyBold, color: '#047857' },
   bidAction: { padding: 12, paddingTop: 8 },
-  deleteBtn: { position: 'absolute', top: 84, right: 10, width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(239, 68, 68, 0.92)' },
-  pricePill: { position: 'absolute', top: 10, right: 10, backgroundColor: 'rgba(15, 23, 42, 0.8)', borderRadius: 12, paddingHorizontal: 11, paddingVertical: 5 },
+  deleteBtn: { position: 'absolute', top: 9, right: 10, width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(239, 68, 68, 0.92)' },
+  pricePill: { position: 'absolute', top: 10, right: 48, backgroundColor: 'rgba(15, 23, 42, 0.8)', borderRadius: 12, paddingHorizontal: 11, paddingVertical: 5 },
+  pricePillFlush: { right: 10 },
   priceText: { fontSize: 14, fontFamily: FONTS.titleBold, color: '#fff' },
   lowestTag: { position: 'absolute', top: 10, left: 10, backgroundColor: 'rgba(255, 255, 255, 0.92)', borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3 },
   lowestTagText: { fontSize: 10, fontFamily: FONTS.bodyBold, color: '#047857' },
@@ -785,8 +1060,12 @@ const styles = themedStyles(() => StyleSheet.create({
   waitDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: Colors.warning },
   pinAnchor: { position: 'absolute', transform: [{ translateX: '-50%' }, { translateY: '-50%' }] },
   pricePin: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10, backgroundColor: '#1e40af', borderWidth: 1.5, borderColor: '#fff' },
-  pricePinOn: { backgroundColor: '#f59e0b', transform: [{ scale: 1.12 }] },
-  pinCard: { position: 'absolute', zIndex: 20, top: 12, left: 12, right: 12, gap: 6, padding: 12, borderRadius: 18, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#d3d9e2', shadowColor: '#0f172a', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.18, shadowRadius: 18, elevation: 8 },
+  pricePinOn: { backgroundColor: '#7c3aed', transform: [{ scale: 1.15 }] },
+  pricePinDear: { backgroundColor: '#d97706' },
+  pinCardBtns: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
+  pinCardAccept: { alignSelf: 'flex-start', paddingHorizontal: 14, height: 32, borderRadius: 16, justifyContent: 'center', backgroundColor: '#1a73e8' },
+  pinCardAcceptText: { fontSize: 11.5, fontFamily: FONTS.bodyBold, color: '#ffffff' },
+  pinCard: { position: 'absolute', zIndex: 20, top: 110, left: 12, right: 12, gap: 6, padding: 12, borderRadius: 18, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#d3d9e2', shadowColor: '#0f172a', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.18, shadowRadius: 18, elevation: 8 },
   pinCardHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   pinCardTitle: { fontSize: 14, fontFamily: FONTS.titleBold, color: Colors.textMain },
   pinCardSub: { fontSize: 11, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 1 },

@@ -230,7 +230,7 @@ export const SOSJobScreen: React.FC = () => {
                 <>
                   <Text style={styles.label}>අවසන් අලුත්වැඩියා ගාස්තුව</Text>
                   <View style={styles.priceRow}>
-                    <Text style={styles.currency}>රු.</Text>
+                    <Text style={styles.currency}>LKR </Text>
                     <TextInput
                       style={styles.priceInput}
                       keyboardType="number-pad"

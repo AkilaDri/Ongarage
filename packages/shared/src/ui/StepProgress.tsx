@@ -54,12 +54,12 @@ const styles = themedStyles(() =>
   StyleSheet.create({
     wrap: { gap: 6 },
     bar: { flexDirection: 'row', gap: 4 },
-    seg: { flex: 1, height: 4, borderRadius: 2, backgroundColor: Colors.subtleBorder },
+    seg: { flex: 1, height: 7, borderRadius: 4, backgroundColor: Colors.subtleBorder },
     done: { backgroundColor: Colors.success },
     active: { backgroundColor: Colors.primary },
     alert: { backgroundColor: Colors.warning },
     runningClip: { overflow: 'hidden' },
-    light: { position: 'absolute', top: 0, bottom: 0, left: 0, borderRadius: 2, backgroundColor: 'rgba(255, 255, 255, 0.65)' },
+    light: { position: 'absolute', top: 0, bottom: 0, left: 0, borderRadius: 4, backgroundColor: 'rgba(255, 255, 255, 0.65)' },
     label: { fontSize: 10.5, fontFamily: FONTS.bodyMedium, color: Colors.textMuted },
     labelStrong: { fontFamily: FONTS.bodyBold, color: Colors.textMain },
   })

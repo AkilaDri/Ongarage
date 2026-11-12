@@ -1,4 +1,5 @@
-import { PostBody, PostHead } from '../components/PostCard';
+import { DoneTag, PostBody, PostHead, PriceText } from '../components/PostCard';
+import { WorkTimer } from '../components/WorkTimer';
 import { onActivityFocus, takeActivityFocus, type ActivityFocus } from '../utils/activityFocus';
 import { elevation1, outline, pageBg } from '../utils/material';
 import { PAGE_TITLE_H } from '../constants/layout';
@@ -8,10 +9,9 @@ import { Colors, getThemeMode, Gradient, themedStyles, ReceiptLineIcon, Schedule
 import { FONTS } from '@ongarage/shared';
 import { categoryInfo, SERVICE_CATEGORIES } from '@ongarage/shared';
 import { useVehicles } from '../context/VehiclesContext';
-import { EmptyState, SwipeCard } from '@ongarage/shared';
+import { EmptyState, FilterChips, GridRow, SegmentTabs, SwipeCard } from '@ongarage/shared';
 import { PinnedEdge } from '../components/PinnedEdge';
 import { CategoryPhoto } from '../components/home/CategoryPhoto';
-import { ChatButton } from '../components/ChatButton';
 import { PopCount } from '../components/PopCount';
 import { ActivityCalendar, type CalendarItem } from '../components/ActivityCalendar';
 import { onOpenActivityCalendar } from '../utils/activityCalendar';
@@ -42,6 +42,13 @@ import type { DirectBooking } from '../types';
 const MONTHS = ['ජන.', 'පෙබ.', 'මාර්තු', 'අප්‍රේල්', 'මැයි', 'ජූනි', 'ජූලි', 'අගෝ.', 'සැප්.', 'ඔක්.', 'නොවැ.', 'දෙසැ.'];
 
 /** The rating the owner gave a finished job, as stars under its heading; a small "Rate" chip when none was given yet. */
+/** The three kinds of record as filter chips (bids amber, bookings blue, SOS red), with the number of each. */
+const kindItems = (counts: number[]) => [
+  { id: 'bids' as const, label: 'ලංසු', tone: 'amber' as const, icon: <SubChipIcon id="bids" active />, count: counts[0] },
+  { id: 'direct' as const, label: 'Booking', tone: 'blue' as const, icon: <SubChipIcon id="direct" active />, count: counts[1] },
+  { id: 'sos' as const, label: 'SOS', tone: 'red' as const, icon: <SubChipIcon id="sos" active />, count: counts[2] },
+];
+
 const RatingLine: React.FC<{ rating?: number; onRate?: () => void }> = ({ rating, onRate }) =>
   rating ? (
     <Text style={ratingStyles.on}>
@@ -157,54 +164,66 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
   const bidCard = (job: (typeof jobs)[number], bid: (typeof jobs)[number]['bids'][number]) => {
     const cat = SERVICE_CATEGORIES.find((c) => c.id === job.categoryId);
     return (
-      <SwipeCard key={job.id} style={[styles.card, !finished(job.id) && styles.cardOngoing, finished(job.id) && !cancelled(job.id) && styles.cardDone]} onOpen={() => setDetail({ kind: 'job', id: job.id })}>
+      <SwipeCard key={job.id} style={[styles.card, !finished(job.id) && styles.cardOngoing, finished(job.id) && !cancelled(job.id) && styles.cardDone, styles.edgeBid]} onOpen={() => setDetail({ kind: 'job', id: job.id })}>
         {/* Laid out like a Facebook post (the same as the garage app's cards): the picture, the garage and its tag, the date, the price with three dots; the vehicle line and the subject under. */}
         <PostHead
+          bleed={5}
           photo={<CategoryPhoto categoryId={job.categoryId} size={48} />}
           name={bid.garageName}
           garage={{ id: bid.garageId, name: bid.garageName }}
           meta={`වෙන් කළේ ${formatDate(new Date(bid.submittedAt))}`}
-          price={money(bid.price)}
-          onMore={() => setDetail({ kind: 'job', id: job.id })}
-          chat={<ChatButton plain size={36} target={{ id: job.id, title: bid.garageName, subtitle: cat?.name, phone: MOCK_GARAGES.find((g) => g.name === bid.garageName)?.phone, vehicle: findVehicle(job.vehicleId) }} />}
+          kind="bid"
         />
         <PostBody
+          price={money(bid.price)}
+          swap={!finished(job.id)}
           vehicle={findVehicle(job.vehicleId)}
           kind="bid"
           subject={cat?.name ?? 'Service'}
           onPress={() => setDetail({ kind: 'job', id: job.id })}
           status={
+            finished(job.id) && !cancelled(job.id) ? undefined : (
             <View style={[styles.status, finished(job.id) ? styles.statusDone : styles.statusOngoing]}>
               <Text style={[styles.statusText, { color: cancelled(job.id) ? Colors.errorText : finished(job.id) ? Colors.success : Colors.warning }]}>{cancelled(job.id) ? '✕ අවලංගු කළා' : finished(job.id) ? '✓ සම්පූර්ණයි' : '● වෙන් කළා'}</Text>
             </View>
+            )
           }
         >
-          {finished(job.id) && !cancelled(job.id) && <RatingLine rating={workshops[job.id]?.review?.rating} onRate={workshops[job.id] ? () => setRating(workshops[job.id]) : undefined} />}
+          {finished(job.id) && !cancelled(job.id) && (
+            <GridRow left={<RatingLine rating={workshops[job.id]?.review?.rating} onRate={workshops[job.id] ? () => setRating(workshops[job.id]) : undefined} />} right={<DoneTag />} />
+          )}
         </PostBody>
+        {!finished(job.id) && !!workshops[job.id]?.progress.workStartedAt && <WorkTimer startedAt={workshops[job.id]!.progress.workStartedAt!} endedAt={workshops[job.id]!.progress.handover?.readyAt} />}
         <View style={styles.divider} />
         {finished(job.id) ? (
-          <View style={styles.rowBetween}>
-            <Text style={[styles.sub, styles.flex1]} numberOfLines={1}>
-              🛡️ මාස {bid.warrantyMonths} වගකීම
-            </Text>
-            <View style={styles.linkRow}>
+          <GridRow
+            left={
+              <Text style={styles.sub} numberOfLines={1}>
+                🛡️ මාස {bid.warrantyMonths} වගකීම
+              </Text>
+            }
+            right={
               <Pressable onPress={() => setDetail({ kind: 'job', id: job.id })} hitSlop={8}>
                 <Text style={styles.link}>විස්තර ›</Text>
               </Pressable>
-            </View>
-          </View>
+            }
+          />
         ) : (
           <>
             <WorkshopTracker id={job.id} />
             <View style={styles.divider} />
-            <View style={styles.rowBetween}>
-              <Text style={styles.sub}>
-                🛡️ මාස {bid.warrantyMonths} වගකීම · ⏱️ පැය {bid.estHours}{bid.travelFee ? ` · 🚗 ගමන් ගාස්තුව රු. ${bid.travelFee.toLocaleString('en-US')} ඇතුළුව` : ''}
+            <GridRow
+              left={
+                <Text style={styles.sub}>
+                🛡️ මාස {bid.warrantyMonths} වගකීම · ⏱️ පැය {bid.estHours}{bid.travelFee ? ` · 🚗 ගමන් ගාස්තුව LKR ${bid.travelFee.toLocaleString('en-US')} ඇතුළුව` : ''}
               </Text>
-              <Pressable onPress={() => Linking.openURL(directionsUrl(bid.coords, user.coords))}>
+              }
+              right={
+                <Pressable onPress={() => Linking.openURL(directionsUrl(bid.coords, user.coords))}>
                 <Text style={styles.link}>🗺️ දිශාවන්</Text>
               </Pressable>
-            </View>
+              }
+            />
           </>
         )}
       </SwipeCard>
@@ -272,88 +291,20 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
           pinnedH.current = Math.round(e.nativeEvent.layout.height);
           chatDockOffset.setValue(pinnedH.current);
         }}>
-        <View style={styles.segment}>
-          {(
-            [
-              { id: 'current', label: 'පවතින', count: ongoing.length + liveBookings.length },
-              { id: 'done', label: 'සම්පූර්ණ', count: history.length + doneBookings.length + doneJobs.length + sosRecords.length },
-              { id: 'ended', label: 'අවලංගු', count: endedBookings.length + cancelledJobs.length },
-              { id: 'mart', label: 'OnMart', count: 0 },
-            ] as { id: typeof kind; label: string; count: number }[]
-          ).map((c) => {
-            const on = kind === c.id;
-            return (
-              <Pressable key={c.id} style={[styles.segItem, on && styles.segItemOn]} onPress={() => setKind(c.id)} accessibilityLabel={`Records ${c.id}`}>
-                <Text style={[styles.segText, on && styles.segTextOn]} numberOfLines={1}>
-                  {c.label}
-                </Text>
-                {c.id === 'current' && c.count > 0 && (
-                  <PopCount value={c.count} style={styles.badge} textStyle={styles.badgeText} />
-                )}
-              </Pressable>
-            );
-          })}
-        </View>
-        {kind === 'current' && (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.kindChips}>
-            {(
-              [
-                { id: 'bids', label: 'ලංසු', count: ongoing.length },
-                { id: 'direct', label: 'Booking', count: liveBookings.length },
-                { id: 'sos', label: 'SOS', count: 0 },
-              ] as { id: typeof currentKind; label: string; count: number }[]
-            ).map((c) => {
-              const on = currentKind === c.id;
-              return (
-                <Pressable key={c.id} style={[styles.subChip, on && styles.kindChipOn]} onPress={() => setCurrentKind(c.id)} accessibilityLabel={`Ongoing ${c.id}`}>
-                  <SubChipIcon id={c.id} active={on} />
-                  <Text style={[styles.kindChipText, on && styles.kindChipTextOn]}>{c.label}</Text>
-                  {c.count > 0 && (
-                    <PopCount value={c.count} style={styles.subBadge} textStyle={styles.subBadgeText} />
-                  )}
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-        )}
-        {kind === 'done' && (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.kindChips}>
-            {(
-              [
-                { id: 'bids', label: 'ලංසු', count: doneJobs.length },
-                { id: 'direct', label: 'Booking', count: doneBookings.length },
-                { id: 'sos', label: 'SOS', count: sosRecords.length },
-              ] as { id: typeof doneKind; label: string; count: number }[]
-            ).map((c) => {
-              const on = doneKind === c.id;
-              return (
-                <Pressable key={c.id} style={[styles.subChip, on && styles.kindChipOn]} onPress={() => setDoneKind(c.id)} accessibilityLabel={`Completed ${c.id}`}>
-                  <SubChipIcon id={c.id} active={on} />
-                  <Text style={[styles.kindChipText, on && styles.kindChipTextOn]}>{c.label}</Text>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-        )}
-        {kind === 'ended' && (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.kindChips}>
-            {(
-              [
-                { id: 'bids', label: 'ලංසු' },
-                { id: 'direct', label: 'Booking' },
-                { id: 'sos', label: 'SOS' },
-              ] as { id: typeof endedKind; label: string }[]
-            ).map((c) => {
-              const on = endedKind === c.id;
-              return (
-                <Pressable key={c.id} style={[styles.subChip, on && styles.kindChipOn]} onPress={() => setEndedKind(c.id)} accessibilityLabel={`Cancelled ${c.id}`}>
-                  <SubChipIcon id={c.id} active={on} />
-                  <Text style={[styles.kindChipText, on && styles.kindChipTextOn]}>{c.label}</Text>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-        )}
+        <SegmentTabs
+          items={[
+            { id: 'current' as const, label: 'පවතින', icon: 'clock' as const, count: ongoing.length + liveBookings.length },
+            { id: 'done' as const, label: 'සම්පූර්ණ', icon: 'check-circle' as const },
+            { id: 'ended' as const, label: 'අවලංගු', icon: 'x' as const },
+            { id: 'mart' as const, label: 'OnMart', icon: 'tag' as const },
+          ]}
+          value={kind}
+          onChange={setKind}
+        />
+        {/* Under the tabs: the kind of record (bids, bookings, SOS), one always open, the number of each on its chip. */}
+        {kind === 'current' && <FilterChips items={kindItems([ongoing.length, liveBookings.length, 0])} value={currentKind} onChange={(id) => id && setCurrentKind(id)} />}
+        {kind === 'done' && <FilterChips items={kindItems([doneJobs.length, doneBookings.length, sosRecords.length])} value={doneKind} onChange={(id) => id && setDoneKind(id)} />}
+        {kind === 'ended' && <FilterChips items={kindItems([0, 0, 0])} value={endedKind} onChange={(id) => id && setEndedKind(id)} />}
           <Animated.View pointerEvents="box-none" style={[styles.pinnedChat, { opacity: edge }]}>
             <ChatHeaderButton scrolled={shortChat} />
           </Animated.View>
@@ -426,18 +377,18 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
         {showDone('sos') && sosRecords.length > 0 && (
           <>
             {sosRecords.map((r) => (
-              <SwipeCard key={r.id} style={[styles.card, styles.cardDone]} onOpen={() => setRecord({ kind: 'sos', record: r })}>
+              <SwipeCard key={r.id} style={[styles.card, styles.cardDone, styles.edgeSos]} onOpen={() => setRecord({ kind: 'sos', record: r })}>
               <Pressable style={styles.cardInner} onPress={() => setRecord({ kind: 'sos', record: r })} accessibilityLabel={`SOS record ${r.breakdown.label}`}>
                 <PostHead
+          bleed={5}
                   photo={
                     <View style={styles.sosIcon}> {r.breakdown.id && BREAKDOWN_IMAGES[r.breakdown.id] ? <Image source={BREAKDOWN_IMAGES[r.breakdown.id]} style={styles.sosImage} resizeMode="contain" /> : <Text style={styles.sosIconText}>{r.breakdown.icon}</Text>} </View>
                   }
                   name={r.responder.name}
                   meta={`${r.responder.mechanic} · ${formatDate(new Date(r.completedAt))}`}
-                  price={money(r.total)}
-                  onMore={() => setRecord({ kind: 'sos', record: r })}
+                  kind="sos"
                 />
-                <PostBody vehicle={vehicles.find((x) => x.plate === r.vehiclePlate) ?? { type: 'Sedan', name: r.vehicleName, plate: r.vehiclePlate }} kind="sos" subject={`SOS · ${r.breakdown.label}`}>
+                <PostBody price={money(r.total)} vehicle={vehicles.find((x) => x.plate === r.vehiclePlate) ?? { type: 'Sedan', name: r.vehicleName, plate: r.vehiclePlate }} kind="sos" subject={`SOS · ${r.breakdown.label}`}>
                   <View style={styles.rowBetween}>
                     <RatingLine rating={r.rating} />
                     <View style={[styles.status, styles.statusDone]}>
@@ -469,24 +420,18 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
         {showDone('direct') && doneBookings.map(bookingCard)}
         {showDone('bids') && doneJobs.map(({ job, bid }) => bidCard(job, bid))}
         {showDone('bids') && history.map((w) => (
-          <SwipeCard key={w.id} style={[styles.card, styles.cardDone]} onOpen={() => setRecord({ kind: 'history', workshop: w })}>
+          <SwipeCard key={w.id} style={[styles.card, styles.cardDone, styles.edgeBid]} onOpen={() => setRecord({ kind: 'history', workshop: w })}>
           <Pressable style={styles.cardInner} onPress={() => setRecord({ kind: 'history', workshop: w })} accessibilityLabel={`Past job ${w.title ?? categoryInfo(w.categoryId).name}`}>
             <PostHead
+          bleed={5}
               photo={<CategoryPhoto categoryId={w.categoryId} size={48} />}
               name={w.garageName}
               garage={{ id: w.garageId, name: w.garageName }}
               meta={formatDate(new Date(w.progress.closedAt ?? 0))}
-              price={money(w.progress.handover?.bill.total ?? 0)}
-              onMore={() => setRecord({ kind: 'history', workshop: w })}
-              chat={<ChatButton plain size={36} target={{ id: w.id, title: w.garageName, subtitle: w.title ?? categoryInfo(w.categoryId).name, vehicle: w.vehicleId ? findVehicle(w.vehicleId) : undefined }} />}
+              kind="bid"
             />
-            <PostBody vehicle={w.vehicleId ? findVehicle(w.vehicleId) : undefined} kind="bid" subject={w.title ?? categoryInfo(w.categoryId).name}>
-              <View style={styles.rowBetween}>
-                <RatingLine rating={w.review?.rating} onRate={() => setRating(w)} />
-                <View style={[styles.status, styles.statusDone]}>
-                  <Text style={[styles.statusText, { color: Colors.success }]}>✓ සම්පූර්ණයි</Text>
-                </View>
-              </View>
+            <PostBody price={money(w.progress.handover?.bill.total ?? 0)} vehicle={w.vehicleId ? findVehicle(w.vehicleId) : undefined} kind="bid" subject={w.title ?? categoryInfo(w.categoryId).name}>
+              <GridRow left={<RatingLine rating={w.review?.rating} onRate={() => setRating(w)} />} right={<DoneTag />} />
             </PostBody>
             <View style={styles.divider} />
             <View style={styles.rowBetween}>
@@ -528,7 +473,7 @@ const styles = themedStyles(() => StyleSheet.create({
   selfCenter: { alignSelf: 'center' },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
-  body: { paddingHorizontal: 6, paddingTop: 8, gap: 12, paddingBottom: 100 },
+  body: { paddingHorizontal: 6, paddingTop: 8, gap: 20, paddingBottom: 100 },
   // Opaque and full width (the negative margin cancels the body padding), so the lists scroll underneath it.
   statsPinned: { marginHorizontal: -6, paddingHorizontal: 6, paddingTop: 8, paddingBottom: 8, backgroundColor: pageBg() },
   // The short OnChat icon inside the filter card, on its right side.
@@ -555,17 +500,20 @@ const styles = themedStyles(() => StyleSheet.create({
   sectionLabel: { fontSize: 14, fontFamily: FONTS.bodyBold, color: Colors.primary, letterSpacing: 0.2, marginTop: 10 },
   // Soft shadow instead of an outline (an outline only on dark, where a shadow would not show), like Home and Bids.
   // PickMe look: a roomy white card with big round corners, no hard outline and a soft wide shadow.
-  card: { backgroundColor: Colors.bgCard, borderWidth: getThemeMode() === 'dark' ? 1 : 0, borderColor: Colors.borderColor, borderRadius: 24, padding: 16, gap: 12, shadowColor: '#0f172a', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.08, shadowRadius: 18, elevation: 3 },
+  card: { backgroundColor: Colors.bgCard, borderWidth: getThemeMode() === 'dark' ? 1 : 0, borderColor: Colors.borderColor, borderRadius: 24, paddingVertical: 16, paddingHorizontal: 8, gap: 12, shadowColor: '#0f172a', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.08, shadowRadius: 18, elevation: 3 },
   cardOngoing: {},
+  // A coloured edge by the kind of job: bids blue, bookings green, SOS red.
+  edgeBid: { borderWidth: 1, borderColor: '#1a73e8' },
+  edgeSos: { borderWidth: 1, borderColor: '#ef4444' },
   // A finished job: a little tighter, and the price in green.
-  cardDone: { padding: 16, gap: 12 },
+  cardDone: { paddingVertical: 16, paddingHorizontal: 8, gap: 12 },
   priceDone: { color: Colors.textSoft },
   // Simple and modern: a flat card in a soft tint of the app's blue, no shadow, dark-blue figures.
   // The detailed summary: a flat card in a soft tint of the app's blue with a thin border, dark-blue figures.
-  spendCard: { padding: 18, borderRadius: 24, gap: 6, overflow: 'hidden', backgroundColor: '#5b5ff0', shadowColor: '#5b5ff0', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.35, shadowRadius: 20, elevation: 8 },
+  spendCard: { padding: 14, borderRadius: 20, gap: 4, overflow: 'hidden', backgroundColor: '#5b5ff0', shadowColor: '#5b5ff0', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 10, elevation: 3 },
   spendGlow: { position: 'absolute', top: -60, right: -40, width: 170, height: 170, borderRadius: 85, backgroundColor: 'rgba(255, 255, 255, 0.12)' },
   spendCaption: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: 'rgba(255, 255, 255, 0.85)' },
-  spendTotal: { fontSize: 30, fontFamily: FONTS.titleBold, color: '#ffffff' },
+  spendTotal: { fontSize: 24, fontFamily: FONTS.titleBold, color: '#ffffff' },
   spendBar: { flexDirection: 'row', height: 6, borderRadius: 3, overflow: 'hidden', gap: 2, marginTop: 4, marginBottom: 6 },
   spendCols: { flexDirection: 'row', gap: 12 },
   spendCol: { flex: 1, gap: 2 },
@@ -579,11 +527,11 @@ const styles = themedStyles(() => StyleSheet.create({
   segItemOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe', borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#d2e3fc' },
   segText: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
   segTextOn: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
-  badge: { position: 'absolute', top: -9, right: 8, minWidth: 20, height: 20, paddingHorizontal: 6, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: '#1a73e8', borderWidth: 2, borderColor: pageBg() },
+  badge: { position: 'absolute', top: -9, right: 8, minWidth: 16, height: 16, paddingHorizontal: 4, borderRadius: 6, alignItems: 'center', justifyContent: 'center', backgroundColor: '#1a73e8', borderWidth: 2, borderColor: pageBg() },
   badgeGood: {},
   badgeText: { fontSize: 10.5, fontFamily: FONTS.bodyBold, color: '#ffffff' },
   kindChips: { gap: 10, paddingTop: 14, paddingRight: 16 },
-  subBadge: { position: 'absolute', top: -9, right: 4, minWidth: 19, height: 19, paddingHorizontal: 5, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: '#1a73e8', borderWidth: 2, borderColor: pageBg() },
+  subBadge: { position: 'absolute', top: -9, right: 4, minWidth: 16, height: 16, paddingHorizontal: 4, borderRadius: 6, alignItems: 'center', justifyContent: 'center', backgroundColor: '#1a73e8', borderWidth: 2, borderColor: pageBg() },
   subBadgeText: { fontSize: 10, fontFamily: FONTS.bodyBold, color: '#ffffff' },
   kindChipOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe', borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#d2e3fc' },
   subChip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, height: 32, borderRadius: 8, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline() },

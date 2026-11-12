@@ -123,7 +123,7 @@ export const OrdersList: React.FC<{ compact?: boolean }> = ({ compact }) => {
         )}
         {p.stage === 'arrived' && (
           <>
-            <Text style={styles.hold}>🚪 රියදුරු දොරකඩ — කොටස පරීක්ෂා කර ගෙවන්න{p.delivery?.fee ? ` (බෙදාහැරීම රු. ${p.delivery.fee.toLocaleString()})` : ''}</Text>
+            <Text style={styles.hold}>🚪 රියදුරු දොරකඩ — කොටස පරීක්ෂා කර ගෙවන්න{p.delivery?.fee ? ` (බෙදාහැරීම LKR ${p.delivery.fee.toLocaleString()})` : ''}</Text>
             <ActionButton label="කොටස පරීක්ෂා කරන්න" icon="🔍" variant="success" compact onPress={() => setInspect(p)} />
           </>
         )}

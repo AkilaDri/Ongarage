@@ -1,6 +1,6 @@
 const MONTHS = ['ජන.', 'පෙබ.', 'මාර්තු', 'අප්‍රේල්', 'මැයි', 'ජූනි', 'ජූලි', 'අගෝ.', 'සැප්.', 'ඔක්.', 'නොවැ.', 'දෙසැ.'];
 
-export const money = (n: number) => `රු. ${Math.round(n).toLocaleString()}`;
+export const money = (n: number) => `LKR ${Math.round(n).toLocaleString()}`;
 
 const pad = (n: number) => String(n).padStart(2, '0');
 

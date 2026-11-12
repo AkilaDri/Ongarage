@@ -135,7 +135,7 @@ export const DirectReplySheet: React.FC<{ request: DirectRequest | null; mode: R
 
                 <Text style={styles.label}>ඇස්තමේන්තුගත මිල</Text>
                 <View style={styles.priceBox}>
-                  <Text style={styles.currency}>රු.</Text>
+                  <Text style={styles.currency}>LKR </Text>
                   <TextInput style={styles.priceInput} keyboardType="number-pad" value={estimate} onChangeText={(t) => setEstimate(t.replace(/[^0-9]/g, ''))} maxLength={7} />
                 </View>
                 <Text style={styles.sub}>

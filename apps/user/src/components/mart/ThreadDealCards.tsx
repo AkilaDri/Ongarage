@@ -93,7 +93,7 @@ export const ThreadDealCards: React.FC<{ enquiryId: string; shopId: string }> = 
         )}
         {p.stage === 'arrived' && (
           <>
-            <Text style={styles.text}>🚪 රියදුරු දොරකඩ — කොටස පරීක්ෂා කර ගෙවන්න{p.delivery?.fee ? ` (බෙදාහැරීම රු. ${p.delivery.fee.toLocaleString()})` : ''}.</Text>
+            <Text style={styles.text}>🚪 රියදුරු දොරකඩ — කොටස පරීක්ෂා කර ගෙවන්න{p.delivery?.fee ? ` (බෙදාහැරීම LKR ${p.delivery.fee.toLocaleString()})` : ''}.</Text>
             <Pressable style={[styles.btn, styles.yes]} onPress={() => setInspect(p)} accessibilityLabel="Inspect the part">
               <Text style={styles.yesText}>🔍 කොටස පරීක්ෂා කරන්න</Text>
             </Pressable>
@@ -176,7 +176,7 @@ export const ThreadDealCards: React.FC<{ enquiryId: string; shopId: string }> = 
               </Pressable>
               {!!o.delivery && (
                 <Pressable style={[styles.btn, styles.part]} onPress={() => reserve(o.id, 'delivery')} accessibilityLabel="Reserve with delivery">
-                  <Text style={styles.partText}>🛵 ගෙදරටම · රු. {o.delivery.fee.toLocaleString()}</Text>
+                  <Text style={styles.partText}>🛵 ගෙදරටම · LKR {o.delivery.fee.toLocaleString()}</Text>
                 </Pressable>
               )}
             </View>

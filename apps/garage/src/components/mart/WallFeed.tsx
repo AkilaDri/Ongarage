@@ -85,7 +85,7 @@ const PostCard: React.FC<{ post: FeedPost; now: number }> = ({ post, now }) => {
     wall.sendReply(post.id, { price: amount > 0 ? amount : undefined, message: message.trim() });
     setReplying(false);
     // A direct message to the poster is a conversation: it opens in OnChat, with what was written as its first message.
-    const text = ['🙋 මෙම කොටස මා ළඟ තිබේ.', amount > 0 ? `මිල රු. ${amount.toLocaleString('en-US')}` : '', message.trim()].filter(Boolean).join(' · ');
+    const text = ['🙋 මෙම කොටස මා ළඟ තිබේ.', amount > 0 ? `මිල LKR ${amount.toLocaleString('en-US')}` : '', message.trim()].filter(Boolean).join(' · ');
     chat.openWith({ id: `feed:${post.id}`, title: post.author, subtitle: 'On Feed', profile: 'shop' }, text);
   };
 
@@ -176,8 +176,8 @@ const PostCard: React.FC<{ post: FeedPost; now: number }> = ({ post, now }) => {
         ) : (
           <Pressable style={styles.action} onPress={() => setReplying((r) => !r)} accessibilityLabel="I have this part">
             {/* The direct message to the poster is named for where it goes: OnChat, in the same type as the icons beside it. */}
-            {/* A chat icon (a speech bubble with its tail) with the word ONCHAT written inside it. */}
-            <OnChatIcon width={44} color={sent ? Colors.success : replying ? Colors.primary : Colors.textMuted} />
+            {/* A line chat icon (a speech bubble with its tail) with ON inside it. */}
+            <OnChatIcon width={32} outline short color={sent ? Colors.success : replying ? Colors.primary : Colors.textMuted} />
           </Pressable>
         )}
         {/* the bookmark: at the right end of the same line as the other icons */}
@@ -207,7 +207,7 @@ const PostCard: React.FC<{ post: FeedPost; now: number }> = ({ post, now }) => {
       {replying && !sent && (
         <View style={styles.reply}>
           <Text style={styles.replyTitle}>මෙම කොටස ඔබ ළඟ තිබේද? පෝස්ට් කළ අයට පෞද්ගලිකව දැනුම් දෙන්න.</Text>
-          <TextInput style={styles.input} value={price} onChangeText={setPrice} keyboardType="number-pad" placeholder="ඔබේ මිල (රු.) — අත්‍යවශ්‍ය නැත" placeholderTextColor={Colors.textMuted} />
+          <TextInput style={styles.input} value={price} onChangeText={setPrice} keyboardType="number-pad" placeholder="ඔබේ මිල (LKR ) — අත්‍යවශ්‍ය නැත" placeholderTextColor={Colors.textMuted} />
           <TextInput style={[styles.input, styles.inputTall]} value={message} onChangeText={setMessage} multiline placeholder="තත්වය, ස්ථානය, වෙනත් විස්තර…" placeholderTextColor={Colors.textMuted} />
           <Pressable style={styles.send} onPress={submitReply} accessibilityLabel="Send reply to poster">
             <Text style={styles.sendText}>සෘජුවම දැනුම් දෙන්න</Text>

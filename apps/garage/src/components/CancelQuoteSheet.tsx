@@ -48,7 +48,7 @@ export const CancelQuoteSheet: React.FC<{ booking: Booking | null; onClose: () =
 
       <Text style={styles.label}>මෙතෙක් කළ වැඩවලට ඔබගේ වන්දිය</Text>
       <View style={styles.priceBox}>
-        <Text style={styles.currency}>රු.</Text>
+        <Text style={styles.currency}>LKR </Text>
         <TextInput style={styles.priceInput} keyboardType="number-pad" value={amount} onChangeText={(t) => setAmount(t.replace(/[^0-9]/g, ''))} maxLength={7} accessibilityLabel="Compensation amount" />
       </View>
       <Text style={styles.hint}>රැකියාවේ මිල {money(b.price)}. අයිතිකරුට මෙය අනුමත කර අවලංගු කළ හැක, නැත්නම් ඉල්ලීම ඉවත් කර වැඩ දිගටම කරගෙන යා හැක.</Text>

@@ -64,7 +64,7 @@ export const TowOperatorCard: React.FC<{
           <Text style={styles.meta}>⏱️ ~මිනි. {etaMin}</Text>
         </View>
         <View style={styles.details}>
-          <InfoChip text={`💰 රු. ${total.toLocaleString()}`} />
+          <InfoChip text={`💰 LKR ${total.toLocaleString()}`} />
           {op.trucks.map((k) => (
             <InfoChip key={k} text={`🛻 ${k}`} />
           ))}

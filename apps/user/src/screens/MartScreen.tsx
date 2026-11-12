@@ -736,7 +736,7 @@ export const MartScreen: React.FC<MartScreenProps> = ({ activeVehicle, segment, 
                 >
                   <View style={styles.stockItemTop}>
                     <Text style={styles.stockItemName}>{line.name}</Text>
-                    <Text style={styles.stockPrice}>රු. {price.toLocaleString()}</Text>
+                    <Text style={styles.stockPrice}>LKR {price.toLocaleString()}</Text>
                   </View>
                   <Text style={styles.stockItemSub}>{stockShop.name} · {stockShop.distanceKm} km · {line.partType}{line.brand ? ` · ${line.brand}` : ''}</Text>
                   <Text style={styles.stockItemSub}>තොගයේ {line.qty} ක්{deal ? ` · −${deal.discountPercent}% දීමනාව` : ''}</Text>
@@ -815,7 +815,7 @@ const styles = themedStyles(() =>
     reqTabs: { flexDirection: 'row', gap: 8, marginTop: 10 },
     // Google Material filter chips: 8dp corners, outlined, the selected one tonal blue with a check.
     reqTab: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, height: 36, paddingHorizontal: 8, borderRadius: 8, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline() },
-    reqCount: { position: 'absolute', top: -9, right: 8, minWidth: 20, height: 20, paddingHorizontal: 6, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: '#1a73e8', borderWidth: 2, borderColor: pageBg() },
+    reqCount: { position: 'absolute', top: -9, right: 8, minWidth: 16, height: 16, paddingHorizontal: 4, borderRadius: 6, alignItems: 'center', justifyContent: 'center', backgroundColor: '#1a73e8', borderWidth: 2, borderColor: pageBg() },
     reqCountText: { fontSize: 10.5, fontFamily: FONTS.bodyBold, color: '#ffffff' },
     pastHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 6 },
     pastToggle: { fontSize: 12, color: Colors.textMuted },

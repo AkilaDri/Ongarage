@@ -29,7 +29,7 @@ export const TOW_REVIEWS: Record<string, TowReviewSeed[]> = {
     r('t4b', 'නදීශා ප්‍රනාන්දු', 5, 'ගාස්තුව කලින් කියපු එකටම ගත්තා.', 15),
     r('t4c', 'සමන් කුමාර', 4, 'හොඳ සේවාවක්.', 30),
   ],
-  t5: [r('t5a', 'රුවන් ද සිල්වා', 4, 'දුර නිසා ටිකක් ප්‍රමාදයි, නමුත් හොඳයි.', 18)],
+  t5: [r('t5a', 'LKR න් ද සිල්වා', 4, 'දුර නිසා ටිකක් ප්‍රමාදයි, නමුත් හොඳයි.', 18)],
 };
 
 /** An operator's reviews as the cards the profile shows. */
@@ -43,5 +43,5 @@ export const TOW_TRUCKS: Record<string, TowTruck> = {
   t2: { plate: 'SP - 7730', model: 'Mitsubishi Recovery (Winch)', color: 'රතු', driver: 'සුනිල් ප්‍රනාන්දු', body: '#ef4444' },
   t3: { plate: 'LC - 2894', model: 'Tata Flatbed', color: 'නිල්', driver: 'කමල් සිල්වා', body: '#3b82f6' },
   t4: { plate: 'LH - 6105', model: 'Isuzu Flatbed + Winch', color: 'කහ', driver: 'දිනේෂ් රණසිංහ', body: '#facc15' },
-  t5: { plate: 'SG - 3342', model: 'Mazda Emergency Truck', color: 'කොළ', driver: 'රුවන් ද සිල්වා', body: '#22c55e' },
+  t5: { plate: 'SG - 3342', model: 'Mazda Emergency Truck', color: 'කොළ', driver: 'LKR න් ද සිල්වා', body: '#22c55e' },
 };

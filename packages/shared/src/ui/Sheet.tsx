@@ -21,6 +21,8 @@ export const Sheet: React.FC<{
   hero?: React.ReactNode;
   /** Tighter spacing between the blocks under the hero. */
   compact?: boolean;
+  /** With `compact`: more room between the blocks of the body (a long profile that should not look packed). */
+  roomy?: boolean;
   /** No thin line between one block of the body and the next (the caller spaces its sections itself). */
   noDividers?: boolean;
   /** Covers the whole window with a back-arrow app bar (a chat), instead of rising from the bottom. */
@@ -34,7 +36,7 @@ export const Sheet: React.FC<{
   /** Each time this number changes the body scrolls back to its top (a form that starts again, like "add another part"). */
   scrollToTopKey?: number;
   children: React.ReactNode;
-}> = ({ visible, title, subtitle, onClose, footer, overlay, hero, compact, noDividers, fullScreen, bare, headerRight, titleIcon, scrollToTopKey, children }) => {
+}> = ({ visible, title, subtitle, onClose, footer, overlay, hero, compact, roomy, noDividers, fullScreen, bare, headerRight, titleIcon, scrollToTopKey, children }) => {
   const bodyRef = useRef<ScrollView>(null);
   useEffect(() => {
     if (scrollToTopKey) bodyRef.current?.scrollTo({ y: 0, animated: true });
@@ -125,7 +127,7 @@ export const Sheet: React.FC<{
             if (hero) setFull(e.nativeEvent.contentOffset.y > 24);
           }} keyboardShouldPersistTaps="handled" contentContainerStyle={hero ? styles.bodyHero : styles.body} showsVerticalScrollIndicator={false} stickyHeaderIndices={undefined}>
             {hero}
-            {hero ? <View style={[styles.heroBody, compact && styles.heroBodyCompact]}>{divided(children)}</View> : fullScreen ? children : divided(children)}
+            {hero ? <View style={[styles.heroBody, compact && styles.heroBodyCompact, compact && roomy && styles.heroBodyRoomy]}>{divided(children)}</View> : fullScreen ? children : divided(children)}
           </ScrollView>
           )}
           {!!footer && <View style={[styles.footer, fullScreen && styles.footerScreen]}>{footer}</View>}
@@ -178,6 +180,7 @@ const styles = themedStyles(() =>
     bodyHero: { paddingBottom: 18 },
     heroBody: { paddingHorizontal: 6, paddingTop: 12, gap: 10 },
     heroBodyCompact: { paddingTop: 4, gap: 4 },
+    heroBodyRoomy: { gap: 16 },
     footer: {
       padding: 16,
       paddingTop: 12,

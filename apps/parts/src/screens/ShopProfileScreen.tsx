@@ -114,7 +114,7 @@ export const ShopProfileScreen: React.FC = () => {
           <Text style={styles.chevron}>›</Text>
         </View>
         <Text style={styles.sub}>
-          මෙම මාසය: නිර්දේශිත විකුණුම් රු. {refTotals.partsValue.toLocaleString()} · මිලදී ගැනීම් {refTotals.purchases} · ගරාජවලට ලැබිය යුතු කොමිස් රු. {refTotals.commission.toLocaleString()}
+          මෙම මාසය: නිර්දේශිත විකුණුම් LKR {refTotals.partsValue.toLocaleString()} · මිලදී ගැනීම් {refTotals.purchases} · ගරාජවලට ලැබිය යුතු කොමිස් LKR {refTotals.commission.toLocaleString()}
         </Text>
       </Pressable>
       <View style={styles.card}>
@@ -170,7 +170,7 @@ export const ShopProfileScreen: React.FC = () => {
           <Text style={styles.chevron}>›</Text>
         </View>
         <Text style={styles.sub}>
-          දීමනා {deals.filter((d) => d.endsAt > Date.now()).length} · {promo.freeDeliveryOver ? `රු. ${promo.freeDeliveryOver.toLocaleString()}+ නොමිලේ බෙදාහැරීම` : 'නොමිලේ බෙදාහැරීමක් නැත'} · {promo.banner ? (promo.banner.status === 'live' ? 'දැන්වීම සක්‍රීයයි' : 'දැන්වීම සමාලෝචනයේ') : 'දැන්වීමක් නැත'}
+          දීමනා {deals.filter((d) => d.endsAt > Date.now()).length} · {promo.freeDeliveryOver ? `LKR ${promo.freeDeliveryOver.toLocaleString()}+ නොමිලේ බෙදාහැරීම` : 'නොමිලේ බෙදාහැරීමක් නැත'} · {promo.banner ? (promo.banner.status === 'live' ? 'දැන්වීම සක්‍රීයයි' : 'දැන්වීම සමාලෝචනයේ') : 'දැන්වීමක් නැත'}
         </Text>
       </Pressable>
 
@@ -304,7 +304,7 @@ const styles = themedStyles(() =>
     knob: { width: 18, height: 18, borderRadius: 9, backgroundColor: '#fff' },
     knobOn: { alignSelf: 'flex-end' },
     ratingBig: { fontSize: 22, fontWeight: '900', color: Colors.warning },
-    badge: { minWidth: 22, height: 22, paddingHorizontal: 6, borderRadius: 11, backgroundColor: '#ef4444', alignItems: 'center', justifyContent: 'center' },
+    badge: { minWidth: 16, height: 16, paddingHorizontal: 4, borderRadius: 6, backgroundColor: '#ef4444', alignItems: 'center', justifyContent: 'center' },
     badgeText: { fontSize: 11, fontWeight: '800', color: '#fff' },
     chevron: { fontSize: 20, color: Colors.textMuted },
     latest: { fontSize: 11.5, fontFamily: FONTS.bodyRegular, color: Colors.textSoft, lineHeight: 18 },

@@ -436,7 +436,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         request: r,
       };
       setQuotes((prev) => [quote, ...prev.filter((q) => q.id !== quote.id)]);
-      notify({ icon: '📨', title: 'මිල ගණන යැව්වා', body: `${r.garage.name} · රු. ${quote.total.toLocaleString()}`, tone: 'primary' });
+      notify({ icon: '📨', title: 'මිල ගණන යැව්වා', body: `${r.garage.name} · LKR ${quote.total.toLocaleString()}`, tone: 'primary' });
 
       // The garage compares quotes (simulated): cheapest total that arrives in time wins.
       later(() => {
@@ -529,7 +529,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const payout = cur.quote.partsTotal + (cur.quote.delivery === 'shop' ? cur.quote.deliveryFee : 0);
           patchOrder(orderId, { status: 'received', receivedAt: Date.now(), payout });
           setStats((st) => recordOutcome(st, 'fulfilled'));
-          notify({ icon: '💰', title: 'ගරාජය ලැබුණු බව තහවුරු කළා', body: `රු. ${payout.toLocaleString()} ලැබුණා (භාරදීමේදී ගෙවීම).`, tone: 'success' });
+          notify({ icon: '💰', title: 'ගරාජය ලැබුණු බව තහවුරු කළා', body: `LKR ${payout.toLocaleString()} ලැබුණා (භාරදීමේදී ගෙවීම).`, tone: 'success' });
           later(() => {
             const stars = cur.quote.etaMin <= 40 ? 5 : 4;
             patchOrder(orderId, { rating: stars });
@@ -566,7 +566,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const payout = o.quote.partsTotal;
       patchOrder(orderId, { status: 'received', receivedAt: Date.now(), payout });
           setStats((st) => recordOutcome(st, 'fulfilled'));
-      notify({ icon: '💰', title: 'කොටස් භාර දුන්නා', body: `රු. ${payout.toLocaleString()} ලැබුණා · ${o.pickup.collector}`, tone: 'success' });
+      notify({ icon: '💰', title: 'කොටස් භාර දුන්නා', body: `LKR ${payout.toLocaleString()} ලැබුණා · ${o.pickup.collector}`, tone: 'success' });
       later(() => {
         patchOrder(orderId, { rating: 5 });
         setReviews((prev) => [{ id: `sr-${orderId}`, garage: o.quote.request.garage.name, rating: 5, text: 'කවුන්ටරයේ සූදානම් කරලා තිබ්බා, විනාඩියෙන් ගෙනිච්චා.', at: Date.now() }, ...prev]);
@@ -707,7 +707,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setStats((st) => answerOutcome(st, 'fulfilled'));
       markOffer(sale.offer.id, 'bought');
       const label = buyerLabel(sale.offer.request);
-      notify({ icon: '💰', title: 'විකුණුම තහවුරුයි', body: `${label} · රු. ${(amount + fee).toLocaleString()} ලැබුණා`, tone: 'success' });
+      notify({ icon: '💰', title: 'විකුණුම තහවුරුයි', body: `${label} · LKR ${(amount + fee).toLocaleString()} ලැබුණා`, tone: 'success' });
       later(() => setReviews((prev) => [{ id: `sr-${sale.id}`, garage: label, rating: 5, text: 'කොටස නිවැරදියි, ඉක්මනින් ලබා දුන්නා.', at: Date.now() }, ...prev]), 4000);
       const jr = sale.purchase.jobRef;
       if (jr) {
@@ -717,7 +717,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         later(() => {
           moveReferral(jr, 'fitted', undefined, true);
           const ref = live.current.referrals.find((r) => r.id === `ref-${jr.bookingId}-${jr.lineId}`);
-          if (ref) notify({ icon: '🤝', title: `${ref.garage.name} වෙත කොමිස් ලැබිය යුතුයි`, body: `රු. ${commissionFor(amount, ref.commissionPercent).toLocaleString()} (${ref.commissionPercent}%) ලෙජරයට එක් විය — රැකියාව අවසන් විය.`, tone: 'primary' });
+          if (ref) notify({ icon: '🤝', title: `${ref.garage.name} වෙත කොමිස් ලැබිය යුතුයි`, body: `LKR ${commissionFor(amount, ref.commissionPercent).toLocaleString()} (${ref.commissionPercent}%) ලෙජරයට එක් විය — රැකියාව අවසන් විය.`, tone: 'primary' });
         }, 14000);
       }
     },

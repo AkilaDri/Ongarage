@@ -1,5 +1,5 @@
-import React, { useEffect, useRef } from 'react';
-import { Animated, Easing, Pressable, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { Animated, Easing, Pressable, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
 import { Colors, getThemeMode, themedStyles } from '../theme/colors';
 import { FONTS } from '../theme/fonts';
 import { Gradient, GRADIENTS } from './Visuals';
@@ -53,6 +53,8 @@ export const GlassIcon: React.FC<{ emoji: string; small?: boolean }> = ({ emoji,
 
 const BUTTON_GRADIENTS = { sos: GRADIENTS.sos, success: GRADIENTS.brand, primary: GRADIENTS.issue, cta: GRADIENTS.cta } as const;
 
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
 export const ActionButton: React.FC<{
   label: string;
   icon?: string | React.ReactNode;
@@ -61,8 +63,33 @@ export const ActionButton: React.FC<{
   compact?: boolean;
   /** Fully rounded ends (the default); false gives a rounded rectangle. */
   pill?: boolean;
+  /** The next step to take: a soft shine sweeps across the button, with a tiny shake, now and then so the eye goes to it. */
+  nudge?: boolean;
   onPress: () => void;
-}> = ({ label, icon, variant, disabled, compact, pill = true, onPress }) => {
+}> = ({ label, icon, variant, disabled, compact, pill = true, nudge, onPress }) => {
+  const sweep = useRef(new Animated.Value(0)).current;
+  const shake = useRef(new Animated.Value(0)).current;
+  const [btnW, setBtnW] = useState(0);
+  const nudging = !!nudge && !disabled;
+  useEffect(() => {
+    if (!nudging) {
+      sweep.setValue(0);
+      return;
+    }
+    // The shine sweeps across, then the button gives a tiny shake (a little vibration), then it rests.
+    const wiggle = (to: number) => Animated.timing(shake, { toValue: to, duration: 55, easing: Easing.linear, useNativeDriver: true });
+    const loop = Animated.loop(
+      Animated.sequence([
+        // First the shine sweeps across, and only when it has gone does the button give its little shake.
+        Animated.timing(sweep, { toValue: 1, duration: 1000, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+        Animated.sequence([wiggle(1), wiggle(-1), wiggle(1), wiggle(-1), wiggle(0.6), wiggle(-0.6), wiggle(0)]),
+        Animated.delay(1600),
+        Animated.timing(sweep, { toValue: 0, duration: 0, useNativeDriver: true }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [nudging, sweep]);
   // Buttons inside cards (compact) are the modern kind: tall pills, a tonal (soft tinted) look for the secondary and the success ones, a soft coloured shadow
   // under the primary one. Full-width sheet buttons keep the gradient look.
   const modern = !!compact;
@@ -70,27 +97,47 @@ export const ActionButton: React.FC<{
   const dark = getThemeMode() === 'dark';
   const tonalText = variant === 'success' ? (dark ? '#81c995' : '#137333') : dark ? '#8db1ff' : '#1a73e8';
   const textStyle = [styles.actionBtnText, modern && styles.actionBtnTextModern, tonal && !disabled && { color: tonalText }, !modern && variant === 'ghost' && { color: Colors.textMuted }, disabled && styles.actionBtnTextDisabled];
-  return (
-    <Pressable
-      disabled={disabled}
-      onPress={onPress}
-      style={({ pressed }) => [
+  const baseStyle = (pressed: boolean) => [
         styles.actionBtn,
         compact && styles.actionBtnCompact,
         pill && styles.actionBtnPill,
         modern && styles.actionBtnModern,
+        modern && !pill && styles.actionBtnBox,
         variant === 'ghost' && !modern && styles.actionBtnGhost,
         tonal && !disabled && (variant === 'success' ? styles.actionBtnTonalGreen : styles.actionBtnTonalBlue),
         modern && !tonal && !disabled && variant !== 'sos' && styles.actionBtnLift,
         disabled && styles.actionBtnDisabled,
         disabled && modern && styles.actionBtnDisabledModern,
         pressed && !disabled && { transform: [{ scale: 0.97 }] },
-      ]}
-    >
+  ];
+  const inner = (
+    <>
       {variant !== 'ghost' && !disabled && !tonal && <Gradient stops={BUTTON_GRADIENTS[variant]} />}
       {!!icon && (typeof icon === 'string' ? <Text style={[textStyle, modern && styles.actionBtnIconModern]}>{icon}</Text> : icon)}
       <Text style={textStyle}>{label}</Text>
-    </Pressable>
+      {nudging && !!btnW && (
+        <Animated.View
+          pointerEvents="none"
+          style={{ position: 'absolute', top: -4, bottom: -4, left: 0, width: 34, backgroundColor: 'rgba(255, 255, 255, 0.55)', transform: [{ translateX: sweep.interpolate({ inputRange: [0, 1], outputRange: [-60, btnW + 30] }) }, { skewX: '-20deg' }] }}
+        />
+      )}
+    </>
+  );
+  if (!nudging) {
+    return (
+      <Pressable disabled={disabled} onPress={onPress} style={({ pressed }) => baseStyle(pressed)}>
+        {inner}
+      </Pressable>
+    );
+  }
+  return (
+    <AnimatedPressable
+      onPress={onPress}
+      onLayout={(e: LayoutChangeEvent) => setBtnW(e.nativeEvent.layout.width)}
+      style={[...baseStyle(false), { transform: [{ translateX: shake.interpolate({ inputRange: [-1, 1], outputRange: [-1.2, 1.2] }) }, { rotate: shake.interpolate({ inputRange: [-1, 1], outputRange: ['-0.3deg', '0.3deg'] }) }] }]}
+    >
+      {inner}
+    </AnimatedPressable>
   );
 };
 
@@ -106,16 +153,20 @@ export const InfoChip: React.FC<{ text: string }> = ({ text }) => {
   const rest = hasIcon ? text.slice(i + 1) : text;
   const dark = getThemeMode() === 'dark';
   const TONES = {
-    blue: { bg: dark ? 'rgba(141, 177, 255, 0.14)' : '#e8f0fe', fg: dark ? '#8db1ff' : '#1a73e8' },
-    green: { bg: dark ? 'rgba(129, 201, 149, 0.14)' : '#e6f4ea', fg: dark ? '#81c995' : '#137333' },
-    amber: { bg: dark ? 'rgba(253, 214, 99, 0.14)' : '#fef7e0', fg: dark ? '#fdd663' : '#b06000' },
-    teal: { bg: dark ? 'rgba(94, 234, 212, 0.14)' : '#e0f7f4', fg: dark ? '#5eead4' : '#0d7a6e' },
-    plain: { bg: dark ? 'rgba(255, 255, 255, 0.08)' : '#f1f3f4', fg: dark ? '#e8eaed' : '#3c4043' },
+    blue: { bg: dark ? 'rgba(141, 177, 255, 0.14)' : '#eff6ff', fg: dark ? '#8db1ff' : '#1d4ed8', edge: dark ? 'rgba(141, 177, 255, 0.28)' : '#bfdbfe' },
+    green: { bg: dark ? 'rgba(129, 201, 149, 0.14)' : '#ecfdf5', fg: dark ? '#81c995' : '#047857', edge: dark ? 'rgba(129, 201, 149, 0.28)' : '#a7f3d0' },
+    amber: { bg: dark ? 'rgba(253, 214, 99, 0.14)' : '#fffbeb', fg: dark ? '#fdd663' : '#92400e', edge: dark ? 'rgba(253, 214, 99, 0.28)' : '#fde68a' },
+    teal: { bg: dark ? 'rgba(94, 234, 212, 0.14)' : '#f0fdfa', fg: dark ? '#5eead4' : '#0f766e', edge: dark ? 'rgba(94, 234, 212, 0.28)' : '#99f6e4' },
+    plain: { bg: dark ? 'rgba(255, 255, 255, 0.08)' : '#f8fafc', fg: dark ? '#e8eaed' : '#475569', edge: dark ? 'rgba(255, 255, 255, 0.14)' : '#e2e8f0' },
   };
   const tone = ['📍'].includes(icon) ? TONES.blue : ['🚛', '🛡️', '✅'].includes(icon) ? TONES.green : ['🚗', '⏱️', '⚠️', '⏰'].includes(icon) ? TONES.amber : ['🔩'].includes(icon) ? TONES.teal : TONES.plain;
   return (
-    <View style={[styles.infoChip, { backgroundColor: tone.bg }]}>
-      {!!icon && <Text style={styles.infoChipIcon}>{icon}</Text>}
+    <View style={[styles.infoChip, { backgroundColor: tone.bg, borderColor: tone.edge }]}>
+      {!!icon && (
+        <View style={styles.infoChipDisc}>
+          <Text style={styles.infoChipIcon}>{icon}</Text>
+        </View>
+      )}
       <Text style={[styles.infoChipText, { color: tone.fg }]} numberOfLines={1}>
         {rest}
       </Text>
@@ -244,13 +295,16 @@ const styles = themedStyles(() => StyleSheet.create({
   actionBtnPill: { borderRadius: 28 },
   // The modern in-card button.
   actionBtnModern: { minHeight: 42, paddingVertical: 10, paddingHorizontal: 18, gap: 7, borderRadius: 21 },
+  // A rounded box (not a pill): the buttons on job cards.
+  actionBtnBox: { borderRadius: 12 },
   actionBtnTonalBlue: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.14)' : '#e8f0fe' },
   actionBtnTonalGreen: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(129, 201, 149, 0.16)' : '#e6f4ea' },
   actionBtnLift: { shadowColor: '#1a73e8', shadowOffset: { width: 0, height: 3 }, shadowOpacity: getThemeMode() === 'dark' ? 0.35 : 0.28, shadowRadius: 8, elevation: 3 },
   actionBtnDisabledModern: { borderWidth: 0, backgroundColor: getThemeMode() === 'dark' ? 'rgba(255, 255, 255, 0.08)' : '#f1f3f4' },
   actionBtnTextModern: { fontSize: 12.5, letterSpacing: 0.1 },
   actionBtnIconModern: { fontSize: 13 },
-  infoChip: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start', maxWidth: '100%', minHeight: 26, paddingLeft: 6, paddingRight: 8, paddingVertical: 1, borderRadius: 11 },
+  infoChip: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', maxWidth: '100%', minHeight: 28, paddingLeft: 3, paddingRight: 10, paddingVertical: 1, borderRadius: 14, borderWidth: 1 },
+  infoChipDisc: { width: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? 'rgba(255, 255, 255, 0.1)' : '#ffffff' },
   infoChipIcon: { fontSize: 12 },
   infoChipText: { fontSize: 11, fontFamily: FONTS.bodySemiBold, flexShrink: 1, lineHeight: 15 },
   actionBtnGhost: { borderWidth: 1, borderColor: softEdge(), backgroundColor: softFill() },

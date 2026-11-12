@@ -1,4 +1,4 @@
-import type { DiagnosisLine, ExtraWorkRequest, WorkshopProgress, WorkshopStage } from '../types';
+import type { DiagnosisLine, ExtraWorkRequest, LateLine, WorkshopProgress, WorkshopStage } from '../types';
 import { makeCloseCode } from './closeCode';
 
 // The workshop job flow every app follows: the garage (or its technician) receives the
@@ -135,4 +135,14 @@ export const warrantyEnd = (closedAt: number, months: number) => {
   d.setMonth(d.getMonth() + months);
   d.setDate(Math.min(day, new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate()));
   return d.getTime();
+};
+
+/** How the owner agreed to something added at handover. */
+export const LATE_VIA_LABEL: Record<LateLine['via'], string> = { phone: 'දුරකථනයෙන් එකඟ වුණා', inPerson: 'මුහුණට මුහුණ එකඟ වුණා', other: 'වෙනත් ආකාරයකට' };
+
+/** The bill with the lines added at handover: labour and parts are billed separately, as everywhere else. */
+export const billWithLate = (bill: { labour: number; parts: number; total: number }, late: LateLine[] = []) => {
+  const labour = bill.labour + late.filter((l) => l.kind === 'labour').reduce((s, l) => s + l.price, 0);
+  const parts = bill.parts + late.filter((l) => l.kind === 'part').reduce((s, l) => s + l.price, 0);
+  return { labour, parts, total: labour + parts };
 };

@@ -484,7 +484,7 @@ const OperatorReviews: React.FC<{ id: string; name: string; rating: number; coun
 const Line: React.FC<{ label: string; value: number; bold?: boolean }> = ({ label, value, bold }) => (
   <View style={styles.lineRow}>
     <Text style={[styles.lineLabel, bold && styles.bold]}>{label}</Text>
-    <Text style={[styles.lineValue, bold && styles.bold]}>රු. {value}</Text>
+    <Text style={[styles.lineValue, bold && styles.bold]}>LKR {value}</Text>
   </View>
 );
 
@@ -684,10 +684,10 @@ export const TowingScreen: React.FC<{ vehicleId?: string; onClose: () => void }>
 
               {req.finalPrice !== undefined && (
                 <View style={[styles.card, req.approval === 'pending' && styles.cardWarn]}>
-                  <Text style={styles.cardTitle}>අවසන් මිල: රු. {req.finalPrice}</Text>
+                  <Text style={styles.cardTitle}>අවසන් මිල: LKR {req.finalPrice}</Text>
                   {req.approval === 'pending' && (
                     <>
-                      <Text style={styles.sub}>ඇස්තමේන්තුවේ සීමාව රු. {req.quote.limit}. මේ මිල අනුමත කරනවාද?</Text>
+                      <Text style={styles.sub}>ඇස්තමේන්තුවේ සීමාව LKR {req.quote.limit}. මේ මිල අනුමත කරනවාද?</Text>
                       <View style={styles.row}>
                         <View style={styles.flex1}>
                           <ActionButton label="ගැටලුවක් තියෙනවා" variant="ghost" compact onPress={() => tow.answerPrice(false)} />
@@ -966,7 +966,7 @@ export const TowingScreen: React.FC<{ vehicleId?: string; onClose: () => void }>
             footer={
               o && answered ? (
                 <ActionButton
-                  label={optionId === o.op.id ? '✓ තෝරා ඇත' : `මෙය තෝරන්න · රු. ${o.quote.total}`}
+                  label={optionId === o.op.id ? '✓ තෝරා ඇත' : `මෙය තෝරන්න · LKR ${o.quote.total}`}
                   variant="primary"
                   onPress={() => { setOptionId(o.op.id); setProfileId(null); }}
                 />
@@ -1010,7 +1010,7 @@ export const TowingScreen: React.FC<{ vehicleId?: string; onClose: () => void }>
       })()}
       {step === TOW_STEPS.length - 1 && (
         <View style={styles.footer}>
-          <ActionButton label={picked ? `Tow truck ඉල්ලන්න · රු. ${picked.quote.total}` : 'Operator කෙනෙක් තෝරන්න'} icon="🛻" variant="primary" disabled={!picked} onPress={request} />
+          <ActionButton label={picked ? `Tow truck ඉල්ලන්න · LKR ${picked.quote.total}` : 'Operator කෙනෙක් තෝරන්න'} icon="🛻" variant="primary" disabled={!picked} onPress={request} />
           <Text style={styles.note}>මිල ඇස්තමේන්තුවක්; operator ට කෙලින්ම ගෙවන්න.</Text>
         </View>
       )}

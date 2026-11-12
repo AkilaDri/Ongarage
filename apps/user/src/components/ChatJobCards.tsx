@@ -55,7 +55,7 @@ const Section: React.FC<{ title: string; lines: DiagnosisLine[]; hidePrice?: boo
  * The same answers are in the job card's tracker; each answer also goes into the chat as an update line.
  */
 export const ChatJobCards: React.FC<{ id: string; onUpdate: (text: string) => void; /** Search a part in OnMart (a part the owner has to buy). */ onOpenMart?: (part: string) => void; /** Several parts to buy: the whole basket is asked of OnMart together. */ onOpenBasket?: (workshopId: string) => void }> = ({ id, onUpdate, onOpenMart, onOpenBasket }) => {
-  const { workshops, approveDiagnosis, declineDiagnosis, decideExtra, decideRecon, confirmReceived, showCloseCode, rateJob, acknowledgeClosed, withdrawCancel } = useWorkshops();
+  const { workshops, approveDiagnosis, declineDiagnosis, decideExtra, decideRecon, confirmReceived, showCloseCode, openBill, rateJob, acknowledgeClosed, withdrawCancel } = useWorkshops();
   const [codeShown, setCodeShown] = useState(false);
   const [rateOpen, setRateOpen] = useState(false);
   // The other forms of the job, opened from the chat: a problem at handover, the receipt, a warranty claim, cancelling.
@@ -175,11 +175,18 @@ export const ChatJobCards: React.FC<{ id: string; onUpdate: (text: string) => vo
         <View style={styles.card} accessibilityLabel="Show your code">
           <Text style={styles.head}>🔑 වැඩ අවසන් — ඔබගේ කේතය</Text>
           <Text style={styles.text}>{w.garageName} වැඩ අවසන් කර ඇත. වාහනය පරීක්ෂා කර, හරි නම් ඔබගේ QR / ඉලක්කම් 6 කේතය ගරාජයට පෙන්වන්න — එවිට රැකියාව වැසේ.</Text>
-          <Text style={styles.total}>කේතය: {p.closeCode}</Text>
+          {!p.billSharedAt && <Text style={styles.text}>⏳ ගරාජය බිල්පත එවන තුරු රැඳී සිටින්න. බිල්පත විවෘත කළාට පසු QR කේතය සාදයි.</Text>}
+          {!!p.billSharedAt && !p.billOpenedAt && (
+            <Pressable style={[styles.btn, styles.yes]} onPress={() => { openBill(id); onUpdate('📄 අයිතිකරු බිල්පත විවෘත කළා.'); }} accessibilityLabel="Open the bill">
+              <Text style={styles.yesText}>📄 බිල්පත විවෘත කරන්න</Text>
+            </Pressable>
+          )}
+          {!!p.billOpenedAt && !!p.handover && <Text style={styles.total}>බිල්පත: {money(p.handover.bill.total)}</Text>}
+          {!!p.billOpenedAt && <Text style={styles.total}>කේතය: {p.closeCode}</Text>}
           <View style={styles.buttons}>
             <Pressable
-              style={[styles.btn, styles.yes, codeShown && { opacity: 0.5 }]}
-              disabled={codeShown}
+              style={[styles.btn, styles.yes, (codeShown || !p.billOpenedAt) && { opacity: 0.5 }]}
+              disabled={codeShown || !p.billOpenedAt}
               onPress={() => {
                 setCodeShown(true);
                 showCloseCode(id);
@@ -322,7 +329,7 @@ export const ChatJobCards: React.FC<{ id: string; onUpdate: (text: string) => vo
             <View style={[styles.compareCol, styles.compareRecon]}>
               <Text style={styles.compareLabel}>Recon</Text>
               <Text style={[styles.total, { color: Colors.success }]}>{money(recon.reconPrice)}</Text>
-              <Text style={styles.compareSub}>දැන් ලබා ගත හැක · රු. {(recon.genuinePrice - recon.reconPrice).toLocaleString()} අඩුයි</Text>
+              <Text style={styles.compareSub}>දැන් ලබා ගත හැක · LKR {(recon.genuinePrice - recon.reconPrice).toLocaleString()} අඩුයි</Text>
             </View>
           </View>
           <Text style={styles.compareSub}>Recon යනු භාවිත කළ, පරීක්ෂා කර නැවත සකස් කළ මුල් කොටස්ය — වගකීම සාමාන්‍යයෙන් කෙටියි. අනුමත නොකළොත් ගරාජය Genuine පමණක් යොදයි.</Text>

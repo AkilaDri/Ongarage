@@ -56,7 +56,7 @@ export const FairShareSheet: React.FC<{ visible: boolean; onClose: () => void }>
         );
       })}
       <Text style={styles.sub}>
-        දිනකට රු. {INTAKE.baseDailyValue.toLocaleString()} + සේවකයන් 3ට වැඩි සෑම කෙනෙකුටම රු. {INTAKE.perExtraMechanic.toLocaleString()} (ඔබේ කණ්ඩායම {team.length}) · රු.{' '}
+        දිනකට LKR {INTAKE.baseDailyValue.toLocaleString()} + සේවකයන් 3ට වැඩි සෑම කෙනෙකුටම LKR {INTAKE.perExtraMechanic.toLocaleString()} (ඔබේ කණ්ඩායම {team.length}) · LKR {' '}
         {INTAKE.lowValueThreshold.toLocaleString()}ට අඩු රැකියා ගණන් නොගනී · SOS කිසිවිටෙක සීමා නොවේ · ඉඩ නැති දිනයකට එන ඍජු වෙන්කිරීම් ප්‍රතික්ෂේප නොකර ඊළඟ නිදහස් දිනයට යෝජනා වේ.
       </Text>
       <Text style={styles.sub}>🌱 මාස 6ට අඩු, හොඳ ලකුණු ඇති නව ගරාජවලට නව රැකියා පළ කිරීම් මිනි. {RISING_HEAD_START_MIN}කට පෙර පෙනේ.</Text>
@@ -80,7 +80,7 @@ export const FairShareSheet: React.FC<{ visible: boolean; onClose: () => void }>
                 <View style={[styles.fill, { width: `${Math.min(1, monthWon / valueCheck.target) * 100}%` }]} />
               </View>
               <Text style={[styles.sub, { color: valueCheck.met ? Colors.successText : Colors.warning }]}>
-                {valueCheck.met ? '✓ ඉලක්කය සපුරා ඇත — ගාස්තුව සාධාරණයි' : `ඉලක්කයට නොපැමිණියොත් රු. ${valueCheck.credit.toLocaleString()} ක් ආපසු බැර වේ`}
+                {valueCheck.met ? '✓ ඉලක්කය සපුරා ඇත — ගාස්තුව සාධාරණයි' : `ඉලක්කයට නොපැමිණියොත් LKR ${valueCheck.credit.toLocaleString()} ක් ආපසු බැර වේ`}
               </Text>
             </>
           )}
@@ -95,7 +95,7 @@ export const FairShareSheet: React.FC<{ visible: boolean; onClose: () => void }>
               <Text style={styles.boxTitle}>
                 {p.name} · {money(p.fee)}/මස
               </Text>
-              <Text style={[styles.sub, mine && { color: Colors.primary }]}>{mine ? 'ඔබගේ ආදායම් පරාසය' : `මාසික ආදායම රු. ${(p.minMonthlyEarnings / 1000).toFixed(0)}k+`}</Text>
+              <Text style={[styles.sub, mine && { color: Colors.primary }]}>{mine ? 'ඔබගේ ආදායම් පරාසය' : `මාසික ආදායම LKR ${(p.minMonthlyEarnings / 1000).toFixed(0)}k+`}</Text>
             </View>
             {p.perks.map((x) => (
               <Text key={x} style={styles.text}>
@@ -114,7 +114,7 @@ export const FairShareSheet: React.FC<{ visible: boolean; onClose: () => void }>
       <View style={styles.box}>
         <Text style={styles.boxTitle}>🛡️ OnGarage Guarantee (ප්‍රිමියර් මට්ටමේ ගරාජ)</Text>
         <Text style={styles.text}>
-          ආරක්ෂිත රැකියාවක ගැටලුවක් ගරාජයට විසඳිය නොහැකි නම්, OnGarage එක් ඉල්ලීමකට රු. {GUARANTEE.capPerClaim.toLocaleString()} දක්වා (ගරාජයකට වසරකට රු. {GUARANTEE.capPerGarageYear.toLocaleString()}) ගෙවයි. පළමු රු. {GUARANTEE.deductible.toLocaleString()} ගරාජය ගෙවයි; ඉල්ලීම් විශ්වාස ලකුණු අඩු කරයි. මෙය රක්ෂණයක් නොවේ.
+          ආරක්ෂිත රැකියාවක ගැටලුවක් ගරාජයට විසඳිය නොහැකි නම්, OnGarage එක් ඉල්ලීමකට LKR {GUARANTEE.capPerClaim.toLocaleString()} දක්වා (ගරාජයකට වසරකට LKR {GUARANTEE.capPerGarageYear.toLocaleString()}) ගෙවයි. පළමු LKR {GUARANTEE.deductible.toLocaleString()} ගරාජය ගෙවයි; ඉල්ලීම් විශ්වාස ලකුණු අඩු කරයි. මෙය රක්ෂණයක් නොවේ.
         </Text>
       </View>
     </Sheet>

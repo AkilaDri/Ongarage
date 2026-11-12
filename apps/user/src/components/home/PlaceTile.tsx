@@ -68,7 +68,7 @@ export const PlaceTile: React.FC<{ place: Place; distance: number; from?: { lati
             return (
               <View key={f.name} style={[styles.chip, stock === 'out' && styles.chipOut, stock === 'low' && styles.chipLow]}>
                 <Text style={[styles.chipText, stock === 'out' && styles.chipTextOut, stock === 'low' && styles.chipTextLow]}>
-                  {f.name} · රු. {f.price} · {STOCK_TEXT[stock]}
+                  {f.name} · LKR {f.price} · {STOCK_TEXT[stock]}
                   {crowd ? (crowd.byOwner ? ' ✔' : ` 👥${crowd.count}`) : ''}
                 </Text>
               </View>
@@ -85,7 +85,7 @@ export const PlaceTile: React.FC<{ place: Place; distance: number; from?: { lati
             return (
               <View key={c.type + c.kw} style={styles.connRow}>
                 <Text style={styles.connText} numberOfLines={1}>
-                  {c.type} · {c.kw} kW · රු. {c.price}/kWh{crowd && !crowd.value ? ' · 👥 නරකයි' : ''}
+                  {c.type} · {c.kw} kW · LKR {c.price}/kWh{crowd && !crowd.value ? ' · 👥 නරකයි' : ''}
                 </Text>
                 <PlugDots states={c.states} />
                 <Text style={[styles.connFree, freePlugs(c) === 0 && styles.connFreeNone]}>{freePlugs(c)}/{c.states.length}</Text>

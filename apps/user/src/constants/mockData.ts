@@ -139,7 +139,7 @@ export const MOCK_GARAGES: Garage[] = [
     name: 'Galle Hybrid Care',
     level: 'verified',
     dimensions: { quality: 4.7, pricing: 4.8, onTime: 4.6, communication: 4.7 },
-    recentReviews: [review('gh1', 'රුවිනි ද සිල්වා', 5, 'හයිබ්‍රිඩ් බැටරි පරීක්ෂාව ඉක්මනින් කළා, මිල සාධාරණයි.', 4, 'ස්තූතියි! නැවත එන්න.')],
+    recentReviews: [review('gh1', 'LKR ිනි ද සිල්වා', 5, 'හයිබ්‍රිඩ් බැටරි පරීක්ෂාව ඉක්මනින් කළා, මිල සාධාරණයි.', 4, 'ස්තූතියි! නැවත එන්න.')],
     specialization: 'Hybrid Battery & Inverter',
     rating: 4.7,
     reviews: 18,

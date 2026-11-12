@@ -290,7 +290,7 @@ export const PlaceSheet: React.FC<{ place: Place | null; distance?: number; from
                             </Text>
                           )}
                         </View>
-                        <Text style={styles.rowPrice}>රු. {f.price}</Text>
+                        <Text style={styles.rowPrice}>LKR {f.price}</Text>
                         <Text style={[styles.rowStock, stock === 'out' ? styles.stockOut : stock === 'low' ? styles.stockLow : styles.stockOk]}>{STOCK_TEXT[stock]}</Text>
                       </View>
                     );
@@ -313,7 +313,7 @@ export const PlaceSheet: React.FC<{ place: Place | null; distance?: number; from
                           <Text style={[styles.rowName, styles.flex1]}>
                             {c.type} · {c.kw} kW
                           </Text>
-                          <Text style={styles.rowPrice}>රු. {c.price} / kWh</Text>
+                          <Text style={styles.rowPrice}>LKR {c.price} / kWh</Text>
                         </View>
                         <View style={styles.plugRow}>
                           <PlugDots states={c.states} />
