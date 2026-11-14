@@ -45,6 +45,14 @@ const countdown = (ms: number) => {
   return `${h}h ${pad(m)}m ${pad(s)}s`;
 };
 
+/** The time left until the bids close, in hours and minutes: it changes once a minute, not every second. */
+const remaining = (ms: number) => {
+  if (ms <= 0) return 'කල් ඉකුත් විය';
+  const h = Math.floor(ms / 3600000);
+  const m = Math.floor((ms % 3600000) / 60000);
+  return h > 0 ? `පැය ${h} ක් ${m} මිනි.` : `මිනි. ${m}`;
+};
+
 const ago = (ms: number) => {
   const min = Math.floor(ms / 60000);
   if (min < 1) return 'දැන්';
@@ -86,6 +94,8 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, onRepu
   const user = useUserLocation();
   const [now, setNow] = useState(Date.now());
   const [confirming, setConfirming] = useState<{ job: RepairJob; bid: Bid } | null>(null);
+  // A bid the owner asked to remove: confirmed before it goes.
+  const [deleting, setDeleting] = useState<{ job: RepairJob; bid: Bid } | null>(null);
   const standing = usePayStanding();
   const askAccept = (v: { job: RepairJob; bid: Bid }) => (standing.limited ? onPayFirst() : setConfirming(v));
   // One garage's bid, opened by tapping or swiping it inside the job card.
@@ -205,11 +215,12 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, onRepu
     const isAccepted = job.acceptedBidId === bid.id;
     const garage = garageForBid(bid);
     return (
-      <SwipeCard key={bid.id} style={[styles.bidCard, isLowest && !job.acceptedBidId && styles.bidCardLowest, isAccepted && styles.bidCardAccepted]} onOpen={() => setBidView({ job, bid })}>
-        <Pressable onPress={() => setBidView({ job, bid })} accessibilityLabel={`${bid.garageName} bid details`}>
+      // The card stays put: the owner accepts from it, and nothing opens on tap.
+      <View key={bid.id} style={[styles.bidCard, isLowest && !job.acceptedBidId && styles.bidCardLowest, isAccepted && styles.bidCardAccepted]}>
+        <View>
           <Image source={GARAGE_COVERS[garage.id]} style={styles.bidCover} resizeMode="cover" />
           {!isAccepted && (
-            <Pressable style={styles.deleteBtn} onPress={() => removeBidAndPin(job.id, bid.id)} hitSlop={8} accessibilityLabel={`Delete bid from ${bid.garageName}`}><Icon name="trash" size={15} color="#ffffff" /></Pressable>
+            <Pressable style={styles.deleteBtn} onPress={() => setDeleting({ job, bid })} accessibilityLabel={`Delete bid from ${bid.garageName}`}><Icon name="trash" size={16} color="#ffffff" /></Pressable>
           )}
           <View style={styles.pricePill}>
             <Text style={styles.priceText}>{bid.travelFee ? '🚗 ' : ''}{money(bid.price)}</Text>
@@ -229,8 +240,8 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, onRepu
                 <Text style={styles.star}>★ {bid.rating.toFixed(1)}</Text> ({bid.reviews})
               </Text>
               <Text style={styles.metaItem}>📍 {bid.distanceKm} km</Text>
-              <Text style={styles.metaItem}>🛡️ මාස {bid.warrantyMonths}</Text>
-              <Text style={styles.metaItem}>⏱️ පැය {bid.estHours}</Text>
+              <Text style={styles.metaItem}>🛡️ වගකීම මාස {bid.warrantyMonths}</Text>
+              <Text style={styles.metaItem}>⏱️ වැඩ පැය {bid.estHours}</Text>
             </View>
             <GarageHistoryTag garage={garage} />
             {!!bid.travelFee && (
@@ -242,7 +253,7 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, onRepu
               </View>
             )}
           </View>
-        </Pressable>
+        </View>
         <View style={styles.bidAction}>
           {isAccepted ? (
             <View style={styles.rowBetween}>
@@ -255,7 +266,7 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, onRepu
             <ActionButton label={isLowest ? 'අඩුම ලංසුව පිළිගන්න' : 'ලංසුව පිළිගන්න'} variant={isLowest ? 'success' : 'primary'} compact onPress={() => askAccept({ job, bid })} />
           )}
         </View>
-      </SwipeCard>
+      </View>
     );
   };
 
@@ -264,7 +275,7 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, onRepu
     const isLowest = bid.id === lowestBidId(job.bids);
     const isAccepted = job.acceptedBidId === bid.id;
     return (
-      <Pressable key={bid.id} style={[styles.bidRow, isLowest && !job.acceptedBidId && styles.bidRowLowest, isAccepted && styles.bidRowAccepted]} onPress={() => setBidView({ job, bid })} accessibilityLabel={`${bid.garageName} bid`}>
+      <View key={bid.id} style={[styles.bidRow, isLowest && !job.acceptedBidId && styles.bidRowLowest, isAccepted && styles.bidRowAccepted]}>
         <View style={styles.flex1}>
           <Text style={styles.bidRowName} numberOfLines={1}>
             {bid.level ? `${LEVELS.find((l) => l.id === bid.level)?.icon} ` : ''}
@@ -282,7 +293,7 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, onRepu
             <Text style={styles.bidRowAcceptText}>පිළිගන්න</Text>
           </Pressable>
         )}
-      </Pressable>
+      </View>
     );
   };
 
@@ -327,13 +338,12 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, onRepu
                 </View>
               )}
               {!job.acceptedBidId && now < biddingEndsAt(job) && (
-                <Text style={styles.hint}>⏱️ ලංසු අවසන් වීමට: {countdown(biddingEndsAt(job) - now)}</Text>
+                <Text style={styles.hint}>⏱️ ලංසු අවසන් වීමට: {remaining(biddingEndsAt(job) - now)}</Text>
               )}
               {rowsView ? <View style={styles.bidRows}>{shown.map((bid) => renderBidRow(job, bid))}</View> : shown.map((bid) => renderBidCard(job, bid))}
               {job.acceptedBidId && job.bids.length > 1 && (
                 <Text style={styles.hint}>අනෙකුත් ලංසු {job.bids.length - 1}ක් වසා දමන ලදී.</Text>
               )}
-              {detailsCorner(job)}
             </View>
           );
         })
@@ -617,6 +627,21 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, onRepu
         </ModalCard>
       )}
 
+      {deleting && (
+        <ModalCard icon="🗑️" tone="danger" title="ලංසුව ඉවත් කරන්නද?" body={`${deleting.bid.garageName} ගේ ලංසුව ලැයිස්තුවෙන් ඉවත් වේ.`}>
+          <ActionButton label="අවලංගු" variant="ghost" compact onPress={() => setDeleting(null)} />
+          <ActionButton
+            label="ඉවත් කරන්න"
+            variant="primary"
+            compact
+            onPress={() => {
+              removeBidAndPin(deleting.job.id, deleting.bid.id);
+              setDeleting(null);
+            }}
+          />
+        </ModalCard>
+      )}
+
       {booked && (
         <ModalCard
           icon="✅"
@@ -731,10 +756,10 @@ const styles = themedStyles(() => StyleSheet.create({
   bidCard: { borderRadius: 20, borderWidth: 1, borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#dadce0', backgroundColor: Colors.bgCard, overflow: 'hidden' },
   bidCardLowest: { borderColor: 'rgba(16, 185, 129, 0.55)' },
   bidCardAccepted: { borderColor: Colors.success },
-  bidCover: { width: '100%', height: 120 },
+  bidCover: { width: '100%', height: 96 },
   bidBody: { paddingHorizontal: 8, paddingTop: 10, gap: 3 },
   bidAction: { padding: 12, paddingTop: 8 },
-  deleteBtn: { position: 'absolute', top: 84, right: 10, width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(239, 68, 68, 0.92)' },
+  deleteBtn: { position: 'absolute', top: 80, right: 8, width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(239, 68, 68, 0.92)' },
   pricePill: { position: 'absolute', top: 10, right: 10, backgroundColor: 'rgba(15, 23, 42, 0.8)', borderRadius: 12, paddingHorizontal: 11, paddingVertical: 5 },
   priceText: { fontSize: 14, fontFamily: FONTS.titleBold, color: '#fff' },
   lowestTag: { position: 'absolute', top: 10, left: 10, backgroundColor: 'rgba(255, 255, 255, 0.92)', borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3 },

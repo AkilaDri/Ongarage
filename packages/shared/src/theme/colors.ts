@@ -209,3 +209,20 @@ export function themedStyles<T extends object>(factory: () => T): T {
     },
   });
 }
+
+/**
+ * An app's own tone for the few shared pieces that carry a fixed colour (the page header's band and the bottom tabs' icons): an app that sets none keeps the default look.
+ * Only the light theme uses it.
+ */
+export type AppTone = {
+  /** The band at the top of every tab's page: its colour, the title's and the subtitle's. */
+  header?: { bg: string; title: string; sub: string };
+  /** The bottom tabs: the active icon's body and its small details. */
+  navInk?: string;
+  navAccent?: string;
+};
+let appTone: AppTone = {};
+export const setAppTone = (t: AppTone) => {
+  appTone = t;
+};
+export const getAppTone = () => (current === 'light' ? appTone : {});

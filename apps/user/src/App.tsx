@@ -15,9 +15,10 @@ import {
 import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
 import { Gradient, Icon, Colors, DialogButton, FONTS, getThemeMode, ModalCard, Pulse, themedStyles } from '@ongarage/shared';
 import { periodOf, SkyBar, SkyShade, useHour } from './components/WeatherAnimation';
-import { HomeSearch } from './components/home/HomeSearch';
 import { CategoryPhoto } from './components/home/CategoryPhoto';
-import { ThemeProvider, useTheme, setAppShape } from '@ongarage/shared';
+import { ThemeProvider, useTheme, setAppShape, setAppTone } from '@ongarage/shared';
+// The bottom tabs' active colours, as in the 8095 build (light theme only).
+setAppTone({ navInk: '#2563eb', navAccent: '#facc15' });
 
 // This app has PickMe's shapes too (big rounded cards, pill buttons and chips, light edges, soft shadows), like the garage app. Set before the first screen is drawn.
 setAppShape('pickme');
@@ -37,7 +38,9 @@ import { SOSRecordsProvider } from './context/SOSRecordsContext';
 import { PendingRepairsProvider } from './context/PendingRepairsContext';
 import { WorkshopProvider } from './context/WorkshopContext';
 import { ProfileProvider } from './context/ProfileContext';
-import { Header, HEADER_BAND_H, TitleBand } from './components/Header';
+import { HEADER_BAND_H, TitleBand } from './components/Header';
+import { HomeTop } from './components/home/HomeTop';
+import { HomeSearch } from './components/home/HomeSearch';
 import { VehicleChip } from './components/VehicleChip';
 import { HOME_FLOW } from './constants/homeFlow';
 import { PlaceCommunityProvider } from './context/PlaceCommunityContext';
@@ -100,7 +103,7 @@ const inSideScroller = (e: { nativeEvent?: unknown }) => {
   return false;
 };
 
-const TAB_TITLES: Partial<Record<TabId, string>> = { bids: 'Your Bids', activity: 'Activity', mart: 'OnMart' };
+const TAB_TITLES: Partial<Record<TabId, string>> = { bids: 'ඔබේ ලංසු', activity: 'Activity', mart: 'OnMart' };
 /** The title bar of every tab but Home: a plain line of text at the top of the screen. */
 
 // Banner sizes: stacked cards at the top of Home, one compact row once the page is scrolled.
@@ -166,6 +169,8 @@ export default function App() {
 // Reading the theme here re-renders the whole tree on a switch, so every screen
 // picks up the new palette without remounting (and without losing its state).
 function AppShell() {
+  // The Home page's card position (the sticky bar starts below it).
+  const [homeCardY, setHomeCardY] = useState(0);
   const { isDark } = useTheme();
   const fade = useRef(new Animated.Value(0)).current;
   const [fadeColor, setFadeColor] = useState(Colors.bgBody);
@@ -420,12 +425,6 @@ function AppShell() {
     <SafeAreaProvider>
       <StatusBar style={isDark ? "light" : "dark"} />
       <SafeAreaView style={[styles.container, styles.containerFull]} edges={['top']}>
-        {/* The header band (greeting, sky, active vehicle) is Home's alone: the other tabs start at the top of the screen. */}
-        {activeTab === 'home' && (
-          <View onLayout={(e) => setHeaderH(Math.round(e.nativeEvent.layout.height))}>
-            <Header />
-          </View>
-        )}
         {/* Every other tab starts with its title; it folds away with the page scroll like the old header did. */}
         {activeTab !== 'home' && !!TAB_TITLES[activeTab] && (
           <Animated.View style={{ height: martHeaderCollapse.interpolate({ inputRange: [0, 1], outputRange: [PAGE_TITLE_H, 0] }), overflow: 'hidden' }}>
@@ -462,100 +461,6 @@ function AppShell() {
           </Animated.View>
         )}
 
-        {/* Sticky banners on Home with animated rounded bottom corners */}
-        {activeTab === 'home' && (
-          <Animated.View style={[styles.stickyBannersContainer, { marginTop: sheetScroll.interpolate({ inputRange: [0, 1], outputRange: [-18, -headerH] }), borderTopLeftRadius: lerp(24, 0), borderTopRightRadius: lerp(24, 0) }]}>
-            {/* The sheet's top takes the colour the header's sky ends in and shades down into the page colour. */}
-            {/* Once the page has scrolled and the header has folded away, the page colour fills right up to the top and the sky's shade fades out, so no coloured band with an edge is left at the top of the screen. */}
-            <View style={styles.sheetBack} pointerEvents="none" />
-            <Animated.View style={[styles.skyShade, { opacity: sheetScroll.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }) }]} pointerEvents="none">
-              <SkyShade period={skyPeriod} />
-            </Animated.View>
-            {/* Scrolled: the bar the SOS and Quotes chips stick to takes the animation's own sky colours. */}
-            <Animated.View style={[StyleSheet.absoluteFill, { opacity: sheetScroll }]} pointerEvents="none">
-              <SkyBar period={skyPeriod} />
-            </Animated.View>
-            <View onLayout={(e) => setBannerW(Math.round(e.nativeEvent.layout.width))}>
-              {/* SOS and towing share the top row (SOS left, towing right). Only while a tow is minimised does SOS take the full row. */}
-              <Animated.View style={{ height: lerp(bannersH, COMPACT_H) }}>
-                {/* SOS: the left half of the top row; once scrolled it folds away into the Quotes bar. */}
-                {/* While an SOS job runs, its red return bar sits under the Repair card, so this button is hidden. */}
-                <Animated.View style={[styles.sosBanner, styles.bannerAbs, { display: sosStage === 'flow' ? 'none' : 'flex', width: lerpB(sosFull ? bannerW : bannerW * SOS_SPLIT, 0), height: lerpB(ROW_H, COMPACT_H), top: 0, left: 0, opacity: fadeOut }]}>
-                  <Gradient stops={SOS_GRADIENT} />
-                  <View style={styles.sheen} pointerEvents="none" />
-                  <Pressable style={({ pressed }) => [StyleSheet.absoluteFill, pressed && styles.pressed]} onPress={() => setSOSStage('map')} accessibilityLabel="Open SOS">
-                    <Animated.View style={[styles.sosBannerContent, styles.bannerFull, { width: sosFull ? bannerW : bannerW * SOS_SPLIT, opacity: fadeOut }]}>
-                      <View style={styles.cardStack}>
-                        <Text style={styles.sosWord}>SOS</Text>
-                      </View>
-                    </Animated.View>
-                    <Animated.View style={[styles.compactRow, { opacity: fadeIn }]} pointerEvents="none">
-                      <View style={styles.compactPlus}>
-                        <Pulse style={styles.compactDot} />
-                      </View>
-                      <Text style={styles.compactSos}>SOS</Text>
-                      <Text style={styles.compactSmall}>24/7</Text>
-                    </Animated.View>
-                  </Pressable>
-                </Animated.View>
-
-                {/* Towing beside the SOS card, on the same row: a neutral card, so red stays with SOS alone. Hidden while a tow runs. */}
-                <Animated.View style={[styles.towingCard, styles.bannerAbs, skyPeriod === 'night' && styles.nightLift, { display: towStatus.running ? 'none' : 'flex', left: towFull ? 0 : bannerW * SOS_SPLIT + BANNER_GAP, width: lerpB(towFull ? bannerW : bannerW * (1 - SOS_SPLIT) - BANNER_GAP, 0), height: lerpB(ROW_H, COMPACT_H), top: 0, opacity: fadeOut }]}>
-                  <Pressable style={({ pressed }) => [StyleSheet.absoluteFill, pressed && styles.pressed]} onPress={() => setSelectedService(categoryInfo('12'))} accessibilityLabel="Towing">
-                    <Animated.View style={[styles.towingContent, styles.bannerFull, { width: towFull ? bannerW : bannerW * (1 - SOS_SPLIT) - BANNER_GAP }]}>
-                      <View style={styles.towingRow}>
-                        <CategoryPhoto categoryId="12" size={18} />
-                        <Text style={styles.towingLabel}>TOWING</Text>
-                      </View>
-                    </Animated.View>
-                  </Pressable>
-                </Animated.View>
-
-                {/* Post a job: full card below the SOS card, the right half of the row once scrolled */}
-                <Animated.View style={[styles.jobBanner, styles.bannerAbs, skyPeriod === 'night' && styles.nightLift, { width: bannerW, height: lerpB(JOB_H, COMPACT_H), top: lerpB(ROW_H + BANNER_GAP, 0), left: 0 }]}>
-                  <Pressable style={({ pressed }) => [StyleSheet.absoluteFill, pressed && styles.pressed]} onPress={() => openPost(null)} accessibilityLabel="Post a repair job">
-                    <Animated.View style={[styles.jobBannerContent, styles.bannerFull, HOME_FLOW === 'search' && { bottom: undefined, height: JOB_TOP_H }, { width: bannerW, opacity: fadeOut }]}>
-                      <View style={styles.jobLeft}>
-                        <Text style={styles.jobBannerTitle}>වාහනයේ <Text style={styles.jobBannerLatin}>Repair</Text> එකක්ද?</Text>
-                      </View>
-                    </Animated.View>
-                    <Animated.View style={[styles.compactRow, { opacity: fadeIn }]} pointerEvents="box-none">
-                      <Pressable style={styles.compactRow} onPress={() => openPost(null)} accessibilityLabel="Post a repair job">
-                        <View style={styles.compactPlus}>
-                          <View style={styles.plusBarH} />
-                          <View style={styles.plusBarV} />
-                        </View>
-                        <Text style={styles.compactJob}>Quotes ඉල්ලන්න</Text>
-                      </Pressable>
-                    </Animated.View>
-                  </Pressable>
-                  {/* The search part of the card is its own touch zone: touching the search bar or the space round it never reaches the post-a-job press behind it. */}
-                  {HOME_FLOW === 'search' && searchLive && <View style={{ position: 'absolute', left: 0, right: 0, top: JOB_TOP_H, bottom: 0 }} onStartShouldSetResponder={() => true} />}
-                  {/* The search bar inside the blue card, under the free-quotes text; the ＋ above still posts a job. */}
-                  {HOME_FLOW === 'search' && (
-                    <Animated.View pointerEvents={searchLive ? 'auto' : 'none'} style={{ position: 'absolute', left: JOB_INSET, bottom: JOB_INSET, width: Math.max(0, (bannerW - 2 * JOB_INSET) * 0.54 - 4), opacity: fadeOut }}>
-                      <HomeSearch
-                        inCard
-                        onService={(c, sub) => {
-                          setSelectedSubName(sub);
-                          setSelectedService(c);
-                        }}
-                        onGarage={setSearchGarage}
-                        onPost={(categoryId, text) => openPost({ categoryId, description: text, vehicleId: selectedVehicle } as unknown as JobDraft)}
-                      />
-                    </Animated.View>
-                  )}
-                  {HOME_FLOW === 'search' && searchLive && (
-                    <Pressable style={({ pressed }) => [styles.quoteAction, { width: Math.max(0, (bannerW - 2 * JOB_INSET) * 0.46 - 4) }, pressed && styles.pressed]} onPress={() => openPost(null)} accessibilityLabel="Post a repair job">
-                      <Text style={styles.quoteActionText}>Quotes ඉල්ලන්න</Text>
-                    </Pressable>
-                  )}
-                </Animated.View>
-              </Animated.View>
-            </View>
-          </Animated.View>
-        )}
-
         <Animated.View
           {...tabSwipe.panHandlers}
           style={[
@@ -585,7 +490,27 @@ function AppShell() {
               }}
               onBookGarage={(garage, back) => openBooking({ garage, back })}
               onScrollChange={handleHomeScroll}
-              collapsePx={collapsePx}
+              collapsePx={0}
+              stickyFrom={homeCardY + 190}
+              top={
+                <HomeTop
+                  onCardY={setHomeCardY}
+                  vehicleId={selectedVehicle}
+                  onSelectVehicle={setSelectedVehicle}
+                  onSOS={() => setSOSStage('map')}
+                  onPost={() => openPost(null)}
+                  search={
+                    <HomeSearch
+                      onService={(c, sub) => {
+                        setSelectedSubName(sub);
+                        setSelectedService(c);
+                      }}
+                      onGarage={setSearchGarage}
+                      onPost={(categoryId, text) => openPost({ categoryId, description: text, vehicleId: selectedVehicle } as unknown as JobDraft)}
+                    />
+                  }
+                />
+              }
             />
           ) : activeTab === 'bids' ? (
             <BidsScreen
@@ -644,7 +569,7 @@ function AppShell() {
         {/* Folded Home: the chat sits in the bottom-right corner, where the SOS disc was, so it never covers the Quotes bar. */}
         {activeTab === 'home' && homeFolded && (
           <View style={styles.foldChatCorner} pointerEvents="box-none">
-            <ChatHeaderButton round night={skyPeriod === 'night'} />
+            <ChatHeaderButton />
           </View>
         )}
         <FlyLayer />
@@ -674,9 +599,9 @@ function AppShell() {
         <PaymentReminders />
         {/* The chat icon stays put at the top right however the header folds away while the page scrolls. */}
         <Animated.View
-          style={[styles.floatChat, activeTab !== 'home' && { top: -2 }, { opacity: Animated.multiply(chatHide.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }), activeTab === 'home' ? bannerFold.interpolate({ inputRange: [0.4, 1], outputRange: [1, 0], extrapolate: 'clamp' }) : 1), transform: [{ translateY: Animated.multiply(activeTab === 'home' ? noDrop : martHeaderCollapse, chatDockDrop) }, { translateY: chatHide.interpolate({ inputRange: [0, 1], outputRange: [0, -24] }) }] }]}
+          style={[styles.floatChat, activeTab === 'home' && { display: 'none' as const }, activeTab !== 'home' && { top: -2 }, { opacity: Animated.multiply(chatHide.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }), activeTab === 'home' ? bannerFold.interpolate({ inputRange: [0.4, 1], outputRange: [1, 0], extrapolate: 'clamp' }) : 1), transform: [{ translateY: Animated.multiply(activeTab === 'home' ? noDrop : martHeaderCollapse, chatDockDrop) }, { translateY: chatHide.interpolate({ inputRange: [0, 1], outputRange: [0, -24] }) }] }]}
           pointerEvents={chatBlocked || (activeTab === 'home' && homeFolded) ? 'none' : 'box-none'}        >
-          <ChatHeaderButton scrolled={activeTab === 'home' ? homeFold : martHeaderCollapse} night={skyPeriod === 'night'} />
+          <ChatHeaderButton scrolled={activeTab === 'home' ? homeFold : martHeaderCollapse} />
         </Animated.View>
       </SafeAreaView>
 

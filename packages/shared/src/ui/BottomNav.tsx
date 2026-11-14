@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, Easing, View, Text, Pressable, StyleSheet } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
-import { Colors, getThemeMode, themedStyles } from '../theme/colors';
+import { Colors, getAppTone, getThemeMode, themedStyles } from '../theme/colors';
 import { FONTS } from '../theme/fonts';
 
 // path: a 24×24 SVG path, filled with the active/idle colour.
@@ -122,7 +122,7 @@ const AlertIcon: React.FC<{ kind?: NavAlert; children: React.ReactNode }> = ({ k
 /** The two colours of a two-tone tab icon: the dark "ink" body and the light "accent" details. */
 export const navIconTones = (active: boolean) =>
   active
-    ? { ink: getThemeMode() === 'dark' ? '#cfe6ff' : '#162b63', accent: '#4ca1d1' }
+    ? { ink: getThemeMode() === 'dark' ? '#cfe6ff' : getAppTone().navInk ?? '#162b63', accent: getAppTone().navAccent ?? '#4ca1d1' }
     : { ink: Colors.textMuted, accent: Colors.subtleBorder };
 
 interface BottomNavProps<T extends string> {
@@ -136,7 +136,7 @@ export function BottomNav<T extends string>({ items, activeTab, onTabChange }: B
   return (
   <View style={styles.container}>
     {items.map((item) => {
-      const color = activeTab === item.id ? (getThemeMode() === 'dark' ? Colors.primary : '#162b63') : Colors.textMuted;
+      const color = activeTab === item.id ? (getThemeMode() === 'dark' ? Colors.primary : getAppTone().navInk ?? '#162b63') : Colors.textMuted;
       return (
         <Pressable key={item.id} style={styles.navItem} onPress={() => onTabChange(item.id)} accessibilityRole="tab" accessibilityLabel={item.accessibilityLabel ?? item.label}>
           <View>
@@ -197,10 +197,10 @@ const styles = themedStyles(() => StyleSheet.create({
     position: 'absolute',
     top: -6,
     right: -10,
-    minWidth: 17,
-    height: 17,
+    minWidth: 16,
+    height: 16,
     paddingHorizontal: 4,
-    borderRadius: 9,
+    borderRadius: 6,
     borderWidth: 2,
     borderColor: Colors.barBg,
     backgroundColor: '#ef4444',

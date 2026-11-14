@@ -111,5 +111,6 @@ export * from './ui/workshop/ServiceRecordFields';
 export * from './ui/workshop/JobReportSheet';
 export * from './ui/emojiLine';
 export * from './ui/OnChatIcon';
+export * from './ui/OnChatPill';
 export * from './ui/TwinkleStar';
 export * from './ui/RelationTag';
