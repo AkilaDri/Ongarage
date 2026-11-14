@@ -13,6 +13,7 @@ import {
   NotoSansSinhala_700Bold,
 } from '@expo-google-fonts/noto-sans-sinhala';
 import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
+import Svg, { Path } from 'react-native-svg';
 import { Icon, CalendarGridIcon, HeaderIconButton, pageHeaderBlue, Colors, DialogButton, FONTS, getThemeMode, Gradient, ModalCard, Pulse, themedStyles } from '@ongarage/shared';
 import { ThemeProvider, useTheme, setAppShape, setAppPalette, setAppTone, setCardCorner } from '@ongarage/shared';
 
@@ -70,7 +71,7 @@ import { SOSMapPickerScreen } from './screens/SOSMapPickerScreen';
 import { SOSFlowScreen } from './screens/SOSFlowScreen';
 import { ServiceBrowseScreen } from './screens/ServiceBrowseScreen';
 import { PostJobScreen } from './screens/PostJobScreen';
-import { BidsScreen, FreeQuoteTag, type BidsTab } from './screens/BidsScreen';
+import { BidsScreen, type BidsTab } from './screens/BidsScreen';
 import { ActivityScreen } from './screens/ActivityScreen';
 import { ProfileScreen } from './screens/ProfileScreen';
 import { MartScreen } from './screens/MartScreen';
@@ -279,6 +280,10 @@ function AppShell() {
   // The Received sheet is open to the top: the same top header bar then drops its heading and carries Free Quote, the cards / rows switch and the close mark.
   const [bidsUp, setBidsUp] = useState(false);
   const bidsMinimize = useRef<(() => void) | null>(null);
+  const bidsOpenMap = useRef<(() => void) | null>(null);
+  const bidsCloseMap = useRef<(() => void) | null>(null);
+  // The map open full screen: the header then shows its close mark in place of the map icon.
+  const [bidsMapOpen, setBidsMapOpen] = useState(false);
   // The Bids sheet's own measure of how far the header is folded (it follows the sheet, so header and sheet move as one).
   const [bidsCollapse, setBidsCollapse] = useState<{ interpolate: Animated.Value['interpolate'] } | null>(null);
   // The swap waits until the sheet has finished rising: re-drawing the whole app while its spring runs made it stutter.
@@ -413,7 +418,6 @@ function AppShell() {
               return (
                 <AppPageHeader
                   title={TAB_TITLES[activeTab]!}
-                  titleNode={activeTab === 'bids' && bidsUp ? <View style={styles.bidsFree}><FreeQuoteTag onPress={() => openPost(null)} /></View> : undefined}
                   hideChat
                   subtitle={activeTab === 'activity' ? 'ඔබගේ රැකියා සහ ගනුදෙනු' : activeTab === 'bids' ? 'ගරාජවලින් ලැබෙන ලංසු' : 'කොටස් වෙළඳපොළ'}
                   icon={TabIcon ? <TabIcon active size={26} /> : undefined}
@@ -422,14 +426,20 @@ function AppShell() {
                       <HeaderIconButton onPress={openFeedRecord} label="Open my On Feed record" background={pageBg()}>
                         <Text style={styles.hamburger}>☰</Text>
                       </HeaderIconButton>
-                    ) : activeTab === 'bids' && bidsUp ? (
+                    ) : activeTab === 'bids' ? (
                       <View style={styles.bidsIcons}>
                         <HeaderIconButton onPress={() => setBidsRows((v) => !v)} label={bidsRows ? 'Show the bids as cards' : 'Show all the bids as rows'} background={pageBg()}>
                           <Text style={styles.hamburger}>{bidsRows ? '▤' : '☰'}</Text>
                         </HeaderIconButton>
-                        <HeaderIconButton onPress={() => bidsMinimize.current?.()} label="Close, lower the sheet" background={pageBg()}>
-                          <Text style={styles.hamburger}>✕</Text>
-                        </HeaderIconButton>
+                        {bidsMapOpen ? (
+                          <HeaderIconButton onPress={() => bidsCloseMap.current?.()} label="Close the map" background={pageBg()}>
+                            <Text style={styles.hamburger}>✕</Text>
+                          </HeaderIconButton>
+                        ) : (
+                          <HeaderIconButton onPress={() => bidsOpenMap.current?.()} label="Open the map" background={pageBg()}>
+                            <MapIcon />
+                          </HeaderIconButton>
+                        )}
                       </View>
                     ) : activeTab === 'activity' ? (
                       <HeaderIconButton onPress={openActivityCalendar} label="Open calendar" background={pageBg()}>
@@ -502,6 +512,9 @@ function AppShell() {
                 setActiveTab('activity');
               }}
               minimizeRef={bidsMinimize}
+              mapRef={bidsOpenMap}
+              closeMapRef={bidsCloseMap}
+              onMapChange={setBidsMapOpen}
               onHeaderCollapse={setBidsCollapse}
               onHeaderVisibilityChange={onBidsHeaderVisible}
             />
@@ -711,6 +724,13 @@ function AppShell() {
     </LocationProvider>
   );
 }
+
+/** The folded map, drawn as the header's map icon. */
+const MapIcon: React.FC = () => (
+  <Svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth={2.2} strokeLinejoin="round" strokeLinecap="round">
+    <Path d="M9 4 3 6.5V20l6-2.5 6 2.5 6-2.5V4l-6 2.5L9 4zM9 4v13.5M15 6.5V20" />
+  </Svg>
+);
 
 const styles = themedStyles(() => StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.bgBody },

@@ -91,7 +91,8 @@ export const ThreeStateSheet: React.FC<{
     Animated.spring(height, { toValue: sizes.current[target], velocity, stiffness: 210, damping: 26, useNativeDriver: false }).start();
   };
 
-  const wasLocked = useRef(!!locked);
+  // Starts unlocked so a sheet that opens locked rises to the top on its first render too.
+  const wasLocked = useRef(false);
   useEffect(() => {
     if (!!locked !== wasLocked.current) {
       wasLocked.current = !!locked;

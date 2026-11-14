@@ -60,6 +60,10 @@ interface BidsScreenProps {
   onHeaderCollapse?: (node: { interpolate: Animated.Value['interpolate'] } | null) => void;
   /** Filled with the function that lowers the sheet, so the app's header (which carries the close mark while the sheet is up) can call it. */
   minimizeRef?: React.MutableRefObject<(() => void) | null>;
+  /** The header's map icon opens the map full screen and its close mark shuts it, through these. */
+  mapRef?: React.MutableRefObject<(() => void) | null>;
+  closeMapRef?: React.MutableRefObject<(() => void) | null>;
+  onMapChange?: (open: boolean) => void;
   onTabChange: (tab: BidsTab) => void;
   /** Every received bid as one row instead of a full card each; the switch is the hamburger in the app's title bar. */
   rowsView: boolean;
@@ -87,7 +91,7 @@ const ONE = new Animated.Value(1);
 /** 3,700 → "3.7k": a price short enough for a small badge. */
 const shortMoney = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(n % 1000 === 0 ? 0 : 1)}k` : String(n));
 
-export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsView, onToggleRows, onRepublish, onNewBid, onPayFirst, onViewActivity, onHeaderVisibilityChange, onHeaderCollapse, minimizeRef }) => {
+export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsView, onToggleRows, onRepublish, onNewBid, onPayFirst, onViewActivity, onHeaderVisibilityChange, onHeaderCollapse, minimizeRef, mapRef, closeMapRef, onMapChange }) => {
   // "Garages I have used": narrows the received bids to the garages the owner has finished a job with before.
   const isUsed = useUsedGarages();
   const [usedOnly, setUsedOnly] = useState(false);
@@ -225,6 +229,14 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
   // 0 / 1: the list has been scrolled on, so the header is folded (while the sheet is up).
   const hiddenAnim = useRef(new Animated.Value(0)).current;
   const localMin = useRef<() => void>(() => {});
+  // The map opens full screen from the header's map icon; the same icon closes it again.
+  const [mapOpen, setMapOpen] = useState(false);
+  if (mapRef) mapRef.current = () => setMapOpen(true);
+  if (closeMapRef) closeMapRef.current = () => setMapOpen(false);
+  useEffect(() => {
+    onMapChange?.(mapOpen);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mapOpen]);
   const baseArea = useRef(0);
   const stableAreaRef = useRef(0);
   useEffect(() => {
@@ -509,32 +521,36 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
       >
         <Text style={[styles.sheetHamburger, onBlueBand && { color: '#ffffff' }]}>{rowsView ? '▤' : '☰'}</Text>
       </Pressable>
-      {/* The close mark lowers the sheet to its strip, so the whole map shows (from the top or from the middle). */}
-      <Pressable style={[styles.closeCircle, onBlueBand && { borderColor: '#ffffff' }]} onPress={api.minimize} hitSlop={6} accessibilityRole="button" accessibilityLabel="Close, lower the sheet">
-        <Svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke={onBlueBand ? '#ffffff' : '#2563eb'} strokeWidth={2.6} strokeLinecap="round">
-          <Path d="M6 6l12 12M18 6 6 18" />
-        </Svg>
+      {/* The map icon opens the map full screen; while it is open the same spot closes it. */}
+      <Pressable style={[styles.closeCircle, onBlueBand && { borderColor: '#ffffff' }]} onPress={() => setMapOpen((v) => !v)} hitSlop={6} accessibilityRole="button" accessibilityLabel={mapOpen ? 'Close the map' : 'Open the map'}>
+        {mapOpen ? (
+          <Svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke={onBlueBand ? '#ffffff' : '#2563eb'} strokeWidth={2.6} strokeLinecap="round">
+            <Path d="M6 6l12 12M18 6 6 18" />
+          </Svg>
+        ) : (
+          <Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={onBlueBand ? '#ffffff' : '#2563eb'} strokeWidth={2.2} strokeLinejoin="round" strokeLinecap="round">
+            <Path d="M9 4 3 6.5V20l6-2.5 6 2.5 6-2.5V4l-6 2.5L9 4zM9 4v13.5M15 6.5V20" />
+          </Svg>
+        )}
       </Pressable>
     </>
   );
   const renderMapButton = (api: SheetApi) => {
     return (
       <View style={[styles.mapRow, styles.mapRowWide]}>
-        {tab === 'received' && (
-          <FreeQuoteTag onPress={onNewBid} />
-        )}
-        {tab === 'received' && iconButtons(api)}
       </View>
     );
   };
   // Under the tabs, pinned while the list scrolls: the used-garages filter (received bids).
   const renderTools = () =>
     tab === 'received' && received.some((j) => j.bids.length > 0) ? (
-      <View style={[styles.receivedTools, onBlueBand && { marginTop: 16 }]}>
+      <View style={[styles.receivedTools, onBlueBand && { marginTop: 10 }]}>
+        {/* The sort chips: the same filter row as Activity's (plain chips sharing the width, on the blue band). */}
+        {/* The sort chips scroll sideways on the blue band. */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.sortRow}>
           {SORTS.map((s) => (
             <Pressable key={s.id} style={[styles.sortChip, bidSort === s.id && styles.sortChipOn]} onPress={() => setBidSort(s.id)} accessibilityRole="button" accessibilityState={{ selected: bidSort === s.id }} accessibilityLabel={`Sort bids: ${s.label}`}>
-              <Text style={[styles.sortText, bidSort === s.id && styles.sortTextOn]}>{s.label}</Text>
+              <Text style={[styles.sortText, bidSort === s.id && styles.sortTextOn]}>{s.icon} {s.label}</Text>
             </Pressable>
           ))}
         </ScrollView>
@@ -645,12 +661,13 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
         setMapArea(h);
       }}
     >
-      {/* The map fills the whole tab; the sheet slides over it. */}
-      {tab === 'received' && (
-      <GoogleMap
-        style={mapArea > 0 ? [styles.mapAnchored, { height: mapArea }] : styles.fullMap}
-        center={mapCenter}
-        zoom={mapZoom}
+      {/* The map, full screen, from the map icon: the sheet is covered, the header with its close mark stays. */}
+      {tab === 'received' && mapOpen && (
+        <View style={styles.mapFullLayer}>
+          <GoogleMap
+            style={styles.fullMap}
+            center={mapCenter}
+            zoom={mapZoom}
         renderOverlay={(project) => (
           <>
             {mapBids.map(({ job, bid, lowest }) => {
@@ -674,16 +691,19 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
             })()}
           </>
         )}
-      />
+          />
+        </View>
       )}
 
       {/* The tab bar floats over the bottom 72px and its top corners are round: this strip, in the sheet's colour, fills what shows behind those corners. */}
       <View style={styles.navBackfill} pointerEvents="none" />
 
       {/* The header's blue carries on behind the tabs and ends in round corners (as on Activity), so the tab bar overlaps it. */}
-      <Animated.View pointerEvents="none" style={[styles.floatBand, tab === 'received' && atTop && styles.floatBandUp, { opacity: tab === 'received' ? 1 : mapP }]} />
+      {tab !== 'received' && <Animated.View pointerEvents="none" style={[styles.floatBand, { opacity: mapP }]} />}
 
-      <Animated.View style={[styles.floatTabs, { opacity: tab === 'received' ? 1 : mapP }]} pointerEvents={tab !== 'received' && sheetState === 'expanded' ? 'none' : 'box-none'}>
+      {tab === 'received' && !mapOpen && <View pointerEvents="none" style={styles.headBlock} />}
+
+      <Animated.View style={[styles.floatTabs, { opacity: tab === 'received' ? (mapOpen ? 0 : 1) : mapP }]} pointerEvents={tab !== 'received' && sheetState === 'expanded' ? 'none' : 'box-none'}>
         <View style={styles.floatChips}>{renderTabs()}</View>
       </Animated.View>
 
@@ -764,7 +784,7 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
 
       {area > 0 && (
         <ThreeStateSheet
-          locked={tab !== 'received'}
+          locked
           onHeight={setSheetH}
           areaHeight={stableArea || area}
           boost={boost ?? undefined}
@@ -820,7 +840,7 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
             return (
             <>
       <Animated.View
-        style={[styles.tabBar, tab === 'received' && atTop && styles.tabBarBlue, { paddingTop: topP.interpolate({ inputRange: [0, 1], outputRange: [2, tab === 'received' ? 2 : 14] }) }]}
+        style={[styles.tabBar, { paddingTop: topP.interpolate({ inputRange: [0, 1], outputRange: [2, tab === 'received' ? 2 : 14] }) }]}
         onLayout={(e) => {
           tabBarH.current = Math.round(e.nativeEvent.layout.height);
           syncDock();
@@ -830,9 +850,7 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
         {tab !== 'received' && <View pointerEvents="none" style={styles.tabBand} />}
         <Animated.View style={{ height: 0, opacity: topP, overflow: 'hidden' }} pointerEvents={sheetState === 'expanded' ? 'auto' : 'none'}>
           <View style={styles.titleRow}>
-            <FreeQuoteTag onPress={onNewBid} />
             <View style={styles.flex1} />
-            {tab === 'received' && iconButtons(api)}
           </View>
         </Animated.View>
         <View style={styles.segRow}>
@@ -844,13 +862,12 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
           {renderMapButton(api)}
         </Animated.View>
         </View>
-        {renderTools()}
       </Animated.View>
 
               <ScrollView
                 ref={api.scrollRef}
                 style={styles.flex1}
-                contentContainerStyle={styles.body}
+                contentContainerStyle={[styles.body, { paddingTop: tab === 'received' ? 60 : 40 }]}
                 showsVerticalScrollIndicator={false}
                 scrollEventThrottle={16}
                 // Like Home: scrolling the sheet leaves the "＋ නව ලංසුවක්" chip and the tabs pinned at the top, and the chat icon docked right under them.
@@ -974,16 +991,20 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
           />
         </ModalCard>
       )}
+      {/* The filter bar is pinned under the nav bar in the top header's blue: it does not travel with the sheet. */}
+      {tab === 'received' && !mapOpen && (
+        <View pointerEvents="box-none" style={styles.pinnedTools}>{renderTools()}</View>
+      )}
     </View>
   );
 };
 
 type BidSort = 'price' | 'rating' | 'near' | 'fast';
-const SORTS: { id: BidSort; label: string }[] = [
-  { id: 'price', label: '💰 අඩුම මිල' },
-  { id: 'rating', label: '★ ඉහළම ශ්‍රේණිය' },
-  { id: 'near', label: '📍 ළඟම' },
-  { id: 'fast', label: '⏱️ වේගවත්ම' },
+const SORTS: { id: BidSort; label: string; icon: string }[] = [
+  { id: 'price', label: 'අඩු මිල', icon: '💰' },
+  { id: 'rating', label: 'ශ්‍රේණිය', icon: '★' },
+  { id: 'near', label: 'ළඟම', icon: '📍' },
+  { id: 'fast', label: 'වේගය', icon: '⏱️' },
 ];
 /** The bids of a job in the order the owner chose; the price breaks every tie. */
 const sortBids = (bids: Bid[], by: BidSort) =>
@@ -1034,7 +1055,8 @@ const styles = themedStyles(() => StyleSheet.create({
   // The three views (received, waiting, expired) are three separate chips, like the garage app's: each its own outlined chip, the selected one tonal blue.
   // Open to the top, the pinned tab bar and the filter chips sit on the header's blue.
   tabBarBlue: { backgroundColor: pageHeaderBlue().from },
-  tabBand: { position: 'absolute', top: 0, left: 0, right: 0, height: 44, backgroundColor: pageHeaderBlue().from, borderBottomLeftRadius: 32, borderBottomRightRadius: 32 },
+  // Flat, like Activity's header: no curved edge under the nav pill.
+  tabBand: { position: 'absolute', top: 0, left: 0, right: 0, height: 76, backgroundColor: pageHeaderBlue().from },
   tabBar: { paddingHorizontal: 6, paddingTop: 2, paddingBottom: 8 },
   tabsLayer: { flex: 1, flexDirection: 'row', gap: 6, paddingHorizontal: 6 },
   mapLayer: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, flexDirection: 'row' },
@@ -1052,7 +1074,7 @@ const styles = themedStyles(() => StyleSheet.create({
   segRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 6 },
   // Open to the top the blue behind the tab bar runs down to the sheet, whose own blue bar carries on from it.
   floatBandUp: { height: TABS_BLOCK_H + 8, borderBottomLeftRadius: 0, borderBottomRightRadius: 0 },
-  floatBand: { position: 'absolute', top: 0, left: 0, right: 0, height: 44, backgroundColor: pageHeaderBlue().from, borderBottomLeftRadius: 32, borderBottomRightRadius: 32, zIndex: 1 },
+  floatBand: { position: 'absolute', top: 0, left: 0, right: 0, height: 44, backgroundColor: pageHeaderBlue().from, zIndex: 1 },
   floatTabs: { position: 'absolute', top: 14, left: 12, right: 12, zIndex: 2, gap: 8 },
   headRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 6 },
   floatTitle: { fontSize: 20, fontFamily: FONTS.titleBold, color: Colors.textMain },
@@ -1070,7 +1092,16 @@ const styles = themedStyles(() => StyleSheet.create({
   mapViewBtnOn: {},
   mapViewBtn: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
   closeCircle: { marginLeft: 12, marginRight: 10, width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: '#2563eb' },
-  receivedTools: { gap: 8, marginTop: 28 },
+  receivedTools: { gap: 8, marginTop: 10 },
+  // Pinned under the nav pill (the sheet's tab bar, open to the top); the blue carries behind it.
+  // Starts right under the nav pill (the page's own top is 68px down), so the blue runs from the nav bar into the filter bar as one header.
+  // The same place as Activity's filter row: a gap under the nav pill, not on it.
+  pinnedTools: { position: 'absolute', top: 68, left: 0, right: 0, zIndex: 4, paddingTop: 0, paddingBottom: 10, backgroundColor: pageHeaderBlue().from },
+  headBlock: { position: 'absolute', top: 0, left: 0, right: 0, height: 100, zIndex: 1, backgroundColor: pageHeaderBlue().from },
+  headTitleRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 12, height: 56 },
+  headTitleText: { flex: 1 },
+  headTitle: { fontSize: 19, lineHeight: 24, fontFamily: FONTS.titleBold, color: '#ffffff' },
+  headSub: { fontSize: 10.5, lineHeight: 14, fontFamily: FONTS.bodyMedium, color: '#ffffff', marginTop: 2 },
   viewToggle: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: outline(), backgroundColor: Colors.bgCard },
   viewToggleOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#eff6ff', borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#bfdbfe' },
   bidRows: { gap: 8 },
@@ -1101,6 +1132,7 @@ const styles = themedStyles(() => StyleSheet.create({
   tabCountTextActive: {},
   body: { paddingHorizontal: 4, paddingTop: 4, gap: 12, paddingBottom: 24 },
   fullMap: { ...StyleSheet.absoluteFill },
+  mapFullLayer: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 2, elevation: 2 },
   // Fixed height, stuck to the bottom of the tab: it does not move when the tab grows upward as the band folds away.
   mapAnchored: { position: 'absolute', left: 0, right: 0, bottom: 0 },
   peek: { paddingHorizontal: 6, gap: 10 },
