@@ -35,7 +35,7 @@ export const garageForBid = (b: Bid): Garage =>
 const SERVICE_TAG_ROWS = 4;
 
 const REVIEW_W = 210;
-const AVATAR_COLORS = ['#2563eb', '#0e9f6e', '#e5483d', '#8b5cf6', '#f59e0b', '#0891b2', '#db2777'];
+const AVATAR_COLORS = ['#1e3a8a', '#0e9f6e', '#e5483d', '#8b5cf6', '#f59e0b', '#0891b2', '#db2777'];
 const avatarColor = (id: string) => AVATAR_COLORS[[...id].reduce((n, ch) => n + ch.charCodeAt(0), 0) % AVATAR_COLORS.length];
 const initialsOf = (name: string) =>
   (name.match(/[A-Za-z0-9]+/g) ?? [name]).slice(0, 2).map((w) => w[0]?.toUpperCase() ?? '').join('') || '🛠';
@@ -232,7 +232,7 @@ export const GarageReviewsSheet: React.FC<{
               <View style={[styles.placeActionCircle, a.primary && styles.placeActionPrimary, a.on && styles.placeActionOn]}>
                 <Text style={[styles.placeActionIcon, a.primary && { color: '#ffffff' }, a.on && { color: '#e5483d' }]}>{a.icon}</Text>
               </View>
-              <Text style={[styles.placeActionLabel, a.primary && { color: '#2563eb' }]}>{a.label}</Text>
+              <Text style={[styles.placeActionLabel, a.primary && { color: '#1e3a8a' }]}>{a.label}</Text>
             </Pressable>
           ))}
         </ScrollView>
@@ -684,9 +684,9 @@ const styles = themedStyles(() =>
     // No thin divider lines in the profile (under the tabs, between the contact rows, between service rows): the sections are told apart by their spacing.
     tabs: { flexDirection: 'row', marginTop: 8 },
     tabBtn: { flex: 1, height: 42, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4, borderBottomWidth: 3, borderBottomColor: 'transparent' },
-    tabBtnOn: { borderBottomColor: '#2563eb' },
+    tabBtnOn: { borderBottomColor: '#1e3a8a' },
     tabText: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
-    tabTextOn: { color: '#2563eb', fontFamily: FONTS.bodyBold },
+    tabTextOn: { color: '#1e3a8a', fontFamily: FONTS.bodyBold },
     // The profile's sections breathe: 22px above every section heading and 4px more under it, and the cards / chips of a row sit 10px apart.
     sectionTitle: { fontSize: 14, fontFamily: FONTS.bodyBold, color: Colors.primary, letterSpacing: 0.2, marginTop: 30, marginBottom: 8 },
     hRow: { gap: 10, paddingRight: 10 },
@@ -709,7 +709,7 @@ const styles = themedStyles(() =>
     serviceTag: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, height: 32, borderRadius: 16, borderWidth: 1 },
     serviceTagText: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
     moreBtn: { alignSelf: 'center', paddingHorizontal: 16, height: 36, borderRadius: 8, justifyContent: 'center', backgroundColor: 'rgba(36, 87, 230, 0.1)' },
-    moreBtnText: { fontSize: 12, fontFamily: FONTS.bodyBold, color: '#2563eb' },
+    moreBtnText: { fontSize: 12, fontFamily: FONTS.bodyBold, color: '#1e3a8a' },
     gig: { width: 210, borderRadius: 12, overflow: 'hidden', backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), ...elevation1() },
     gigImg: { width: '100%', height: 104, backgroundColor: Colors.subtleFill },
     gigTag: { position: 'absolute', top: 8, left: 8, paddingHorizontal: 10, height: 24, borderRadius: 12, justifyContent: 'center' },
@@ -718,7 +718,7 @@ const styles = themedStyles(() =>
     gigTitle: { fontSize: 14, fontFamily: FONTS.titleBold, color: Colors.textMain, lineHeight: 17 },
     gigMeta: { flexDirection: 'row', justifyContent: 'space-between' },
     gigMetaText: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: Colors.textSoft },
-    gigBtn: { alignSelf: 'flex-start', marginTop: 2, paddingHorizontal: 14, height: 30, borderRadius: 8, justifyContent: 'center', backgroundColor: '#2563eb' },
+    gigBtn: { alignSelf: 'flex-start', marginTop: 2, paddingHorizontal: 14, height: 30, borderRadius: 8, justifyContent: 'center', backgroundColor: '#1e3a8a' },
     gigBtnText: { fontSize: 11.5, fontFamily: FONTS.bodyBold, color: '#ffffff' },
     serviceList: { borderRadius: 12, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), overflow: 'hidden', ...elevation1() },
     serviceRow: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12 },
@@ -743,7 +743,7 @@ const styles = themedStyles(() =>
     mapPin: { position: 'absolute', transform: [{ translateX: -8 }, { translateY: -20 }] },
     mapPinEmoji: { fontSize: 18 },
     mapFooter: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 8, paddingVertical: 6 },
-    dirBtn: { paddingHorizontal: 11, height: 28, borderRadius: 8, justifyContent: 'center', backgroundColor: '#2563eb' },
+    dirBtn: { paddingHorizontal: 11, height: 28, borderRadius: 8, justifyContent: 'center', backgroundColor: '#1e3a8a' },
     dirBtnText: { fontSize: 12, fontFamily: FONTS.bodyBold, color: '#ffffff' },
     coverWrap: { height: 360, overflow: 'hidden', borderTopLeftRadius: 28, borderTopRightRadius: 28 },
     cover: { width: '100%', height: '100%' },
@@ -827,10 +827,10 @@ const styles = themedStyles(() =>
     placeActions: { gap: 16, paddingTop: 6, paddingBottom: 4, paddingRight: 6 },
     placeAction: { alignItems: 'center', gap: 8, minWidth: 64},
     placeActionCircle: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? Colors.subtleFill : '#ffffff', borderWidth: 1, borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#dadce0' },
-    placeActionPrimary: { backgroundColor: '#2563eb', borderColor: '#2563eb' },
+    placeActionPrimary: { backgroundColor: '#1e3a8a', borderColor: '#1e3a8a' },
     placeActionOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(229, 72, 61, 0.16)' : '#eff6ff', borderColor: '#f5b5b0' },
-    placeActionIcon: { fontSize: 19, color: '#2563eb' },
-    placeActionLabel: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#2563eb' },
+    placeActionIcon: { fontSize: 19, color: '#1e3a8a' },
+    placeActionLabel: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1e3a8a' },
     gmList: { marginHorizontal: 4 },
     gmRow: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 4, paddingHorizontal: 4 },
     gmIcon: { width: 22, fontSize: 16, textAlign: 'center' },

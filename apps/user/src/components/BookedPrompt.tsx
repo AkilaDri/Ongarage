@@ -59,7 +59,7 @@ const styles = themedStyles(() =>
     title: { fontSize: 14, fontFamily: FONTS.titleBold, color: Colors.textMain },
     sub: { fontSize: 12, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 17, marginTop: 1 },
     close: { fontSize: 15, color: Colors.textMuted },
-    chip: { alignSelf: 'flex-start', paddingHorizontal: 16, paddingVertical: 9, borderRadius: 18, backgroundColor: '#2563eb' },
+    chip: { alignSelf: 'flex-start', paddingHorizontal: 16, paddingVertical: 9, borderRadius: 18, backgroundColor: '#1e3a8a' },
     chipText: { fontSize: 13, fontFamily: FONTS.bodyBold, color: '#ffffff' },
   })
 );

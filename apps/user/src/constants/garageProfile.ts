@@ -51,7 +51,7 @@ export const garageProfileContent = (g: Garage): GarageProfileContent => {
   const offer = GARAGE_INFO[g.id]?.offer;
   const offers: GarageOffer[] = [
     ...(offer ? [{ id: 'o-info', icon: '🎁', title: offer, detail: 'මෙම සතිය තුළ පමණි', tone: '#f59e0b' }] : []),
-    { id: 'o-first', icon: '🏷️', title: 'පළමු සේවාවට 10% වට්ටම', detail: 'OnGarage හරහා වෙන් කරන්න', tone: '#2563eb' },
+    { id: 'o-first', icon: '🏷️', title: 'පළමු සේවාවට 10% වට්ටම', detail: 'OnGarage හරහා වෙන් කරන්න', tone: '#1e3a8a' },
     { id: 'o-warranty', icon: '🛡️', title: 'අමතර මාස 3 වගකීම', detail: 'ඕනෑම අලුත්වැඩියාවකට', tone: '#10b981' },
   ];
 

@@ -9,7 +9,7 @@ import { FONTS, Gradient, SERVICE_CATEGORIES, type ServiceCategory } from '@onga
  * two rows of white cards that slide sideways (four columns show at a time), each with its blue and yellow service picture on a soft square, the chosen one in blue; then the blue "special offer" banner.
  */
 
-const BLUE = '#2563eb';
+const BLUE = '#1e3a8a';
 const GOLD = '#facc15';
 
 /** Every service, the design's eight first. The first half is the top row, the second half the bottom row; the two rows slide sideways together. */

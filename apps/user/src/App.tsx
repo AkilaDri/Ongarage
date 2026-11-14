@@ -21,9 +21,9 @@ import { ThemeProvider, useTheme, setAppShape, setAppPalette, setAppTone, setCar
 setAppShape('pickme');
 setCardCorner(22);
 // The same blue and yellow as Home on every tab: the page header band is the Home blue with white titles, and the bottom tabs are blue with yellow details.
-setAppTone({ header: { bg: '#2563eb', title: '#ffffff', sub: '#dbeafe' }, navInk: '#2563eb', navAccent: '#facc15' });
+setAppTone({ header: { bg: '#1e3a8a', title: '#ffffff', sub: '#dbe4f5' }, navInk: '#1e3a8a', navAccent: '#facc15' });
 // The owner app's page is white and its cards are the light grey (the other apps keep grey pages with white cards).
-setAppPalette({ light: { bgBody: '#f8fafc', sheetBg: '#f8fafc', bgCard: '#ffffff', primary: '#2563eb', primaryLight: '#60a5fa' } });
+setAppPalette({ light: { bgBody: '#f8fafc', sheetBg: '#f8fafc', bgCard: '#ffffff', primary: '#1e3a8a', primaryLight: '#60a5fa' } });
 import { VehiclesProvider } from './context/VehiclesContext';
 import { OwnerMartNav, OwnerNav } from './components/OwnerNav';
 import { setMartOpener, setShopOpener } from './utils/martBridge';
@@ -126,7 +126,7 @@ const SOS_GRADIENT = [
 ];
 const JOB_GRADIENT = [
   { offset: '0', color: '#5b9bff' },
-  { offset: '0.55', color: '#2563eb' },
+  { offset: '0.55', color: '#1e3a8a' },
   { offset: '1', color: '#1b3fb5' },
 ];
 
@@ -228,7 +228,7 @@ function AppShell() {
     const next = USER_TABS[USER_TABS.findIndex((t) => t.id === activeTab) + dir]?.id;
     if (!next) return;
     if (next === 'mart' && !martAllowed) setAskMart(true);
-    else setActiveTab(next);
+    else switchTab(next);
   };
   const tabSwipe = useRef(
     PanResponder.create({
@@ -241,12 +241,22 @@ function AppShell() {
   ).current;
   const pageAnim = useRef(new Animated.Value(1)).current;
   const lastTab = useRef(activeTab);
+  // The current page dims in place before the next tab shows.
+  const dimAnim = useRef(new Animated.Value(1)).current;
+  // Switching tabs from the bottom bar or a swipe: the current page dims and slides away, then the new tab is shown and comes in.
+  const switchTab = (next: TabId) => {
+    if (next === activeTab) return;
+    Animated.timing(dimAnim, { toValue: 0, duration: 170, easing: Easing.in(Easing.cubic), useNativeDriver: Platform.OS !== 'web' }).start(({ finished }) => {
+      if (finished) setActiveTab(next);
+    });
+  };
   useEffect(() => {
     if (lastTab.current === activeTab) return;
     lastTab.current = activeTab;
     pageAnim.setValue(0);
-    Animated.timing(pageAnim, { toValue: 1, duration: 260, easing: Easing.out(Easing.cubic), useNativeDriver: Platform.OS !== 'web' }).start();
-  }, [activeTab, pageAnim]);
+    dimAnim.setValue(1);
+    Animated.timing(pageAnim, { toValue: 1, duration: 340, easing: Easing.out(Easing.cubic), useNativeDriver: Platform.OS !== 'web' }).start();
+  }, [activeTab, pageAnim, dimAnim]);
   const [martSegment, setMartSegment] = useState<MartSegment>('shops');
   const martHeaderCollapse = useRef(new Animated.Value(0)).current;
   // Natural height of the title band (the inner view keeps it even while the wrapper folds), so the band can fold to nothing.
@@ -406,20 +416,21 @@ function AppShell() {
     <ChatProvider inboxReturn={activeTab === 'home'}>
     <SafeAreaProvider>
       <StatusBar style={isDark ? "light" : "dark"} />
-      <SafeAreaView style={[styles.container, styles.containerFull, (activeTab === 'activity' || activeTab === 'mart') && { backgroundColor: pageHeaderBlue().from }]} edges={['top']}>
+      <SafeAreaView style={[styles.container, styles.containerFull, (activeTab === 'activity' || activeTab === 'mart' || activeTab === 'bids') && { backgroundColor: pageHeaderBlue().from }]} edges={['top']}>
         {/* Every other tab starts with its title; it folds away with the page scroll like the old header did. */}
         {activeTab !== 'home' && !!TAB_TITLES[activeTab] && (
-          <Animated.View style={{ height: (activeTab === 'bids' && bidsCollapse ? bidsCollapse : martHeaderCollapse).interpolate({ inputRange: [0, 1], outputRange: [activeTab === 'bids' ? BIDS_TITLE_H : PAGE_TITLE_H, 0] }), overflow: 'hidden', backgroundColor: pageHeaderBlue().from }}>
+          <Animated.View style={{ height: (activeTab === 'bids' && bidsCollapse ? bidsCollapse : martHeaderCollapse).interpolate({ inputRange: [0, 1], outputRange: [activeTab === 'bids' || activeTab === 'activity' ? BIDS_TITLE_H : PAGE_TITLE_H, 0] }), overflow: 'hidden', backgroundColor: pageHeaderBlue().from, marginBottom: -2 }}>
             {/* On Bids the heading / Free Quote row vanishes at once as the header starts to fold (it is not squeezed away with the blue). */}
             <Animated.View style={{ opacity: activeTab === 'bids' && bidsCollapse ? bidsCollapse.interpolate({ inputRange: [0, 0.15], outputRange: [1, 0], extrapolate: 'clamp' }) : 1 }}>
             {(() => {
               // The icon of the tab that was chosen in the bottom bar, in its open colours; the page's own button (the calendar, or the On Feed record) before the ONCHAT pill.
               const TabIcon = USER_TABS.find((t) => t.id === activeTab)?.icon;
               return (
+                <View style={{ flex: 1, paddingTop: 14 }}>
                 <AppPageHeader
                   title={TAB_TITLES[activeTab]!}
                   hideChat
-                  subtitle={activeTab === 'activity' ? 'ඔබගේ රැකියා සහ ගනුදෙනු' : activeTab === 'bids' ? 'ගරාජවලින් ලැබෙන ලංසු' : 'කොටස් වෙළඳපොළ'}
+                  subtitle={activeTab === 'activity' || activeTab === 'bids' ? undefined : 'කොටස් වෙළඳපොළ'}
                   icon={TabIcon ? <TabIcon active size={26} /> : undefined}
                   actions={
                     activeTab === 'mart' && martSegment === 'wall' ? (
@@ -448,6 +459,7 @@ function AppShell() {
                     ) : undefined
                   }
                 />
+                </View>
               );
             })()}
             </Animated.View>
@@ -463,7 +475,7 @@ function AppShell() {
             activeTab === 'home' && styles.sheetHome,
             // On Home the sheet's top corners straighten once the page has scrolled up to the top of the screen.
             
-            { opacity: pageAnim, transform: [{ translateY: pageAnim.interpolate({ inputRange: [0, 1], outputRange: [14, 0] }) }] },
+            { opacity: Animated.multiply(pageAnim.interpolate({ inputRange: [0, 1], outputRange: [0.25, 1] }), dimAnim), transform: [{ translateX: pageAnim.interpolate({ inputRange: [0, 1], outputRange: [40, 0] }) }] },
           ]}
         >
           {activeTab === 'home' ? (
@@ -560,7 +572,7 @@ function AppShell() {
           ) : (
             <OwnerNav
               activeTab={activeTab}
-              onTabChange={(next) => (next === 'mart' && !martAllowed ? setAskMart(true) : setActiveTab(next))}
+              onTabChange={(next) => (next === 'mart' && !martAllowed ? setAskMart(true) : switchTab(next))}
             />
           )}
         </View>
@@ -746,7 +758,7 @@ const styles = themedStyles(() => StyleSheet.create({
   pageTitleBar: { height: PAGE_TITLE_H, flexDirection: 'row', alignItems: 'center', gap: 10, paddingLeft: 12, paddingRight: 90 },
   pageTitle: { flexShrink: 1, fontSize: 18, fontFamily: FONTS.titleBold, color: Colors.textMain },
   pageTitleAction: { paddingHorizontal: 12, height: 32, borderRadius: 16, justifyContent: 'center', backgroundColor: '#eff6ff', borderWidth: 1, borderColor: '#bfdbfe' },
-  pageTitleActionText: { fontSize: 12, fontFamily: FONTS.bodyBold, color: '#2563eb' },
+  pageTitleActionText: { fontSize: 12, fontFamily: FONTS.bodyBold, color: '#1e3a8a' },
   // On Home the OnChat pill floats at the bottom right, just above the tab bar (72px high).
   floatChatHome: { top: 'auto', bottom: 84 },
   floatChat: { position: 'absolute', top: 10, right: 14, zIndex: 50, height: 44, backgroundColor: 'transparent' },
@@ -765,7 +777,7 @@ const styles = themedStyles(() => StyleSheet.create({
   // Sticky banners on Home (outside the sheet so they don't move when sheet expands)
   // Starts 4px above the container (over only the last strip of the header, so the buildings stay visible) and runs down over the sheet's top; a plain rectangle, no corners.
     // The page colour behind the banners, from exactly where the header ends (the container itself overlaps the header by 18).
-  cornerFill: { position: 'absolute', left: 0, right: 0, top: 0, height: 32, backgroundColor: getThemeMode() === 'dark' ? '#0e2a3f' : '#2563eb' },
+  cornerFill: { position: 'absolute', left: 0, right: 0, top: 0, height: 32, backgroundColor: getThemeMode() === 'dark' ? '#0e2a3f' : '#1e3a8a' },
   sheetBack: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, backgroundColor: pageBg() },
   skyShade: { position: 'absolute', left: 0, right: 0, top: 16, height: 262, overflow: 'hidden' },
   stickyBannersContainer: { marginTop: -18, paddingHorizontal: 16, paddingTop: 0, paddingBottom: 12, zIndex: 1, backgroundColor: 'transparent' },
@@ -792,7 +804,7 @@ const styles = themedStyles(() => StyleSheet.create({
   badgeText: { fontSize: 12.5, fontWeight: '800', letterSpacing: 0.4 },
   // Solid white badges carry their colour in the text, so the small label reads on the white.
   badgeTextSos: { color: '#e5283c' },
-  badgeTextJob: { color: '#2563eb' },
+  badgeTextJob: { color: '#1e3a8a' },
   heroTitle: { fontSize: 17, fontFamily: FONTS.titleBold, color: Colors.textMain, letterSpacing: 0.2 },
   heroSub: { fontSize: 12.5, fontFamily: FONTS.bodyMedium, color: Colors.textMuted },
   sosButton: { width: 56, height: 56, borderRadius: 28, backgroundColor: 'rgba(229, 40, 60, 0.12)', borderWidth: 2, borderColor: 'rgba(229, 40, 60, 0.55)', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
@@ -809,12 +821,12 @@ const styles = themedStyles(() => StyleSheet.create({
   compactRow: { ...StyleSheet.absoluteFill, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   compactSos: { fontSize: 17, fontWeight: '900', color: '#e5283c', letterSpacing: 1 },
   compactSmall: { fontSize: 11, fontWeight: '700', color: Colors.textMuted },
-  compactPlus: { width: 28, height: 28, borderRadius: 14, borderWidth: 2, borderColor: '#2563eb', alignItems: 'center', justifyContent: 'center' },
+  compactPlus: { width: 28, height: 28, borderRadius: 14, borderWidth: 2, borderColor: '#1e3a8a', alignItems: 'center', justifyContent: 'center' },
   compactDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: '#e5283c' },
   // The plus is drawn (not a glyph) so its stroke weight matches the dot's.
-  plusBarH: { position: 'absolute', width: 12, height: 2.5, borderRadius: 2, backgroundColor: '#2563eb' },
-  plusBarV: { position: 'absolute', width: 2.5, height: 12, borderRadius: 2, backgroundColor: '#2563eb' },
+  plusBarH: { position: 'absolute', width: 12, height: 2.5, borderRadius: 2, backgroundColor: '#1e3a8a' },
+  plusBarV: { position: 'absolute', width: 2.5, height: 12, borderRadius: 2, backgroundColor: '#1e3a8a' },
   compactPlusText: { fontSize: 15, fontWeight: '700', color: '#fff', marginTop: -2 },
   compactJob: { fontSize: 14, fontFamily: FONTS.titleBold, color: Colors.textMain },
-  jobCtaText: { fontSize: 24, fontWeight: '700', color: '#2563eb', marginTop: -2 },
+  jobCtaText: { fontSize: 24, fontWeight: '700', color: '#1e3a8a', marginTop: -2 },
 }));

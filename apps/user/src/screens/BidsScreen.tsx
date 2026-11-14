@@ -33,7 +33,7 @@ import type { Bid, JobDraft, RepairJob } from '@ongarage/shared';
 export type BidsTab = 'received' | 'pending' | 'expired';
 
 // The tab bar's look: Material primary tabs on one white surface; the chosen tab is Google-blue with a line under it.
-const TAB_BLUE = () => (getThemeMode() === 'dark' ? '#8db1ff' : '#2563eb');
+const TAB_BLUE = () => (getThemeMode() === 'dark' ? '#8db1ff' : '#1e3a8a');
 // The count badge is green on "received" (good news) and red on the others (things waiting on you).
 const badgeColor = (id: BidsTab) => (id === 'received' ? '#16a34a' : '#ef4444');
 
@@ -247,9 +247,9 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
   }, [hiddenAnim]);
 
   const tabs: { id: BidsTab; label: string; icon: React.ComponentType<{ active: boolean; size?: number; color?: string }>; count: number }[] = [
-    { id: 'received', label: 'ලැබුණු', icon: ClipboardLineIcon, count: received.length },
-    { id: 'pending', label: 'රැඳී ඇති', icon: ScheduleLineIcon, count: pending.length },
-    { id: 'expired', label: 'කල් ඉකුත්', icon: ReceiptLineIcon, count: expired.length },
+    { id: 'received', label: 'Received', icon: ClipboardLineIcon, count: received.length },
+    { id: 'pending', label: 'Pending', icon: ScheduleLineIcon, count: pending.length },
+    { id: 'expired', label: 'Expired', icon: ReceiptLineIcon, count: expired.length },
   ];
 
   /** The details link sits in the card's bottom right corner. */
@@ -524,11 +524,11 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
       {/* The map icon opens the map full screen; while it is open the same spot closes it. */}
       <Pressable style={[styles.closeCircle, onBlueBand && { borderColor: '#ffffff' }]} onPress={() => setMapOpen((v) => !v)} hitSlop={6} accessibilityRole="button" accessibilityLabel={mapOpen ? 'Close the map' : 'Open the map'}>
         {mapOpen ? (
-          <Svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke={onBlueBand ? '#ffffff' : '#2563eb'} strokeWidth={2.6} strokeLinecap="round">
+          <Svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke={onBlueBand ? '#ffffff' : '#1e3a8a'} strokeWidth={2.6} strokeLinecap="round">
             <Path d="M6 6l12 12M18 6 6 18" />
           </Svg>
         ) : (
-          <Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={onBlueBand ? '#ffffff' : '#2563eb'} strokeWidth={2.2} strokeLinejoin="round" strokeLinecap="round">
+          <Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={onBlueBand ? '#ffffff' : '#1e3a8a'} strokeWidth={2.2} strokeLinejoin="round" strokeLinecap="round">
             <Path d="M9 4 3 6.5V20l6-2.5 6 2.5 6-2.5V4l-6 2.5L9 4zM9 4v13.5M15 6.5V20" />
           </Svg>
         )}
@@ -556,7 +556,7 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
         </ScrollView>
         {received.some((j) => j.bids.some((b) => isUsed(garageForBid(b)))) && (
         <Pressable style={[styles.usedChip, usedOnly && styles.usedChipOn]} onPress={() => setUsedOnly((v) => !v)} accessibilityRole="button" accessibilityState={{ selected: usedOnly }} accessibilityLabel="Only garages I have used">
-          <Text style={[styles.usedChipText, usedOnly && styles.usedChipTextOn]}>↻ මා කලින් භාවිතා කළ ගරාජ පමණක්</Text>
+          <Text style={[styles.usedChipText, usedOnly && styles.usedChipTextOn]}>↻ Only garages I have used</Text>
         </Pressable>
         )}
       </View>
@@ -580,7 +580,7 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
                 </View>
               )}
               {!job.acceptedBidId && now < biddingEndsAt(job) && (
-                <Text style={styles.hint}>⏱️ ලංසු අවසන් වීමට: {countdown(biddingEndsAt(job) - now)}</Text>
+                <Text style={[styles.hint, { color: '#1d4ed8' }]}>⏱️ ලංසු අවසන් වීමට: {countdown(biddingEndsAt(job) - now)}</Text>
               )}
               {rowsView ? <View style={styles.bidRows}>{shown.map((bid) => renderBidRow(job, bid))}</View> : shown.map((bid) => renderBidCard(job, bid))}
               {job.acceptedBidId && job.bids.length > 1 && (
@@ -718,8 +718,8 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
           }}
           accessibilityLabel="My location"
         >
-          <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth={2} strokeLinecap="round">
-            <Circle cx={12} cy={12} r={3.5} fill="#2563eb" />
+          <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke="#1e3a8a" strokeWidth={2} strokeLinecap="round">
+            <Circle cx={12} cy={12} r={3.5} fill="#1e3a8a" />
             <Circle cx={12} cy={12} r={7.5} />
             <Path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
           </Svg>
@@ -727,8 +727,8 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
         </Animated.View>
       )}
 
-      {pinBid && tab === 'received' && (
-        <View style={styles.pinCard} accessibilityLabel="Bid record">
+      {pinBid && tab === 'received' && mapOpen && (
+        <View style={[styles.pinCard, styles.pinCardOnMap]} accessibilityLabel="Bid record">
           <View style={styles.pinCardHead}>
             <View style={styles.flex1}>
               <Text style={styles.pinCardTitle} numberOfLines={1}>
@@ -814,7 +814,7 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
                   {allBids.length ? `ලැබුණු ලංසු ${allBids.length}` : 'තවම ලංසු ලැබී නැත'}
                 </Text>
                 <Pressable style={styles.pullUp} onPress={api.collapse} accessibilityLabel="Pull the sheet up">
-                  <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round">
+                  <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="#1e3a8a" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round">
                     <Polyline points="6 15 12 9 18 15" />
                   </Svg>
                 </Pressable>
@@ -1001,10 +1001,10 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
 
 type BidSort = 'price' | 'rating' | 'near' | 'fast';
 const SORTS: { id: BidSort; label: string; icon: string }[] = [
-  { id: 'price', label: 'අඩු මිල', icon: '💰' },
-  { id: 'rating', label: 'ශ්‍රේණිය', icon: '★' },
-  { id: 'near', label: 'ළඟම', icon: '📍' },
-  { id: 'fast', label: 'වේගය', icon: '⏱️' },
+  { id: 'price', label: 'Lowest price', icon: '💰' },
+  { id: 'rating', label: 'Top rated', icon: '★' },
+  { id: 'near', label: 'Nearest', icon: '📍' },
+  { id: 'fast', label: 'Fastest', icon: '⏱️' },
 ];
 /** The bids of a job in the order the owner chose; the price breaks every tie. */
 const sortBids = (bids: Bid[], by: BidSort) =>
@@ -1045,10 +1045,10 @@ const styles = themedStyles(() => StyleSheet.create({
   myLocationBtn: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? '#1c2b4a' : '#ffffff', shadowColor: '#1e3a8a', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 10, elevation: 6 },
   navBackfill: { position: 'absolute', left: 0, right: 0, bottom: 0, height: NAV_HEIGHT, backgroundColor: getThemeMode() === 'dark' ? Colors.bgBody : '#ffffff' },
   floatNewBid: { position: 'absolute', top: 12, left: 12, zIndex: 0, paddingHorizontal: 14, height: 36, borderRadius: 18, justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? '#1c2b4a' : '#ffffff', shadowColor: '#1e3a8a', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 10, elevation: 6 },
-  floatNewBidText: { fontSize: 13, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#2563eb' },
+  floatNewBidText: { fontSize: 13, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1e3a8a' },
   newBidChip: { paddingHorizontal: 14, height: 34, borderRadius: 17, justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#eff6ff', borderWidth: 1, borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#bfdbfe' },
-  newBidText: { fontSize: 13, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#2563eb' },
-  sheetHamburger: { fontSize: 20, lineHeight: 22, color: '#2563eb' },
+  newBidText: { fontSize: 13, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1e3a8a' },
+  sheetHamburger: { fontSize: 20, lineHeight: 22, color: '#1e3a8a' },
   sheetHeadTitle: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textMain },
   minBtn: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(56, 189, 248, 0.12)', borderWidth: 1, borderColor: 'rgba(56, 189, 248, 0.45)' },
   // One white surface with a thin outline and a light elevation; the selected tab has a line under it (Material primary tabs).
@@ -1070,33 +1070,33 @@ const styles = themedStyles(() => StyleSheet.create({
   freeQuoteFree: { backgroundColor: '#facc15', height: 20, paddingHorizontal: 8, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   freeQuoteFreeText: { fontSize: 11.5, fontWeight: '800', color: '#111827' },
   freeQuotePlus: { width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: '#dbeafe', borderWidth: 1, borderColor: '#bfdbfe' },
-  freeQuotePlusText: { fontSize: 16, lineHeight: 18, fontWeight: '700', color: '#2563eb', includeFontPadding: false },
+  freeQuotePlusText: { fontSize: 16, lineHeight: 18, fontWeight: '700', color: '#1e3a8a', includeFontPadding: false },
   segRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 6 },
   // Open to the top the blue behind the tab bar runs down to the sheet, whose own blue bar carries on from it.
   floatBandUp: { height: TABS_BLOCK_H + 8, borderBottomLeftRadius: 0, borderBottomRightRadius: 0 },
   floatBand: { position: 'absolute', top: 0, left: 0, right: 0, height: 44, backgroundColor: pageHeaderBlue().from, zIndex: 1 },
-  floatTabs: { position: 'absolute', top: 14, left: 12, right: 12, zIndex: 2, gap: 8 },
+  floatTabs: { position: 'absolute', top: 17, left: 12, right: 12, zIndex: 2, gap: 8 },
   headRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 6 },
   floatTitle: { fontSize: 20, fontFamily: FONTS.titleBold, color: Colors.textMain },
   floatChips: { flexDirection: 'row', gap: 6 },
   // The same bar as Activity's: one white round card with the open tab as a blue pill, the count a small yellow chip.
-  pillTrack: { flex: 1, flexDirection: 'row', gap: 4, padding: 4, borderRadius: 26, backgroundColor: getThemeMode() === 'dark' ? Colors.bgCard : '#ffffff', shadowColor: '#2563eb', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.26, shadowRadius: 20, elevation: 8 },
-  segChip: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, height: 40, paddingHorizontal: 6, borderRadius: 22 },
-  segChipOn: { backgroundColor: '#2563eb' },
+  pillTrack: { flex: 1, flexDirection: 'row', gap: 4, padding: 2, borderRadius: 26, backgroundColor: getThemeMode() === 'dark' ? Colors.bgCard : '#ffffff', shadowColor: '#1e3a8a', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.26, shadowRadius: 20, elevation: 8 },
+  segChip: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, height: 38, paddingHorizontal: 6, borderRadius: 22 },
+  segChipOn: { backgroundColor: '#1e3a8a' },
   segChipText: { flexShrink: 1, fontSize: 14, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
-  segChipTextOn: { color: '#ffffff', fontFamily: FONTS.bodyBold },
+  segChipTextOn: { color: '#ffffff', fontFamily: FONTS.bodyMedium },
   // The count is a soft blue pill (like a small info chip) on the corner, so the label row never wraps on narrow tabs.
   // The count is a blue round tag on the chip's top right edge (a white ring round it), not inside the chip.
-  tabCount: { position: 'absolute', top: 1, right: 5, minWidth: 15, height: 15, paddingHorizontal: 4, borderRadius: 6, alignItems: 'center', justifyContent: 'center', backgroundColor: '#facc15' },
+  tabCount: { position: 'absolute', top: -5, right: -4, minWidth: 16, height: 16, paddingHorizontal: 4, borderRadius: 6, alignItems: 'center', justifyContent: 'center', backgroundColor: '#facc15' },
   mapRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   mapViewBtnOn: {},
   mapViewBtn: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
-  closeCircle: { marginLeft: 12, marginRight: 10, width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: '#2563eb' },
+  closeCircle: { marginLeft: 12, marginRight: 10, width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: '#1e3a8a' },
   receivedTools: { gap: 8, marginTop: 10 },
   // Pinned under the nav pill (the sheet's tab bar, open to the top); the blue carries behind it.
   // Starts right under the nav pill (the page's own top is 68px down), so the blue runs from the nav bar into the filter bar as one header.
   // The same place as Activity's filter row: a gap under the nav pill, not on it.
-  pinnedTools: { position: 'absolute', top: 68, left: 0, right: 0, zIndex: 4, paddingTop: 0, paddingBottom: 10, backgroundColor: pageHeaderBlue().from },
+  pinnedTools: { position: 'absolute', top: 71, left: 0, right: 0, zIndex: 4, paddingTop: 0, paddingBottom: 8, backgroundColor: pageHeaderBlue().from },
   headBlock: { position: 'absolute', top: 0, left: 0, right: 0, height: 100, zIndex: 1, backgroundColor: pageHeaderBlue().from },
   headTitleRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 12, height: 56 },
   headTitleText: { flex: 1 },
@@ -1112,22 +1112,23 @@ const styles = themedStyles(() => StyleSheet.create({
   bidRowSub: { fontSize: 11.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 1 },
   bidRowPrice: { fontSize: 14, fontFamily: FONTS.titleBold, color: Colors.textMain },
   bidRowDone: { fontSize: 16, color: Colors.successText },
-  bidRowAccept: { paddingHorizontal: 12, height: 32, justifyContent: 'center', borderRadius: 16, backgroundColor: '#2563eb' },
+  bidRowAccept: { paddingHorizontal: 12, height: 32, justifyContent: 'center', borderRadius: 16, backgroundColor: '#1e3a8a' },
   bidRowAcceptLowest: { backgroundColor: '#188038' },
   bidRowAcceptText: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: '#ffffff' },
-  sortRow: { gap: 10, paddingRight: 16 },
+  sortRow: { gap: 8, paddingLeft: 12, paddingRight: 16 },
   // The sort chips sit on the header's blue: blue chips with a yellow edge; the open one is a deeper blue with a thicker edge.
-  sortChip: { paddingHorizontal: 14, height: 34, justifyContent: 'center', borderRadius: 17, borderWidth: 1.5, borderColor: '#facc15', backgroundColor: '#2563eb' },
-  sortChipOn: { backgroundColor: '#1d4ed8', borderWidth: 2.5 },
-  sortText: { fontSize: 12.5, fontFamily: FONTS.bodyMedium, color: '#ffffff' },
-  sortTextOn: { color: '#facc15', fontFamily: FONTS.bodyBold },
+  // Like Activity's filter chips: the unselected one has a white edge, the selected one a yellow edge; both sit on the band's blue.
+  sortChip: { paddingHorizontal: 14, height: 36, justifyContent: 'center', borderRadius: 17, borderWidth: 1.5, borderColor: 'rgba(255, 255, 255, 0.85)', backgroundColor: '#1e3a8a' },
+  sortChipOn: { backgroundColor: '#1e3a8a', borderColor: '#facc15', borderWidth: 2.5 },
+  sortText: { fontSize: 12, fontFamily: FONTS.bodyMedium, color: '#ffffff' },
+  sortTextOn: { color: '#ffffff', fontFamily: FONTS.bodyMedium },
   marketNote: { fontSize: 12, fontFamily: FONTS.bodySemiBold },
   marketCheaper: { color: Colors.successText },
   marketDearer: { color: Colors.warning },
   usedChip: { alignSelf: 'flex-start', paddingHorizontal: 14, height: 34, justifyContent: 'center', borderRadius: 17, borderWidth: 1, borderColor: outline(), backgroundColor: Colors.bgCard },
   usedChipOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#eff6ff', borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#bfdbfe' },
   usedChipText: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
-  usedChipTextOn: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#2563eb' },
+  usedChipTextOn: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#1e3a8a' },
   tabCountText: { fontSize: 10, fontFamily: FONTS.bodyBold, color: '#111827' },
   tabCountTextActive: {},
   body: { paddingHorizontal: 4, paddingTop: 4, gap: 12, paddingBottom: 24 },
@@ -1150,7 +1151,8 @@ const styles = themedStyles(() => StyleSheet.create({
   link: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
   // Soft shadow instead of an outline (an outline only on dark, where a shadow would not show), like the Home garage tiles.
   // The same look as the Activity cards: a roomy white card, big round corners, no hard outline, a soft wide shadow.
-  card: { backgroundColor: Colors.bgCard, borderWidth: getThemeMode() === 'dark' ? 1 : 0, borderColor: Colors.borderColor, borderRadius: 24, paddingVertical: 16, paddingHorizontal: 2, gap: 12, ...cardGlow(), elevation: 3 },
+  // Home's card look: white with a light edge and a soft blue shadow.
+  card: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#f3f4f6', borderRadius: 26, paddingVertical: 16, paddingHorizontal: 2, gap: 12, shadowColor: '#1e3a8a', shadowOffset: { width: 0, height: 10 }, shadowOpacity: getThemeMode() === 'dark' ? 0.4 : 0.16, shadowRadius: 22, elevation: 6 },
   detailsCorner: { alignSelf: 'flex-end', flexDirection: 'row', alignItems: 'center', gap: 16 },
   deleteLink: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.errorText },
   cardExpired: { borderColor: 'rgba(239, 68, 68, 0.4)' },
@@ -1170,7 +1172,7 @@ const styles = themedStyles(() => StyleSheet.create({
   badgeDanger: { backgroundColor: 'rgba(239, 68, 68, 0.12)', borderColor: 'rgba(239, 68, 68, 0.45)' },
   badgeText: { fontSize: 10, fontFamily: FONTS.bodySemiBold },
   // Photo tile: the garage's cover with the price on it, then name and one line of details.
-  bidCard: { borderRadius: 20, borderWidth: 1, borderColor: getThemeMode() === 'dark' ? Colors.borderColor : 'transparent', backgroundColor: getThemeMode() === 'dark' ? Colors.bgCard : '#ffffff', shadowColor: '#0f172a', shadowOffset: { width: 0, height: 8 }, shadowOpacity: getThemeMode() === 'dark' ? 0.6 : 0.3, shadowRadius: 22, elevation: 12 },
+  bidCard: { borderRadius: 26, borderWidth: 1, borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#f3f4f6', backgroundColor: getThemeMode() === 'dark' ? Colors.bgCard : '#ffffff', shadowColor: '#1e3a8a', shadowOffset: { width: 0, height: 10 }, shadowOpacity: getThemeMode() === 'dark' ? 0.6 : 0.16, shadowRadius: 22, elevation: 6 },
   bidCardLowest: { borderColor: 'rgba(16, 185, 129, 0.55)' },
   bidCardAccepted: { borderColor: Colors.success },
   bidCover: { width: '100%', height: 48 },
@@ -1190,10 +1192,10 @@ const styles = themedStyles(() => StyleSheet.create({
   fbCounts: { flexDirection: 'row', justifyContent: 'flex-start', paddingLeft: 16, paddingRight: 16, paddingVertical: 8 },
   fbStars: { color: '#f5a623', letterSpacing: 1 },
   fbCountText: { fontSize: 13.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
-  fbActions: { flexDirection: 'row', marginHorizontal: 8, marginBottom: 4, paddingVertical: 2, borderTopWidth: 1, borderTopColor: getThemeMode() === 'dark' ? Colors.borderColor : '#e4e6eb' },
-  fbAction: { flex: 1, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 8 },
+  fbActions: { flexDirection: 'row', gap: 10, marginHorizontal: 8, marginBottom: 4, paddingVertical: 2 },
+  fbAction: { flex: 1, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 8, borderWidth: 1.5, borderColor: '#facc15' },
   fbActionText: { fontSize: 14, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
-  fbActionPrimary: { color: '#2563eb' },
+  fbActionPrimary: { color: '#1e3a8a' },
   fbActionAccept: { backgroundColor: '#dbeafe', borderRadius: 20 },
   fbActionDone: { backgroundColor: '#fde68a', borderRadius: 20 },
   fbActionLowest: { backgroundColor: '#bbf7d0' },
@@ -1223,8 +1225,10 @@ const styles = themedStyles(() => StyleSheet.create({
   pricePinOn: { backgroundColor: '#7c3aed', transform: [{ scale: 1.15 }] },
   pricePinDear: { backgroundColor: '#d97706' },
   pinCardBtns: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
-  pinCardAccept: { alignSelf: 'flex-start', paddingHorizontal: 14, height: 32, borderRadius: 16, justifyContent: 'center', backgroundColor: '#2563eb' },
+  pinCardAccept: { alignSelf: 'flex-start', paddingHorizontal: 14, height: 32, borderRadius: 16, justifyContent: 'center', backgroundColor: '#1e3a8a' },
   pinCardAcceptText: { fontSize: 11.5, fontFamily: FONTS.bodyBold, color: '#ffffff' },
+  // On the full map the summary sits at the bottom, above the floating tab bar.
+  pinCardOnMap: { top: 'auto', bottom: NAV_HEIGHT + 12 },
   pinCard: { position: 'absolute', zIndex: 20, top: 110, left: 12, right: 12, gap: 6, padding: 12, borderRadius: 18, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#d3d9e2', shadowColor: '#0f172a', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.18, shadowRadius: 18, elevation: 8 },
   pinCardHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   pinCardTitle: { fontSize: 14, fontFamily: FONTS.titleBold, color: Colors.textMain },
@@ -1235,7 +1239,7 @@ const styles = themedStyles(() => StyleSheet.create({
   pinCardPrice: { fontSize: 20, fontFamily: FONTS.titleBold, color: Colors.success },
   pinCardMeta: { fontSize: 11.5, fontFamily: FONTS.bodyMedium, color: Colors.textMuted },
   pinCardBtn: { alignSelf: 'flex-start', paddingHorizontal: 12, height: 32, borderRadius: 16, justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.18)' : '#e3ecfd' },
-  pinCardBtnText: { fontSize: 11.5, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#2563eb' },
+  pinCardBtnText: { fontSize: 11.5, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1e3a8a' },
   pricePinLowest: { backgroundColor: Colors.success },
   pricePinText: { fontSize: 10, fontWeight: '800', color: '#fff' },
   meDot: {

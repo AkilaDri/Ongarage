@@ -287,7 +287,7 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
   ];
 
   const spendRows = [
-    { icon: '🛠️', label: 'ගරාජ රැකියා', count: closedJobs.length, amount: jobsSpent, color: '#2563eb' },
+    { icon: '🛠️', label: 'ගරාජ රැකියා', count: closedJobs.length, amount: jobsSpent, color: '#1e3a8a' },
     { icon: '🚨', label: 'SOS සේවා', count: sosRecords.length, amount: sosSpent, color: '#f43f5e' },
     { icon: '🛍️', label: 'OnMart කොටස්', count: boughtParts.length, amount: partsSpent, color: '#facc15' },
   ];
@@ -316,6 +316,7 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
         }}>
         {/* The header's blue carries on behind the tab bar and the filter chips, ending straight under the chips. */}
         <View pointerEvents="none" style={styles.pinnedBand} />
+        <View style={{ marginTop: 14 }}>
         <SegmentTabs
           pills
           items={[
@@ -326,10 +327,14 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
           value={tab}
           onChange={setKind}
         />
+        </View>
         {/* Under the tabs: the kind of record (bids, bookings, SOS), one always open, the number of each on its chip. */}
-        {tab === 'current' && <FilterChips plain onBlue items={withMart(kindItems([ongoing.length, liveBookings.length, 0]))} value={martOn ? 'mart' : currentKind} onChange={(id) => pickKind(id, setCurrentKind)} />}
-        {tab === 'done' && <FilterChips plain onBlue items={withMart(kindItems([doneJobs.length, doneBookings.length, sosRecords.length]))} value={martOn ? 'mart' : doneKind} onChange={(id) => pickKind(id, setDoneKind)} />}
-        {tab === 'ended' && <FilterChips plain onBlue items={withMart(kindItems([0, 0, 0]))} value={martOn ? 'mart' : endedKind} onChange={(id) => pickKind(id, setEndedKind)} />}
+        {/* The filter row sits a little higher, closer to the tabs above it. */}
+        <View style={{ marginTop: 4 }}>
+          {tab === 'current' && <FilterChips plain onBlue items={withMart(kindItems([ongoing.length, liveBookings.length, 0]))} value={martOn ? 'mart' : currentKind} onChange={(id) => pickKind(id, setCurrentKind)} />}
+          {tab === 'done' && <FilterChips plain onBlue items={withMart(kindItems([doneJobs.length, doneBookings.length, sosRecords.length]))} value={martOn ? 'mart' : doneKind} onChange={(id) => pickKind(id, setDoneKind)} />}
+          {tab === 'ended' && <FilterChips plain onBlue items={withMart(kindItems([0, 0, 0]))} value={martOn ? 'mart' : endedKind} onChange={(id) => pickKind(id, setEndedKind)} />}
+        </View>
           <Animated.View pointerEvents="box-none" style={[styles.pinnedChat, { opacity: edge }]}>
             <ChatHeaderButton scrolled={shortChat} />
           </Animated.View>
@@ -529,10 +534,11 @@ const styles = themedStyles(() => StyleSheet.create({
   sectionLabel: { fontSize: 14, fontFamily: FONTS.bodyBold, color: Colors.primary, letterSpacing: 0.2, marginTop: 10 },
   // Soft shadow instead of an outline (an outline only on dark, where a shadow would not show), like Home and Bids.
   // PickMe look: a roomy white card with big round corners, no hard outline and a soft wide shadow.
-  card: { backgroundColor: Colors.bgCard, borderWidth: getThemeMode() === 'dark' ? 1 : 0, borderColor: Colors.borderColor, borderRadius: 24, paddingVertical: 16, paddingHorizontal: 8, gap: 12, shadowColor: '#0f172a', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.08, shadowRadius: 18, elevation: 3 },
+  // Home's card look: white with a light edge and a soft blue shadow.
+  card: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#f3f4f6', borderRadius: 26, paddingVertical: 16, paddingHorizontal: 8, gap: 12, shadowColor: '#1e3a8a', shadowOffset: { width: 0, height: 10 }, shadowOpacity: getThemeMode() === 'dark' ? 0.4 : 0.16, shadowRadius: 22, elevation: 6 },
   cardOngoing: {},
   // A coloured edge by the kind of job: bids blue, bookings green, SOS red.
-  edgeBid: { borderWidth: 1, borderColor: '#2563eb' },
+  edgeBid: { borderWidth: 1, borderColor: '#1e3a8a' },
   edgeSos: { borderWidth: 1, borderColor: '#ef4444' },
   // A finished job: a little tighter, and the price in green.
   cardDone: { paddingVertical: 16, paddingHorizontal: 8, gap: 12 },
@@ -557,17 +563,17 @@ const styles = themedStyles(() => StyleSheet.create({
   segItem: { flex: 1, height: 40, borderRadius: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4, overflow: 'visible', borderWidth: 1, borderColor: outline(), backgroundColor: Colors.bgCard },
   segItemOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#eff6ff', borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#bfdbfe' },
   segText: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
-  segTextOn: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#2563eb' },
-  badge: { position: 'absolute', top: -9, right: 8, minWidth: 16, height: 16, paddingHorizontal: 4, borderRadius: 6, alignItems: 'center', justifyContent: 'center', backgroundColor: '#2563eb', borderWidth: 2, borderColor: pageBg() },
+  segTextOn: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#1e3a8a' },
+  badge: { position: 'absolute', top: -9, right: 8, minWidth: 16, height: 16, paddingHorizontal: 4, borderRadius: 6, alignItems: 'center', justifyContent: 'center', backgroundColor: '#1e3a8a', borderWidth: 2, borderColor: pageBg() },
   badgeGood: {},
   badgeText: { fontSize: 10.5, fontFamily: FONTS.bodyBold, color: '#ffffff' },
   kindChips: { gap: 10, paddingTop: 14, paddingRight: 16 },
-  subBadge: { position: 'absolute', top: -9, right: 4, minWidth: 16, height: 16, paddingHorizontal: 4, borderRadius: 6, alignItems: 'center', justifyContent: 'center', backgroundColor: '#2563eb', borderWidth: 2, borderColor: pageBg() },
+  subBadge: { position: 'absolute', top: -9, right: 4, minWidth: 16, height: 16, paddingHorizontal: 4, borderRadius: 6, alignItems: 'center', justifyContent: 'center', backgroundColor: '#1e3a8a', borderWidth: 2, borderColor: pageBg() },
   subBadgeText: { fontSize: 10, fontFamily: FONTS.bodyBold, color: '#ffffff' },
   kindChipOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#eff6ff', borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#bfdbfe' },
   subChip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, height: 32, borderRadius: 8, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline() },
   kindChipText: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textSoft },
-  kindChipTextOn: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#2563eb' },
+  kindChipTextOn: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#1e3a8a' },
   // Keeps the heading clear of the icons in the card's top right corner.
   // The tappable body of a swipeable card: it lays its rows out the way the card itself does.
   cardInner: { gap: 12 },
@@ -578,7 +584,8 @@ const styles = themedStyles(() => StyleSheet.create({
   // A finished job's heading row (beside the icon in the corner), with a full-width line under it.
   headRow: { minHeight: 52, justifyContent: 'center', paddingRight: 68 },
   divider: { height: 1, backgroundColor: getThemeMode() === 'dark' ? Colors.borderColor : '#dadce0' },
-  title: { fontSize: 15, fontFamily: FONTS.titleBold, color: Colors.textSoft, lineHeight: 22 },
+  // Home's blue for the headline of a card; the dark theme keeps its own text colour.
+  title: { fontSize: 15, fontFamily: FONTS.titleBold, color: getThemeMode() === 'dark' ? Colors.textSoft : '#1e3a8a', lineHeight: 22 },
   sub: { fontSize: 12.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 2, lineHeight: 19 },
   link: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
   right: { alignItems: 'flex-end', gap: 5 },
@@ -587,9 +594,9 @@ const styles = themedStyles(() => StyleSheet.create({
   iconRow: { position: 'absolute', top: 6, right: 8, zIndex: 2, flexDirection: 'row', alignItems: 'center', gap: 8 },
   // Room under the icons that sit in the card's corner.
   rightIcons: { paddingTop: 56 },
-  price: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textSoft },
+  price: { fontSize: 16, fontFamily: FONTS.titleBold, color: getThemeMode() === 'dark' ? Colors.textSoft : '#1e3a8a' },
   kindTag: { paddingHorizontal: 10, height: 24, justifyContent: 'center', borderRadius: 12, backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#eff6ff' },
-  kindTagText: { fontSize: 11, fontWeight: '700', color: getThemeMode() === 'dark' ? '#8db1ff' : '#2563eb' },
+  kindTagText: { fontSize: 11, fontWeight: '700', color: getThemeMode() === 'dark' ? '#8db1ff' : '#1e3a8a' },
   status: { paddingHorizontal: 10, height: 24, justifyContent: 'center', borderRadius: 12 },
   statusOngoing: { backgroundColor: 'rgba(245, 158, 11, 0.12)' },
   statusDone: { backgroundColor: 'rgba(16, 185, 129, 0.16)', borderWidth: 1, borderColor: 'rgba(16, 185, 129, 0.35)' },

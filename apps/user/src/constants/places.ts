@@ -66,7 +66,7 @@ export const BRAND_BADGE: Record<string, { color: string; mark: string }> = {
   LIOC: { color: '#f26a1b', mark: 'LIOC' },
   Sinopec: { color: '#d4202c', mark: 'SIN' },
   GreenCharge: { color: '#16a34a', mark: 'GC' },
-  ChargeLK: { color: '#2563eb', mark: 'CLK' },
+  ChargeLK: { color: '#1e3a8a', mark: 'CLK' },
 };
 
 export const AMENITY_ICON: Record<Amenity, string> = { 'Car Wash': '🚿', 'Tyre Shop': '🛞', 'Mini Mart': '🛒', ATM: '🏧', Toilet: '🚻', Air: '💨' };

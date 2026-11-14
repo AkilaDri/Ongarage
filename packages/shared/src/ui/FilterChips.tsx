@@ -1,7 +1,10 @@
 import React from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Colors, getThemeMode, themedStyles } from '../theme/colors';
+import { Colors, getAppTone, getThemeMode, themedStyles } from '../theme/colors';
 import { FONTS } from '../theme/fonts';
+
+/** The app's own header blue (the page band and the chips on it); the standard blue when the app sets none. */
+const brandBlue = () => getAppTone().header?.bg ?? '#2563eb';
 
 export type FilterTone = 'red' | 'blue' | 'amber' | 'green' | 'slate';
 export type FilterItem<T extends string = string> = { id: T; label: string; tone?: FilterTone; icon?: React.ReactNode | ((on: boolean) => React.ReactNode); count?: number };
@@ -40,7 +43,7 @@ export function FilterChips<T extends string>({ items, value, onChange, plain, o
             accessibilityLabel={c.label}
           >
             {typeof c.icon === 'function' ? c.icon(on) : c.icon}
-            <Text style={[styles.text, { color: dark ? Colors.textMain : tone.text }, fit && onBlue && { color: on ? '#facc15' : '#ffffff' }]}>{c.label}</Text>
+            <Text style={[styles.text, { color: dark ? Colors.textMain : tone.text }, fit && onBlue && { color: '#ffffff' }]}>{c.label}</Text>
             {plain && !dark && on && !onBlue && <View pointerEvents="none" style={[styles.plainLine, { backgroundColor: tone.count }]} />}
             {!!c.count && c.count > 0 && (
               <View style={[styles.count, { backgroundColor: tone.count, borderColor: dark ? Colors.bgBody : '#ffffff' }]}>
@@ -60,11 +63,11 @@ const styles = themedStyles(() =>
     row: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingTop: 10, paddingRight: 8 },
     chip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, height: 38, borderRadius: 12, borderWidth: 1 },
     // Plain chips: room on both sides so they do not touch the screen edges.
-    fitRow: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingTop: 10, marginHorizontal: 6 },
+    fitRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingTop: 10, marginHorizontal: 6 },
     fitChip: { flex: 1, minWidth: 0, justifyContent: 'center', paddingHorizontal: 2, gap: 4 },
     // On the blue band: blue chips with a yellow edge; the open one is a deeper blue with a thicker edge.
-    onBlueChip: { backgroundColor: '#2563eb', borderWidth: 1.5, borderColor: '#facc15', borderRadius: 20, height: 36 },
-    onBlueOn: { backgroundColor: '#1d4ed8', borderWidth: 2.5 },
+    onBlueChip: { backgroundColor: brandBlue(), borderWidth: 1.5, borderColor: '#ffffff', borderRadius: 20, height: 36 },
+    onBlueOn: { backgroundColor: brandBlue(), borderWidth: 2.5, borderColor: '#fbbf24' },
     plainRow: { paddingHorizontal: 14 },
     // Plain chips: no edge at all; the open one has a thick line under it.
     plainChip: { borderWidth: 0, paddingHorizontal: 8 },

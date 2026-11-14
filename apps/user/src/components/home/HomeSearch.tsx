@@ -25,7 +25,7 @@ const AnimatedHint: React.FC = () => {
   const prev = POPULAR_SERVICES[(i + POPULAR_SERVICES.length - 1) % POPULAR_SERVICES.length];
   const now = POPULAR_SERVICES[i];
   // The services take turns in two colours: one in blue, the next in gold, and so on.
-  const turnColor = (n: number) => (n % 2 === 0 ? '#2563eb' : '#ca8a04');
+  const turnColor = (n: number) => (n % 2 === 0 ? '#1e3a8a' : '#ca8a04');
   const prevColor = turnColor((i + POPULAR_SERVICES.length - 1) % POPULAR_SERVICES.length);
   const nowColor = turnColor(i);
   // The example words sit on white: each category colour is darkened so the small text keeps a readable contrast.
@@ -100,10 +100,10 @@ export const HomeSearch: React.FC<{
 
   return (
     <>
-      <Pressable style={[styles.bar, inCard && styles.barInCard, { borderRadius: 16, paddingVertical: 8, paddingLeft: 16, paddingRight: 8, gap: 6, borderWidth: 0, borderColor: 'transparent', backgroundColor: '#ffffff', shadowColor: '#2563eb', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.16, shadowRadius: 16, elevation: 5 }]} onPress={() => setOpen(true)} accessibilityLabel="Search services and garages" accessibilityRole="search">
+      <Pressable style={[styles.bar, inCard && styles.barInCard, { borderRadius: 16, paddingVertical: 8, paddingLeft: 16, paddingRight: 8, gap: 6, borderWidth: 0, borderColor: 'transparent', backgroundColor: '#ffffff', shadowColor: '#1e3a8a', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.16, shadowRadius: 16, elevation: 5 }]} onPress={() => setOpen(true)} accessibilityLabel="Search services and garages" accessibilityRole="search">
         <AnimatedHint />
         <View style={[styles.barBtn, { width: 40, height: 40, borderRadius: 12, backgroundColor: 'transparent' }]}>
-          <Icon name="search" size={24} color="#2563eb" />
+          <Icon name="search" size={24} color="#1e3a8a" />
         </View>
       </Pressable>
 

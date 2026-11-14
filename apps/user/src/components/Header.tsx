@@ -196,9 +196,6 @@ export const Header: React.FC<{ vehicleId?: string; onSelectVehicle?: (id: strin
 
   return (
     <View style={hh.wrap}>
-      <Gradient stops={[{ offset: '0', color: '#1e3a8a' }, { offset: '0.5', color: '#2563eb' }, { offset: '1', color: '#3b82f6' }]} />
-      <Glow size={200} color="#93c5fd" opacity={0.5} style={{ right: -60, top: -60 }} />
-      <Glow size={160} color="#facc15" opacity={0.26} style={{ left: 0, bottom: -20 }} />
       <View style={hh.topRow}>
         <View style={hh.cityPill}>
           <Text style={hh.cityPin}>📍</Text>
@@ -241,7 +238,7 @@ export const Header: React.FC<{ vehicleId?: string; onSelectVehicle?: (id: strin
 
 /** The Home header band, written with plain styles so it matches the design exactly. */
 const hh = StyleSheet.create({
-  wrap: { paddingHorizontal: 24, paddingTop: 20, paddingBottom: 72, borderBottomLeftRadius: 36, borderBottomRightRadius: 36, overflow: 'hidden', backgroundColor: '#2563eb' },
+  wrap: { paddingHorizontal: 24, paddingTop: 20, paddingBottom: 72, borderBottomLeftRadius: 36, borderBottomRightRadius: 36, overflow: 'hidden', backgroundColor: '#1e3a8a' },
   topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
   cityPill: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20, backgroundColor: 'rgba(255, 255, 255, 0.15)', borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.15)' },
   cityPin: { fontSize: 13.5, color: '#facc15' },
@@ -279,7 +276,7 @@ const styles = themedStyles(() => StyleSheet.create({
     borderBottomRightRadius: 36,
     minHeight: HEADER_BAND_H,
     overflow: 'hidden',
-    backgroundColor: getThemeMode() === 'dark' ? '#0e2a3f' : '#2563eb',
+    backgroundColor: getThemeMode() === 'dark' ? '#0e2a3f' : '#1e3a8a',
   },
   // The sky behind the greeting is light by day and dark at night in either theme, so the text colour follows it.
   cityDay: { color: '#ffffff' },
@@ -293,11 +290,11 @@ const styles = themedStyles(() => StyleSheet.create({
   titleBandActionText: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: '#ffffff' },
   // Leaves room for the sun / moon between the title and the action button.
   titleWithAction: { flexShrink: 1, maxWidth: '44%' },
-  titleBand: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, paddingHorizontal: 18, paddingTop: 14, paddingBottom: 34, minHeight: HEADER_BAND_H, overflow: 'hidden', backgroundColor: getThemeMode() === 'dark' ? '#0e2a3f' : '#2563eb' },
+  titleBand: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, paddingHorizontal: 18, paddingTop: 14, paddingBottom: 34, minHeight: HEADER_BAND_H, overflow: 'hidden', backgroundColor: getThemeMode() === 'dark' ? '#0e2a3f' : '#1e3a8a' },
   titleBandText: { fontSize: 20, fontFamily: FONTS.titleBold, color: getThemeMode() === 'dark' ? '#d6eefc' : '#ffffff' },
   topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 },
   cityPill: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingVertical: 8, paddingHorizontal: 14, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.13)' },
-  cityPin: { fontSize: 13, color: '#2563eb' },
+  cityPin: { fontSize: 13, color: '#1e3a8a' },
   cityChevron: { fontSize: 13, color: '#e8e2d0', marginTop: -4 },
   city: { fontSize: 12.5, fontFamily: FONTS.bodyBold },
   // Above the sky: the sun, clouds and birds drift behind the greeting, never over it.
@@ -320,7 +317,7 @@ const styles = themedStyles(() => StyleSheet.create({
   },
   brandLogo: { width: 92, height: 27, marginTop: 2 },
   brandTag: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingVertical: 7, paddingHorizontal: 14, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.1)' },
-  brandDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#2563eb' },
+  brandDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#1e3a8a' },
   brandText: { fontSize: 11.5, fontFamily: FONTS.bodyBold, letterSpacing: 1.2, color: '#facc15' },
   vehiclePillOpen: { opacity: 0.85 },
   pillCar: { width: 30, height: 30, borderRadius: 15, backgroundColor: '#d6eefc', alignItems: 'center', justifyContent: 'center' },

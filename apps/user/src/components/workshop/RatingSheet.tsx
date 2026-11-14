@@ -187,7 +187,7 @@ const styles = themedStyles(() =>
     tag: { paddingHorizontal: 14, height: 32, justifyContent: 'center', borderRadius: 8, borderWidth: 1, borderColor: outline(), backgroundColor: Colors.bgCard },
     tagOn: { borderColor: dark() ? 'rgba(141, 177, 255, 0.3)' : '#bfdbfe', backgroundColor: dark() ? 'rgba(141, 177, 255, 0.16)' : '#eff6ff' },
     tagText: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textSoft },
-    tagTextOn: { color: dark() ? '#8db1ff' : '#2563eb' },
+    tagTextOn: { color: dark() ? '#8db1ff' : '#1e3a8a' },
     soft: { padding: 14, borderRadius: 14, backgroundColor: dark() ? 'rgba(255, 255, 255, 0.06)' : '#f1f4f9', gap: 10 },
     dimRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
     dimLabel: { flex: 1, fontSize: 12.5, fontFamily: FONTS.bodyMedium, color: Colors.textMain },

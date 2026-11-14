@@ -153,7 +153,7 @@ export const BookingCalendar: React.FC<Pick & { visible: boolean; onClose: () =>
   );
 };
 
-const BLUE = () => (getThemeMode() === 'dark' ? '#8db1ff' : '#2563eb');
+const BLUE = () => (getThemeMode() === 'dark' ? '#8db1ff' : '#1e3a8a');
 
 const styles = themedStyles(() =>
   StyleSheet.create({

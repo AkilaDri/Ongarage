@@ -152,7 +152,7 @@ const styles = themedStyles(() =>
     kindGreen: { backgroundColor: 'rgba(16, 185, 129, 0.12)' },
     kindRed: { backgroundColor: 'rgba(239, 68, 68, 0.12)' },
     kindText: { fontSize: 10.5, fontWeight: '800' },
-    kindTextBlue: { color: dark() ? '#8db1ff' : '#2563eb' },
+    kindTextBlue: { color: dark() ? '#8db1ff' : '#1e3a8a' },
     kindTextGreen: { color: Colors.success },
     kindTextRed: { color: Colors.errorText },
     subjectRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },

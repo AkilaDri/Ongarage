@@ -52,7 +52,7 @@ const hs = StyleSheet.create({
   // The cards start 56px above the header's bottom edge, so the white card overlaps the blue band.
   below: { paddingHorizontal: 16, marginTop: -56 },
   // One white card holds the two actions, which are separate cards inside it with a small gap between them.
-  card: { flexDirection: 'column', gap: 8, paddingHorizontal: 10, paddingVertical: 12, backgroundColor: '#ffffff', borderRadius: 26, borderWidth: 1, borderColor: '#f3f4f6', shadowColor: '#2563eb', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.16, shadowRadius: 22, elevation: 6 },
+  card: { flexDirection: 'column', gap: 8, paddingHorizontal: 10, paddingVertical: 12, backgroundColor: '#ffffff', borderRadius: 26, borderWidth: 1, borderColor: '#f3f4f6', shadowColor: '#1e3a8a', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.16, shadowRadius: 22, elevation: 6 },
   search: { marginTop: 20 },
   pressed: { opacity: 0.9, transform: [{ scale: 0.99 }] },
   sosBtn: { height: BTN_H, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(254, 226, 226, 0.8)', backgroundColor: '#fef2f2' },
@@ -65,7 +65,7 @@ const hs = StyleSheet.create({
   pillDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#ffffff' },
   sosPillText: { fontSize: 12, fontWeight: '800', color: '#ffffff' },
   jobCircle: { width: 56, height: 56, borderRadius: 28, backgroundColor: '#dbeafe', borderWidth: 1, borderColor: '#bfdbfe', alignItems: 'center', justifyContent: 'center' },
-  jobCircleText: { fontSize: 26, lineHeight: 30, fontWeight: '700', color: '#2563eb' },
+  jobCircleText: { fontSize: 26, lineHeight: 30, fontWeight: '700', color: '#1e3a8a' },
   freePill: { backgroundColor: '#facc15', height: 26, minWidth: 74, paddingHorizontal: 10, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
   freePillText: { fontSize: 12, fontWeight: '800', color: '#111827' },
   btnTitle: { fontSize: 15, lineHeight: 21, fontFamily: FONTS.bodyMedium, color: '#000000' },

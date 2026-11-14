@@ -184,11 +184,11 @@ const styles = themedStyles(() =>
     chip: { paddingHorizontal: 14, height: 32, justifyContent: 'center', borderRadius: 8, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline() },
     chipOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#eff6ff', borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#bfdbfe' },
     chipText: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textSoft },
-    chipTextOn: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#2563eb' },
+    chipTextOn: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#1e3a8a' },
     added: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 12, height: 40, borderRadius: 8, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline() },
     remove: { fontSize: 14, color: Colors.textMuted },
     addBtn: { alignSelf: 'flex-start', paddingHorizontal: 14, height: 36, justifyContent: 'center', borderRadius: 8, borderWidth: 1, borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#bfdbfe', backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#eff6ff' },
-    addText: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#2563eb' },
+    addText: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1e3a8a' },
     error: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.errorText, lineHeight: 18 },
   })
 );

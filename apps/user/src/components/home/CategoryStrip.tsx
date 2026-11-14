@@ -6,22 +6,22 @@ import { useRankedCategories } from '../../utils/rankedCategories';
 
 /** Each category's short name and the colour of its tile. */
 const SHOWN: { id: string; label: string; tint: string }[] = [
-  { id: '1', label: 'Mechanic', tint: '#2563eb' },
-  { id: '2', label: 'විදුලි', tint: '#2563eb' },
-  { id: '3', label: 'හයිබ්‍රිඩ්', tint: '#2563eb' },
-  { id: '4', label: 'AC', tint: '#2563eb' },
-  { id: '8', label: 'පින්තාරු', tint: '#2563eb' },
-  { id: '9', label: 'සේදීම', tint: '#2563eb' },
-  { id: '10', label: 'Tuning', tint: '#2563eb' },
-  { id: '11', label: 'බැටරි', tint: '#2563eb' },
-  { id: '6', label: 'ටයර්', tint: '#2563eb' },
-  { id: '7', label: 'බ්‍රේක්', tint: '#2563eb' },
-  { id: '5', label: 'ස්කෑන්', tint: '#2563eb' },
-  { id: '12', label: 'Towing', tint: '#2563eb' },
-  { id: '13', label: 'EV', tint: '#2563eb' },
-  { id: '15', label: 'සවි කිරීම', tint: '#2563eb' },
-  { id: '14', label: 'සේවාව', tint: '#2563eb' },
-  { id: '16', label: 'Fuel Station', tint: '#2563eb' },
+  { id: '1', label: 'Mechanic', tint: '#1e3a8a' },
+  { id: '2', label: 'විදුලි', tint: '#1e3a8a' },
+  { id: '3', label: 'හයිබ්‍රිඩ්', tint: '#1e3a8a' },
+  { id: '4', label: 'AC', tint: '#1e3a8a' },
+  { id: '8', label: 'පින්තාරු', tint: '#1e3a8a' },
+  { id: '9', label: 'සේදීම', tint: '#1e3a8a' },
+  { id: '10', label: 'Tuning', tint: '#1e3a8a' },
+  { id: '11', label: 'බැටරි', tint: '#1e3a8a' },
+  { id: '6', label: 'ටයර්', tint: '#1e3a8a' },
+  { id: '7', label: 'බ්‍රේක්', tint: '#1e3a8a' },
+  { id: '5', label: 'ස්කෑන්', tint: '#1e3a8a' },
+  { id: '12', label: 'Towing', tint: '#1e3a8a' },
+  { id: '13', label: 'EV', tint: '#1e3a8a' },
+  { id: '15', label: 'සවි කිරීම', tint: '#1e3a8a' },
+  { id: '14', label: 'සේවාව', tint: '#1e3a8a' },
+  { id: '16', label: 'Fuel Station', tint: '#1e3a8a' },
 ];
 
 /** All the categories in two rows that slide sideways, the way PickMe's home shows its services: a big illustration on a soft pastel tile, the name under it. */
@@ -123,8 +123,8 @@ const styles = themedStyles(() =>
     item: { width: 86, alignItems: 'center', gap: 4 },
     // A square box round the icon: a soft tint of the category's colour, rounded corners, no border (only the chosen one in a form gets a blue ring).
     box: { width: 84, height: 84, borderRadius: 22, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
-    boxOn: { borderWidth: 2, borderColor: '#2563eb', backgroundColor: '#eff6ff' },
-    labelOn: { color: '#2563eb' },
+    boxOn: { borderWidth: 2, borderColor: '#1e3a8a', backgroundColor: '#eff6ff' },
+    labelOn: { color: '#1e3a8a' },
     pressed: { opacity: 0.7, transform: [{ scale: 0.96 }] },
     // A fixed two-line height keeps every tile the same size, so the rows line up whether a name wraps or not.
     label: { fontSize: 10.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain, textAlign: 'center', lineHeight: 22, height: 24, paddingTop: 2, paddingHorizontal: 2 },

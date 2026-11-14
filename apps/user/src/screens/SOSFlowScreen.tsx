@@ -1901,7 +1901,7 @@ const styles = themedStyles(() => StyleSheet.create({
   etaValueSinhala: { fontSize: 14, fontFamily: FONTS.titleBold, color: Colors.textMain },
   // The three part decisions share one size; only the recommended one is filled.
   partOption: { width: '100%', minHeight: 58, paddingVertical: 10, paddingHorizontal: 16, borderRadius: 22, alignItems: 'center', justifyContent: 'center', gap: 2 },
-  partOption_primary: { backgroundColor: '#2563eb' },
+  partOption_primary: { backgroundColor: '#1e3a8a' },
   partOption_secondary: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(255, 255, 255, 0.06)' : '#eaf1fb' },
   partOption_tertiary: { backgroundColor: 'transparent', borderWidth: 1, borderColor: outline() },
   partOptionTitle: { fontSize: 14, fontFamily: FONTS.bodyBold },
@@ -1930,7 +1930,7 @@ const styles = themedStyles(() => StyleSheet.create({
   tag: { paddingHorizontal: 14, height: 32, justifyContent: 'center', borderRadius: 8, borderWidth: 1, borderColor: outline(), backgroundColor: Colors.bgCard },
   tagOn: { borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#bfdbfe', backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#eff6ff' },
   tagText: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textSoft },
-  tagTextOn: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#2563eb' },
+  tagTextOn: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#1e3a8a' },
   starOn: { color: Colors.warning },
   rewardCard: { borderRadius: 12, padding: 18, alignItems: 'center', gap: 6, overflow: 'hidden', backgroundColor: '#059669' },
   rewardIcon: { fontSize: 34 },

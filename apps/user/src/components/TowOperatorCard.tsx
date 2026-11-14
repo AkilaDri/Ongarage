@@ -77,7 +77,7 @@ export const TowOperatorCard: React.FC<{
 const styles = themedStyles(() =>
   StyleSheet.create({
     card: { borderRadius: 18, backgroundColor: Colors.bgCard, borderWidth: 2, borderColor: 'transparent', overflow: 'hidden', ...(cardGlow() as object) },
-    cardOn: { borderColor: '#2563eb' },
+    cardOn: { borderColor: '#1e3a8a' },
     badge: { position: 'absolute', top: 8, left: 8, paddingHorizontal: 9, height: 22, borderRadius: 11, justifyContent: 'center', backgroundColor: 'rgba(255, 255, 255, 0.92)' },
     badgeText: { fontSize: 10.5, fontFamily: FONTS.bodyBold, color: '#16a34a' },
     status: { position: 'absolute', top: 8, right: 8, flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, height: 28, borderRadius: 14, backgroundColor: 'rgba(255, 255, 255, 0.92)' },
@@ -87,7 +87,7 @@ const styles = themedStyles(() =>
     statusText: { fontSize: 11, fontFamily: FONTS.bodyBold },
     textOn: { color: '#137333' },
     textOff: { color: '#b45309' },
-    tick: { position: 'absolute', bottom: 8, right: 8, width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: '#2563eb' },
+    tick: { position: 'absolute', bottom: 8, right: 8, width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: '#1e3a8a' },
     tickText: { fontSize: 14, fontFamily: FONTS.bodyBold, color: '#ffffff', lineHeight: 16 },
     body: { paddingHorizontal: 14, paddingVertical: 12, gap: 4 },
     name: { fontSize: 15, fontFamily: FONTS.titleBold, color: Colors.textMain },

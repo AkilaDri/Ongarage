@@ -116,7 +116,7 @@ const styles = themedStyles(() =>
     // Badges and the heart sit on the photo: fixed light chips readable in both themes.
     badge: { position: 'absolute', top: 8, left: 8, maxWidth: '70%', paddingHorizontal: 8, height: 22, justifyContent: 'center', borderRadius: 6, backgroundColor: 'rgba(255, 255, 255, 0.92)' },
     badgeAd: { backgroundColor: 'rgba(15, 23, 42, 0.75)' },
-    badgeText: { fontSize: 10, fontFamily: FONTS.bodyBold, color: '#2563eb' },
+    badgeText: { fontSize: 10, fontFamily: FONTS.bodyBold, color: '#1e3a8a' },
     badgeAdText: { color: '#fff' },
     // Online / Offline sits on the photo's top right (where the save heart used to be); the heart is at the lower right: a light chip with a coloured dot, readable in both themes.
     status: { position: 'absolute', top: 8, right: 8, flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, height: 30, borderRadius: 15, backgroundColor: 'rgba(255, 255, 255, 0.92)' },

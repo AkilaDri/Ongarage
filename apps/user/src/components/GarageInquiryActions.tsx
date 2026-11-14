@@ -22,6 +22,6 @@ const styles = themedStyles(() =>
     primary: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#eff6ff', borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#bfdbfe' },
     icon: { fontSize: 15 },
     label: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
-    primaryText: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#2563eb' },
+    primaryText: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#1e3a8a' },
   })
 );

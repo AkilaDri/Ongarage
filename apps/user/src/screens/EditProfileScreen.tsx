@@ -207,6 +207,6 @@ const styles = themedStyles(() =>
     chip: { paddingHorizontal: 18, height: 36, justifyContent: 'center', borderRadius: 8, borderWidth: 1, borderColor: outline(), backgroundColor: Colors.bgCard },
     chipOn: { borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#bfdbfe', backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#eff6ff' },
     chipText: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
-    chipTextOn: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#2563eb' },
+    chipTextOn: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#1e3a8a' },
   })
 );

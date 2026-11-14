@@ -415,7 +415,7 @@ export const ServiceBrowseScreen: React.FC<ServiceBrowseScreenProps> = ({ servic
               value={searchText}
               onChangeText={setSearchText}
             />
-            <Icon name="search" size={20} color="#2563eb" />
+            <Icon name="search" size={20} color="#1e3a8a" />
           </View>
         </Animated.View>
 
@@ -733,13 +733,13 @@ const styles = themedStyles(() => StyleSheet.create({
     borderRadius: 10,
   },
   pinTip: { position: 'absolute', bottom: -7, left: '50%', marginLeft: -6, width: 0, height: 0, borderLeftWidth: 6, borderRightWidth: 6, borderTopWidth: 7, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderTopColor: 'rgba(56, 189, 248, 0.9)' },
-  pinTipPicked: { borderTopColor: '#2563eb' },
+  pinTipPicked: { borderTopColor: '#1e3a8a' },
   pinDot: { position: 'absolute', top: -4, right: -4, width: 11, height: 11, borderRadius: 6, borderWidth: 2, borderColor: '#ffffff' },
   pinTagOpen: { backgroundColor: '#16a34a' },
   pinTagClosed: { backgroundColor: '#dc2626' },
   mapPinText: { fontSize: 10, fontWeight: '800', color: Colors.textMain },
   // The garage that is picked: filled and raised above the other pins.
-  mapPinPicked: { backgroundColor: '#2563eb', borderColor: '#2563eb', zIndex: 5, elevation: 5, paddingVertical: 4 },
+  mapPinPicked: { backgroundColor: '#1e3a8a', borderColor: '#1e3a8a', zIndex: 5, elevation: 5, paddingVertical: 4 },
   mapPinTextPicked: { color: '#ffffff' },
   meDot: {
     position: 'absolute',
@@ -785,8 +785,8 @@ const styles = themedStyles(() => StyleSheet.create({
   rangeUnit: { fontSize: 10, fontFamily: FONTS.bodySemiBold, color: '#ffffff', marginBottom: 6, textShadowColor: 'rgba(0, 0, 0, 0.6)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 3 },
   rangeTrackBox: { width: 28, height: 150, alignItems: 'center', marginTop: 12, marginBottom: 10 },
   rangeTrack: { position: 'absolute', top: 0, bottom: 0, width: 4, borderRadius: 2, backgroundColor: '#d2dcec' },
-  rangeFill: { position: 'absolute', bottom: 0, width: 4, borderRadius: 2, backgroundColor: '#2563eb' },
-  rangeThumb: { position: 'absolute', width: 20, height: 20, borderRadius: 10, marginBottom: -10, backgroundColor: '#ffffff', borderWidth: 3, borderColor: '#2563eb', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 4, elevation: 4 },
+  rangeFill: { position: 'absolute', bottom: 0, width: 4, borderRadius: 2, backgroundColor: '#1e3a8a' },
+  rangeThumb: { position: 'absolute', width: 20, height: 20, borderRadius: 10, marginBottom: -10, backgroundColor: '#ffffff', borderWidth: 3, borderColor: '#1e3a8a', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 4, elevation: 4 },
   rangeTouch: { ...StyleSheet.absoluteFill, ...(Platform.OS === 'web' ? ({ touchAction: 'none', cursor: 'pointer' } as object) : null) },
   spotRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
   countPill: { alignSelf: 'flex-start', paddingHorizontal: 10, height: 26, borderRadius: 13, justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.18)' : '#eff6ff' },
@@ -802,10 +802,10 @@ const styles = themedStyles(() => StyleSheet.create({
   locHaloOn: { backgroundColor: 'rgba(26, 115, 232, 0.22)' },
   locHaloOff: { backgroundColor: 'rgba(60, 64, 67, 0.16)' },
   locCore: { width: 14, height: 14, borderRadius: 7, borderWidth: 2.5, borderColor: '#ffffff', shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.35, shadowRadius: 2, elevation: 2 },
-  locCoreOn: { backgroundColor: '#2563eb' },
+  locCoreOn: { backgroundColor: '#1e3a8a' },
   locCoreOff: { backgroundColor: '#5f6368' },
   spotChip: { alignSelf: 'flex-start', minHeight: 40, justifyContent: 'center', paddingHorizontal: 12, paddingVertical: 7, borderRadius: 8, backgroundColor: '#ffffff', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 6, elevation: 3 },
-  spotChipOn: { backgroundColor: '#2563eb' },
+  spotChipOn: { backgroundColor: '#1e3a8a' },
   spotChipText: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: '#0f2a3d' },
   spotChipTextOn: { color: '#ffffff' },
   rangeRing: { position: 'absolute', borderWidth: 2, borderColor: 'rgba(26, 115, 232, 0.85)', backgroundColor: 'rgba(26, 115, 232, 0.07)' },
@@ -821,12 +821,12 @@ const styles = themedStyles(() => StyleSheet.create({
   offerRow: { flexDirection: 'row', gap: 8, paddingBottom: 0 },
   filterScroll: { flexGrow: 0, flexShrink: 0, marginTop: -7 },
   filterRow: { gap: 6, paddingRight: 12, paddingTop: 7 },
-  fChipTag: { position: 'absolute', top: -6, right: -4, width: 17, height: 17, borderRadius: 9, alignItems: 'center', justifyContent: 'center', backgroundColor: '#2563eb', borderWidth: 1.5, borderColor: Colors.sheetBg },
+  fChipTag: { position: 'absolute', top: -6, right: -4, width: 17, height: 17, borderRadius: 9, alignItems: 'center', justifyContent: 'center', backgroundColor: '#1e3a8a', borderWidth: 1.5, borderColor: Colors.sheetBg },
   fChipTagText: { fontSize: 12, lineHeight: 14, color: '#ffffff', fontFamily: FONTS.bodyBold, marginTop: -1 },
   fChip: { paddingHorizontal: 12, height: 30, borderRadius: 15, justifyContent: 'center', borderWidth: 1, borderColor: Colors.borderColor, backgroundColor: Colors.bgCard },
   fChipOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#eff6ff', borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#bfdbfe' },
   fChipText: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
-  fChipTextOn: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#2563eb' },
+  fChipTextOn: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#1e3a8a' },
   offerChip: { flex: 1, height: 44, paddingHorizontal: 6, borderRadius: 19, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: Colors.borderColor, backgroundColor: Colors.bgCard },
   tagRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8 },
   pickedChip: { alignSelf: 'center', paddingHorizontal: 12, height: 28, borderRadius: 15, justifyContent: 'center', borderWidth: 1, borderColor: Colors.borderColor, backgroundColor: Colors.bgCard },
@@ -837,7 +837,7 @@ const styles = themedStyles(() => StyleSheet.create({
   freeQuotePlusText: { fontSize: 17, lineHeight: 19, color: '#1e40af', fontFamily: FONTS.bodyBold, marginTop: -1 },
   offerChipOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#eff6ff', borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#bfdbfe' },
   offerChipText: { fontSize: 13, fontWeight: '700', color: getThemeMode() === 'dark' ? Colors.textMuted : '#475569' },
-  offerChipTextOn: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#2563eb' },
+  offerChipTextOn: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#1e3a8a' },
   // The open count over the map, with no background of its own, at the right end of the line of the location chip.
   mapOpen: { position: 'absolute', right: 0, top: 0, flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 6, backgroundColor: 'transparent' },
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 },
@@ -866,7 +866,7 @@ const styles = themedStyles(() => StyleSheet.create({
   subFloat: { position: 'absolute', top: 70, left: 0, right: 0, zIndex: 4 },
   subChipTextMap: { color: '#0f2a3d' },
   subGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, paddingHorizontal: 14, paddingVertical: 4 },
-  subMore: { backgroundColor: '#ffffff', borderColor: '#2563eb' },
+  subMore: { backgroundColor: '#ffffff', borderColor: '#1e3a8a' },
   subMoreText: { fontSize: 12.5, fontWeight: '700', color: '#1a56b0' },
   // Each chip takes its category's colour (a tint, with a border of the same colour); the picked one is filled with it. Same look as the suggested services on Home.
   subChip: { flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, paddingLeft: 8, paddingRight: 12, height: 34, borderRadius: 17 },

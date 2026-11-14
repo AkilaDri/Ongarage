@@ -81,7 +81,7 @@ export const FeedRecordSheet: React.FC = () => {
   );
 };
 
-const blue = () => (getThemeMode() === 'dark' ? '#8db1ff' : '#2563eb');
+const blue = () => (getThemeMode() === 'dark' ? '#8db1ff' : '#1e3a8a');
 
 const styles = themedStyles(() =>
   StyleSheet.create({
