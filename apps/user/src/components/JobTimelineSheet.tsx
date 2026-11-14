@@ -15,7 +15,7 @@ const sourceOf = (l: DiagnosisLine) =>
   l.kind !== 'part' ? '' : l.source === 'owner' ? '🛍️ ඔබ (පාරිභෝගිකයා) OnMart හි මිලදී ගත්තා' : l.source === 'order' ? '🏭 ගරාජය වෙළඳසැලකින් ඇණවුම් කළා' : '📦 ගරාජයේ තොගයෙන්';
 
 /** The colour of an event's dot, by what kind of step it is. */
-const TONE: Record<string, string> = { '📅': '#2457e6', '🚗': '#0891b2', '🔍': '#8b5cf6', '✅': '#0e9f6e', '♻️': '#0e9f6e', '➕': '#f59e0b', '🔩': '#f59e0b', '🔧': '#2457e6', '🔑': '#0e9f6e', '💵': '#0e9f6e', '⚠️': '#e5483d', '⭐': '#f59e0b' };
+const TONE: Record<string, string> = { '📅': '#2563eb', '🚗': '#0891b2', '🔍': '#8b5cf6', '✅': '#0e9f6e', '♻️': '#0e9f6e', '➕': '#f59e0b', '🔩': '#f59e0b', '🔧': '#2563eb', '🔑': '#0e9f6e', '💵': '#0e9f6e', '⚠️': '#e5483d', '⭐': '#f59e0b' };
 
 type Event = { icon: string; title: string; at?: number; body: React.ReactNode };
 
@@ -247,7 +247,7 @@ export const JobTimelineSheet: React.FC<{ id: string | null; onClose: () => void
               {events.map((e, i) => (
                 <View key={`${e.title}-${i}`} style={styles.event}>
                   <View style={styles.rail}>
-                    <View style={[styles.dot, { backgroundColor: (TONE[e.icon] ?? '#2457e6') + '22', borderColor: (TONE[e.icon] ?? '#2457e6') + '55' }]}>
+                    <View style={[styles.dot, { backgroundColor: (TONE[e.icon] ?? '#2563eb') + '22', borderColor: (TONE[e.icon] ?? '#2563eb') + '55' }]}>
                       <Text style={styles.dotIcon}>{e.icon}</Text>
                     </View>
                     {i < events.length - 1 && <View style={styles.railLine} />}

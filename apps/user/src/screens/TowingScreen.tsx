@@ -242,8 +242,8 @@ const MapShell: React.FC<{
         </View>
         {showMap && topH > 0 && (
           <Pressable style={[styles.myLocation, fullMap && styles.myLocationHigh]} onPress={() => { setAtMe(true); onMyLocation?.(); }} accessibilityLabel="My location">
-            <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke="#1a73e8" strokeWidth={2} strokeLinecap="round">
-              <Circle cx={12} cy={12} r={3.5} fill="#1a73e8" />
+            <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth={2} strokeLinecap="round">
+              <Circle cx={12} cy={12} r={3.5} fill="#2563eb" />
               <Circle cx={12} cy={12} r={7.5} />
               <Path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
             </Svg>
@@ -375,8 +375,8 @@ const LiveShell: React.FC<{
         {!!sheetH && (
           <Animated.View style={[styles.myLocationLive, { bottom: Animated.add(sheetH, 12) }]} pointerEvents="box-none">
             <Pressable style={styles.myLocationBtn} onPress={() => { setAtMe(true); onMyLocation?.(); }} accessibilityLabel="My location">
-              <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke="#1a73e8" strokeWidth={2} strokeLinecap="round">
-                <Circle cx={12} cy={12} r={3.5} fill="#1a73e8" />
+              <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth={2} strokeLinecap="round">
+                <Circle cx={12} cy={12} r={3.5} fill="#2563eb" />
                 <Circle cx={12} cy={12} r={7.5} />
                 <Path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
               </Svg>
@@ -744,7 +744,7 @@ export const TowingScreen: React.FC<{ vehicleId?: string; onClose: () => void }>
       overlay={
         asking ? (
           <ModalCard icon="🛻" tone="primary" title="ඉල්ලීම යැව්වා" body={`${asking} ඔබේ Tow request එක පිළිගන්නකන් ටිකක් ඉන්න...`}>
-            <ActivityIndicator color="#1a73e8" />
+            <ActivityIndicator color="#2563eb" />
             <ActionButton label="අවලංගු කරන්න" variant="ghost" compact onPress={cancelAsking} />
           </ModalCard>
         ) : undefined
@@ -909,7 +909,7 @@ export const TowingScreen: React.FC<{ vehicleId?: string; onClose: () => void }>
                 ))}
                 {waiting && (
                   <View style={styles.waitCard}>
-                    <ActivityIndicator color="#1a73e8" />
+                    <ActivityIndicator color="#2563eb" />
                     <Text style={styles.waitText}>
                       ප්‍රතිචාර බලාපොරොත්තුවෙමින්... ({answers.length}/{options.length})
                     </Text>
@@ -1045,7 +1045,7 @@ const styles = themedStyles(() =>
     mapResultSub: { fontSize: 12, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
     mapResultNote: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: dark() ? '#f28b82' : '#b3261e', padding: 12 },
     pickBar: { position: 'absolute', left: 16, right: 16, bottom: 28, alignItems: 'center' },
-    pickChip: { paddingHorizontal: 28, height: 48, borderRadius: 24, justifyContent: 'center', backgroundColor: '#1a73e8', ...FLOAT_SHADOW },
+    pickChip: { paddingHorizontal: 28, height: 48, borderRadius: 24, justifyContent: 'center', backgroundColor: '#2563eb', ...FLOAT_SHADOW },
     pickChipOff: { backgroundColor: dark() ? '#2a3550' : '#b9c4d6', shadowOpacity: 0 },
     pickChipText: { fontSize: 14.5, fontFamily: FONTS.bodyBold, color: '#ffffff' },
     topAreaBare: { height: 76, overflow: 'visible', backgroundColor: pageBg() },
@@ -1053,27 +1053,27 @@ const styles = themedStyles(() =>
     topBar: { position: 'absolute', top: 12, left: 16, right: 16, flexDirection: 'row', alignItems: 'center', gap: 10 },
     roundBtn: { width: 46, height: 46, borderRadius: 23, backgroundColor: Colors.bgCard, justifyContent: 'center', alignItems: 'center', ...FLOAT_SHADOW },
     stepPill: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, height: 52, paddingLeft: 6, paddingRight: 16, borderRadius: 26, backgroundColor: Colors.bgCard, ...FLOAT_SHADOW },
-    stepPillIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: dark() ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe', justifyContent: 'center', alignItems: 'center' },
+    stepPillIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: dark() ? 'rgba(141, 177, 255, 0.16)' : '#eff6ff', justifyContent: 'center', alignItems: 'center' },
     pillEmoji: { fontSize: 18 },
     stepPillTitle: { fontSize: 13.5, fontFamily: FONTS.titleBold, color: Colors.textMain },
     stepPillRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 },
-    stepPillCount: { fontSize: 10.5, fontFamily: FONTS.bodyBold, color: '#1a73e8', paddingHorizontal: 7, paddingVertical: 1, borderRadius: 8, overflow: 'hidden', backgroundColor: dark() ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe' },
+    stepPillCount: { fontSize: 10.5, fontFamily: FONTS.bodyBold, color: '#2563eb', paddingHorizontal: 7, paddingVertical: 1, borderRadius: 8, overflow: 'hidden', backgroundColor: dark() ? 'rgba(141, 177, 255, 0.16)' : '#eff6ff' },
     stepPillSub: { flexShrink: 1, fontSize: 12, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
     sheet: { flex: 1, marginTop: -24, backgroundColor: pageBg(), borderTopLeftRadius: 28, borderTopRightRadius: 28, overflow: 'hidden', shadowColor: '#3c4043', shadowOffset: { width: 0, height: -2 }, shadowOpacity: 0.14, shadowRadius: 8, elevation: 8 },
     handle: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: Colors.subtleBorder, marginTop: 10 },
     stepper: { flexDirection: 'row', gap: 4, paddingHorizontal: 16, paddingTop: 10, paddingBottom: 4 },
     stepSeg: { flex: 1, height: 4, borderRadius: 2, backgroundColor: Colors.subtleBorder },
     stepSegDone: { backgroundColor: 'rgba(26, 115, 232, 0.6)' },
-    stepSegActive: { backgroundColor: '#1a73e8' },
+    stepSegActive: { backgroundColor: '#2563eb' },
     closeText: { fontSize: 16, color: Colors.textMain },
     mapPin: { position: 'absolute', width: 28, height: 28, marginLeft: -14, marginTop: -14, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: '#ffffff', borderWidth: 2, borderColor: '#1e40af' },
     mapPinOn: { borderColor: '#16a34a', width: 34, height: 34, marginLeft: -17, marginTop: -17, borderRadius: 17 },
     peek: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingTop: 6 },
-    peekDisc: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center', backgroundColor: dark() ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe' },
+    peekDisc: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center', backgroundColor: dark() ? 'rgba(141, 177, 255, 0.16)' : '#eff6ff' },
     peekEmoji: { fontSize: 24 },
-    peekCount: { alignSelf: 'flex-start', paddingHorizontal: 9, paddingVertical: 1, borderRadius: 9, overflow: 'hidden', fontSize: 11.5, fontFamily: FONTS.bodyBold, color: '#1a73e8', backgroundColor: dark() ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe' },
+    peekCount: { alignSelf: 'flex-start', paddingHorizontal: 9, paddingVertical: 1, borderRadius: 9, overflow: 'hidden', fontSize: 11.5, fontFamily: FONTS.bodyBold, color: '#2563eb', backgroundColor: dark() ? 'rgba(141, 177, 255, 0.16)' : '#eff6ff' },
     peekText: { fontSize: 19, lineHeight: 26, fontFamily: FONTS.titleBold, color: Colors.textMain, marginTop: 2 },
-    truckPin: { position: 'absolute', width: 40, height: 40, marginLeft: -20, marginTop: -20, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: '#1a73e8', borderWidth: 3, borderColor: '#ffffff', ...FLOAT_SHADOW },
+    truckPin: { position: 'absolute', width: 40, height: 40, marginLeft: -20, marginTop: -20, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: '#2563eb', borderWidth: 3, borderColor: '#ffffff', ...FLOAT_SHADOW },
     truckPinText: { fontSize: 18 },
     mapPinText: { fontSize: 14 },
     meDot: { position: 'absolute', width: 16, height: 16, marginLeft: -8, marginTop: -8, borderRadius: 8, backgroundColor: Colors.primary, borderWidth: 3, borderColor: '#fff' },
@@ -1086,52 +1086,52 @@ const styles = themedStyles(() =>
     bold: { fontFamily: FONTS.bodyBold, color: Colors.textMain },
     dim: { opacity: 0.5 },
     chip: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 12, backgroundColor: dark() ? 'rgba(255, 255, 255, 0.08)' : '#e8eef7' },
-    chipOn: { backgroundColor: '#1a73e8' },
+    chipOn: { backgroundColor: '#2563eb' },
     chipText: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
     chipTextOn: { color: '#ffffff' },
     option: { padding: 14, borderRadius: 18, gap: 8, backgroundColor: Colors.bgCard, borderWidth: 2, borderColor: 'transparent', ...(cardGlow() as object) },
-    optionOn: { borderColor: '#1a73e8' },
+    optionOn: { borderColor: '#2563eb' },
     tripCard: { flexDirection: 'row', alignItems: 'stretch', gap: 8, padding: 10, borderRadius: 20, backgroundColor: Colors.bgCard, ...(cardGlow() as object) },
     tripRail: { width: 18, alignItems: 'center', paddingVertical: 20 },
-    railDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#1a73e8' },
+    railDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#2563eb' },
     railLine: { flex: 1, width: 2, marginVertical: 4, backgroundColor: Colors.subtleBorder },
     railSquare: { width: 10, height: 10, borderRadius: 2, backgroundColor: '#e53935' },
     tripField: { height: 46, justifyContent: 'center', paddingHorizontal: 12, borderRadius: 12, borderWidth: 1.5, borderColor: 'transparent' },
-    tripFieldOn: { borderColor: '#1a73e8', backgroundColor: dark() ? 'rgba(141, 177, 255, 0.1)' : '#f3f8ff' },
+    tripFieldOn: { borderColor: '#2563eb', backgroundColor: dark() ? 'rgba(141, 177, 255, 0.1)' : '#f3f8ff' },
     tripFieldText: { fontSize: 14, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
     tripFieldHint: { fontSize: 14, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
     tripInput: { height: 44, fontSize: 14, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
     listRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: dark() ? 'rgba(255, 255, 255, 0.08)' : '#e4e7ec' },
     listChevron: { fontSize: 22, color: Colors.textMuted },
-    listTick: { fontSize: 18, fontFamily: FONTS.bodyBold, color: '#1a73e8' },
+    listTick: { fontSize: 18, fontFamily: FONTS.bodyBold, color: '#2563eb' },
     noteBad: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: dark() ? '#f28b82' : '#b3261e' },
     profile: { gap: 14, paddingBottom: 12 },
     profileCover: { borderRadius: 18, overflow: 'hidden' },
     profileHead: { gap: 4 },
     profileName: { fontSize: 20, fontFamily: FONTS.titleBold, color: Colors.textMain },
-    truckChip: { paddingHorizontal: 12, height: 30, borderRadius: 15, justifyContent: 'center', backgroundColor: dark() ? 'rgba(255, 255, 255, 0.08)' : '#eef2f7' },
+    truckChip: { paddingHorizontal: 12, height: 30, borderRadius: 15, justifyContent: 'center', backgroundColor: dark() ? 'rgba(255, 255, 255, 0.08)' : '#f0f0f0' },
     truckChipText: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
     sectionHead: { fontSize: 13, fontFamily: FONTS.bodyBold, color: Colors.textMain, marginTop: 8 },
     silentRow: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 16, backgroundColor: dark() ? 'rgba(255, 255, 255, 0.05)' : '#f1f3f4' },
     silentDisc: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center', backgroundColor: dark() ? 'rgba(255, 255, 255, 0.08)' : '#e4e7ec' },
     silentTruck: { fontSize: 20 },
-    silentWait: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: '#1a73e8', marginTop: 2 },
+    silentWait: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: '#2563eb', marginTop: 2 },
     silentNo: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, marginTop: 2 },
-    silentCall: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', backgroundColor: dark() ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe' },
+    silentCall: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', backgroundColor: dark() ? 'rgba(141, 177, 255, 0.16)' : '#eff6ff' },
     silentCallText: { fontSize: 16 },
-    waitCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, paddingVertical: 16, borderRadius: 18, backgroundColor: dark() ? 'rgba(141, 177, 255, 0.1)' : '#e8f0fe' },
-    waitText: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: '#1a73e8' },
+    waitCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, paddingVertical: 16, borderRadius: 18, backgroundColor: dark() ? 'rgba(141, 177, 255, 0.1)' : '#eff6ff' },
+    waitText: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: '#2563eb' },
     titleRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
     stepTitle: { fontSize: 19, fontFamily: FONTS.titleBold, color: Colors.textMain },
     stepHint: { fontSize: 12.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 18, marginTop: -4, marginBottom: 2 },
     optRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-    iconDisc: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center', backgroundColor: dark() ? 'rgba(255, 255, 255, 0.08)' : '#eef2f7' },
+    iconDisc: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center', backgroundColor: dark() ? 'rgba(255, 255, 255, 0.08)' : '#f0f0f0' },
     iconDiscOn: { backgroundColor: dark() ? 'rgba(141, 177, 255, 0.2)' : '#dbe9fd' },
     iconDiscText: { fontSize: 20 },
     radio: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: Colors.subtleBorder, alignItems: 'center', justifyContent: 'center' },
-    radioOn: { borderColor: '#1a73e8', backgroundColor: '#1a73e8' },
+    radioOn: { borderColor: '#2563eb', backgroundColor: '#2563eb' },
     radioTick: { fontSize: 13, fontFamily: FONTS.bodyBold, color: '#ffffff', lineHeight: 15 },
-    kmChip: { paddingHorizontal: 10, height: 26, borderRadius: 13, justifyContent: 'center', backgroundColor: dark() ? 'rgba(255, 255, 255, 0.08)' : '#eef2f7' },
+    kmChip: { paddingHorizontal: 10, height: 26, borderRadius: 13, justifyContent: 'center', backgroundColor: dark() ? 'rgba(255, 255, 255, 0.08)' : '#f0f0f0' },
     kmChipText: { fontSize: 11.5, fontFamily: FONTS.bodyBold, color: Colors.textMain },
     cheapTag: { alignSelf: 'flex-start', marginTop: 4, paddingHorizontal: 8, height: 20, borderRadius: 10, justifyContent: 'center', backgroundColor: 'rgba(22, 163, 74, 0.12)' },
     cheapTagText: { fontSize: 10.5, fontFamily: FONTS.bodyBold, color: '#16a34a' },
@@ -1149,7 +1149,7 @@ const styles = themedStyles(() =>
     stageRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 3 },
     dot: { width: 12, height: 12, borderRadius: 6, backgroundColor: dark() ? 'rgba(255, 255, 255, 0.2)' : '#cbd5e1' },
     dotDone: { backgroundColor: '#16a34a' },
-    dotNow: { backgroundColor: '#1a73e8' },
+    dotNow: { backgroundColor: '#2563eb' },
     stageText: { fontSize: 13, fontFamily: FONTS.bodyRegular, color: Colors.textMain },
     good: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: '#16a34a' },
     bad: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: dark() ? '#f28b82' : '#b3261e' },

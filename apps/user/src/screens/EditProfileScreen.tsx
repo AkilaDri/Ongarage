@@ -180,7 +180,7 @@ const styles = themedStyles(() =>
     backSpace: { width: 24 },
     title: { fontSize: 18, fontFamily: FONTS.titleBold, color: Colors.textMain },
     body: { paddingBottom: 40 },
-    progressBox: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe', paddingHorizontal: 18, paddingVertical: 14, gap: 10 },
+    progressBox: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#eff6ff', paddingHorizontal: 18, paddingVertical: 14, gap: 10 },
     progressText: { fontSize: 11.5, fontFamily: FONTS.bodyRegular, color: Colors.textSoft, lineHeight: 18 },
     track: { height: 6, borderRadius: 3, backgroundColor: Colors.subtleFill, overflow: 'hidden' },
     fill: { height: 6, borderRadius: 3, backgroundColor: Colors.primary },
@@ -205,8 +205,8 @@ const styles = themedStyles(() =>
     error: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: Colors.errorText, lineHeight: 17 },
     chips: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
     chip: { paddingHorizontal: 18, height: 36, justifyContent: 'center', borderRadius: 8, borderWidth: 1, borderColor: outline(), backgroundColor: Colors.bgCard },
-    chipOn: { borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#d2e3fc', backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe' },
+    chipOn: { borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#bfdbfe', backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#eff6ff' },
     chipText: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
-    chipTextOn: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
+    chipTextOn: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#2563eb' },
   })
 );

@@ -98,7 +98,7 @@ const styles = themedStyles(() =>
     part: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
     price: { fontSize: 13, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#81c995' : '#188038' },
     remove: { fontSize: 15, color: Colors.textMuted },
-    confirm: { minHeight: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: '#1a73e8' },
+    confirm: { minHeight: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: '#2563eb' },
     confirmText: { fontSize: 13.5, fontFamily: FONTS.bodySemiBold, color: '#ffffff' },
   })
 );

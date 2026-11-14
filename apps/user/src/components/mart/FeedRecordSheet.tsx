@@ -81,13 +81,13 @@ export const FeedRecordSheet: React.FC = () => {
   );
 };
 
-const blue = () => (getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8');
+const blue = () => (getThemeMode() === 'dark' ? '#8db1ff' : '#2563eb');
 
 const styles = themedStyles(() =>
   StyleSheet.create({
     tabs: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
     tab: { paddingHorizontal: 12, height: 34, borderRadius: 17, justifyContent: 'center', backgroundColor: Colors.subtleFill },
-    tabOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.2)' : '#e8f0fe' },
+    tabOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.2)' : '#eff6ff' },
     tabText: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
     tabTextOn: { color: blue() },
     empty: { fontSize: 13, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, paddingVertical: 20, textAlign: 'center' },

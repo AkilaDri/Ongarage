@@ -123,7 +123,7 @@ const styles = themedStyles(() =>
   StyleSheet.create({
     flex1: { flex: 1 },
     tile: { padding: 14, borderRadius: 14, gap: 10, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), ...cardGlow() },
-    tilePicked: { borderColor: '#1a73e8', borderWidth: 2 },
+    tilePicked: { borderColor: '#2563eb', borderWidth: 2 },
     top: { flexDirection: 'row', alignItems: 'center', gap: 10 },
     badge: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
     badgeText: { fontSize: 11.5, fontFamily: FONTS.bodyBold, color: '#ffffff', letterSpacing: 0.3 },
@@ -156,8 +156,8 @@ const styles = themedStyles(() =>
     amenities: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
     amenity: { fontSize: 11, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
     actions: { flexDirection: 'row', gap: 8 },
-    action: { flex: 1, alignItems: 'center', paddingVertical: 9, borderRadius: 12, backgroundColor: dark() ? 'rgba(255, 255, 255, 0.08)' : '#eef2f7' },
-    actionMain: { backgroundColor: '#1a73e8' },
+    action: { flex: 1, alignItems: 'center', paddingVertical: 9, borderRadius: 12, backgroundColor: dark() ? 'rgba(255, 255, 255, 0.08)' : '#f0f0f0' },
+    actionMain: { backgroundColor: '#2563eb' },
     actionText: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
     actionMainText: { fontSize: 12.5, fontFamily: FONTS.bodyBold, color: '#ffffff' },
   })

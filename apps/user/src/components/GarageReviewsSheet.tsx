@@ -35,7 +35,7 @@ export const garageForBid = (b: Bid): Garage =>
 const SERVICE_TAG_ROWS = 4;
 
 const REVIEW_W = 210;
-const AVATAR_COLORS = ['#2457e6', '#0e9f6e', '#e5483d', '#8b5cf6', '#f59e0b', '#0891b2', '#db2777'];
+const AVATAR_COLORS = ['#2563eb', '#0e9f6e', '#e5483d', '#8b5cf6', '#f59e0b', '#0891b2', '#db2777'];
 const avatarColor = (id: string) => AVATAR_COLORS[[...id].reduce((n, ch) => n + ch.charCodeAt(0), 0) % AVATAR_COLORS.length];
 const initialsOf = (name: string) =>
   (name.match(/[A-Za-z0-9]+/g) ?? [name]).slice(0, 2).map((w) => w[0]?.toUpperCase() ?? '').join('') || '🛠';
@@ -232,7 +232,7 @@ export const GarageReviewsSheet: React.FC<{
               <View style={[styles.placeActionCircle, a.primary && styles.placeActionPrimary, a.on && styles.placeActionOn]}>
                 <Text style={[styles.placeActionIcon, a.primary && { color: '#ffffff' }, a.on && { color: '#e5483d' }]}>{a.icon}</Text>
               </View>
-              <Text style={[styles.placeActionLabel, a.primary && { color: '#1a73e8' }]}>{a.label}</Text>
+              <Text style={[styles.placeActionLabel, a.primary && { color: '#2563eb' }]}>{a.label}</Text>
             </Pressable>
           ))}
         </ScrollView>
@@ -684,9 +684,9 @@ const styles = themedStyles(() =>
     // No thin divider lines in the profile (under the tabs, between the contact rows, between service rows): the sections are told apart by their spacing.
     tabs: { flexDirection: 'row', marginTop: 8 },
     tabBtn: { flex: 1, height: 42, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4, borderBottomWidth: 3, borderBottomColor: 'transparent' },
-    tabBtnOn: { borderBottomColor: '#1a73e8' },
+    tabBtnOn: { borderBottomColor: '#2563eb' },
     tabText: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
-    tabTextOn: { color: '#1a73e8', fontFamily: FONTS.bodyBold },
+    tabTextOn: { color: '#2563eb', fontFamily: FONTS.bodyBold },
     // The profile's sections breathe: 22px above every section heading and 4px more under it, and the cards / chips of a row sit 10px apart.
     sectionTitle: { fontSize: 14, fontFamily: FONTS.bodyBold, color: Colors.primary, letterSpacing: 0.2, marginTop: 30, marginBottom: 8 },
     hRow: { gap: 10, paddingRight: 10 },
@@ -709,7 +709,7 @@ const styles = themedStyles(() =>
     serviceTag: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, height: 32, borderRadius: 16, borderWidth: 1 },
     serviceTagText: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
     moreBtn: { alignSelf: 'center', paddingHorizontal: 16, height: 36, borderRadius: 8, justifyContent: 'center', backgroundColor: 'rgba(36, 87, 230, 0.1)' },
-    moreBtnText: { fontSize: 12, fontFamily: FONTS.bodyBold, color: '#2457e6' },
+    moreBtnText: { fontSize: 12, fontFamily: FONTS.bodyBold, color: '#2563eb' },
     gig: { width: 210, borderRadius: 12, overflow: 'hidden', backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), ...elevation1() },
     gigImg: { width: '100%', height: 104, backgroundColor: Colors.subtleFill },
     gigTag: { position: 'absolute', top: 8, left: 8, paddingHorizontal: 10, height: 24, borderRadius: 12, justifyContent: 'center' },
@@ -718,7 +718,7 @@ const styles = themedStyles(() =>
     gigTitle: { fontSize: 14, fontFamily: FONTS.titleBold, color: Colors.textMain, lineHeight: 17 },
     gigMeta: { flexDirection: 'row', justifyContent: 'space-between' },
     gigMetaText: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: Colors.textSoft },
-    gigBtn: { alignSelf: 'flex-start', marginTop: 2, paddingHorizontal: 14, height: 30, borderRadius: 8, justifyContent: 'center', backgroundColor: '#2457e6' },
+    gigBtn: { alignSelf: 'flex-start', marginTop: 2, paddingHorizontal: 14, height: 30, borderRadius: 8, justifyContent: 'center', backgroundColor: '#2563eb' },
     gigBtnText: { fontSize: 11.5, fontFamily: FONTS.bodyBold, color: '#ffffff' },
     serviceList: { borderRadius: 12, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), overflow: 'hidden', ...elevation1() },
     serviceRow: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12 },
@@ -743,7 +743,7 @@ const styles = themedStyles(() =>
     mapPin: { position: 'absolute', transform: [{ translateX: -8 }, { translateY: -20 }] },
     mapPinEmoji: { fontSize: 18 },
     mapFooter: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 8, paddingVertical: 6 },
-    dirBtn: { paddingHorizontal: 11, height: 28, borderRadius: 8, justifyContent: 'center', backgroundColor: '#2457e6' },
+    dirBtn: { paddingHorizontal: 11, height: 28, borderRadius: 8, justifyContent: 'center', backgroundColor: '#2563eb' },
     dirBtnText: { fontSize: 12, fontFamily: FONTS.bodyBold, color: '#ffffff' },
     coverWrap: { height: 360, overflow: 'hidden', borderTopLeftRadius: 28, borderTopRightRadius: 28 },
     cover: { width: '100%', height: '100%' },
@@ -804,10 +804,10 @@ const styles = themedStyles(() =>
     flex2: { flex: 2 },
     bidHero: { padding: 16, gap: 12, borderRadius: 12, backgroundColor: getThemeMode() === 'dark' ? 'rgba(96, 165, 250, 0.16)' : '#e3eeff' },
     bidHeroTop: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-    bidHeroLabel: { fontSize: 12.5, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#93c5fd' : '#1e4fa8' },
+    bidHeroLabel: { fontSize: 12.5, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#93c5fd' : '#1d4ed8' },
     bidHeroPrice: { fontSize: 26, lineHeight: 32, fontFamily: FONTS.titleBold, color: getThemeMode() === 'dark' ? '#dbeafe' : '#0f2f6b', letterSpacing: -0.5 },
     bidHeroTag: { paddingHorizontal: 12, height: 26, borderRadius: 8, justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? 'rgba(147, 197, 253, 0.22)' : '#c7dcfb' },
-    bidHeroTagText: { fontSize: 11, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#93c5fd' : '#1e4fa8' },
+    bidHeroTagText: { fontSize: 11, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#93c5fd' : '#1d4ed8' },
     bidHeroChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
     bidHeroChip: { paddingHorizontal: 11, height: 28, borderRadius: 8, justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.7)' },
     bidHeroChipText: { fontSize: 11.5, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#bfdbfe' : '#1e3f86' },
@@ -827,10 +827,10 @@ const styles = themedStyles(() =>
     placeActions: { gap: 16, paddingTop: 6, paddingBottom: 4, paddingRight: 6 },
     placeAction: { alignItems: 'center', gap: 8, minWidth: 64},
     placeActionCircle: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? Colors.subtleFill : '#ffffff', borderWidth: 1, borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#dadce0' },
-    placeActionPrimary: { backgroundColor: '#1a73e8', borderColor: '#1a73e8' },
-    placeActionOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(229, 72, 61, 0.16)' : '#fdecea', borderColor: '#f5b5b0' },
-    placeActionIcon: { fontSize: 19, color: '#1a73e8' },
-    placeActionLabel: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
+    placeActionPrimary: { backgroundColor: '#2563eb', borderColor: '#2563eb' },
+    placeActionOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(229, 72, 61, 0.16)' : '#eff6ff', borderColor: '#f5b5b0' },
+    placeActionIcon: { fontSize: 19, color: '#2563eb' },
+    placeActionLabel: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#2563eb' },
     gmList: { marginHorizontal: 4 },
     gmRow: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 4, paddingHorizontal: 4 },
     gmIcon: { width: 22, fontSize: 16, textAlign: 'center' },
@@ -844,7 +844,7 @@ const styles = themedStyles(() =>
     hourDay: { fontSize: 13, fontFamily: FONTS.bodyMedium, color: Colors.textMain },
     hourTime: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
     hourClosed: { color: Colors.errorText },
-    hourToday: { fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1e4fa8' },
+    hourToday: { fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1d4ed8' },
     noteBox: { padding: 10, borderRadius: 8, backgroundColor: Colors.subtleFill },
     noteBoxOn: { backgroundColor: 'rgba(239, 68, 68, 0.12)' },
     noteText: { fontSize: 12.5, fontFamily: FONTS.bodyMedium, color: Colors.textSoft, lineHeight: 17 },
@@ -853,7 +853,7 @@ const styles = themedStyles(() =>
     tagChip: { paddingHorizontal: 12, height: 32, borderRadius: 8, justifyContent: 'center', backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline() },
     tagChipText: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
     tagChipBrand: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e3ecfd', borderColor: 'transparent' },
-    tagChipBrandText: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#1e4fa8' },
+    tagChipBrandText: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#1d4ed8' },
     staffRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
     staffAvatar: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
     staffAvatarText: { fontSize: 14, fontFamily: FONTS.titleBold, color: '#ffffff' },

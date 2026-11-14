@@ -134,7 +134,7 @@ const styles = themedStyles(() =>
     label: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.textMain, marginTop: 4 },
     chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
     chip: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 16, borderWidth: 1, borderColor: Colors.borderColor, backgroundColor: Colors.bgCard },
-    chipOn: { borderColor: Colors.primary, backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe' },
+    chipOn: { borderColor: Colors.primary, backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#eff6ff' },
     chipText: { fontSize: 12.5, fontFamily: FONTS.bodyMedium, color: Colors.textMuted },
     chipTextOn: { color: Colors.primary, fontFamily: FONTS.bodyBold },
   })

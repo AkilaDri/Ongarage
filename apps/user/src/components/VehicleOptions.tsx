@@ -30,11 +30,11 @@ const styles = themedStyles(() =>
   StyleSheet.create({
     list: { gap: 10 },
     row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: 14, borderRadius: 14, backgroundColor: dark() ? 'rgba(255, 255, 255, 0.06)' : '#f4f7fb', borderWidth: 1.5, borderColor: 'transparent' },
-    rowOn: { borderColor: '#1a73e8', backgroundColor: dark() ? 'rgba(141, 177, 255, 0.14)' : '#e8f0fe' },
+    rowOn: { borderColor: '#2563eb', backgroundColor: dark() ? 'rgba(141, 177, 255, 0.14)' : '#eff6ff' },
     // The vehicle's name leads each row in bold; its number plate sits under it (from VehicleLine).
     name: { fontSize: 15, fontFamily: FONTS.bodyBold, color: Colors.textMain },
     radio: { width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: Colors.subtleBorder },
-    radioOn: { backgroundColor: '#1a73e8', borderColor: '#1a73e8' },
+    radioOn: { backgroundColor: '#2563eb', borderColor: '#2563eb' },
     tick: { fontSize: 13, fontFamily: FONTS.bodyBold, color: '#ffffff' },
   })
 );

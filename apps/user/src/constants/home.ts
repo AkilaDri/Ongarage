@@ -8,21 +8,21 @@ const DAY = 24 * 60 * 60 * 1000;
 
 /** Category artwork (the designer's cut-outs in assets/job cat icons), by SERVICE_CATEGORIES id. */
 export const CATEGORY_IMAGES: Record<string, ImageSourcePropType> = {
-  '1': require('../../assets/job cat icons/Mechanical.png'),
-  '2': require('../../assets/job cat icons/electrical.png'),
-  '3': require('../../assets/job cat icons/Hybrid.png'),
-  '4': require('../../assets/job cat icons/AC.png'),
-  '5': require('../../assets/job cat icons/Scan.png'),
-  '6': require('../../assets/job cat icons/tyres.png'),
-  '7': require('../../assets/job cat icons/brakes.png'),
-  '8': require('../../assets/job cat icons/Paint.png'),
-  '9': require('../../assets/job cat icons/Wash.png'),
-  '10': require('../../assets/job cat icons/Tuning.png'),
-  '11': require('../../assets/job cat icons/Battery.png'),
-  '12': require('../../assets/job cat icons/Towing.png'),
-  '13': require('../../assets/job cat icons/ev-charging.png'), // EV Charging
-  '14': require('../../assets/job cat icons/service.png'), // Service
-  '16': require('../../assets/job cat icons/petrol.png'), // Fuel Station
+  '1': require('../../assets/job cat icons duo/Mechanical.png'),
+  '2': require('../../assets/job cat icons duo/electrical.png'),
+  '3': require('../../assets/job cat icons duo/Hybrid.png'),
+  '4': require('../../assets/job cat icons duo/AC.png'),
+  '5': require('../../assets/job cat icons duo/Scan.png'),
+  '6': require('../../assets/job cat icons duo/tyres.png'),
+  '7': require('../../assets/job cat icons duo/brakes.png'),
+  '8': require('../../assets/job cat icons duo/Paint.png'),
+  '9': require('../../assets/job cat icons duo/Wash.png'),
+  '10': require('../../assets/job cat icons duo/Tuning.png'),
+  '11': require('../../assets/job cat icons duo/Battery.png'),
+  '12': require('../../assets/job cat icons duo/Towing.png'),
+  '13': require('../../assets/job cat icons duo/ev-charging.png'), // EV Charging
+  '14': require('../../assets/job cat icons duo/service.png'), // Service
+  '16': require('../../assets/job cat icons duo/petrol.png'), // Fuel Station
 };
 
 /**

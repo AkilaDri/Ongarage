@@ -11,7 +11,7 @@ import { Sheet } from '../Sheet';
 import { CATEGORIES, OTHER, categoryOf } from './stockCategories';
 import { StockSearchSheet } from './StockSearchSheet';
 
-const AVATAR_COLORS = ['#2457e6', '#0e9f6e', '#e5483d', '#8b5cf6', '#f59e0b', '#0891b2', '#db2777'];
+const AVATAR_COLORS = ['#2563eb', '#0e9f6e', '#e5483d', '#8b5cf6', '#f59e0b', '#0891b2', '#db2777'];
 const hash = (id: string) => [...id].reduce((n, ch) => n + ch.charCodeAt(0), 0);
 const initialsOf = (name: string) => (name.match(/[A-Za-z0-9]+/g) ?? [name]).slice(0, 2).map((w) => w[0]?.toUpperCase() ?? '').join('') || '🔩';
 
@@ -134,10 +134,10 @@ export const ShopSheet: React.FC<{ shop: ShopListing | null; onClose: () => void
           <Pressable style={[styles.pfAction, { backgroundColor: '#0e9f6e' }]} onPress={() => Linking.openURL(`tel:${s.phone.replace(/\s/g, '')}`)} accessibilityLabel="Call shop">
             <Text style={styles.pfActionText}>📞 අමතන්න</Text>
           </Pressable>
-          <Pressable style={[styles.pfAction, { backgroundColor: '#2457e6' }]} onPress={() => Linking.openURL(directionsUrl(s.coords, user.coords))} accessibilityLabel="Shop directions">
+          <Pressable style={[styles.pfAction, { backgroundColor: '#2563eb' }]} onPress={() => Linking.openURL(directionsUrl(s.coords, user.coords))} accessibilityLabel="Shop directions">
             <Text style={styles.pfActionText}>🧭 මාර්ගය</Text>
           </Pressable>
-          <Pressable style={[styles.pfAction, { backgroundColor: '#1a73e8' }]} onPress={() => { onClose(); chat.open({ id: `shop:${s.id}`, title: s.name, subtitle: 'OnMart', phone: s.phone, profile: 'shop' }); }} accessibilityLabel="OnChat with shop">
+          <Pressable style={[styles.pfAction, { backgroundColor: '#2563eb' }]} onPress={() => { onClose(); chat.open({ id: `shop:${s.id}`, title: s.name, subtitle: 'OnMart', phone: s.phone, profile: 'shop' }); }} accessibilityLabel="OnChat with shop">
             <Text style={styles.pfActionText}>💬 OnChat</Text>
           </Pressable>
           <Pressable style={[styles.pfAction, { backgroundColor: '#8b5cf6' }]} onPress={() => { if (!main) setShowInfo(false); onAsk(s); }} accessibilityLabel="Ask shop">
@@ -389,7 +389,7 @@ const Info: React.FC<{ icon: string; label: string; value: string }> = ({ icon, 
 );
 
 const edge = () => (getThemeMode() === 'dark' ? Colors.borderColor : '#d6dce6');
-const blue = () => (getThemeMode() === 'dark' ? '#8db1ff' : '#2457e6');
+const blue = () => (getThemeMode() === 'dark' ? '#8db1ff' : '#2563eb');
 
 const styles = themedStyles(() =>
   StyleSheet.create({
@@ -438,7 +438,7 @@ const styles = themedStyles(() =>
     quickWrap: { gap: 10 },
     tabs: { flexDirection: 'row', gap: 6, marginTop: 6 },
     tabBtn: { flex: 1, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4, borderWidth: 1, borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#dbe4f3', backgroundColor: getThemeMode() === 'dark' ? Colors.bgCard : '#ffffff' },
-    tabBtnOn: { backgroundColor: '#2457e6', borderColor: '#2457e6', shadowColor: '#2457e6', shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.3, shadowRadius: 10, elevation: 5 },
+    tabBtnOn: { backgroundColor: '#2563eb', borderColor: '#2563eb', shadowColor: '#2563eb', shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.3, shadowRadius: 10, elevation: 5 },
     tabText: { fontSize: 11.5, fontFamily: FONTS.bodyBold, color: blue() },
     tabTextOn: { color: '#ffffff' },
     dealRow: { gap: 10, paddingRight: 6 },
@@ -450,7 +450,7 @@ const styles = themedStyles(() =>
     searchFieldText: { fontSize: 13, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
     chipRow: { gap: 8, paddingRight: 6 },
     chip: { paddingHorizontal: 15, height: 36, borderRadius: 18, justifyContent: 'center', backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: edge() },
-    chipOn: { backgroundColor: '#2457e6', borderColor: '#2457e6', shadowColor: '#2457e6', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4 },
+    chipOn: { backgroundColor: '#2563eb', borderColor: '#2563eb', shadowColor: '#2563eb', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4 },
     chipText: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
     chipTextOn: { color: '#ffffff' },
     section: { gap: 4 },
@@ -458,7 +458,7 @@ const styles = themedStyles(() =>
     sectionCount: { fontSize: 12, fontFamily: FONTS.bodyMedium, color: Colors.textMuted },
     item: { width: '31.6%', padding: 6, gap: 3, borderRadius: 16, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: edge(), shadowColor: '#0f172a', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.07, shadowRadius: 8, elevation: 2 },
     grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-    itemOn: { borderColor: '#2457e6' },
+    itemOn: { borderColor: '#2563eb' },
     itemName: { fontSize: 11.5, fontFamily: FONTS.titleBold, color: Colors.textMain, lineHeight: 15, marginTop: 4 },
     itemMeta: { fontSize: 9.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
     itemPriceRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 6 },
@@ -469,10 +469,10 @@ const styles = themedStyles(() =>
     itemIcon: { fontSize: 34 },
     addBtn: { marginTop: 4, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8effe' },
     addBtnText: { fontSize: 10.5, fontFamily: FONTS.bodyBold, color: blue() },
-    stepper: { marginTop: 4, height: 28, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 10, borderRadius: 14, backgroundColor: '#2457e6' },
+    stepper: { marginTop: 4, height: 28, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 10, borderRadius: 14, backgroundColor: '#2563eb' },
     stepText: { fontSize: 18, lineHeight: 20, fontFamily: FONTS.bodyBold, color: '#ffffff' },
     stepQty: { fontSize: 13, fontFamily: FONTS.bodyBold, color: '#ffffff', minWidth: 12, textAlign: 'center' },
-    cartBar: { flexDirection: 'row', alignItems: 'center', gap: 10, height: 56, paddingHorizontal: 16, borderRadius: 28, backgroundColor: '#2457e6', shadowColor: '#2457e6', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.4, shadowRadius: 16, elevation: 8 },
+    cartBar: { flexDirection: 'row', alignItems: 'center', gap: 10, height: 56, paddingHorizontal: 16, borderRadius: 28, backgroundColor: '#2563eb', shadowColor: '#2563eb', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.4, shadowRadius: 16, elevation: 8 },
     cartCount: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.25)' },
     cartCountText: { fontSize: 13, fontFamily: FONTS.bodyBold, color: '#ffffff' },
     cartLabel: { flex: 1, fontSize: 12.5, fontFamily: FONTS.bodyBold, color: '#ffffff' },
@@ -492,7 +492,7 @@ const styles = themedStyles(() =>
     title: { fontSize: 13.5, fontFamily: FONTS.titleBold, color: Colors.textMain },
     sub: { fontSize: 11, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 16 },
     infoDivider: { height: 1, backgroundColor: edge() },
-    moreLink: { marginLeft: 'auto', fontSize: 11.5, fontFamily: FONTS.bodyBold, color: '#2457e6' },
+    moreLink: { marginLeft: 'auto', fontSize: 11.5, fontFamily: FONTS.bodyBold, color: '#2563eb' },
     stockHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginTop: 4 },
     stockTitle: { fontSize: 22, fontFamily: FONTS.titleBold, color: Colors.textMain, letterSpacing: -0.3 },
     stockCount: { fontSize: 12, fontFamily: FONTS.bodyBold, color: Colors.textMuted },
@@ -505,7 +505,7 @@ const styles = themedStyles(() =>
     mapPin: { position: 'absolute', transform: [{ translateX: -9 }, { translateY: -22 }] },
     mapPinEmoji: { fontSize: 20 },
     mapFooter: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 8, paddingVertical: 6 },
-    dirBtn: { paddingHorizontal: 11, height: 28, borderRadius: 14, justifyContent: 'center', backgroundColor: '#2457e6' },
+    dirBtn: { paddingHorizontal: 11, height: 28, borderRadius: 14, justifyContent: 'center', backgroundColor: '#2563eb' },
     dirBtnText: { fontSize: 12, fontFamily: FONTS.bodyBold, color: '#ffffff' },
   })
 );

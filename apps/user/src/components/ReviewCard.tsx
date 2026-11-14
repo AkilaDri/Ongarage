@@ -3,7 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-
 import { ActionButton, Colors, FONTS, getThemeMode, softEdge, themedStyles } from '@ongarage/shared';
 import { ago } from '../utils/format';
 
-const AVATAR_COLORS = ['#2457e6', '#0e9f6e', '#e5483d', '#8b5cf6', '#f59e0b', '#0891b2', '#db2777'];
+const AVATAR_COLORS = ['#2563eb', '#0e9f6e', '#e5483d', '#8b5cf6', '#f59e0b', '#0891b2', '#db2777'];
 const avatarColor = (id: string) => AVATAR_COLORS[[...id].reduce((n, ch) => n + ch.charCodeAt(0), 0) % AVATAR_COLORS.length];
 
 export type ReviewView = {
@@ -131,9 +131,9 @@ const styles = themedStyles(() =>
     text: { fontSize: 13.5, fontFamily: FONTS.bodyRegular, color: Colors.textMain, lineHeight: 20 },
     actions: { flexDirection: 'row' },
     helpful: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 18, borderWidth: 1, borderColor: dark() ? Colors.borderColor : '#dadce0' },
-    helpfulOn: { backgroundColor: dark() ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe', borderColor: 'transparent' },
+    helpfulOn: { backgroundColor: dark() ? 'rgba(141, 177, 255, 0.16)' : '#eff6ff', borderColor: 'transparent' },
     helpfulText: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
-    helpfulTextOn: { color: '#1a73e8' },
+    helpfulTextOn: { color: '#2563eb' },
     reply: { marginLeft: 20, padding: 12, borderRadius: 12, gap: 3, backgroundColor: dark() ? 'rgba(255, 255, 255, 0.06)' : '#f1f3f4' },
     replyHead: { fontSize: 12, fontFamily: FONTS.bodyBold, color: Colors.textMain },
     replyText: { fontSize: 13, fontFamily: FONTS.bodyRegular, color: Colors.textMain, lineHeight: 19 },
@@ -202,7 +202,7 @@ const sectionStyles = themedStyles(() =>
   StyleSheet.create({
     head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 22, marginBottom: 2 },
     title: { fontSize: 14, fontFamily: FONTS.bodyBold, color: Colors.primary, letterSpacing: 0.2 },
-    link: { fontSize: 12.5, fontFamily: FONTS.bodyBold, color: '#1a73e8' },
+    link: { fontSize: 12.5, fontFamily: FONTS.bodyBold, color: '#2563eb' },
     row: { gap: 10, paddingVertical: 14, paddingRight: 10 },
     write: { gap: 8, marginTop: 14 },
     writeTitle: { fontSize: 13.5, fontFamily: FONTS.bodyBold, color: Colors.textMain },

@@ -133,7 +133,7 @@ export const EnquiryCard: React.FC<{
             {open && (
               <View style={styles.offerActions}>
                 <View style={styles.flex1}>
-                  <ActionButton label="අසන්න" icon={<OnMartIcon size={16} color={getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8'} />} variant="ghost" compact onPress={() => onChat(o)} />
+                  <ActionButton label="අසන්න" icon={<OnMartIcon size={16} color={getThemeMode() === 'dark' ? '#8db1ff' : '#2563eb'} />} variant="ghost" compact onPress={() => onChat(o)} />
                 </View>
                 <View style={styles.flex2}>
                   {cart.some((l) => l.offerId === o.id) ? (
@@ -184,21 +184,21 @@ const styles = themedStyles(() =>
     offerActions: { flexDirection: 'row', gap: 8 },
     banner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: 12, borderRadius: 12, borderWidth: 1, borderColor: getThemeMode() === 'dark' ? 'rgba(129, 201, 149, 0.4)' : '#b7e1c1', backgroundColor: getThemeMode() === 'dark' ? 'rgba(129, 201, 149, 0.12)' : '#e6f4ea' },
     bannerText: { flex: 1, fontSize: 12.5, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#81c995' : '#188038' },
-    bannerLink: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
+    bannerLink: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#2563eb' },
     rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
     // Day theme: a visible edge, so the white card stands out on the grey page.
     card: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), borderRadius: 12, padding: 12, gap: 12, ...elevation1() },
     title: { fontSize: 15, fontFamily: FONTS.titleBold, color: Colors.textMain },
     sub: { fontSize: 11.5, fontFamily: FONTS.bodyRegular, color: getThemeMode() === 'dark' ? Colors.textMuted : '#5f6368', lineHeight: 17 },
     status: { paddingHorizontal: 10, height: 24, justifyContent: 'center', borderRadius: 8, backgroundColor: getThemeMode() === 'dark' ? Colors.subtleFill : '#f1f3f4' },
-    statusOpen: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe' },
+    statusOpen: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#eff6ff' },
     statusText: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: getThemeMode() === 'dark' ? Colors.textMuted : '#5f6368' },
     chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
     chip: { paddingHorizontal: 9, height: 24, justifyContent: 'center', borderRadius: 8, backgroundColor: getThemeMode() === 'dark' ? Colors.subtleFill : '#f1f3f4' },
-    chipAccent: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe' },
-    chipTextAccent: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
+    chipAccent: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#eff6ff' },
+    chipTextAccent: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#2563eb' },
     chipText: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: getThemeMode() === 'dark' ? Colors.textMuted : '#3c4043' },
-    searching: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
+    searching: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#2563eb' },
     offer: { padding: 12, borderRadius: 12, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), gap: 10, ...elevation1() },
     offerBest: { borderWidth: 1.5, borderColor: getThemeMode() === 'dark' ? 'rgba(129, 201, 149, 0.6)' : '#81c995' },
     shop: { fontSize: 14.5, fontFamily: FONTS.titleBold, color: Colors.textMain },
@@ -206,8 +206,8 @@ const styles = themedStyles(() =>
     price: { fontSize: 16, fontFamily: FONTS.titleBold, color: getThemeMode() === 'dark' ? '#81c995' : '#188038' },
     priceAsk: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: getThemeMode() === 'dark' ? Colors.textMuted : '#5f6368' },
     warn: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: getThemeMode() === 'dark' ? '#fdd663' : '#b06000' },
-    call: { alignSelf: 'flex-start', paddingHorizontal: 12, minHeight: 32, justifyContent: 'center', borderRadius: 8, backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe' },
-    callText: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
+    call: { alignSelf: 'flex-start', paddingHorizontal: 12, minHeight: 32, justifyContent: 'center', borderRadius: 8, backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#eff6ff' },
+    callText: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#2563eb' },
     escalate: { padding: 12, borderRadius: 12, borderWidth: 1, borderColor: getThemeMode() === 'dark' ? 'rgba(253, 214, 99, 0.35)' : '#fde293', backgroundColor: getThemeMode() === 'dark' ? 'rgba(253, 214, 99, 0.1)' : '#fef7e0', gap: 8 },
     escalateTitle: { fontSize: 13, fontFamily: FONTS.titleBold, color: getThemeMode() === 'dark' ? '#fdd663' : '#b06000' },
     cancel: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: getThemeMode() === 'dark' ? '#f28b82' : '#d93025', textAlign: 'center' },

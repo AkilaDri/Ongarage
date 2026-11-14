@@ -29,6 +29,6 @@ const styles = themedStyles(() =>
   StyleSheet.create({
     timerChip: { alignSelf: 'flex-end', flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, height: 28, borderRadius: 14, borderWidth: 1, borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.28)' : '#bfdbfe', backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.14)' : '#eff6ff' },
     icon: { fontSize: 12 },
-    clock: { fontSize: 12.5, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8', fontVariant: ['tabular-nums'] },
+    clock: { fontSize: 12.5, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#2563eb', fontVariant: ['tabular-nums'] },
   })
 );

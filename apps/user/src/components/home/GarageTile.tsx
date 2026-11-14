@@ -1,4 +1,4 @@
-import { cardGlow, outline } from '../../utils/material';
+import { outline } from '../../utils/material';
 import React, { useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Colors, FONTS, InfoChip, LEVELS, getThemeMode, marketPrice, themedStyles, type Garage } from '@ongarage/shared';
@@ -106,11 +106,11 @@ export const GarageTile: React.FC<{
 };
 
 // A stronger, softer shadow than the usual card one, so the garage cards stand clearly off the page.
-const cardShadow = cardGlow;
+const cardShadow = () => ({ boxShadow: '0 3px 14px rgba(0, 0, 0, 0.09), 0 1px 3px rgba(0, 0, 0, 0.05)' }) as object;
 
 const styles = themedStyles(() =>
   StyleSheet.create({
-    tile: { borderRadius: 12, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), overflow: 'hidden', ...cardShadow() },
+    tile: { borderRadius: 16, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), overflow: 'hidden', ...cardShadow() },
     pressed: { opacity: 0.85 },
     cover: { width: '100%', height: 128 },
     // Badges and the heart sit on the photo: fixed light chips readable in both themes.

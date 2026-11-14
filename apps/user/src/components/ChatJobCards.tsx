@@ -366,7 +366,7 @@ export const ChatJobCards: React.FC<{ id: string; onUpdate: (text: string) => vo
   );
 };
 
-const BLUE = () => (getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8');
+const BLUE = () => (getThemeMode() === 'dark' ? '#8db1ff' : '#2563eb');
 
 const styles = themedStyles(() =>
   StyleSheet.create({
@@ -379,12 +379,12 @@ const styles = themedStyles(() =>
     sectionHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     sectionTitle: { fontSize: 12.5, fontFamily: FONTS.bodyBold, color: Colors.textMain },
     sectionTotal: { fontSize: 12.5, fontFamily: FONTS.bodyBold, color: BLUE() },
-    part: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe', borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#d2e3fc' },
+    part: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#eff6ff', borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#bfdbfe' },
     partText: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: BLUE() },
     mustBuy: { gap: 8, padding: 12, borderRadius: 12, borderWidth: 1.5, borderColor: getThemeMode() === 'dark' ? 'rgba(253, 214, 99, 0.5)' : '#f9ab00', backgroundColor: getThemeMode() === 'dark' ? 'rgba(253, 214, 99, 0.1)' : '#fef7e0' },
     mustBuyHead: { fontSize: 14, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#fdd663' : '#b06000', lineHeight: 20 },
     mustBuyText: { fontSize: 12.5, fontFamily: FONTS.bodyRegular, color: Colors.textMain, lineHeight: 18 },
-    mustBuyBtn: { minHeight: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center', backgroundColor: '#1a73e8' },
+    mustBuyBtn: { minHeight: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center', backgroundColor: '#2563eb' },
     mustBuyBtnText: { fontSize: 14.5, fontFamily: FONTS.bodyBold, color: '#ffffff' },
     line: { fontSize: 12.5, fontFamily: FONTS.bodyMedium, color: Colors.textMain },
     lineOff: { color: Colors.textMuted, textDecorationLine: 'line-through' },

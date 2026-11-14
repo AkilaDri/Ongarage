@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, PanResponder, Platform, StyleSheet, View, type ScrollView, type ViewStyle } from 'react-native';
 import { Colors, getThemeMode, themedStyles } from '@ongarage/shared';
 
@@ -35,6 +35,12 @@ export const ThreeStateSheet: React.FC<{
    * has folded and the area really is taller the sheet is already that tall and does not spring a second time.
    */
   expandedExtra?: number;
+  /** The grip strip takes this colour as the sheet reaches the top (the header's blue), so the two bars read as one. */
+  headColor?: string;
+  /** Extra height added on top of the sheet's own (animated by the page): the sheet grows upward in step with something folding above it. */
+  boost?: Animated.AnimatedNode;
+  /** Asked before a pull down from the top of the list lowers the sheet (false: something above is still to come back first). */
+  canLower?: () => boolean;
   /** Shown while minimised (fades out as the sheet opens). */
   peek: React.ReactNode | ((api: SheetApi) => React.ReactNode);
   /** Called whenever the sheet settles on a new height. */
@@ -44,7 +50,7 @@ export const ThreeStateSheet: React.FC<{
   /** Holds the sheet open to the top (no map to see behind it); it goes back to its middle height when released. */
   locked?: boolean;
   children: (api: SheetApi) => React.ReactNode;
-}> = ({ areaHeight, peekHeight, collapsedRatio = 0.55, bottomInset = 0, expandedExtra = 0, peek, onStateChange, onHeight, locked, children }) => {
+}> = ({ areaHeight, peekHeight, collapsedRatio = 0.55, bottomInset = 0, expandedExtra = 0, headColor, boost, canLower, peek, onStateChange, onHeight, locked, children }) => {
   // The top height is the same before and after the bar folds: (smaller area + its extra) = (bigger area + nothing).
   const full = Math.max(areaHeight - bottomInset + expandedExtra, peekHeight + 120);
   const collapsed = Math.max(peekHeight + 60, Math.round(full * collapsedRatio));
@@ -55,6 +61,8 @@ export const ThreeStateSheet: React.FC<{
   const current = useRef(collapsed);
   const dragStart = useRef(collapsed);
   const listY = useRef(0);
+  const canLowerRef = useRef(canLower);
+  canLowerRef.current = canLower;
   const scrollRef = useRef<ScrollView>(null);
   const sizes = useRef({ peek: peekHeight, collapsed, expanded: full });
   sizes.current = { peek: peekHeight, collapsed, expanded: full };
@@ -121,7 +129,7 @@ export const ThreeStateSheet: React.FC<{
       onMoveShouldSetPanResponderCapture: (_, g) => {
         if (Math.abs(g.dy) < 6 || Math.abs(g.dy) < Math.abs(g.dx)) return false;
         if (stateRef.current !== 'expanded') return true;
-        return g.dy > 0 && listY.current <= 0;
+        return g.dy > 0 && listY.current <= 0 && (canLowerRef.current?.() ?? true);
       },
       onPanResponderGrant: () => {
         height.stopAnimation();
@@ -148,7 +156,7 @@ export const ThreeStateSheet: React.FC<{
     const el = sheetNode.current as HTMLElement | null;
     if (!el?.addEventListener) return;
     const onWheel = (e: WheelEvent) => {
-      if (e.deltaY < -4 && stateRef.current === 'expanded' && listY.current <= 0) {
+      if (e.deltaY < -4 && stateRef.current === 'expanded' && listY.current <= 0 && (canLowerRef.current?.() ?? true)) {
         animateToRef.current('collapsed');
         e.preventDefault();
       }
@@ -169,7 +177,11 @@ export const ThreeStateSheet: React.FC<{
   const gripSpace = height.interpolate({ inputRange: gripRange, outputRange: [6, 0], extrapolate: 'clamp' });
   const gripOpacity = height.interpolate({ inputRange: gripRange, outputRange: [1, 0], extrapolate: 'clamp' });
   const gripHeight = height.interpolate({ inputRange: gripRange, outputRange: [4, 0], extrapolate: 'clamp' });
+  const gripFill = headColor ? height.interpolate({ inputRange: [Math.max(full - 140, peekHeight + 1), Math.max(full - 100, peekHeight + 2)], outputRange: ['rgba(37,99,235,0)', headColor], extrapolate: 'clamp' }) : undefined;
   const handleWidth = height.interpolate({ inputRange: [peekHeight, collapsed, Math.max(full, collapsed + 1)], outputRange: [48, 36, 28], extrapolate: 'clamp' });
+
+  // One node for the sheet's drawn height (its own plus the page's boost), made again only when the boost changes.
+  const totalHeight = useMemo(() => (boost ? Animated.add(height, boost) : height), [boost, height]);
 
   const sheetApi: SheetApi = {
     state,
@@ -185,8 +197,8 @@ export const ThreeStateSheet: React.FC<{
   };
 
   return (
-    <Animated.View ref={sheetNode} style={[styles.sheet, NO_SELECT, { bottom: bottomInset, height, borderTopLeftRadius: radius, borderTopRightRadius: radius, shadowOpacity: lift, elevation: lift.interpolate({ inputRange: [0, 0.18], outputRange: [0, 14] }) }]} {...pan.panHandlers}>
-      <Animated.View style={[styles.handleArea, { paddingVertical: gripSpace }]} {...handlePan.panHandlers} accessibilityLabel="Sheet handle">
+    <Animated.View ref={sheetNode} style={[styles.sheet, NO_SELECT, { bottom: bottomInset, height: totalHeight, borderTopLeftRadius: radius, borderTopRightRadius: radius, shadowOpacity: lift, elevation: lift.interpolate({ inputRange: [0, 0.18], outputRange: [0, 14] }) }]} {...pan.panHandlers}>
+      <Animated.View style={[styles.handleArea, { paddingVertical: gripSpace }, gripFill && { backgroundColor: gripFill }]} {...handlePan.panHandlers} accessibilityLabel="Sheet handle">
         <Animated.View style={[styles.handle, { width: handleWidth, height: gripHeight, opacity: gripOpacity }]} />
       </Animated.View>
       <View style={styles.flex1}>
@@ -214,7 +226,7 @@ const styles = themedStyles(() =>
       left: 0,
       right: 0,
       bottom: 0,
-      backgroundColor: getThemeMode() === 'dark' ? Colors.bgBody : '#f0f0f0',
+      backgroundColor: Colors.bgBody,
       overflow: 'hidden',
       shadowColor: '#000',
       shadowOffset: { width: 0, height: -6 },

@@ -41,7 +41,7 @@ export type TowTruck = { plate: string; model: string; color: string; driver: st
 export const TOW_TRUCKS: Record<string, TowTruck> = {
   t1: { plate: 'LB - 4521', model: 'Isuzu Flatbed', color: 'සුදු', driver: 'නිමල් පෙරේරා', body: '#f8fafc' },
   t2: { plate: 'SP - 7730', model: 'Mitsubishi Recovery (Winch)', color: 'රතු', driver: 'සුනිල් ප්‍රනාන්දු', body: '#ef4444' },
-  t3: { plate: 'LC - 2894', model: 'Tata Flatbed', color: 'නිල්', driver: 'කමල් සිල්වා', body: '#3b82f6' },
+  t3: { plate: 'LC - 2894', model: 'Tata Flatbed', color: 'නිල්', driver: 'කමල් සිල්වා', body: '#60a5fa' },
   t4: { plate: 'LH - 6105', model: 'Isuzu Flatbed + Winch', color: 'කහ', driver: 'දිනේෂ් රණසිංහ', body: '#facc15' },
   t5: { plate: 'SG - 3342', model: 'Mazda Emergency Truck', color: 'කොළ', driver: 'LKR න් ද සිල්වා', body: '#22c55e' },
 };

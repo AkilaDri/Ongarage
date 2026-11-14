@@ -86,7 +86,7 @@ import { chatDockOffset } from '../utils/chatDock';
  * are asked). Nothing nearby? Widen the search to 50 km, then to the whole country, or post on the open wall.
  */
 // The same look as the SOS and repair-job banners on Home: a deep wash, a soft sheen, a badge, a title, a line, and a white round button.
-const ASK_STOPS = [{ offset: '0', color: '#2f5bd6' }, { offset: '0.5', color: '#1b3a96' }, { offset: '1', color: '#0b1c52' }];
+const ASK_STOPS = [{ offset: '0', color: '#2f5bd6' }, { offset: '0.5', color: '#1e40af' }, { offset: '1', color: '#1e3a8a' }];
 const WALL_STOPS = [{ offset: '0', color: '#a78bfa' }, { offset: '0.5', color: '#7c3aed' }, { offset: '1', color: '#4c1d95' }];
 const ACTION_H = 108;
 const MAP_ZOOM: Record<SearchRing, number> = { nearby: 12, wider: 10, nationwide: 7 };
@@ -775,10 +775,10 @@ const styles = themedStyles(() =>
     categoryHeading: { paddingHorizontal: 18, marginBottom: -5, fontSize: 10.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
     categoryTabs: { gap: 8, paddingHorizontal: 6, paddingTop: 2 },
     categoryTab: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, height: 34, borderRadius: 8, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline() },
-    categoryTabActive: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe', borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#d2e3fc' },
+    categoryTabActive: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#eff6ff', borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#bfdbfe' },
     categoryEmoji: { fontSize: 13 },
     categoryText: { maxWidth: 112, fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.textSoft },
-    categoryTextActive: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
+    categoryTextActive: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#2563eb' },
     ownerMarker: { position: 'absolute', width: 24, height: 24, borderRadius: 12, borderWidth: 3, borderColor: '#ffffff', backgroundColor: '#2589f5', alignItems: 'center', justifyContent: 'center', zIndex: 2 },
     ownerMarkerDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#ffffff' },
     mapShopMarker: { position: 'absolute', width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), ...softShadow() },
@@ -795,7 +795,7 @@ const styles = themedStyles(() =>
     stockButtonText: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
     sheetBody: { paddingHorizontal: 6, paddingTop: 6, gap: 12, paddingBottom: 110 },
     actions: { gap: 10 },
-    actionCard: { height: ACTION_H, borderRadius: 22, overflow: 'hidden', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 18, paddingVertical: 16, gap: 12, borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.2)', shadowColor: '#0b1c52', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 5 },
+    actionCard: { height: ACTION_H, borderRadius: 22, overflow: 'hidden', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 18, paddingVertical: 16, gap: 12, borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.2)', shadowColor: '#1e3a8a', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 5 },
     actionSheen: { position: 'absolute', top: -70, right: -40, width: 190, height: 190, borderRadius: 95, backgroundColor: 'rgba(255, 255, 255, 0.07)' },
     actionText: { flex: 1, gap: 3 },
     actionBadge: { alignSelf: 'flex-start', paddingHorizontal: 9, paddingVertical: 3, borderRadius: 11, backgroundColor: 'rgba(255, 255, 255, 0.16)', marginBottom: 2 },
@@ -809,13 +809,13 @@ const styles = themedStyles(() =>
     body: { paddingHorizontal: 6, paddingTop: 8, gap: 12, paddingBottom: 110 },
     chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
     chip: { paddingHorizontal: 14, height: 32, justifyContent: 'center', borderRadius: 8, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline() },
-    chipOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe', borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#d2e3fc' },
+    chipOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#eff6ff', borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#bfdbfe' },
     chipText: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textSoft },
-    chipTextOn: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
+    chipTextOn: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#2563eb' },
     reqTabs: { flexDirection: 'row', gap: 8, marginTop: 10 },
     // Google Material filter chips: 8dp corners, outlined, the selected one tonal blue with a check.
     reqTab: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, height: 36, paddingHorizontal: 8, borderRadius: 8, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline() },
-    reqCount: { position: 'absolute', top: -9, right: 8, minWidth: 16, height: 16, paddingHorizontal: 4, borderRadius: 6, alignItems: 'center', justifyContent: 'center', backgroundColor: '#1a73e8', borderWidth: 2, borderColor: pageBg() },
+    reqCount: { position: 'absolute', top: -9, right: 8, minWidth: 16, height: 16, paddingHorizontal: 4, borderRadius: 6, alignItems: 'center', justifyContent: 'center', backgroundColor: '#2563eb', borderWidth: 2, borderColor: pageBg() },
     reqCountText: { fontSize: 10.5, fontFamily: FONTS.bodyBold, color: '#ffffff' },
     pastHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 6 },
     pastToggle: { fontSize: 12, color: Colors.textMuted },
@@ -825,7 +825,7 @@ const styles = themedStyles(() =>
     title: { fontSize: 14, fontFamily: FONTS.titleBold, color: Colors.textMain },
     sub: { fontSize: 11, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 17 },
     // The picked part: a tinted card, so it reads as "what you chose", not as one more shop card.
-    partFocus: { gap: 12, padding: 16, borderRadius: 12, backgroundColor: '#5a85ee', shadowColor: '#2457e6', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.18, shadowRadius: 10, elevation: 3 },
+    partFocus: { gap: 12, padding: 16, borderRadius: 12, backgroundColor: '#5a85ee', shadowColor: '#2563eb', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.18, shadowRadius: 10, elevation: 3 },
     partFocusHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     partFocusLabel: { fontSize: 11.5, fontFamily: FONTS.bodyBold, color: 'rgba(255,255,255,0.85)', letterSpacing: 0.4 },
     partFocusClear: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.22)' },

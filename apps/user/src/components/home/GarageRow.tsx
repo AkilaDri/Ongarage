@@ -34,7 +34,7 @@ const styles = themedStyles(() =>
   StyleSheet.create({
     section: { gap: 10 },
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-    title: { fontSize: 14, fontFamily: FONTS.bodyBold, color: Colors.primary, letterSpacing: 0.2 },
+    title: { fontSize: 14, fontFamily: FONTS.bodyBold, color: Colors.textMain, letterSpacing: 0.2 },
     row: { gap: 12, paddingRight: 8 },
   })
 );

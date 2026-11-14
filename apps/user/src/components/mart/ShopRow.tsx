@@ -6,7 +6,7 @@ import { NudgeArrow } from '../NudgeArrow';
 
 // Cover colours for shops (a photo per shop replaces these later); chosen from the shop's id so a shop keeps its colour.
 const COVERS: { offset: string; color: string }[][] = [
-  [{ offset: '0', color: '#162b63' }, { offset: '1', color: '#2a4690' }],
+  [{ offset: '0', color: '#2563eb' }, { offset: '1', color: '#2a4690' }],
   [{ offset: '0', color: '#0ea5e9' }, { offset: '1', color: '#22d3ee' }],
   [{ offset: '0', color: '#f97316' }, { offset: '1', color: '#f59e0b' }],
   [{ offset: '0', color: '#10b981' }, { offset: '1', color: '#84cc16' }],

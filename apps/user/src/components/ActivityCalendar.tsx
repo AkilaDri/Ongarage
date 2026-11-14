@@ -157,7 +157,7 @@ export const ActivityCalendar: React.FC<{ visible: boolean; onClose: () => void;
   );
 };
 
-const blue = () => (getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8');
+const blue = () => (getThemeMode() === 'dark' ? '#8db1ff' : '#2563eb');
 
 const styles = themedStyles(() =>
   StyleSheet.create({
@@ -182,7 +182,7 @@ const styles = themedStyles(() =>
     cell: { width: '14.2857%', alignItems: 'center', paddingVertical: 2 },
     day: { width: 38, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'transparent' },
     dayToday: { borderColor: blue() },
-    dayOn: { backgroundColor: '#1a73e8', borderColor: '#1a73e8' },
+    dayOn: { backgroundColor: '#2563eb', borderColor: '#2563eb' },
     dayText: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textSoft },
     dayTextOn: { color: '#ffffff' },
     dot: { width: 5, height: 5, borderRadius: 3, marginTop: 2, backgroundColor: '#16a34a' },

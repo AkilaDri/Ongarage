@@ -52,14 +52,14 @@ const styles = themedStyles(() =>
     flex1: { flex: 1 },
     // Above the floating tab bar, across the page.
     wrap: { position: 'absolute', left: 14, right: 14, bottom: 100, zIndex: 80 },
-    card: { padding: 14, borderRadius: 16, gap: 10, backgroundColor: dark() ? '#16233a' : '#ffffff', borderWidth: 1, borderColor: dark() ? 'rgba(141, 177, 255, 0.25)' : '#d2e3fc', shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 12 },
+    card: { padding: 14, borderRadius: 16, gap: 10, backgroundColor: dark() ? '#16233a' : '#ffffff', borderWidth: 1, borderColor: dark() ? 'rgba(141, 177, 255, 0.25)' : '#bfdbfe', shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 12 },
     top: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
     tick: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: '#16a34a' },
     tickText: { fontSize: 16, fontFamily: FONTS.bodyBold, color: '#ffffff' },
     title: { fontSize: 14, fontFamily: FONTS.titleBold, color: Colors.textMain },
     sub: { fontSize: 12, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 17, marginTop: 1 },
     close: { fontSize: 15, color: Colors.textMuted },
-    chip: { alignSelf: 'flex-start', paddingHorizontal: 16, paddingVertical: 9, borderRadius: 18, backgroundColor: '#1a73e8' },
+    chip: { alignSelf: 'flex-start', paddingHorizontal: 16, paddingVertical: 9, borderRadius: 18, backgroundColor: '#2563eb' },
     chipText: { fontSize: 13, fontFamily: FONTS.bodyBold, color: '#ffffff' },
   })
 );

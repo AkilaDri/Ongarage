@@ -25,7 +25,7 @@ export const softEdge = () => (getThemeMode() === 'dark' ? Colors.borderColor : 
 export const softCard = () => ({ backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: softEdge(), ...softShadow() }) as const;
 
 /** A soft grey fill for chips, inputs and secondary buttons (no outline). */
-export const softFill = () => (getThemeMode() === 'dark' ? Colors.subtleFill : '#eef2f7');
+export const softFill = () => (getThemeMode() === 'dark' ? Colors.subtleFill : Colors.bgDark);
 
 /** The navy used for active tab pills and the strongest accents (same as the owner app). */
 export const NAVY = '#162b63';

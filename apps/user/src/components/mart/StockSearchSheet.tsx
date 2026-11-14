@@ -293,7 +293,7 @@ export const StockSearchSheet: React.FC<{
 };
 
 const edge = () => (getThemeMode() === 'dark' ? Colors.borderColor : '#cfd8e3');
-const blue = () => (getThemeMode() === 'dark' ? '#8db1ff' : '#2457e6');
+const blue = () => (getThemeMode() === 'dark' ? '#8db1ff' : '#2563eb');
 
 const styles = themedStyles(() =>
   StyleSheet.create({
@@ -307,7 +307,7 @@ const styles = themedStyles(() =>
     stepper4: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 4 },
     stepItem: { flex: 1, alignItems: 'center', gap: 4 },
     stepDot: { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? Colors.subtleFill : '#e2e8f0' },
-    stepDotOn: { backgroundColor: '#2457e6' },
+    stepDotOn: { backgroundColor: '#2563eb' },
     stepDotText: { fontSize: 12, fontFamily: FONTS.bodyBold, color: Colors.textMuted },
     stepDotTextOn: { color: '#ffffff' },
     stepLabel: { fontSize: 10.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
@@ -330,7 +330,7 @@ const styles = themedStyles(() =>
     verdictBad: { backgroundColor: 'rgba(239, 68, 68, 0.12)', borderColor: 'rgba(239, 68, 68, 0.45)' },
     verdictTitle: { fontSize: 13.5, fontFamily: FONTS.titleBold, color: Colors.textMain },
     verdictText: { fontSize: 11.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 17 },
-    verdictBtn: { alignSelf: 'flex-start', marginTop: 4, paddingHorizontal: 14, height: 34, borderRadius: 17, justifyContent: 'center', backgroundColor: '#2457e6' },
+    verdictBtn: { alignSelf: 'flex-start', marginTop: 4, paddingHorizontal: 14, height: 34, borderRadius: 17, justifyContent: 'center', backgroundColor: '#2563eb' },
     verdictBtnText: { fontSize: 12, fontFamily: FONTS.bodyBold, color: '#ffffff' },
     fitUnknown: { fontSize: 10, fontFamily: FONTS.bodyBold, color: '#b45309', marginTop: 2 },
     fitExact: { fontSize: 10, fontFamily: FONTS.bodyBold, color: Colors.successText, marginTop: 2 },
@@ -338,7 +338,7 @@ const styles = themedStyles(() =>
     chipRow: { gap: 8, paddingRight: 6 },
     chip: { paddingHorizontal: 14, height: 34, borderRadius: 17, justifyContent: 'center', backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: edge() },
     chipSmall: { height: 30, paddingHorizontal: 12 },
-    chipOn: { backgroundColor: '#2457e6', borderColor: '#2457e6' },
+    chipOn: { backgroundColor: '#2563eb', borderColor: '#2563eb' },
     chipText: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
     chipTextOn: { color: '#ffffff' },
     summary: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 4 },
@@ -349,7 +349,7 @@ const styles = themedStyles(() =>
     sectionHead: { fontSize: 15, fontFamily: FONTS.titleBold, color: Colors.textMain, marginTop: 6 },
     sectionCount: { fontSize: 12, fontFamily: FONTS.bodyMedium, color: Colors.textMuted },
     row: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 10, borderRadius: 18, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: edge() },
-    rowOn: { borderColor: '#2457e6', borderWidth: 2 },
+    rowOn: { borderColor: '#2563eb', borderWidth: 2 },
     rowOut: { opacity: 0.6 },
     photo: { width: 52, height: 52, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
     photoIcon: { fontSize: 24 },
@@ -366,9 +366,9 @@ const styles = themedStyles(() =>
     stockLowText: { color: '#b45309' },
     stockOut: { backgroundColor: 'rgba(239, 68, 68, 0.14)' },
     stockOutText: { color: Colors.errorText },
-    addBtn: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: '#2457e6' },
+    addBtn: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: '#2563eb' },
     addText: { fontSize: 20, lineHeight: 22, fontFamily: FONTS.bodyBold, color: '#ffffff' },
-    stepper: { width: 82, height: 34, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 10, borderRadius: 17, backgroundColor: '#2457e6' },
+    stepper: { width: 82, height: 34, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 10, borderRadius: 17, backgroundColor: '#2563eb' },
     stepText: { fontSize: 18, lineHeight: 20, fontFamily: FONTS.bodyBold, color: '#ffffff' },
     stepQty: { fontSize: 13, fontFamily: FONTS.bodyBold, color: '#ffffff' },
   })

@@ -205,7 +205,7 @@ const styles = themedStyles(() =>
     row: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
     label: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, marginTop: 6 },
     chip: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 12, backgroundColor: dark() ? 'rgba(255, 255, 255, 0.08)' : '#e8eef7' },
-    chipOn: { backgroundColor: '#1a73e8' },
+    chipOn: { backgroundColor: '#2563eb' },
     chipText: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
     chipTextOn: { color: '#ffffff' },
     grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },

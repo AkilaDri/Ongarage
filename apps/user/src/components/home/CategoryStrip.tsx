@@ -6,22 +6,22 @@ import { useRankedCategories } from '../../utils/rankedCategories';
 
 /** Each category's short name and the colour of its tile. */
 const SHOWN: { id: string; label: string; tint: string }[] = [
-  { id: '1', label: 'Mechanic', tint: '#6fb0ea' },
-  { id: '2', label: 'විදුලි', tint: '#e5b04b' },
-  { id: '3', label: 'හයිබ්‍රිඩ්', tint: '#59b08c' },
-  { id: '4', label: 'AC', tint: '#7ec8e8' },
-  { id: '8', label: 'පින්තාරු', tint: '#6a7fe0' },
-  { id: '9', label: 'සේදීම', tint: '#75c5d6' },
-  { id: '10', label: 'Tuning', tint: '#4f9f86' },
-  { id: '11', label: 'බැටරි', tint: '#e0a243' },
-  { id: '6', label: 'ටයර්', tint: '#8c95a6' },
-  { id: '7', label: 'බ්‍රේක්', tint: '#e5675f' },
-  { id: '5', label: 'ස්කෑන්', tint: '#a676e0' },
-  { id: '12', label: 'Towing', tint: '#f0a45a' },
-  { id: '13', label: 'EV', tint: '#5fc27a' },
-  { id: '15', label: 'සවි කිරීම', tint: '#3fb5a8' },
-  { id: '14', label: 'සේවාව', tint: '#9aa7b8' },
-  { id: '16', label: 'Fuel Station', tint: '#ef6b5f' },
+  { id: '1', label: 'Mechanic', tint: '#2563eb' },
+  { id: '2', label: 'විදුලි', tint: '#2563eb' },
+  { id: '3', label: 'හයිබ්‍රිඩ්', tint: '#2563eb' },
+  { id: '4', label: 'AC', tint: '#2563eb' },
+  { id: '8', label: 'පින්තාරු', tint: '#2563eb' },
+  { id: '9', label: 'සේදීම', tint: '#2563eb' },
+  { id: '10', label: 'Tuning', tint: '#2563eb' },
+  { id: '11', label: 'බැටරි', tint: '#2563eb' },
+  { id: '6', label: 'ටයර්', tint: '#2563eb' },
+  { id: '7', label: 'බ්‍රේක්', tint: '#2563eb' },
+  { id: '5', label: 'ස්කෑන්', tint: '#2563eb' },
+  { id: '12', label: 'Towing', tint: '#2563eb' },
+  { id: '13', label: 'EV', tint: '#2563eb' },
+  { id: '15', label: 'සවි කිරීම', tint: '#2563eb' },
+  { id: '14', label: 'සේවාව', tint: '#2563eb' },
+  { id: '16', label: 'Fuel Station', tint: '#2563eb' },
 ];
 
 /** All the categories in two rows that slide sideways, the way PickMe's home shows its services: a big illustration on a soft pastel tile, the name under it. */
@@ -33,7 +33,9 @@ export const CategoryStrip: React.FC<{
   scrollHint?: boolean;
   /** Only the categories this accepts are shown (the forms leave out what cannot be bid for or booked with a garage). */
   include?: (categoryId: string) => boolean;
-}> = ({ onSelect, selectedId, scrollHint = true, include }) => {
+  /** The size of each square tile (84 by default; Home fits four to the page width). */
+  tile?: number;
+}> = ({ onSelect, selectedId, scrollHint = true, include, tile = 84 }) => {
   const scroller = useRef<ScrollView>(null);
   const [dims, setDims] = useState({ view: 0, content: 0, x: 0 });
   const nudge = useRef(new Animated.Value(0)).current;
@@ -72,9 +74,9 @@ export const CategoryStrip: React.FC<{
           {col.map((x) => {
             const c = SERVICE_CATEGORIES.find((k) => k.id === x.id)!;
             return (
-              <Pressable key={x.id} style={({ pressed }) => [styles.item, pressed && styles.pressed]} onPress={() => onSelect(c)} accessibilityLabel={`Service ${c.name}`}>
-                <View style={[styles.box, { backgroundColor: x.tint + '26', borderColor: 'transparent' }, selectedId === x.id && styles.boxOn]}>
-                  <CategoryPhoto categoryId={c.id} size={62} />
+              <Pressable key={x.id} style={({ pressed }) => [styles.item, { width: tile }, pressed && styles.pressed]} onPress={() => onSelect(c)} accessibilityLabel={`Service ${c.name}`}>
+                <View style={[styles.box, { width: tile, height: tile, backgroundColor: Colors.bgCard, borderColor: 'transparent' }, selectedId === x.id && styles.boxOn]}>
+                  <CategoryPhoto categoryId={c.id} size={Math.round(tile * 0.58)} />
                 </View>
                 <Text style={[styles.label, selectedId === x.id && styles.labelOn]} numberOfLines={1}>
                   {x.label}
@@ -111,18 +113,18 @@ export const CategoryStrip: React.FC<{
 
 const styles = themedStyles(() =>
   StyleSheet.create({
-    strip: { gap: 10, paddingRight: 16 },
+    strip: { gap: 12, paddingRight: 16 },
     // The sideways hint: only the arrow, no disc behind it (a soft shadow keeps it readable on any tile).
     hint: { position: 'absolute', top: '42%', marginTop: -20 },
     hintRight: { right: 2 },
     hintLeft: { left: 2 },
-    hintArrow: { fontSize: 40, lineHeight: 40, color: '#ffffff', fontFamily: FONTS.bodyRegular, fontWeight: '200', textShadowColor: 'rgba(0, 0, 0, 0.65)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 6 },
+    hintArrow: { fontSize: 40, lineHeight: 40, color: '#facc15', fontFamily: FONTS.bodyRegular, fontWeight: '200', textShadowColor: 'rgba(0, 0, 0, 0.65)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 6 },
     column: { gap: 12 },
-    item: { width: 74, alignItems: 'center', gap: 4 },
+    item: { width: 86, alignItems: 'center', gap: 4 },
     // A square box round the icon: a soft tint of the category's colour, rounded corners, no border (only the chosen one in a form gets a blue ring).
-    box: { width: 72, height: 72, borderRadius: 8, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
-    boxOn: { borderWidth: 3, borderColor: '#1a73e8' },
-    labelOn: { color: '#1a73e8' },
+    box: { width: 84, height: 84, borderRadius: 22, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+    boxOn: { borderWidth: 2, borderColor: '#2563eb', backgroundColor: '#eff6ff' },
+    labelOn: { color: '#2563eb' },
     pressed: { opacity: 0.7, transform: [{ scale: 0.96 }] },
     // A fixed two-line height keeps every tile the same size, so the rows line up whether a name wraps or not.
     label: { fontSize: 10.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain, textAlign: 'center', lineHeight: 22, height: 24, paddingTop: 2, paddingHorizontal: 2 },

@@ -62,7 +62,7 @@ export const VehicleDetailsSheet: React.FC<{ vehicle: Vehicle | null; onClose: (
 const styles = themedStyles(() =>
   StyleSheet.create({
     field: { gap: 6 },
-    label: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
+    label: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#2563eb' },
     input: { height: 48, paddingHorizontal: 14, borderRadius: 8, borderWidth: 1, borderColor: outline(), backgroundColor: Colors.bgCard, color: Colors.textMain, fontSize: 15, fontFamily: FONTS.bodyRegular },
   })
 );

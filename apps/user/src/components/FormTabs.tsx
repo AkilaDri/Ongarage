@@ -46,14 +46,14 @@ const styles = themedStyles(() =>
     row: { flexDirection: 'row', alignItems: 'flex-start', paddingVertical: 4 },
     // The line behind the circles: grey track, blue up to the open step (the circles are 28px, so the line is centred on them).
     track: { position: 'absolute', top: 16.5, height: 3, borderRadius: 2, backgroundColor: dark() ? 'rgba(255, 255, 255, 0.1)' : '#d6dde8' },
-    trackFill: { height: 3, borderRadius: 2, backgroundColor: '#1a73e8' },
+    trackFill: { height: 3, borderRadius: 2, backgroundColor: '#2563eb' },
     tab: { flex: 1, alignItems: 'center', gap: 5, minHeight: 44, justifyContent: 'flex-start' },
     circle: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: dark() ? 'rgba(255, 255, 255, 0.08)' : '#eaeff6' },
-    circleOn: { backgroundColor: '#1a73e8' },
+    circleOn: { backgroundColor: '#2563eb' },
     circleDone: { backgroundColor: '#15803d' },
     circleText: { fontSize: 13, fontFamily: FONTS.bodyBold, color: dark() ? Colors.textMuted : '#475569' },
     circleTextOn: { color: '#ffffff' },
     label: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: dark() ? Colors.textMuted : '#475569', textAlign: 'center' },
-    labelOn: { color: dark() ? '#8db1ff' : '#1a73e8', fontFamily: FONTS.bodyBold },
+    labelOn: { color: dark() ? '#8db1ff' : '#2563eb', fontFamily: FONTS.bodyBold },
   })
 );

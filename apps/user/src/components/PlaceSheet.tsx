@@ -33,7 +33,7 @@ const STOCK_TEXT = { available: 'ඇත', low: 'අඩුයි', out: 'අව�
 const STATE_TEXT = { free: 'නිදහස්', busy: 'භාවිතයේ', offline: 'අක්‍රීයයි' } as const;
 const QUEUE_TEXT: Record<QueueLevel, string> = { none: 'පෝලිමක් නැහැ', short: 'පෝලිම කෙටියි', long: 'පෝලිම දිගයි' };
 const ago = (m: number) => (m < 60 ? `මිනි. ${m}කට පෙර` : `පැය ${Math.round(m / 60)}කට පෙර`);
-const AVATAR_COLORS = ['#2457e6', '#0e9f6e', '#e5483d', '#8b5cf6', '#f59e0b', '#0891b2', '#db2777'];
+const AVATAR_COLORS = ['#2563eb', '#0e9f6e', '#e5483d', '#8b5cf6', '#f59e0b', '#0891b2', '#db2777'];
 const avatarColor = (id: string) => AVATAR_COLORS[[...id].reduce((n, ch) => n + ch.charCodeAt(0), 0) % AVATAR_COLORS.length];
 const dayAgo = (t: number) => {
   const d = Math.floor((Date.now() - t) / 86400000);
@@ -122,7 +122,7 @@ export const PlaceSheet: React.FC<{ place: Place | null; distance?: number; from
     <View>
       <View style={styles.coverWrap}>
         <View style={[StyleSheet.absoluteFill, { backgroundColor: badge.color }]} />
-        <Gradient stops={[{ offset: '0', color: badge.color }, { offset: '1', color: '#0b1c52' }]} />
+        <Gradient stops={[{ offset: '0', color: badge.color }, { offset: '1', color: '#1e3a8a' }]} />
         <Text style={styles.coverIcon}>{isEv ? '🔌' : '⛽'}</Text>
         <View style={styles.coverShade} pointerEvents="none" />
         <View style={styles.coverGrip} />
@@ -172,7 +172,7 @@ export const PlaceSheet: React.FC<{ place: Place | null; distance?: number; from
               <View style={[styles.placeActionCircle, 'primary' in a && a.primary && styles.placeActionPrimary, 'on' in a && a.on && styles.placeActionOn]}>
                 <Text style={[styles.placeActionIcon, 'primary' in a && a.primary && { color: '#ffffff' }, 'on' in a && a.on && { color: '#e5483d' }]}>{a.icon}</Text>
               </View>
-              <Text style={[styles.placeActionLabel, 'primary' in a && a.primary && { color: '#1a73e8' }]}>{a.label}</Text>
+              <Text style={[styles.placeActionLabel, 'primary' in a && a.primary && { color: '#2563eb' }]}>{a.label}</Text>
             </Pressable>
           ))}
         </ScrollView>
@@ -482,15 +482,15 @@ const styles = themedStyles(() =>
     placeActions: { gap: 16, paddingTop: 6, paddingBottom: 4, paddingRight: 6 },
     placeAction: { alignItems: 'center', gap: 8, minWidth: 64 },
     placeActionCircle: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center', backgroundColor: dark() ? Colors.subtleFill : '#ffffff', borderWidth: 1, borderColor: dark() ? Colors.borderColor : '#dadce0' },
-    placeActionPrimary: { backgroundColor: '#1a73e8', borderColor: '#1a73e8' },
-    placeActionOn: { backgroundColor: dark() ? 'rgba(229, 72, 61, 0.16)' : '#fdecea', borderColor: '#f5b5b0' },
-    placeActionIcon: { fontSize: 19, color: '#1a73e8' },
-    placeActionLabel: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: dark() ? '#8db1ff' : '#1a73e8' },
+    placeActionPrimary: { backgroundColor: '#2563eb', borderColor: '#2563eb' },
+    placeActionOn: { backgroundColor: dark() ? 'rgba(229, 72, 61, 0.16)' : '#eff6ff', borderColor: '#f5b5b0' },
+    placeActionIcon: { fontSize: 19, color: '#2563eb' },
+    placeActionLabel: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: dark() ? '#8db1ff' : '#2563eb' },
     tabs: { flexDirection: 'row', marginTop: 8 },
     tabBtn: { flex: 1, height: 42, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4, borderBottomWidth: 3, borderBottomColor: 'transparent' },
-    tabBtnOn: { borderBottomColor: '#1a73e8' },
+    tabBtnOn: { borderBottomColor: '#2563eb' },
     tabText: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
-    tabTextOn: { color: '#1a73e8', fontFamily: FONTS.bodyBold },
+    tabTextOn: { color: '#2563eb', fontFamily: FONTS.bodyBold },
     gmList: { marginHorizontal: 4, marginTop: 8 },
     gmRow: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 4, paddingHorizontal: 4 },
     gmIcon: { width: 22, fontSize: 16, textAlign: 'center' },
@@ -512,11 +512,11 @@ const styles = themedStyles(() =>
     plugRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     note: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 16 },
     tags: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-    tag: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12, backgroundColor: dark() ? 'rgba(141, 177, 255, 0.14)' : '#e8f0fe' },
+    tag: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12, backgroundColor: dark() ? 'rgba(141, 177, 255, 0.14)' : '#eff6ff' },
     tagText: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
     pickRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
     pick: { paddingHorizontal: 11, paddingVertical: 6, borderRadius: 12, backgroundColor: dark() ? 'rgba(255, 255, 255, 0.08)' : '#e8eef7' },
-    pickOn: { backgroundColor: '#1a73e8' },
+    pickOn: { backgroundColor: '#2563eb' },
     pickText: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
     pickTextOn: { color: '#ffffff' },
     reportBtn: { flex: 1, minWidth: 90, alignItems: 'center', paddingVertical: 9, borderRadius: 12 },
@@ -530,13 +530,13 @@ const styles = themedStyles(() =>
     msgOk: { color: '#16a34a' },
     msgBad: { color: dark() ? '#f28b82' : '#b3261e' },
     alertRow: { padding: 13, borderRadius: 14, backgroundColor: soft(), marginTop: 10 },
-    alertOn: { backgroundColor: dark() ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe' },
+    alertOn: { backgroundColor: dark() ? 'rgba(141, 177, 255, 0.16)' : '#eff6ff' },
     alertText: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
     liveGrid: { flexDirection: 'row', gap: 8 },
     liveCell: { flex: 1, alignItems: 'center', paddingVertical: 10, borderRadius: 12, backgroundColor: dark() ? 'rgba(255, 255, 255, 0.06)' : '#ffffff' },
     liveValue: { fontSize: 16, fontFamily: FONTS.bodyBold, color: Colors.textMain },
     liveLabel: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 2 },
-    link: { fontSize: 12.5, fontFamily: FONTS.bodyBold, color: '#1a73e8' },
+    link: { fontSize: 12.5, fontFamily: FONTS.bodyBold, color: '#2563eb' },
     summary: { flexDirection: 'row', alignItems: 'center', gap: 20, paddingVertical: 14 },
     summaryBig: { alignItems: 'center', gap: 2, minWidth: 90 },
     summaryNum: { fontSize: 40, lineHeight: 46, fontFamily: FONTS.titleBold, color: Colors.textMain },

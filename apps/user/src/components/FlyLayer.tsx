@@ -4,9 +4,9 @@ import { onFly, type FlyKind } from '../utils/fly';
 
 const LOOK: Record<FlyKind, { glyph: string; color: string; tab: number }> = {
   // the tab's place in the bottom bar: Home, Bids, OnMart, Activity, Account
-  posted: { glyph: '📨', color: '#1a73e8', tab: 1 },
+  posted: { glyph: '📨', color: '#2563eb', tab: 1 },
   bidReady: { glyph: '🤝', color: '#16a34a', tab: 1 },
-  booked: { glyph: '📅', color: '#1a73e8', tab: 3 },
+  booked: { glyph: '📅', color: '#2563eb', tab: 3 },
   done: { glyph: '✓', color: '#16a34a', tab: 3 },
 };
 

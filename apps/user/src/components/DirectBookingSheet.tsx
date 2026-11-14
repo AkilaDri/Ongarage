@@ -88,7 +88,7 @@ const sentStyles = themedStyles(() =>
     actions: { flexDirection: 'row', gap: 10, marginTop: 8, width: '100%' },
     close: { position: 'absolute', top: 12, right: 12, width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? 'rgba(255, 255, 255, 0.1)' : '#eef1f5' },
     closeText: { fontSize: 13, color: Colors.textMain, fontFamily: FONTS.bodyBold },
-    main: { flex: 1, alignItems: 'center', paddingVertical: 12, borderRadius: 22, backgroundColor: '#1a73e8' },
+    main: { flex: 1, alignItems: 'center', paddingVertical: 12, borderRadius: 22, backgroundColor: '#2563eb' },
     mainText: { fontSize: 13.5, fontFamily: FONTS.bodyBold, color: '#ffffff' },
   })
 );
@@ -349,7 +349,7 @@ const styles = themedStyles(() =>
     sentTickText: { fontSize: 38, color: '#ffffff', fontFamily: FONTS.bodyBold },
     sentTitle: { fontSize: 20, fontFamily: FONTS.titleBold, color: Colors.textMain, textAlign: 'center' },
     sentBody: { fontSize: 13.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 21, textAlign: 'center' },
-    sentNote: { marginTop: 8, padding: 14, borderRadius: 14, backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.14)' : '#e8f0fe' },
+    sentNote: { marginTop: 8, padding: 14, borderRadius: 14, backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.14)' : '#eff6ff' },
     sentNoteText: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a56c9', lineHeight: 20, textAlign: 'center' },
     sentActions: { flexDirection: 'row', gap: 10 },
     sentMain: { flex: 2 },

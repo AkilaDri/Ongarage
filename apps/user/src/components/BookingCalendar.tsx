@@ -153,7 +153,7 @@ export const BookingCalendar: React.FC<Pick & { visible: boolean; onClose: () =>
   );
 };
 
-const BLUE = () => (getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8');
+const BLUE = () => (getThemeMode() === 'dark' ? '#8db1ff' : '#2563eb');
 
 const styles = themedStyles(() =>
   StyleSheet.create({
@@ -190,7 +190,7 @@ const styles = themedStyles(() =>
     todayDotOn: { backgroundColor: getThemeMode() === 'dark' ? '#0b1220' : '#ffffff' },
     quick: { flexDirection: 'row', gap: 8, marginTop: 14 },
     pill: { flex: 1, paddingVertical: 8, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.subtleFill },
-    pillOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.2)' : '#e8f0fe' },
+    pillOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.2)' : '#eff6ff' },
     pillText: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
     pillTextOn: { color: BLUE() },
   })

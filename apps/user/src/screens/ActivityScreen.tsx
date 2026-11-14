@@ -5,7 +5,7 @@ import { elevation1, outline, pageBg } from '../utils/material';
 import { PAGE_TITLE_H } from '../constants/layout';
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Image, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Colors, getThemeMode, Gradient, themedStyles, ReceiptLineIcon, ScheduleLineIcon, SosLineIcon } from '@ongarage/shared';
+import { Colors, getThemeMode, Gradient, MoneyIcon, OnMartIcon, pageHeaderBlue, themedStyles, ReceiptLineIcon, ScheduleLineIcon, SosLineIcon } from '@ongarage/shared';
 import { FONTS } from '@ongarage/shared';
 import { categoryInfo, SERVICE_CATEGORIES } from '@ongarage/shared';
 import { useVehicles } from '../context/VehiclesContext';
@@ -44,10 +44,13 @@ const MONTHS = ['ජන.', 'පෙබ.', 'මාර්තු', 'අප්‍ර�
 /** The rating the owner gave a finished job, as stars under its heading; a small "Rate" chip when none was given yet. */
 /** The three kinds of record as filter chips (bids amber, bookings blue, SOS red), with the number of each. */
 const kindItems = (counts: number[]) => [
-  { id: 'bids' as const, label: 'ලංසු', tone: 'amber' as const, icon: <SubChipIcon id="bids" active />, count: counts[0] },
-  { id: 'direct' as const, label: 'Booking', tone: 'blue' as const, icon: <SubChipIcon id="direct" active />, count: counts[1] },
-  { id: 'sos' as const, label: 'SOS', tone: 'red' as const, icon: <SubChipIcon id="sos" active />, count: counts[2] },
+  { id: 'bids' as const, label: 'ලංසු', tone: 'amber' as const, icon: (on: boolean) => <SubChipIcon id="bids" on={on} />, count: counts[0] },
+  { id: 'direct' as const, label: 'Booking', tone: 'blue' as const, icon: (on: boolean) => <SubChipIcon id="direct" on={on} />, count: counts[1] },
+  { id: 'sos' as const, label: 'SOS', tone: 'red' as const, icon: (on: boolean) => <SubChipIcon id="sos" on={on} />, count: counts[2] },
 ];
+
+/** The OnMart chip that ends each row of kinds. */
+const withMart = (items: ReturnType<typeof kindItems>) => [...items, { id: 'mart' as const, label: 'OnMart', tone: 'green' as const, icon: (on: boolean) => <OnMartIcon size={18} color={on ? '#facc15' : '#ffffff'} /> }];
 
 const RatingLine: React.FC<{ rating?: number; onRate?: () => void }> = ({ rating, onRate }) =>
   rating ? (
@@ -63,17 +66,18 @@ const RatingLine: React.FC<{ rating?: number; onRate?: () => void }> = ({ rating
 
 // The main summary card's colour: blue through indigo to violet, with a soft light disc in its corner.
 const SPEND_GRADIENT = [
-  { offset: '0', color: '#2f7bf6' },
-  { offset: '0.55', color: '#5b5ff0' },
-  { offset: '1', color: '#8a4de8' },
+  { offset: '0', color: '#e0edff' },
+  { offset: '0.55', color: '#cfe2ff' },
+  { offset: '1', color: '#bcd5fd' },
 ];
 
 const formatDate = (d: Date) => `${d.getFullYear()} ${MONTHS[d.getMonth()]} ${d.getDate()}`;
 
 /** The sub chips' icons: the same line icons as the bottom navigation bar. */
-const SubChipIcon: React.FC<{ id: string; active: boolean }> = ({ id, active }) => {
+const SubChipIcon: React.FC<{ id: string; on: boolean }> = ({ id, on }) => {
   const Ico = id === 'bids' ? ReceiptLineIcon : id === 'direct' ? ScheduleLineIcon : SosLineIcon;
-  return <Ico active={active} size={18} />;
+  // White on the blue band; the open chip is a white pill, so its icon takes the chip's own colour.
+  return <Ico active size={18} color={on ? '#facc15' : '#ffffff'} />;
 };
 
 export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b: DirectBooking) => void; onOpenMart?: () => void; onHeaderProgress?: (progress: number) => void }> = ({ onOpenBids, onBookAgain, onOpenMart, onHeaderProgress }) => {
@@ -127,7 +131,17 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
     return () => chatDockOffset.setValue(0);
   }, []);
   // Each kind of record has its own chip: pick one to see only those records.
-  const [kind, setKind] = useState<'current' | 'done' | 'ended' | 'mart'>('done');
+  const [tab, setTab] = useState<'current' | 'done' | 'ended'>('done');
+  // OnMart is a chip beside the kinds of record (under every tab), not a tab: when it is on it shows the OnMart records instead.
+  const [martOn, setMartOn] = useState(false);
+  const kind: 'current' | 'done' | 'ended' | 'mart' = martOn ? 'mart' : tab;
+  const setKind = (k: 'current' | 'done' | 'ended' | 'mart') => {
+    if (k === 'mart') setMartOn(true);
+    else {
+      setMartOn(false);
+      setTab(k);
+    }
+  };
   const show = (k: typeof kind) => kind === k;
   // Inside "ongoing": which kind of running work to look at.
   const [currentKind, setCurrentKind] = useState<'bids' | 'direct' | 'sos'>('bids');
@@ -150,6 +164,15 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
   const showDone = (k: typeof doneKind) => kind === 'done' && doneKind === k;
   // Inside "cancelled": which kind of cancelled work to look at.
   const [endedKind, setEndedKind] = useState<'bids' | 'direct' | 'sos'>('bids');
+  // A chip was touched: OnMart switches the OnMart records on (touch it again to leave); a kind of record switches them off and opens that kind.
+  const pickKind = (id: 'bids' | 'direct' | 'sos' | 'mart' | null, setSub: (k: 'bids' | 'direct' | 'sos') => void) => {
+    if (id === 'mart') setMartOn(true);
+    else if (id === null) setMartOn(false);
+    else {
+      setMartOn(false);
+      setSub(id);
+    }
+  };
   const vehicleName = (id: string) => findVehicle(id).name;
   const user = useUserLocation();
 
@@ -264,9 +287,9 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
   ];
 
   const spendRows = [
-    { icon: '🛠️', label: 'ගරාජ රැකියා', count: closedJobs.length, amount: jobsSpent, color: '#8fd3ff' },
-    { icon: '🚨', label: 'SOS සේවා', count: sosRecords.length, amount: sosSpent, color: '#ffa8b4' },
-    { icon: '🛍️', label: 'OnMart කොටස්', count: boughtParts.length, amount: partsSpent, color: '#ffe08a' },
+    { icon: '🛠️', label: 'ගරාජ රැකියා', count: closedJobs.length, amount: jobsSpent, color: '#2563eb' },
+    { icon: '🚨', label: 'SOS සේවා', count: sosRecords.length, amount: sosSpent, color: '#f43f5e' },
+    { icon: '🛍️', label: 'OnMart කොටස්', count: boughtParts.length, amount: partsSpent, color: '#facc15' },
   ];
 
   return (
@@ -283,33 +306,35 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
           chatHide.setValue(y > 8 ? 1 : 0);
           // The title band folds away in step with the scroll (the first PAGE_TITLE_H px) and comes back the same way, straight from the offset: no thresholds or
           // timers, so nothing shakes.
-          onHeaderProgress?.(Math.min(1, Math.max(0, y / PAGE_TITLE_H)));
+          onHeaderProgress?.(Math.min(1, Math.max(0, y / 40)));
         }}
       >
         {/* Pinned: the three summary tiles stay at the top while the lists scroll beneath */}
-        <View style={styles.statsPinned} onLayout={(e) => {
+        <Animated.View style={[styles.statsPinned, { paddingTop: edge.interpolate({ inputRange: [0, 1], outputRange: [2, 14] }) }]} onLayout={(e) => {
           pinnedH.current = Math.round(e.nativeEvent.layout.height);
           chatDockOffset.setValue(pinnedH.current);
         }}>
+        {/* The header's blue carries on behind the tab bar and the filter chips, ending straight under the chips. */}
+        <View pointerEvents="none" style={styles.pinnedBand} />
         <SegmentTabs
+          pills
           items={[
             { id: 'current' as const, label: 'පවතින', icon: 'clock' as const, count: ongoing.length + liveBookings.length },
             { id: 'done' as const, label: 'සම්පූර්ණ', icon: 'check-circle' as const },
             { id: 'ended' as const, label: 'අවලංගු', icon: 'x' as const },
-            { id: 'mart' as const, label: 'OnMart', icon: 'tag' as const },
           ]}
-          value={kind}
+          value={tab}
           onChange={setKind}
         />
         {/* Under the tabs: the kind of record (bids, bookings, SOS), one always open, the number of each on its chip. */}
-        {kind === 'current' && <FilterChips items={kindItems([ongoing.length, liveBookings.length, 0])} value={currentKind} onChange={(id) => id && setCurrentKind(id)} />}
-        {kind === 'done' && <FilterChips items={kindItems([doneJobs.length, doneBookings.length, sosRecords.length])} value={doneKind} onChange={(id) => id && setDoneKind(id)} />}
-        {kind === 'ended' && <FilterChips items={kindItems([0, 0, 0])} value={endedKind} onChange={(id) => id && setEndedKind(id)} />}
+        {tab === 'current' && <FilterChips plain onBlue items={withMart(kindItems([ongoing.length, liveBookings.length, 0]))} value={martOn ? 'mart' : currentKind} onChange={(id) => pickKind(id, setCurrentKind)} />}
+        {tab === 'done' && <FilterChips plain onBlue items={withMart(kindItems([doneJobs.length, doneBookings.length, sosRecords.length]))} value={martOn ? 'mart' : doneKind} onChange={(id) => pickKind(id, setDoneKind)} />}
+        {tab === 'ended' && <FilterChips plain onBlue items={withMart(kindItems([0, 0, 0]))} value={martOn ? 'mart' : endedKind} onChange={(id) => pickKind(id, setEndedKind)} />}
           <Animated.View pointerEvents="box-none" style={[styles.pinnedChat, { opacity: edge }]}>
             <ChatHeaderButton scrolled={shortChat} />
           </Animated.View>
           <PinnedEdge progress={edge} />
-        </View>
+        </Animated.View>
 
 
         {kind === 'done' && (
@@ -317,10 +342,13 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
             <Gradient stops={SPEND_GRADIENT} />
             <View style={styles.spendGlow} pointerEvents="none" />
             <Text style={styles.spendCaption}>මුළු වියදම</Text>
-            <Text style={styles.spendTotal}>{money(totalSpent)}</Text>
+            <View style={styles.spendTotalRow}>
+              <Text style={styles.spendTotal}>{money(totalSpent)}</Text>
+              <View style={{ marginTop: -8 }}><MoneyIcon size={30} /></View>
+            </View>
             <View style={styles.spendBar}>
               {totalSpent > 0 ? (
-                spendRows.filter((r) => r.amount > 0).map((r) => <View key={r.label} style={{ flex: r.amount, backgroundColor: r.color }} />)
+                spendRows.filter((r) => r.amount > 0).map((r) => <View key={r.label} style={{ flex: r.amount, backgroundColor: r.color, borderRadius: 4 }} />)
               ) : (
                 <View style={{ flex: 1, backgroundColor: Colors.subtleBorder }} />
               )}
@@ -473,9 +501,10 @@ const styles = themedStyles(() => StyleSheet.create({
   selfCenter: { alignSelf: 'center' },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
-  body: { paddingHorizontal: 6, paddingTop: 8, gap: 20, paddingBottom: 100 },
+  body: { paddingHorizontal: 6, paddingTop: 0, gap: 20, paddingBottom: 100 },
   // Opaque and full width (the negative margin cancels the body padding), so the lists scroll underneath it.
-  statsPinned: { marginHorizontal: -6, paddingHorizontal: 6, paddingTop: 8, paddingBottom: 8, backgroundColor: pageBg() },
+  statsPinned: { marginHorizontal: -6, paddingHorizontal: 6, paddingTop: 2, paddingBottom: 8, backgroundColor: pageBg() },
+  pinnedBand: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: pageHeaderBlue().from },
   // The short OnChat icon inside the filter card, on its right side.
   pinnedChat: { position: 'absolute', right: 8, bottom: -12 },
   statsRow: { flexDirection: 'row', gap: 8 },
@@ -503,40 +532,42 @@ const styles = themedStyles(() => StyleSheet.create({
   card: { backgroundColor: Colors.bgCard, borderWidth: getThemeMode() === 'dark' ? 1 : 0, borderColor: Colors.borderColor, borderRadius: 24, paddingVertical: 16, paddingHorizontal: 8, gap: 12, shadowColor: '#0f172a', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.08, shadowRadius: 18, elevation: 3 },
   cardOngoing: {},
   // A coloured edge by the kind of job: bids blue, bookings green, SOS red.
-  edgeBid: { borderWidth: 1, borderColor: '#1a73e8' },
+  edgeBid: { borderWidth: 1, borderColor: '#2563eb' },
   edgeSos: { borderWidth: 1, borderColor: '#ef4444' },
   // A finished job: a little tighter, and the price in green.
   cardDone: { paddingVertical: 16, paddingHorizontal: 8, gap: 12 },
   priceDone: { color: Colors.textSoft },
   // Simple and modern: a flat card in a soft tint of the app's blue, no shadow, dark-blue figures.
   // The detailed summary: a flat card in a soft tint of the app's blue with a thin border, dark-blue figures.
-  spendCard: { padding: 14, borderRadius: 20, gap: 4, overflow: 'hidden', backgroundColor: '#5b5ff0', shadowColor: '#5b5ff0', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 10, elevation: 3 },
+  spendCard: { padding: 16, borderRadius: 26, borderWidth: 1.5, borderColor: '#facc15', gap: 4, overflow: 'hidden', backgroundColor: '#cfe2ff', shadowColor: '#93c5fd', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 10, elevation: 3 },
   spendGlow: { position: 'absolute', top: -60, right: -40, width: 170, height: 170, borderRadius: 85, backgroundColor: 'rgba(255, 255, 255, 0.12)' },
-  spendCaption: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: 'rgba(255, 255, 255, 0.85)' },
-  spendTotal: { fontSize: 24, fontFamily: FONTS.titleBold, color: '#ffffff' },
-  spendBar: { flexDirection: 'row', height: 6, borderRadius: 3, overflow: 'hidden', gap: 2, marginTop: 4, marginBottom: 6 },
+  spendCaption: { fontSize: 12, fontFamily: FONTS.bodyRegular, color: '#000000' },
+  // The money icon sits a little further right of the total.
+  spendTotalRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  spendTotal: { fontSize: 24, fontFamily: FONTS.titleBold, color: '#000000' },
+  spendBar: { flexDirection: 'row', height: 10, borderRadius: 5, overflow: 'hidden', gap: 3, marginTop: 8, marginBottom: 10 },
   spendCols: { flexDirection: 'row', gap: 12 },
   spendCol: { flex: 1, gap: 2 },
   spendLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  spendDot: { width: 7, height: 7, borderRadius: 4 },
-  spendLabel: { flex: 1, fontSize: 10.5, fontFamily: FONTS.bodyMedium, color: 'rgba(255, 255, 255, 0.85)' },
-  spendAmount: { fontSize: 13, fontFamily: FONTS.titleBold, color: '#ffffff' },
-  spendCount: { fontSize: 10, fontFamily: FONTS.bodyRegular, color: 'rgba(255, 255, 255, 0.75)' },
+  spendDot: { width: 9, height: 9, borderRadius: 5 },
+  spendLabel: { flex: 1, fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: '#000000' },
+  spendAmount: { fontSize: 13, fontFamily: FONTS.bodyRegular, color: '#000000' },
+  spendCount: { fontSize: 10, fontFamily: FONTS.bodyRegular, color: '#000000' },
   segment: { flexDirection: 'row', gap: 6, marginTop: 14 },
   segItem: { flex: 1, height: 40, borderRadius: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4, overflow: 'visible', borderWidth: 1, borderColor: outline(), backgroundColor: Colors.bgCard },
-  segItemOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe', borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#d2e3fc' },
+  segItemOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#eff6ff', borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#bfdbfe' },
   segText: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
-  segTextOn: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
-  badge: { position: 'absolute', top: -9, right: 8, minWidth: 16, height: 16, paddingHorizontal: 4, borderRadius: 6, alignItems: 'center', justifyContent: 'center', backgroundColor: '#1a73e8', borderWidth: 2, borderColor: pageBg() },
+  segTextOn: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#2563eb' },
+  badge: { position: 'absolute', top: -9, right: 8, minWidth: 16, height: 16, paddingHorizontal: 4, borderRadius: 6, alignItems: 'center', justifyContent: 'center', backgroundColor: '#2563eb', borderWidth: 2, borderColor: pageBg() },
   badgeGood: {},
   badgeText: { fontSize: 10.5, fontFamily: FONTS.bodyBold, color: '#ffffff' },
   kindChips: { gap: 10, paddingTop: 14, paddingRight: 16 },
-  subBadge: { position: 'absolute', top: -9, right: 4, minWidth: 16, height: 16, paddingHorizontal: 4, borderRadius: 6, alignItems: 'center', justifyContent: 'center', backgroundColor: '#1a73e8', borderWidth: 2, borderColor: pageBg() },
+  subBadge: { position: 'absolute', top: -9, right: 4, minWidth: 16, height: 16, paddingHorizontal: 4, borderRadius: 6, alignItems: 'center', justifyContent: 'center', backgroundColor: '#2563eb', borderWidth: 2, borderColor: pageBg() },
   subBadgeText: { fontSize: 10, fontFamily: FONTS.bodyBold, color: '#ffffff' },
-  kindChipOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe', borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#d2e3fc' },
+  kindChipOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#eff6ff', borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#bfdbfe' },
   subChip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, height: 32, borderRadius: 8, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline() },
   kindChipText: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textSoft },
-  kindChipTextOn: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
+  kindChipTextOn: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#2563eb' },
   // Keeps the heading clear of the icons in the card's top right corner.
   // The tappable body of a swipeable card: it lays its rows out the way the card itself does.
   cardInner: { gap: 12 },
@@ -557,8 +588,8 @@ const styles = themedStyles(() => StyleSheet.create({
   // Room under the icons that sit in the card's corner.
   rightIcons: { paddingTop: 56 },
   price: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textSoft },
-  kindTag: { paddingHorizontal: 10, height: 24, justifyContent: 'center', borderRadius: 12, backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe' },
-  kindTagText: { fontSize: 11, fontWeight: '700', color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
+  kindTag: { paddingHorizontal: 10, height: 24, justifyContent: 'center', borderRadius: 12, backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#eff6ff' },
+  kindTagText: { fontSize: 11, fontWeight: '700', color: getThemeMode() === 'dark' ? '#8db1ff' : '#2563eb' },
   status: { paddingHorizontal: 10, height: 24, justifyContent: 'center', borderRadius: 12 },
   statusOngoing: { backgroundColor: 'rgba(245, 158, 11, 0.12)' },
   statusDone: { backgroundColor: 'rgba(16, 185, 129, 0.16)', borderWidth: 1, borderColor: 'rgba(16, 185, 129, 0.35)' },

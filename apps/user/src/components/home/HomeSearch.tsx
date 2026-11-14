@@ -24,6 +24,10 @@ const AnimatedHint: React.FC = () => {
   }, [t]);
   const prev = POPULAR_SERVICES[(i + POPULAR_SERVICES.length - 1) % POPULAR_SERVICES.length];
   const now = POPULAR_SERVICES[i];
+  // The services take turns in two colours: one in blue, the next in gold, and so on.
+  const turnColor = (n: number) => (n % 2 === 0 ? '#2563eb' : '#ca8a04');
+  const prevColor = turnColor((i + POPULAR_SERVICES.length - 1) % POPULAR_SERVICES.length);
+  const nowColor = turnColor(i);
   // The example words sit on white: each category colour is darkened so the small text keeps a readable contrast.
   const colorOf = (id: string) => {
     const hex = SERVICE_CATEGORIES.find((c) => c.id === id)?.color ?? Colors.primary;
@@ -35,12 +39,12 @@ const AnimatedHint: React.FC = () => {
   };
   return (
     <View style={styles.hintRow}>
-      <Text style={styles.hintLabel} numberOfLines={1}>අවශ්‍ය සේවාව?</Text>
+      <Text style={styles.hintLabel} numberOfLines={1}>ඔබට අවශ්‍ය සේවාව ?</Text>
       <View style={styles.hintClip}>
-        <Animated.Text numberOfLines={1} style={[styles.hintWord, { color: colorOf(prev.categoryId), opacity: t.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }), transform: [{ translateY: t.interpolate({ inputRange: [0, 1], outputRange: [0, -22] }) }] }]}>
+        <Animated.Text numberOfLines={1} style={[styles.hintWord, { color: prevColor, opacity: t.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }), transform: [{ translateY: t.interpolate({ inputRange: [0, 1], outputRange: [0, -22] }) }] }]}>
           {prev.sub}
         </Animated.Text>
-        <Animated.Text numberOfLines={1} style={[styles.hintWord, styles.hintIn, { color: colorOf(now.categoryId), opacity: t, transform: [{ translateY: t.interpolate({ inputRange: [0, 1], outputRange: [22, 0] }) }] }]}>
+        <Animated.Text numberOfLines={1} style={[styles.hintWord, styles.hintIn, { color: nowColor, opacity: t, transform: [{ translateY: t.interpolate({ inputRange: [0, 1], outputRange: [22, 0] }) }] }]}>
           {now.sub}
         </Animated.Text>
       </View>
@@ -96,11 +100,11 @@ export const HomeSearch: React.FC<{
 
   return (
     <>
-      <Pressable style={[styles.bar, inCard && styles.barInCard]} onPress={() => setOpen(true)} accessibilityLabel="Search services and garages" accessibilityRole="search">
-        <View style={styles.barBtn}>
-          <Icon name="search" size={22} color="#1a73e8" />
-        </View>
+      <Pressable style={[styles.bar, inCard && styles.barInCard, { borderRadius: 16, paddingVertical: 8, paddingLeft: 16, paddingRight: 8, gap: 6, borderWidth: 0, borderColor: 'transparent', backgroundColor: '#ffffff', shadowColor: '#2563eb', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.16, shadowRadius: 16, elevation: 5 }]} onPress={() => setOpen(true)} accessibilityLabel="Search services and garages" accessibilityRole="search">
         <AnimatedHint />
+        <View style={[styles.barBtn, { width: 40, height: 40, borderRadius: 12, backgroundColor: 'transparent' }]}>
+          <Icon name="search" size={24} color="#2563eb" />
+        </View>
       </Pressable>
 
       <Modal visible={open} animationType="fade" statusBarTranslucent onRequestClose={close}>
@@ -218,22 +222,22 @@ const styles = themedStyles(() =>
   StyleSheet.create({
     flex1: { flex: 1 },
     // A white bar (white in both themes) with a soft shadow: a plain blue search icon (no fill), then the moving hint in its category's colour.
-    bar: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8, paddingLeft: 8, paddingRight: 18, borderRadius: 8, backgroundColor: '#ffffff', shadowColor: '#0f2a3d', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.18, shadowRadius: 12, elevation: 4 },
+    bar: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8, paddingLeft: 16, paddingRight: 10, borderRadius: 22, backgroundColor: Colors.bgCard, shadowColor: '#0f2a3d', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.18, shadowRadius: 12, elevation: 4 },
     barInCard: { paddingVertical: 3, shadowOpacity: 0, elevation: 0 },
-    barBtn: { width: 30, height: 38, alignItems: 'center', justifyContent: 'center' },
-    hintRow: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 5 },
-    hintLabel: { fontSize: 12, fontFamily: FONTS.bodyRegular, color: '#5f6368' },
+    barBtn: { width: 44, height: 44, borderRadius: 14, backgroundColor: 'rgba(37, 99, 235, 0.16)', alignItems: 'center', justifyContent: 'center' },
+    hintRow: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6 },
+    hintLabel: { fontSize: 13.5, fontFamily: FONTS.bodyBold, color: '#9ca3af' },
     hintClip: { flex: 1, height: 22, overflow: 'hidden', justifyContent: 'center' },
-    hintWord: { fontSize: 12.5, fontFamily: FONTS.bodyBold },
+    hintWord: { fontSize: 13.5, fontFamily: FONTS.bodyBold },
     hintIn: { position: 'absolute', left: 0, right: 0 },
-    postCta: { marginHorizontal: 16, marginTop: 8, marginBottom: 14, paddingVertical: 16, paddingHorizontal: 18, flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 22, backgroundColor: '#1b3a96', borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.2)', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.14, shadowRadius: 8, elevation: 5 },
+    postCta: { marginHorizontal: 16, marginTop: 8, marginBottom: 14, paddingVertical: 16, paddingHorizontal: 18, flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 22, backgroundColor: '#1e40af', borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.2)', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.14, shadowRadius: 8, elevation: 5 },
     postCtaText: { flex: 1, gap: 3 },
     postCtaBadge: { alignSelf: 'flex-start', paddingHorizontal: 9, paddingVertical: 3, borderRadius: 11, backgroundColor: '#ffffff', marginBottom: 2 },
-    postCtaBadgeText: { fontSize: 10.5, fontFamily: FONTS.bodyBold, color: '#1b3a96' },
+    postCtaBadgeText: { fontSize: 10.5, fontFamily: FONTS.bodyBold, color: '#1e40af' },
     postCtaTitle: { fontSize: 16, fontFamily: FONTS.titleBold, color: '#ffffff' },
     postCtaSub: { fontSize: 12, fontFamily: FONTS.bodyMedium, color: '#ffffff' },
     postCtaPlus: { width: 52, height: 52, borderRadius: 26, backgroundColor: '#ffffff', alignItems: 'center', justifyContent: 'center' },
-    postCtaPlusText: { fontSize: 30, fontFamily: FONTS.bodyBold, color: '#1b3a96', lineHeight: 34 },
+    postCtaPlusText: { fontSize: 30, fontFamily: FONTS.bodyBold, color: '#1e40af', lineHeight: 34 },
     page: { flex: 1, backgroundColor: Colors.bgBody },
     top: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 10 },
     field: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8, height: 44, paddingHorizontal: 14, borderRadius: 22, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.borderColor },

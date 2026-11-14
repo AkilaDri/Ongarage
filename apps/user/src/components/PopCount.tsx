@@ -5,7 +5,7 @@ import { Animated, Easing, StyleSheet, Text, View, type StyleProp, type TextStyl
  * A count in a round tag that reacts when the number changes: the tag pops up (swells and settles back with a spring) and a ring spreads out from it
  * and fades, so a new bid, a status change or a finished job is noticed. The first time it is drawn it stays still.
  */
-export const PopCount: React.FC<{ value: number; style: StyleProp<ViewStyle>; textStyle: StyleProp<TextStyle>; ringColor?: string }> = ({ value, style, textStyle, ringColor = '#1a73e8' }) => {
+export const PopCount: React.FC<{ value: number; style: StyleProp<ViewStyle>; textStyle: StyleProp<TextStyle>; ringColor?: string }> = ({ value, style, textStyle, ringColor = '#2563eb' }) => {
   const scale = useRef(new Animated.Value(1)).current;
   const ring = useRef(new Animated.Value(0)).current;
   const prev = useRef(value);

@@ -5,9 +5,10 @@ import React, { useEffect, useRef, useState } from 'react';
 import Svg, { Circle, Path, Polyline, Rect } from 'react-native-svg';
 import { chatDockOffset, chatHide } from '../utils/chatDock';
 import { PopCount } from '../components/PopCount';
-import { Animated, Linking, Pressable, ScrollView, StyleSheet, Text, View, Image } from 'react-native';
-import { Colors, LevelBadge, getThemeMode, themedStyles, LEVELS } from '@ongarage/shared';
+import { Animated, Easing, Linking, Pressable, ScrollView, StyleSheet, Text, View, Image } from 'react-native';
+import { Colors, LevelBadge, pageHeaderBlue, getThemeMode, themedStyles, LEVELS } from '@ongarage/shared';
 import { FONTS } from '@ongarage/shared';
+
 import { SERVICE_CATEGORIES } from '@ongarage/shared';
 import { useVehicles } from '../context/VehiclesContext';
 import { Icon, ClipboardLineIcon, ReceiptLineIcon, ScheduleLineIcon } from '@ongarage/shared';
@@ -17,6 +18,7 @@ import { OwnerDetailView } from '../components/OwnerDetailView';
 import { GarageReviewsSheet, garageForBid } from '../components/GarageReviewsSheet';
 import { ThreeStateSheet, type SheetApi } from '../components/ThreeStateSheet';
 import { GARAGE_COVERS } from '../constants/home';
+import { BIDS_TITLE_H } from '../constants/layout';
 import { CategoryPhoto } from '../components/home/CategoryPhoto';
 import { money } from '../utils/format';
 import { Sheet } from '../components/Sheet';
@@ -31,7 +33,7 @@ import type { Bid, JobDraft, RepairJob } from '@ongarage/shared';
 export type BidsTab = 'received' | 'pending' | 'expired';
 
 // The tab bar's look: Material primary tabs on one white surface; the chosen tab is Google-blue with a line under it.
-const TAB_BLUE = () => (getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8');
+const TAB_BLUE = () => (getThemeMode() === 'dark' ? '#8db1ff' : '#2563eb');
 // The count badge is green on "received" (good news) and red on the others (things waiting on you).
 const badgeColor = (id: BidsTab) => (id === 'received' ? '#16a34a' : '#ef4444');
 
@@ -54,6 +56,10 @@ const ago = (ms: number) => {
 
 interface BidsScreenProps {
   tab: BidsTab;
+  /** 0 to 1 as the open sheet's list is scrolled: the app's header band folds away in step (as on Activity) and the tab bar stays pinned. */
+  onHeaderCollapse?: (node: { interpolate: Animated.Value['interpolate'] } | null) => void;
+  /** Filled with the function that lowers the sheet, so the app's header (which carries the close mark while the sheet is up) can call it. */
+  minimizeRef?: React.MutableRefObject<(() => void) | null>;
   onTabChange: (tab: BidsTab) => void;
   /** Every received bid as one row instead of a full card each; the switch is the hamburger in the app's title bar. */
   rowsView: boolean;
@@ -72,6 +78,8 @@ interface BidsScreenProps {
 const PEEK_HEIGHT = 128;
 /** The floating tab bar the sheet must clear. */
 const NAV_HEIGHT = 72;
+/** The room the pinned tab bar takes at the top of the Bids tab: the Received sheet stops below it. */
+const TABS_BLOCK_H = 66;
 /** A bid's price on its card: "LKR 12,500". */
 const lkr = (n: number) => `LKR ${Math.round(n).toLocaleString()}`;
 const ZERO = new Animated.Value(0);
@@ -79,7 +87,7 @@ const ONE = new Animated.Value(1);
 /** 3,700 → "3.7k": a price short enough for a small badge. */
 const shortMoney = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(n % 1000 === 0 ? 0 : 1)}k` : String(n));
 
-export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsView, onToggleRows, onRepublish, onNewBid, onPayFirst, onViewActivity, onHeaderVisibilityChange }) => {
+export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsView, onToggleRows, onRepublish, onNewBid, onPayFirst, onViewActivity, onHeaderVisibilityChange, onHeaderCollapse, minimizeRef }) => {
   // "Garages I have used": narrows the received bids to the garages the owner has finished a job with before.
   const isUsed = useUsedGarages();
   const [usedOnly, setUsedOnly] = useState(false);
@@ -97,9 +105,21 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
   // One garage's bid, opened by tapping or swiping it inside the job card.
   // Height of the tab (the map and the sheet's expanded height).
   const [area, setArea] = useState(0);
+  // The tab's height with the page header showing: the sheet is sized from this, so folding the header (which makes the tab taller) does not re-size it; its top edge rides up with the header through `boost` instead.
+  const [stableArea, setStableArea] = useState(0);
+  const [boost, setBoost] = useState<Animated.AnimatedNode | null>(null);
+  const hiddenVal = useRef(0);
+  // True only once the sheet has really reached the top: the header's blue is not pulled down over the map while it rises; the sheet's own bar turns blue on arrival.
+  const [atTop, setAtTop] = useState(false);
+  const atTopRef = useRef(false);
+  const arrivedAt = useRef(0);
   const [sheetH, setSheetH] = useState<Animated.Value | null>(null);
   // How close to the top the sheet is (0 = low, 1 = open): the heading, the tabs and the map controls fade with the sheet's height instead of popping when it settles.
-  const topFull = Math.max(area - NAV_HEIGHT, PEEK_HEIGHT + 120);
+  const topFull = Math.max((stableArea || area) - NAV_HEIGHT - (tab === 'received' ? TABS_BLOCK_H : 0), PEEK_HEIGHT + 120);
+  const topFullRef = useRef(0);
+  topFullRef.current = topFull;
+  const tabRef = useRef(tab);
+  tabRef.current = tab;
   const topP = sheetH ? sheetH.interpolate({ inputRange: [topFull - 140, topFull], outputRange: [0, 1], extrapolate: 'clamp' }) : ZERO;
   const mapP = sheetH ? sheetH.interpolate({ inputRange: [topFull - 130, topFull - 60], outputRange: [1, 0], extrapolate: 'clamp' }) : ONE;
   const [sheetState, setSheetState] = useState<'peek' | 'collapsed' | 'expanded'>('collapsed');
@@ -119,6 +139,12 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
     if (!sheetH) return;
     const id = sheetH.addListener(({ value }) => {
       lastSheetH.current = value;
+      const top = value >= topFullRef.current - 3 && tabRef.current === 'received';
+      if (top !== atTopRef.current) {
+        atTopRef.current = top;
+        if (top) arrivedAt.current = Date.now();
+        setAtTop(top);
+      }
       if (pinOpenH.current !== null && value > pinOpenH.current + 8) {
         pinOpenH.current = null;
         setPinBid(null);
@@ -173,7 +199,42 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
   const expired = jobs.filter((j) => isExpired(j, now));
   const mapBids = received.filter((j) => !j.acceptedBidId).flatMap((j) => j.bids.map((b) => ({ job: j, bid: b, lowest: b.id === lowestBidId(j.bids) })));
 
-  const tabs: { id: BidsTab; label: string; icon: React.ComponentType<{ active: boolean; size?: number }>; count: number }[] = [
+  // The other tabs (waiting, expired) keep the header as it is before the Received sheet is raised: whole, with its heading and ONCHAT.
+  useEffect(() => {
+    if (tab !== 'received') {
+      headerHidden.current = false;
+      hiddenAnim.setValue(0);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab]);
+  // The header folds away only while the sheet is open to the top, and its height follows the sheet's own height: dragging the sheet down brings the header back in step with it, as one movement.
+  useEffect(() => {
+    if (!sheetH) return;
+    // Measured against the area with the header showing, so folding the header (which makes the area taller) does not move the target.
+    const baseFull = Math.max((stableArea || baseArea.current) - NAV_HEIGHT - (tab === 'received' ? TABS_BLOCK_H : 0), PEEK_HEIGHT + 120);
+    const collapse = Animated.multiply(sheetH.interpolate({ inputRange: [baseFull - 140, baseFull - 6], outputRange: [0, 1], extrapolate: 'clamp' }), hiddenAnim);
+    onHeaderCollapse?.(collapse);
+    setBoost(Animated.multiply(collapse, BIDS_TITLE_H));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sheetH, tab, stableArea]);
+
+
+  const lastListY = useRef(0);
+  const headerHidden = useRef(false);
+  const lastToggle = useRef(0);
+  // 0 / 1: the list has been scrolled on, so the header is folded (while the sheet is up).
+  const hiddenAnim = useRef(new Animated.Value(0)).current;
+  const localMin = useRef<() => void>(() => {});
+  const baseArea = useRef(0);
+  const stableAreaRef = useRef(0);
+  useEffect(() => {
+    const id = hiddenAnim.addListener(({ value }) => {
+      hiddenVal.current = value;
+    });
+    return () => hiddenAnim.removeListener(id);
+  }, [hiddenAnim]);
+
+  const tabs: { id: BidsTab; label: string; icon: React.ComponentType<{ active: boolean; size?: number; color?: string }>; count: number }[] = [
     { id: 'received', label: 'ලැබුණු', icon: ClipboardLineIcon, count: received.length },
     { id: 'pending', label: 'රැඳී ඇති', icon: ScheduleLineIcon, count: pending.length },
     { id: 'expired', label: 'කල් ඉකුත්', icon: ReceiptLineIcon, count: expired.length },
@@ -365,12 +426,12 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
             <Text style={styles.fbActionText}>🗺️ දිශාවන්</Text>
           </Pressable>
           {isAccepted ? (
-            <View style={styles.fbAction}>
-              <Text style={[styles.fbActionText, { color: Colors.successText }]}>✓ තහවුරුයි</Text>
+            <View style={[styles.fbAction, styles.fbActionDone]}>
+              <Text style={[styles.fbActionText, { color: '#713f12' }]}>✓ තහවුරුයි</Text>
             </View>
           ) : (
-            <Pressable style={styles.fbAction} onPress={() => askAccept({ job, bid })} accessibilityLabel={`Accept the bid of ${bid.garageName}`}>
-              <Text style={[styles.fbActionText, styles.fbActionPrimary]}>✓ පිළිගන්න</Text>
+            <Pressable style={[styles.fbAction, styles.fbActionAccept, isLowest && styles.fbActionLowest]} onPress={() => askAccept({ job, bid })} accessibilityLabel={`Accept the bid of ${bid.garageName}`}>
+              <Text style={[styles.fbActionText, styles.fbActionPrimary, isLowest && styles.fbActionLowestText]}>✓ පිළිගන්න</Text>
             </Pressable>
           )}
         </View>
@@ -407,7 +468,7 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
 
   // The three tabs (received / waiting / expired): over the map while the sheet is low, in the sheet once it is open to the top.
   const renderTabs = () => (
-    <>
+    <View style={styles.pillTrack}>
           {tabs.map((t) => {
             const active = tab === t.id;
             return (
@@ -418,21 +479,24 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
                 accessibilityRole="tab"
                 accessibilityState={{ selected: active }}
               >
-                <t.icon active={active} size={20} />
+                {/* On the blue pill the icon sits on a small white disc so it still shows. */}
+                <t.icon active={active} size={20} color={active ? '#ffffff' : undefined} />
                 <Text style={[styles.segChipText, active && styles.segChipTextOn]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
                   {t.label}
                 </Text>
                 {t.count > 0 && (
-                  <PopCount value={t.count} style={styles.tabCount} textStyle={styles.tabCountText} />
+                  <PopCount value={t.count} style={styles.tabCount} textStyle={styles.tabCountText} ringColor="#facc15" />
                 )}
               </Pressable>
             );
           })}
-    </>
+    </View>
   );
 
   // The cards / rows hamburger and the map icon (which lowers the sheet so the map shows in full): at the end of the sheet's top line while the map is in view, in the app's
   // "Bids" heading row at the top of the bar once the sheet is open to the top.
+  // Open to the top, the sheet's header (Free Quote row, tab bar, filter chips) sits on the same blue as the app header above it.
+  const onBlueBand = tab === 'received' && atTop;
   const iconButtons = (api: SheetApi) => (
     <>
       <Pressable
@@ -443,11 +507,11 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
         accessibilityState={{ selected: rowsView }}
         accessibilityLabel={rowsView ? 'Show the bids as cards' : 'Show all the bids as rows'}
       >
-        <Text style={styles.sheetHamburger}>{rowsView ? '▤' : '☰'}</Text>
+        <Text style={[styles.sheetHamburger, onBlueBand && { color: '#ffffff' }]}>{rowsView ? '▤' : '☰'}</Text>
       </Pressable>
       {/* The close mark lowers the sheet to its strip, so the whole map shows (from the top or from the middle). */}
-      <Pressable style={styles.closeCircle} onPress={api.minimize} hitSlop={6} accessibilityRole="button" accessibilityLabel="Close, lower the sheet">
-        <Svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="#1a73e8" strokeWidth={2.6} strokeLinecap="round">
+      <Pressable style={[styles.closeCircle, onBlueBand && { borderColor: '#ffffff' }]} onPress={api.minimize} hitSlop={6} accessibilityRole="button" accessibilityLabel="Close, lower the sheet">
+        <Svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke={onBlueBand ? '#ffffff' : '#2563eb'} strokeWidth={2.6} strokeLinecap="round">
           <Path d="M6 6l12 12M18 6 6 18" />
         </Svg>
       </Pressable>
@@ -466,7 +530,7 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
   // Under the tabs, pinned while the list scrolls: the used-garages filter (received bids).
   const renderTools = () =>
     tab === 'received' && received.some((j) => j.bids.length > 0) ? (
-      <View style={styles.receivedTools}>
+      <View style={[styles.receivedTools, onBlueBand && { marginTop: 16 }]}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.sortRow}>
           {SORTS.map((s) => (
             <Pressable key={s.id} style={[styles.sortChip, bidSort === s.id && styles.sortChipOn]} onPress={() => setBidSort(s.id)} accessibilityRole="button" accessibilityState={{ selected: bidSort === s.id }} accessibilityLabel={`Sort bids: ${s.label}`}>
@@ -569,7 +633,14 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
   return (
     <View style={styles.container} onLayout={(e) => {
         const h = Math.round(e.nativeEvent.layout.height);
+        // While the header is folded or folding, the tab is taller by its height: that is not a new size, and re-drawing this whole screen on every frame of the fold is what made it stutter.
+        if (hiddenVal.current > 0) return;
         setArea(h);
+        if (hiddenVal.current === 0 || stableAreaRef.current === 0) {
+          stableAreaRef.current = h;
+          setStableArea(h);
+        }
+        if (!headerHidden.current || baseArea.current === 0) baseArea.current = h;
         // No title bar folds away on this tab any more, so the map is always exactly as tall as the tab.
         setMapArea(h);
       }}
@@ -609,7 +680,10 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
       {/* The tab bar floats over the bottom 72px and its top corners are round: this strip, in the sheet's colour, fills what shows behind those corners. */}
       <View style={styles.navBackfill} pointerEvents="none" />
 
-      <Animated.View style={[styles.floatTabs, { opacity: mapP }]} pointerEvents={sheetState === 'expanded' ? 'none' : 'box-none'}>
+      {/* The header's blue carries on behind the tabs and ends in round corners (as on Activity), so the tab bar overlaps it. */}
+      <Animated.View pointerEvents="none" style={[styles.floatBand, tab === 'received' && atTop && styles.floatBandUp, { opacity: tab === 'received' ? 1 : mapP }]} />
+
+      <Animated.View style={[styles.floatTabs, { opacity: tab === 'received' ? 1 : mapP }]} pointerEvents={tab !== 'received' && sheetState === 'expanded' ? 'none' : 'box-none'}>
         <View style={styles.floatChips}>{renderTabs()}</View>
       </Animated.View>
 
@@ -624,8 +698,8 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
           }}
           accessibilityLabel="My location"
         >
-          <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke="#1a73e8" strokeWidth={2} strokeLinecap="round">
-            <Circle cx={12} cy={12} r={3.5} fill="#1a73e8" />
+          <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth={2} strokeLinecap="round">
+            <Circle cx={12} cy={12} r={3.5} fill="#2563eb" />
             <Circle cx={12} cy={12} r={7.5} />
             <Path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
           </Svg>
@@ -692,13 +766,21 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
         <ThreeStateSheet
           locked={tab !== 'received'}
           onHeight={setSheetH}
-          areaHeight={area}
+          areaHeight={stableArea || area}
+          boost={boost ?? undefined}
+          canLower={() => !headerHidden.current && Date.now() - lastToggle.current > 500}
           peekHeight={PEEK_HEIGHT}
           bottomInset={NAV_HEIGHT}
-          expandedExtra={0}
+          // Open to the top the Received sheet stops under the tab bar (which stays pinned where it is), not over it.
+          expandedExtra={tab === 'received' ? -TABS_BLOCK_H : 0}
           // The title bar at the top folds away while the sheet is opened to the top, and the chat icon drops below the tabs; both come back as it settles lower.
           onStateChange={(st) => {
             setSheetState(st);
+            if (st !== 'expanded') {
+              headerHidden.current = false;
+              // Reset once the sheet has settled low, so lowering it keeps the header in step with it.
+              setTimeout(() => hiddenAnim.setValue(0), 700);
+            }
             onHeaderVisibilityChange?.(st !== 'expanded' || tab !== 'received');
             lastScrollY.current = 0;
             applyChip(true, st === 'expanded');
@@ -712,7 +794,7 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
                   {allBids.length ? `ලැබුණු ලංසු ${allBids.length}` : 'තවම ලංසු ලැබී නැත'}
                 </Text>
                 <Pressable style={styles.pullUp} onPress={api.collapse} accessibilityLabel="Pull the sheet up">
-                  <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="#1a73e8" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round">
+                  <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round">
                     <Polyline points="6 15 12 9 18 15" />
                   </Svg>
                 </Pressable>
@@ -732,16 +814,21 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
             </View>
           )}
         >
-          {(api) => (
+          {(api) => {
+            if (minimizeRef) minimizeRef.current = api.minimize;
+            localMin.current = api.minimize;
+            return (
             <>
       <Animated.View
-        style={[styles.tabBar, { paddingTop: topP.interpolate({ inputRange: [0, 1], outputRange: [2, 14] }) }]}
+        style={[styles.tabBar, tab === 'received' && atTop && styles.tabBarBlue, { paddingTop: topP.interpolate({ inputRange: [0, 1], outputRange: [2, tab === 'received' ? 2 : 14] }) }]}
         onLayout={(e) => {
           tabBarH.current = Math.round(e.nativeEvent.layout.height);
           syncDock();
         }}
       >
-        <Animated.View style={{ height: topP.interpolate({ inputRange: [0, 1], outputRange: [0, 54] }), opacity: topP, overflow: 'hidden' }} pointerEvents={sheetState === 'expanded' ? 'auto' : 'none'}>
+        {/* Waiting / expired: the header's blue carries on behind the tab bar and ends in round corners, so the tab bar overlaps it as Home's card does. */}
+        {tab !== 'received' && <View pointerEvents="none" style={styles.tabBand} />}
+        <Animated.View style={{ height: 0, opacity: topP, overflow: 'hidden' }} pointerEvents={sheetState === 'expanded' ? 'auto' : 'none'}>
           <View style={styles.titleRow}>
             <FreeQuoteTag onPress={onNewBid} />
             <View style={styles.flex1} />
@@ -749,7 +836,7 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
           </View>
         </Animated.View>
         <View style={styles.segRow}>
-        <Animated.View style={[styles.tabsLayer, { opacity: topP }]} pointerEvents={sheetState === 'expanded' ? 'auto' : 'none'}>
+        <Animated.View style={[styles.tabsLayer, tab === 'received' ? { opacity: 0, overflow: 'hidden', height: topP.interpolate({ inputRange: [0, 1], outputRange: [48, 0] }) } : { opacity: topP }]} pointerEvents={tab !== 'received' && sheetState === 'expanded' ? 'auto' : 'none'}>
           {renderTabs()}
         </Animated.View>
         {/* While the map is in view the free-quote tag and the two icons stand on the tab line; open to the top the bar starts with its "Bids" heading, the icons at its end. */}
@@ -767,14 +854,38 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
                 showsVerticalScrollIndicator={false}
                 scrollEventThrottle={16}
                 // Like Home: scrolling the sheet leaves the "＋ නව ලංසුවක්" chip and the tabs pinned at the top, and the chat icon docked right under them.
-                onScroll={(e) => api.onScroll(e.nativeEvent.contentOffset.y)}
+                onScroll={(e) => {
+                  const y = e.nativeEvent.contentOffset.y;
+                  api.onScroll(y);
+                  if (sheetState === 'expanded' && tab === 'received') {
+                    // Scrolling on folds the top header bar (Free Quote, ☰, ✕) away; the least scroll back brings it straight back, and the tab bar and filter chips stay pinned.
+                    const dy = y - lastListY.current;
+                    let hide = headerHidden.current;
+                    // The list gets taller / shorter while the header folds, which can nudge the offset by itself: scrolls right after a change are not the owner's.
+                    // A browser re-layout can report one impossible jump (a couple of hundred px and straight back): never the owner's scroll.
+                    // The scroll that carries the sheet up to the top is not a scroll of the list: the header (Free Quote, ☰, ✕) stays until the owner scrolls the list again once the sheet has settled.
+                    const settling = Date.now() - lastToggle.current < 450 || Math.abs(dy) > 200 || !atTopRef.current || Date.now() - arrivedAt.current < 800;
+                    if (!settling) {
+                      // Showing again takes a real scroll back (not a wheel's jitter): the header would otherwise flicker in and out.
+                      if (y <= 8 || dy < -14) hide = false;
+                      else if (dy > 6 && y > 24) hide = true;
+                    }
+                    if (hide !== headerHidden.current) {
+                      lastToggle.current = Date.now();
+                      headerHidden.current = hide;
+                      Animated.timing(hiddenAnim, { toValue: hide ? 1 : 0, duration: 240, easing: Easing.out(Easing.cubic), useNativeDriver: false }).start();
+                    }
+                  }
+                  lastListY.current = y;
+                }}
               >
                 {tab === 'received' && renderReceived()}
                 {tab === 'pending' && renderWaiting(pending, 'pending')}
                 {tab === 'expired' && renderWaiting(expired, 'expired')}
               </ScrollView>
             </>
-          )}
+            );
+          }}
         </ThreeStateSheet>
       )}
 
@@ -888,14 +999,16 @@ const marketNote = (job: RepairJob, bid: Bid) => {
   return pct < 0 ? { cheaper: true, text: `📉 වෙළඳපොළ මිලට වඩා ${-pct}% අඩුයි`, short: `${-pct}% අඩු` } : { cheaper: false, text: `📈 වෙළඳපොළ මිලට වඩා ${pct}% වැඩියි`, short: `${pct}% වැඩි` };
 };
 
-/** The "Free Quote" tag: a navy gradient pill with a white round plus at its end. */
-const FreeQuoteTag: React.FC<{ onPress?: () => void }> = ({ onPress }) => (
+/** The "Free Quote" tag, in the look of Home's Free Quote card: a pale blue pill with a blue round plus, the label, and the yellow "නොමිලේ" tag. */
+export const FreeQuoteTag: React.FC<{ onPress?: () => void }> = ({ onPress }) => (
   <Pressable style={styles.freeQuote} onPress={onPress} accessibilityLabel="Post a job and get free quotes">
-    <Gradient stops={[{ offset: '0', color: '#1f4fd1' }, { offset: '1', color: '#0b1f6b' }]} />
-    <Text style={styles.freeQuoteText}>Free Quote</Text>
     <View style={styles.freeQuotePlus}>
       <Text style={styles.freeQuotePlusText}>+</Text>
     </View>
+    <View style={styles.freeQuoteFree}>
+      <Text style={styles.freeQuoteFreeText}>Free</Text>
+    </View>
+    <Text style={styles.freeQuoteText}>Quote</Text>
   </Pressable>
 );
 
@@ -909,47 +1022,57 @@ const styles = themedStyles(() => StyleSheet.create({
   sheetHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, paddingTop: 12 },
   myLocation: { position: 'absolute', right: 14, zIndex: 6 },
   myLocationBtn: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? '#1c2b4a' : '#ffffff', shadowColor: '#1e3a8a', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 10, elevation: 6 },
-  navBackfill: { position: 'absolute', left: 0, right: 0, bottom: 0, height: NAV_HEIGHT, backgroundColor: getThemeMode() === 'dark' ? Colors.bgBody : '#f0f0f0' },
+  navBackfill: { position: 'absolute', left: 0, right: 0, bottom: 0, height: NAV_HEIGHT, backgroundColor: getThemeMode() === 'dark' ? Colors.bgBody : '#ffffff' },
   floatNewBid: { position: 'absolute', top: 12, left: 12, zIndex: 0, paddingHorizontal: 14, height: 36, borderRadius: 18, justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? '#1c2b4a' : '#ffffff', shadowColor: '#1e3a8a', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 10, elevation: 6 },
-  floatNewBidText: { fontSize: 13, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
-  newBidChip: { paddingHorizontal: 14, height: 34, borderRadius: 17, justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe', borderWidth: 1, borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#d2e3fc' },
-  newBidText: { fontSize: 13, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
-  sheetHamburger: { fontSize: 20, lineHeight: 22, color: '#1a73e8' },
+  floatNewBidText: { fontSize: 13, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#2563eb' },
+  newBidChip: { paddingHorizontal: 14, height: 34, borderRadius: 17, justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#eff6ff', borderWidth: 1, borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#bfdbfe' },
+  newBidText: { fontSize: 13, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#2563eb' },
+  sheetHamburger: { fontSize: 20, lineHeight: 22, color: '#2563eb' },
   sheetHeadTitle: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textMain },
   minBtn: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(56, 189, 248, 0.12)', borderWidth: 1, borderColor: 'rgba(56, 189, 248, 0.45)' },
   // One white surface with a thin outline and a light elevation; the selected tab has a line under it (Material primary tabs).
   // The three views (received, waiting, expired) are three separate chips, like the garage app's: each its own outlined chip, the selected one tonal blue.
+  // Open to the top, the pinned tab bar and the filter chips sit on the header's blue.
+  tabBarBlue: { backgroundColor: pageHeaderBlue().from },
+  tabBand: { position: 'absolute', top: 0, left: 0, right: 0, height: 44, backgroundColor: pageHeaderBlue().from, borderBottomLeftRadius: 32, borderBottomRightRadius: 32 },
   tabBar: { paddingHorizontal: 6, paddingTop: 2, paddingBottom: 8 },
-  tabsLayer: { flex: 1, flexDirection: 'row', gap: 6 },
+  tabsLayer: { flex: 1, flexDirection: 'row', gap: 6, paddingHorizontal: 6 },
   mapLayer: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, flexDirection: 'row' },
   // Opened to the top, the grip is gone, so the chips get some room above them.
   tabBarTop: { paddingTop: 14 },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 40, paddingHorizontal: 6 },
   sheetTitle: { fontSize: 20, fontFamily: FONTS.titleBold, color: Colors.textMain },
   mapRowWide: { flex: 1 },
-  freeQuote: { marginRight: 'auto', flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: 16, paddingRight: 5, height: 38, borderRadius: 19, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.35)' },
-  freeQuoteText: { fontSize: 14, fontFamily: FONTS.bodyBold, color: '#ffffff' },
-  freeQuotePlus: { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: '#ffffff' },
-  freeQuotePlusText: { fontSize: 18, lineHeight: 20, fontFamily: FONTS.bodyBold, color: '#0b1f6b', includeFontPadding: false },
+  freeQuote: { marginRight: 'auto', flexDirection: 'row', alignItems: 'center', gap: 5, paddingLeft: 3, paddingRight: 5, height: 30, borderRadius: 15, backgroundColor: '#eff6ff', borderWidth: 1, borderColor: 'rgba(219, 234, 254, 0.8)' },
+  freeQuoteText: { fontSize: 11.5, fontFamily: FONTS.bodyMedium, color: '#000000' },
+  freeQuoteFree: { backgroundColor: '#facc15', height: 20, paddingHorizontal: 8, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  freeQuoteFreeText: { fontSize: 11.5, fontWeight: '800', color: '#111827' },
+  freeQuotePlus: { width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: '#dbeafe', borderWidth: 1, borderColor: '#bfdbfe' },
+  freeQuotePlusText: { fontSize: 16, lineHeight: 18, fontWeight: '700', color: '#2563eb', includeFontPadding: false },
   segRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 6 },
-  floatTabs: { position: 'absolute', top: 56, left: 12, right: 12, zIndex: 1, gap: 8 },
+  // Open to the top the blue behind the tab bar runs down to the sheet, whose own blue bar carries on from it.
+  floatBandUp: { height: TABS_BLOCK_H + 8, borderBottomLeftRadius: 0, borderBottomRightRadius: 0 },
+  floatBand: { position: 'absolute', top: 0, left: 0, right: 0, height: 44, backgroundColor: pageHeaderBlue().from, borderBottomLeftRadius: 32, borderBottomRightRadius: 32, zIndex: 1 },
+  floatTabs: { position: 'absolute', top: 14, left: 12, right: 12, zIndex: 2, gap: 8 },
   headRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 6 },
   floatTitle: { fontSize: 20, fontFamily: FONTS.titleBold, color: Colors.textMain },
   floatChips: { flexDirection: 'row', gap: 6 },
-  segChip: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, height: 40, paddingHorizontal: 6, borderRadius: 8, borderWidth: 1, borderColor: outline(), backgroundColor: Colors.bgCard, ...elevation1() },
-  segChipOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe', borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#d2e3fc' },
-  segChipText: { flexShrink: 1, fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
-  segChipTextOn: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
+  // The same bar as Activity's: one white round card with the open tab as a blue pill, the count a small yellow chip.
+  pillTrack: { flex: 1, flexDirection: 'row', gap: 4, padding: 4, borderRadius: 26, backgroundColor: getThemeMode() === 'dark' ? Colors.bgCard : '#ffffff', shadowColor: '#2563eb', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.26, shadowRadius: 20, elevation: 8 },
+  segChip: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, height: 40, paddingHorizontal: 6, borderRadius: 22 },
+  segChipOn: { backgroundColor: '#2563eb' },
+  segChipText: { flexShrink: 1, fontSize: 14, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
+  segChipTextOn: { color: '#ffffff', fontFamily: FONTS.bodyBold },
   // The count is a soft blue pill (like a small info chip) on the corner, so the label row never wraps on narrow tabs.
   // The count is a blue round tag on the chip's top right edge (a white ring round it), not inside the chip.
-  tabCount: { position: 'absolute', top: -10, right: 8, minWidth: 16, height: 16, paddingHorizontal: 4, borderRadius: 6, alignItems: 'center', justifyContent: 'center', backgroundColor: '#1a73e8', borderWidth: 2, borderColor: pageBg() },
+  tabCount: { position: 'absolute', top: 1, right: 5, minWidth: 15, height: 15, paddingHorizontal: 4, borderRadius: 6, alignItems: 'center', justifyContent: 'center', backgroundColor: '#facc15' },
   mapRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   mapViewBtnOn: {},
   mapViewBtn: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
-  closeCircle: { marginLeft: 12, marginRight: 10, width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: '#1a73e8' },
-  receivedTools: { gap: 8, marginTop: 14 },
+  closeCircle: { marginLeft: 12, marginRight: 10, width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: '#2563eb' },
+  receivedTools: { gap: 8, marginTop: 28 },
   viewToggle: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: outline(), backgroundColor: Colors.bgCard },
-  viewToggleOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe', borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#d2e3fc' },
+  viewToggleOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#eff6ff', borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#bfdbfe' },
   bidRows: { gap: 8 },
   bidRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 12, borderWidth: 1, borderColor: outline(), backgroundColor: Colors.bgCard },
   bidRowLowest: { borderColor: Colors.success },
@@ -958,22 +1081,23 @@ const styles = themedStyles(() => StyleSheet.create({
   bidRowSub: { fontSize: 11.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 1 },
   bidRowPrice: { fontSize: 14, fontFamily: FONTS.titleBold, color: Colors.textMain },
   bidRowDone: { fontSize: 16, color: Colors.successText },
-  bidRowAccept: { paddingHorizontal: 12, height: 32, justifyContent: 'center', borderRadius: 16, backgroundColor: '#1a73e8' },
+  bidRowAccept: { paddingHorizontal: 12, height: 32, justifyContent: 'center', borderRadius: 16, backgroundColor: '#2563eb' },
   bidRowAcceptLowest: { backgroundColor: '#188038' },
   bidRowAcceptText: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: '#ffffff' },
   sortRow: { gap: 10, paddingRight: 16 },
-  sortChip: { paddingHorizontal: 14, height: 34, justifyContent: 'center', borderRadius: 17, borderWidth: 1, borderColor: outline(), backgroundColor: Colors.bgCard },
-  sortChipOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe', borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#d2e3fc' },
-  sortText: { fontSize: 12.5, fontFamily: FONTS.bodyMedium, color: Colors.textMuted },
-  sortTextOn: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8', fontFamily: FONTS.bodySemiBold },
+  // The sort chips sit on the header's blue: blue chips with a yellow edge; the open one is a deeper blue with a thicker edge.
+  sortChip: { paddingHorizontal: 14, height: 34, justifyContent: 'center', borderRadius: 17, borderWidth: 1.5, borderColor: '#facc15', backgroundColor: '#2563eb' },
+  sortChipOn: { backgroundColor: '#1d4ed8', borderWidth: 2.5 },
+  sortText: { fontSize: 12.5, fontFamily: FONTS.bodyMedium, color: '#ffffff' },
+  sortTextOn: { color: '#facc15', fontFamily: FONTS.bodyBold },
   marketNote: { fontSize: 12, fontFamily: FONTS.bodySemiBold },
   marketCheaper: { color: Colors.successText },
   marketDearer: { color: Colors.warning },
   usedChip: { alignSelf: 'flex-start', paddingHorizontal: 14, height: 34, justifyContent: 'center', borderRadius: 17, borderWidth: 1, borderColor: outline(), backgroundColor: Colors.bgCard },
-  usedChipOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe', borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#d2e3fc' },
+  usedChipOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#eff6ff', borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#bfdbfe' },
   usedChipText: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
-  usedChipTextOn: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
-  tabCountText: { fontSize: 10.5, fontFamily: FONTS.bodyBold, color: '#ffffff' },
+  usedChipTextOn: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#2563eb' },
+  tabCountText: { fontSize: 10, fontFamily: FONTS.bodyBold, color: '#111827' },
   tabCountTextActive: {},
   body: { paddingHorizontal: 4, paddingTop: 4, gap: 12, paddingBottom: 24 },
   fullMap: { ...StyleSheet.absoluteFill },
@@ -981,7 +1105,7 @@ const styles = themedStyles(() => StyleSheet.create({
   mapAnchored: { position: 'absolute', left: 0, right: 0, bottom: 0 },
   peek: { paddingHorizontal: 6, gap: 10 },
   peekHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  pullUp: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe' },
+  pullUp: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#eff6ff' },
   peekTitle: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
   peekRow: { gap: 14, paddingRight: 8, paddingTop: 2 },
   peekItem: { width: 62, height: 62 },
@@ -1014,7 +1138,7 @@ const styles = themedStyles(() => StyleSheet.create({
   badgeDanger: { backgroundColor: 'rgba(239, 68, 68, 0.12)', borderColor: 'rgba(239, 68, 68, 0.45)' },
   badgeText: { fontSize: 10, fontFamily: FONTS.bodySemiBold },
   // Photo tile: the garage's cover with the price on it, then name and one line of details.
-  bidCard: { borderRadius: 20, borderWidth: 1, borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#dadce0', backgroundColor: getThemeMode() === 'dark' ? Colors.bgCard : '#ffffff', shadowColor: '#0f172a', shadowOffset: { width: 0, height: 8 }, shadowOpacity: getThemeMode() === 'dark' ? 0.6 : 0.3, shadowRadius: 22, elevation: 12 },
+  bidCard: { borderRadius: 20, borderWidth: 1, borderColor: getThemeMode() === 'dark' ? Colors.borderColor : 'transparent', backgroundColor: getThemeMode() === 'dark' ? Colors.bgCard : '#ffffff', shadowColor: '#0f172a', shadowOffset: { width: 0, height: 8 }, shadowOpacity: getThemeMode() === 'dark' ? 0.6 : 0.3, shadowRadius: 22, elevation: 12 },
   bidCardLowest: { borderColor: 'rgba(16, 185, 129, 0.55)' },
   bidCardAccepted: { borderColor: Colors.success },
   bidCover: { width: '100%', height: 48 },
@@ -1037,7 +1161,11 @@ const styles = themedStyles(() => StyleSheet.create({
   fbActions: { flexDirection: 'row', marginHorizontal: 8, marginBottom: 4, paddingVertical: 2, borderTopWidth: 1, borderTopColor: getThemeMode() === 'dark' ? Colors.borderColor : '#e4e6eb' },
   fbAction: { flex: 1, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 8 },
   fbActionText: { fontSize: 14, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
-  fbActionPrimary: { color: '#1a73e8' },
+  fbActionPrimary: { color: '#2563eb' },
+  fbActionAccept: { backgroundColor: '#dbeafe', borderRadius: 20 },
+  fbActionDone: { backgroundColor: '#fde68a', borderRadius: 20 },
+  fbActionLowest: { backgroundColor: '#bbf7d0' },
+  fbActionLowestText: { color: '#15803d' },
   repubBtns: { gap: 8 },
   repubCard: { borderRadius: 14, backgroundColor: Colors.subtleFill, padding: 12, gap: 10 },
   repubRow: { flexDirection: 'row', gap: 10 },
@@ -1063,7 +1191,7 @@ const styles = themedStyles(() => StyleSheet.create({
   pricePinOn: { backgroundColor: '#7c3aed', transform: [{ scale: 1.15 }] },
   pricePinDear: { backgroundColor: '#d97706' },
   pinCardBtns: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
-  pinCardAccept: { alignSelf: 'flex-start', paddingHorizontal: 14, height: 32, borderRadius: 16, justifyContent: 'center', backgroundColor: '#1a73e8' },
+  pinCardAccept: { alignSelf: 'flex-start', paddingHorizontal: 14, height: 32, borderRadius: 16, justifyContent: 'center', backgroundColor: '#2563eb' },
   pinCardAcceptText: { fontSize: 11.5, fontFamily: FONTS.bodyBold, color: '#ffffff' },
   pinCard: { position: 'absolute', zIndex: 20, top: 110, left: 12, right: 12, gap: 6, padding: 12, borderRadius: 18, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#d3d9e2', shadowColor: '#0f172a', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.18, shadowRadius: 18, elevation: 8 },
   pinCardHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
@@ -1075,7 +1203,7 @@ const styles = themedStyles(() => StyleSheet.create({
   pinCardPrice: { fontSize: 20, fontFamily: FONTS.titleBold, color: Colors.success },
   pinCardMeta: { fontSize: 11.5, fontFamily: FONTS.bodyMedium, color: Colors.textMuted },
   pinCardBtn: { alignSelf: 'flex-start', paddingHorizontal: 12, height: 32, borderRadius: 16, justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.18)' : '#e3ecfd' },
-  pinCardBtnText: { fontSize: 11.5, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#2457e6' },
+  pinCardBtnText: { fontSize: 11.5, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#2563eb' },
   pricePinLowest: { backgroundColor: Colors.success },
   pricePinText: { fontSize: 10, fontWeight: '800', color: '#fff' },
   meDot: {

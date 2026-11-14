@@ -25,6 +25,6 @@ export const NudgeArrow: React.FC = () => {
 const styles = themedStyles(() =>
   StyleSheet.create({
     box: { width: 34, height: 34, alignItems: 'center', justifyContent: 'center' },
-    arrow: { fontSize: 40, lineHeight: 40, color: Colors.primary, fontFamily: FONTS.bodyRegular, fontWeight: '200', marginTop: -4 },
+    arrow: { fontSize: 40, lineHeight: 40, color: '#facc15', fontFamily: FONTS.bodyRegular, fontWeight: '200', marginTop: -4 },
   })
 );

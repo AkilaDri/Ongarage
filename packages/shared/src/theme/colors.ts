@@ -84,8 +84,14 @@ export const setThemeMode = (mode: ThemeMode) => {
   current = mode;
 };
 
+// An app may recolour a few palette entries for itself (the vehicle-owner app swaps page and card colours): set once at start, before the first screen is drawn.
+let overrides: Partial<Record<ThemeMode, Partial<Palette>>> = {};
+export const setAppPalette = (o: Partial<Record<ThemeMode, Partial<Palette>>>) => {
+  overrides = o;
+};
+
 export const Colors: Palette = new Proxy({} as Palette, {
-  get: (_, key) => PALETTES[current][key as keyof Palette],
+  get: (_, key) => overrides[current]?.[key as keyof Palette] ?? PALETTES[current][key as keyof Palette],
 });
 
 /**
@@ -139,7 +145,11 @@ export const getAppShape = () => shape;
 const LIGHT_EDGE: Record<string, string> = { '#dadce0': '#eceff3', '#e8eaed': '#f1f3f4', '#d2e3fc': '#dbe8fd' };
 
 /** The one corner every card and panel has in all four apps (the PickMe shape used to enlarge each corner by 1.6, so cards differed from 16 to 28). */
-const CARD_CORNER = 12;
+let CARD_CORNER = 12;
+/** An app may choose its own card corner (before its first screen is drawn). */
+export const setCardCorner = (n: number) => {
+  CARD_CORNER = n;
+};
 /** The padding inside every card and panel (vertical: two less). */
 const CARD_PAD = 16;
 /** The space between the lines of content inside a card. */
@@ -205,3 +215,20 @@ export function themedStyles<T extends object>(factory: () => T): T {
     },
   });
 }
+
+/**
+ * An app's own tone for the few shared pieces that carry a fixed colour (the page header's band and the bottom tabs' icons): an app that sets none keeps the default look.
+ * Only the light theme uses it.
+ */
+export type AppTone = {
+  /** The band at the top of every tab's page: its colour, the title's and the subtitle's. */
+  header?: { bg: string; title: string; sub: string };
+  /** The bottom tabs: the active icon's body and its small details. */
+  navInk?: string;
+  navAccent?: string;
+};
+let appTone: AppTone = {};
+export const setAppTone = (t: AppTone) => {
+  appTone = t;
+};
+export const getAppTone = () => (current === 'light' ? appTone : {});

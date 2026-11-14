@@ -370,7 +370,7 @@ export const WorkshopTracker: React.FC<{ id: string; detailed?: boolean }> = ({ 
 
 const styles = themedStyles(() =>
   StyleSheet.create({
-    receiptBox: { padding: 10, borderRadius: 12, gap: 8, backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.12)' : '#e8f0fe' },
+    receiptBox: { padding: 10, borderRadius: 12, gap: 8, backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.12)' : '#eff6ff' },
     receiptText: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textMain, lineHeight: 18 },
     receiptBtns: { flexDirection: 'row', gap: 8 },
     receiptBtn: { flex: 1, alignItems: 'center', paddingVertical: 7, borderRadius: 10 },
@@ -391,7 +391,7 @@ const styles = themedStyles(() =>
     replyLabel: { fontFamily: FONTS.bodySemiBold, color: Colors.primary },
     mustBuy: { gap: 2, padding: 10, borderRadius: 10, borderWidth: 1.5, borderColor: getThemeMode() === 'dark' ? 'rgba(253, 214, 99, 0.5)' : '#f9ab00', backgroundColor: getThemeMode() === 'dark' ? 'rgba(253, 214, 99, 0.1)' : '#fef7e0' },
     mustBuyHead: { fontSize: 12.5, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#fdd663' : '#b06000', lineHeight: 18 },
-    mustBuyText: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
+    mustBuyText: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#2563eb' },
     link: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
     label: { fontSize: 10.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, letterSpacing: 0.4 },
     sub: { flexShrink: 1, fontSize: 11, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 17 },

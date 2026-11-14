@@ -14,17 +14,21 @@ import {
 } from '@expo-google-fonts/noto-sans-sinhala';
 import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
 import { Icon, CalendarGridIcon, HeaderIconButton, pageHeaderBlue, Colors, DialogButton, FONTS, getThemeMode, Gradient, ModalCard, Pulse, themedStyles } from '@ongarage/shared';
-import { ThemeProvider, useTheme, setAppShape } from '@ongarage/shared';
+import { ThemeProvider, useTheme, setAppShape, setAppPalette, setAppTone, setCardCorner } from '@ongarage/shared';
 
 // This app has PickMe's shapes too (big rounded cards, pill buttons and chips, light edges, soft shadows), like the garage app. Set before the first screen is drawn.
 setAppShape('pickme');
+setCardCorner(22);
+// The same blue and yellow as Home on every tab: the page header band is the Home blue with white titles, and the bottom tabs are blue with yellow details.
+setAppTone({ header: { bg: '#2563eb', title: '#ffffff', sub: '#dbeafe' }, navInk: '#2563eb', navAccent: '#facc15' });
+// The owner app's page is white and its cards are the light grey (the other apps keep grey pages with white cards).
+setAppPalette({ light: { bgBody: '#f8fafc', sheetBg: '#f8fafc', bgCard: '#ffffff', primary: '#2563eb', primaryLight: '#60a5fa' } });
 import { VehiclesProvider } from './context/VehiclesContext';
 import { OwnerMartNav, OwnerNav } from './components/OwnerNav';
 import { setMartOpener, setShopOpener } from './utils/martBridge';
 import { setFittingOpener } from './utils/fittingBridge';
 import { LocationProvider } from './context/LocationContext';
 import { LanguageProvider } from './context/LanguageContext';
-import { periodOf, SkyBar, SkyShade, useHour } from './components/WeatherAnimation';
 import { MartProvider, useMart } from './context/MartContext';
 import { WallProvider } from './context/WallContext';
 import { BidsProvider } from './context/BidsContext';
@@ -35,14 +39,14 @@ import { SOSRecordsProvider } from './context/SOSRecordsContext';
 import { PendingRepairsProvider } from './context/PendingRepairsContext';
 import { WorkshopProvider } from './context/WorkshopContext';
 import { ProfileProvider } from './context/ProfileContext';
-import { Header, HEADER_BAND_H, TitleBand } from './components/Header';
+import { Header, HEADER_BAND_H } from './components/Header';
 import { HOME_FLOW } from './constants/homeFlow';
 import { PlaceCommunityProvider } from './context/PlaceCommunityContext';
 import { EvBookingProvider } from './context/EvBookingContext';
 import { TowProvider } from './context/TowContext';
 import { TowingScreen } from './screens/TowingScreen';
 import { HomeSearch } from './components/home/HomeSearch';
-import { QuoteOutline } from './components/home/QuoteOutline';
+import { HomeTop } from './components/home/HomeTop';
 import { GarageReviewsSheet } from './components/GarageReviewsSheet';
 import { MartHeader } from './components/mart/MartHeader';
 import { ChatHeaderButton } from './components/ChatHeaderButton';
@@ -57,7 +61,7 @@ import { chatDockDrop, chatDockOffset, chatHide } from './utils/chatDock';
 import { openActivityCalendar } from './utils/activityCalendar';
 import { openFeedRecord } from './utils/feedRecord';
 import { focusActivity } from './utils/activityFocus';
-import { PAGE_TITLE_H } from './constants/layout';
+import { BIDS_TITLE_H, PAGE_TITLE_H } from './constants/layout';
 import { Toast } from './components/Toast';
 import { DirectBookingSheet } from './components/DirectBookingSheet';
 import { BookedPrompt } from './components/BookedPrompt';
@@ -66,7 +70,7 @@ import { SOSMapPickerScreen } from './screens/SOSMapPickerScreen';
 import { SOSFlowScreen } from './screens/SOSFlowScreen';
 import { ServiceBrowseScreen } from './screens/ServiceBrowseScreen';
 import { PostJobScreen } from './screens/PostJobScreen';
-import { BidsScreen, type BidsTab } from './screens/BidsScreen';
+import { BidsScreen, FreeQuoteTag, type BidsTab } from './screens/BidsScreen';
 import { ActivityScreen } from './screens/ActivityScreen';
 import { ProfileScreen } from './screens/ProfileScreen';
 import { MartScreen } from './screens/MartScreen';
@@ -101,28 +105,28 @@ const TAB_TITLES: Partial<Record<TabId, string>> = { bids: 'Your Bids', activity
 /** The title bar of every tab but Home: a plain line of text at the top of the screen. */
 
 // Banner sizes: stacked cards at the top of Home, one compact row once the page is scrolled.
-// The deeper blue under the free-quotes text, behind the search bar (transparent at the top, navy at the bottom).
-const SEARCH_TINT = [
-  { offset: '0', color: '#0b1d5e', opacity: 0 },
-  { offset: '1', color: '#0b1d5e', opacity: 0.75 },
-];
-const SOS_H = 108;
-// The blue card is taller when it holds the search bar (HOME_FLOW 'search'); JOB_TOP_H is its text part.
-const JOB_TOP_H = 108;
-const JOB_H = HOME_FLOW === 'search' ? JOB_TOP_H + 62 : JOB_TOP_H;
+const ROW_H = 98;
+const ROW_GAP = 16; // space between the SOS row and the free-quotes row
+// The SOS and Quotes cards are the same size; the search bar (HOME_FLOW 'search') sits under them, on its own row.
+const SEARCH_ROW_H = 54;
+// One card holds the SOS row, the free-quotes row and the search bar.
+const SEARCH_GAP = 14; // space between the free-quotes row and the search bar
+const BTN_H = 152; // each action button (circle + badge row, title, line)
+const CARD_OUT = BTN_H + 20; // the white card round the two buttons (10px padding)
+const CARD_H = CARD_OUT + SEARCH_GAP + SEARCH_ROW_H + 8;
 const BANNER_GAP = 8;
 const COMPACT_H = 56;
 
 // Soft diagonal washes over the banners' base colours (lighter at the top left, deeper at the bottom right).
 const SOS_GRADIENT = [
-  { offset: '0', color: '#f43f45' },
-  { offset: '0.5', color: '#c81e2b' },
-  { offset: '1', color: '#7f1220' },
+  { offset: '0', color: '#ff6a6a' },
+  { offset: '0.55', color: '#e5283c' },
+  { offset: '1', color: '#b3142e' },
 ];
 const JOB_GRADIENT = [
-  { offset: '0', color: '#2f5bd6' },
-  { offset: '0.5', color: '#1b3a96' },
-  { offset: '1', color: '#0b1c52' },
+  { offset: '0', color: '#5b9bff' },
+  { offset: '0.55', color: '#2563eb' },
+  { offset: '1', color: '#1b3fb5' },
 ];
 
 type SOSStage = 'closed' | 'map' | 'flow';
@@ -166,10 +170,13 @@ function AppShell() {
   const bannerFold = useRef(new Animated.Value(0)).current;
   const scrollY = useRef(0);
   const [headerH, setHeaderH] = useState(80);
+  // Where Home's action card starts in the page; once it has scrolled away a compact copy sticks to the top.
+  const [homeCardY, setHomeCardY] = useState(150);
   // Width of the banner area: the two banners tween between stacked cards and one row of two.
   const [bannerW, setBannerW] = useState(358);
   // The pinned row is the full width of the header, the two banners side by side and the same size (the OnChat button docks below it).
   const half = (bannerW - BANNER_GAP) / 2;
+  const btnW = (bannerW - 20 - 8) / 2;
   const lerp = (a: number, b: number) => sheetScroll.interpolate({ inputRange: [0, 1], outputRange: [a, b] });
   const lerpB = (a: number, b: number) => bannerFold.interpolate({ inputRange: [0, 1], outputRange: [a, b] });
   const fadeOut = bannerFold.interpolate({ inputRange: [0, 0.4], outputRange: [1, 0], extrapolate: 'clamp' });
@@ -247,7 +254,6 @@ function AppShell() {
   const [martAllowed, setMartAllowed] = useState(false);
   const [askMart, setAskMart] = useState(false);
   const foldableBar = activeTab === 'activity' || activeTab === 'bids' || activeTab === 'profile';
-  const skyPeriod = periodOf(useHour());
   const [sosStage, setSOSStage] = useState<SOSStage>('closed');
   // The chat icon can be hidden by a screen while it scrolls (Bids): then it must not catch taps either.
   const [chatBlocked, setChatBlocked] = useState(false);
@@ -270,6 +276,20 @@ function AppShell() {
   const [payFirst, setPayFirst] = useState(false);
   // The hamburger in the Bids sheet header: every received bid as one row.
   const [bidsRows, setBidsRows] = useState(false);
+  // The Received sheet is open to the top: the same top header bar then drops its heading and carries Free Quote, the cards / rows switch and the close mark.
+  const [bidsUp, setBidsUp] = useState(false);
+  const bidsMinimize = useRef<(() => void) | null>(null);
+  // The Bids sheet's own measure of how far the header is folded (it follows the sheet, so header and sheet move as one).
+  const [bidsCollapse, setBidsCollapse] = useState<{ interpolate: Animated.Value['interpolate'] } | null>(null);
+  // The swap waits until the sheet has finished rising: re-drawing the whole app while its spring runs made it stutter.
+  const bidsUpTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const onBidsHeaderVisible = useCallback((visible: boolean) => {
+    if (bidsUpTimer.current) clearTimeout(bidsUpTimer.current);
+    bidsUpTimer.current = setTimeout(() => setBidsUp(!visible), visible ? 0 : 320);
+  }, []);
+  useEffect(() => {
+    if (activeTab !== 'bids') setBidsUp(false);
+  }, [activeTab]);
   const openPost = (draft: JobDraft | null) => (standing.limited ? setPayFirst(true) : setPostJob({ draft }));
   const openBooking = (b: { garage: Garage; categoryId?: string; initial?: { description?: string; vehicleId?: string; service?: string }; back?: () => void }) => (standing.limited ? setPayFirst(true) : setBooking(b));
   // A chat can send the owner to OnMart with a part searched (a part the garage asks for or the owner must buy).
@@ -329,7 +349,7 @@ function AppShell() {
 
   // The banners follow the owner's own scrolling (nothing snaps by itself): as the Home sheet is scrolled up the SOS and free-quotes banners fold into their
   // one row and stick in the top header, and they unfold the same way on the way back. They are pinned when the sheet reaches them, after `collapsePx` of scrolling, and `HomeScreen` holds its content back by the same distance so everything moves with the finger, one for one.
-  const collapsePx = Math.max(1, SOS_H + BANNER_GAP + JOB_H - COMPACT_H + Math.max(0, headerH - 18));
+  const collapsePx = Math.max(1, CARD_H - COMPACT_H + Math.max(0, headerH - 56));
   const collapseRef = useRef(collapsePx);
   collapseRef.current = collapsePx;
   const handleHomeScroll = useCallback((y: number) => {
@@ -382,148 +402,57 @@ function AppShell() {
     <SafeAreaProvider>
       <StatusBar style={isDark ? "light" : "dark"} />
       <SafeAreaView style={[styles.container, styles.containerFull, (activeTab === 'activity' || activeTab === 'mart') && { backgroundColor: pageHeaderBlue().from }]} edges={['top']}>
-        {/* The header band (greeting, sky, active vehicle) is Home's alone: the other tabs start at the top of the screen. */}
-        {activeTab === 'home' && (
-          <View onLayout={(e) => setHeaderH(Math.round(e.nativeEvent.layout.height))}>
-            <Header />
-          </View>
-        )}
         {/* Every other tab starts with its title; it folds away with the page scroll like the old header did. */}
-        {activeTab !== 'home' && activeTab !== 'bids' && !!TAB_TITLES[activeTab] && (
-          <Animated.View style={{ height: martHeaderCollapse.interpolate({ inputRange: [0, 1], outputRange: [PAGE_TITLE_H, 0] }), overflow: 'hidden', backgroundColor: pageHeaderBlue().from }}>
+        {activeTab !== 'home' && !!TAB_TITLES[activeTab] && (
+          <Animated.View style={{ height: (activeTab === 'bids' && bidsCollapse ? bidsCollapse : martHeaderCollapse).interpolate({ inputRange: [0, 1], outputRange: [activeTab === 'bids' ? BIDS_TITLE_H : PAGE_TITLE_H, 0] }), overflow: 'hidden', backgroundColor: pageHeaderBlue().from }}>
+            {/* On Bids the heading / Free Quote row vanishes at once as the header starts to fold (it is not squeezed away with the blue). */}
+            <Animated.View style={{ opacity: activeTab === 'bids' && bidsCollapse ? bidsCollapse.interpolate({ inputRange: [0, 0.15], outputRange: [1, 0], extrapolate: 'clamp' }) : 1 }}>
             {(() => {
               // The icon of the tab that was chosen in the bottom bar, in its open colours; the page's own button (the calendar, or the On Feed record) before the ONCHAT pill.
               const TabIcon = USER_TABS.find((t) => t.id === activeTab)?.icon;
               return (
                 <AppPageHeader
                   title={TAB_TITLES[activeTab]!}
-                  subtitle={activeTab === 'activity' ? 'ඔබගේ රැකියා සහ ගනුදෙනු' : 'කොටස් වෙළඳපොළ'}
+                  titleNode={activeTab === 'bids' && bidsUp ? <View style={styles.bidsFree}><FreeQuoteTag onPress={() => openPost(null)} /></View> : undefined}
+                  hideChat
+                  subtitle={activeTab === 'activity' ? 'ඔබගේ රැකියා සහ ගනුදෙනු' : activeTab === 'bids' ? 'ගරාජවලින් ලැබෙන ලංසු' : 'කොටස් වෙළඳපොළ'}
                   icon={TabIcon ? <TabIcon active size={26} /> : undefined}
                   actions={
                     activeTab === 'mart' && martSegment === 'wall' ? (
                       <HeaderIconButton onPress={openFeedRecord} label="Open my On Feed record" background={pageBg()}>
                         <Text style={styles.hamburger}>☰</Text>
                       </HeaderIconButton>
+                    ) : activeTab === 'bids' && bidsUp ? (
+                      <View style={styles.bidsIcons}>
+                        <HeaderIconButton onPress={() => setBidsRows((v) => !v)} label={bidsRows ? 'Show the bids as cards' : 'Show all the bids as rows'} background={pageBg()}>
+                          <Text style={styles.hamburger}>{bidsRows ? '▤' : '☰'}</Text>
+                        </HeaderIconButton>
+                        <HeaderIconButton onPress={() => bidsMinimize.current?.()} label="Close, lower the sheet" background={pageBg()}>
+                          <Text style={styles.hamburger}>✕</Text>
+                        </HeaderIconButton>
+                      </View>
                     ) : activeTab === 'activity' ? (
                       <HeaderIconButton onPress={openActivityCalendar} label="Open calendar" background={pageBg()}>
-                        <CalendarGridIcon size={32} color={Colors.textMain} />
+                        <CalendarGridIcon size={32} color={getThemeMode() === 'dark' ? Colors.textMain : '#ffffff'} />
                       </HeaderIconButton>
                     ) : undefined
                   }
                 />
               );
             })()}
+            </Animated.View>
           </Animated.View>
         )}
 
-        {/* Sticky banners on Home with animated rounded bottom corners */}
-        {activeTab === 'home' && (
-          <Animated.View style={[styles.stickyBannersContainer, { marginTop: sheetScroll.interpolate({ inputRange: [0, 1], outputRange: [-18, -headerH] }), borderTopLeftRadius: lerp(24, 0), borderTopRightRadius: lerp(24, 0) }]}>
-            {/* The sheet's top takes the colour the header's sky ends in and shades down into the page colour. */}
-            {/* Once the page has scrolled and the header has folded away, the page colour fills right up to the top and the sky's shade fades out, so no coloured band with an edge is left at the top of the screen. */}
-            <View style={styles.sheetBack} pointerEvents="none" />
-            <Animated.View style={[styles.skyShade, { opacity: sheetScroll.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }) }]} pointerEvents="none">
-              <SkyShade period={skyPeriod} />
-            </Animated.View>
-            {/* Scrolled: the bar the SOS and Quotes chips stick to takes the animation's own sky colours. */}
-            <Animated.View style={[StyleSheet.absoluteFill, { opacity: sheetScroll }]} pointerEvents="none">
-              <SkyBar period={skyPeriod} />
-            </Animated.View>
-            <View onLayout={(e) => setBannerW(Math.round(e.nativeEvent.layout.width))}>
-              <Animated.View style={{ height: lerp(SOS_H + BANNER_GAP + JOB_H, COMPACT_H) }}>
-                {/* SOS: full card at the top of the page, the left half of a single row once scrolled */}
-                <Animated.View style={[styles.sosBanner, styles.bannerAbs, { width: lerpB(bannerW, half), height: lerpB(SOS_H, COMPACT_H), top: 0, left: 0 }]}>
-                  <Gradient stops={SOS_GRADIENT} />
-                  <View style={styles.sheen} pointerEvents="none" />
-                  <Pressable style={({ pressed }) => [StyleSheet.absoluteFill, pressed && styles.pressed]} onPress={() => setSOSStage('map')} accessibilityLabel="Open SOS">
-                    <Animated.View style={[styles.sosBannerContent, styles.bannerFull, { width: bannerW, opacity: fadeOut }]}>
-                      <View style={styles.sosLeft}>
-                        <View style={styles.sosBadge}>
-                          <Pulse style={styles.pulseDot} />
-                          <Text style={[styles.badgeText, styles.badgeTextSos]}>24/7 SOS</Text>
-                        </View>
-                        <Text style={styles.heroTitle}>වාහනය Breakdown ද ?</Text>
-                        <Text style={styles.heroSub}>ළගම OnGarage උදව් ඉල්ලන්න</Text>
-                      </View>
-                      <View style={styles.sosButton}>
-                        <Text style={styles.sosButtonText}>SOS</Text>
-                      </View>
-                    </Animated.View>
-                    <Animated.View style={[styles.compactRow, { opacity: fadeIn }]} pointerEvents="none">
-                      <View style={styles.compactPlus}>
-                        <Pulse style={styles.compactDot} />
-                      </View>
-                      <Text style={styles.compactSos}>SOS</Text>
-                      <Text style={styles.compactSmall}>24/7</Text>
-                    </Animated.View>
-                  </Pressable>
-                </Animated.View>
-
-                {/* Post a job: full card below the SOS card, the right half of the row once scrolled */}
-                <Animated.View style={[styles.jobBanner, styles.bannerAbs, { width: lerpB(bannerW, half), height: lerpB(JOB_H, COMPACT_H), top: lerpB(SOS_H + BANNER_GAP, 0), left: lerpB(0, half + BANNER_GAP) }]}>
-                  <Gradient stops={JOB_GRADIENT} />
-                  <View style={styles.sheen} pointerEvents="none" />
-                  {/* The free-quotes text and the ＋ sit in a card of their own inside the blue card: only an outline, no fill. */}
-                  {HOME_FLOW === 'search' && <QuoteOutline style={[styles.jobQuoteOutline, { opacity: fadeOut }]} />}
-                  <Pressable style={({ pressed }) => [StyleSheet.absoluteFill, pressed && styles.pressed]} onPress={() => openPost(null)} accessibilityLabel="Post a repair job">
-                    <Animated.View style={[styles.jobBannerContent, styles.bannerFull, HOME_FLOW === 'search' && { bottom: undefined, height: JOB_TOP_H }, { width: bannerW, opacity: fadeOut }]}>
-                      <View style={styles.jobLeft}>
-                        <View style={styles.jobBadge}>
-                          <Text style={[styles.badgeText, styles.badgeTextJob]}>නොමිලේ Quotes</Text>
-                        </View>
-                        <Text style={styles.jobBannerTitle}>වාහනයේ Repair එකක්ද?</Text>
-                        <Text style={styles.jobBannerSub}>OnGarage වලින් Quotes ගන්න</Text>
-                      </View>
-                      <View style={styles.jobCta}>
-                        <Text style={styles.jobCtaText}>＋</Text>
-                      </View>
-                    </Animated.View>
-                    <Animated.View style={[styles.compactRow, { opacity: fadeIn }]} pointerEvents="box-none">
-                      <Pressable style={styles.compactRow} onPress={() => openPost(null)} accessibilityLabel="Post a repair job">
-                        <View style={styles.compactPlus}>
-                          <View style={styles.plusBarH} />
-                          <View style={styles.plusBarV} />
-                        </View>
-                        <Text style={styles.compactJob}>Quotes ඉල්ලන්න</Text>
-                      </Pressable>
-                    </Animated.View>
-                  </Pressable>
-                  {/* The search part of the card has its own deeper blue, fading in from where the free-quotes text ends down to the card's bottom edge. */}
-                  {HOME_FLOW === 'search' && (
-                    <Animated.View pointerEvents="none" style={[styles.jobSearchTint, { opacity: fadeOut }]}>
-                      <Gradient vertical stops={SEARCH_TINT} />
-                    </Animated.View>
-                  )}
-                  {/* The search part of the card is its own touch zone: touching the search bar or the space round it never reaches the post-a-job press behind it. */}
-                  {HOME_FLOW === 'search' && searchLive && <View style={{ position: 'absolute', left: 0, right: 0, top: JOB_TOP_H, bottom: 0 }} onStartShouldSetResponder={() => true} />}
-                  {/* The search bar inside the blue card, under the free-quotes text; the ＋ above still posts a job. */}
-                  {HOME_FLOW === 'search' && (
-                    <Animated.View pointerEvents={searchLive ? 'auto' : 'none'} style={{ position: 'absolute', left: 12, bottom: 12, width: Math.max(0, bannerW - 24), opacity: fadeOut }}>
-                      <HomeSearch
-                        inCard
-                        onService={(c, sub) => {
-                          setSelectedSubName(sub);
-                          setSelectedService(c);
-                        }}
-                        onGarage={setSearchGarage}
-                        onPost={(categoryId, text) => openPost({ categoryId, description: text, vehicleId: selectedVehicle } as unknown as JobDraft)}
-                      />
-                    </Animated.View>
-                  )}
-                </Animated.View>
-              </Animated.View>
-            </View>
-          </Animated.View>
-        )}
 
         <Animated.View
           {...tabSwipe.panHandlers}
           style={[
             styles.sheet,
-            activeTab === 'home' && styles.sheetOverlap,
+            
             activeTab === 'home' && styles.sheetHome,
             // On Home the sheet's top corners straighten once the page has scrolled up to the top of the screen.
-            activeTab === 'home' && { borderTopLeftRadius: lerp(24, 0), borderTopRightRadius: lerp(24, 0) },
+            
             { opacity: pageAnim, transform: [{ translateY: pageAnim.interpolate({ inputRange: [0, 1], outputRange: [14, 0] }) }] },
           ]}
         >
@@ -537,7 +466,27 @@ function AppShell() {
               }}
               onBookGarage={(garage, back) => openBooking({ garage, back })}
               onScrollChange={handleHomeScroll}
-              collapsePx={collapsePx}
+              collapsePx={0}
+              stickyFrom={homeCardY + 190}
+              top={
+                <HomeTop
+                  onCardY={setHomeCardY}
+                  vehicleId={selectedVehicle}
+                  onSelectVehicle={setSelectedVehicle}
+                  onSOS={() => setSOSStage('map')}
+                  onPost={() => openPost(null)}
+                  search={
+                    <HomeSearch
+                      onService={(c, sub) => {
+                        setSelectedSubName(sub);
+                        setSelectedService(c);
+                      }}
+                      onGarage={setSearchGarage}
+                      onPost={(categoryId, text) => openPost({ categoryId, description: text, vehicleId: selectedVehicle } as unknown as JobDraft)}
+                    />
+                  }
+                />
+              }
             />
           ) : activeTab === 'bids' ? (
             <BidsScreen
@@ -552,7 +501,9 @@ function AppShell() {
                 focusActivity({ kind: 'current', current: 'bids' });
                 setActiveTab('activity');
               }}
-              onHeaderVisibilityChange={setMartHeaderVisible}
+              minimizeRef={bidsMinimize}
+              onHeaderCollapse={setBidsCollapse}
+              onHeaderVisibilityChange={onBidsHeaderVisible}
             />
           ) : activeTab === 'activity' ? (
             <ActivityScreen onHeaderProgress={(p) => martHeaderCollapse.setValue(p)} onOpenMart={() => setActiveTab('mart')} onOpenBids={() => setActiveTab('bids')} onBookAgain={(b) => setSelectedService(categoryInfo(b.categoryId))} />
@@ -627,9 +578,9 @@ function AppShell() {
         <ServiceReminders />
         <PaymentReminders />
         {/* The chat icon stays put at the top right however the header folds away while the page scrolls. */}
-        {activeTab !== 'bids' && activeTab !== 'activity' && activeTab !== 'mart' && (
+        {(
           <Animated.View
-            style={[styles.floatChat, activeTab === 'home' ? styles.floatChatHome : { top: -2 }, { opacity: chatHide.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }), transform: [{ translateY: activeTab === 'home' ? 0 : Animated.multiply(martHeaderCollapse, chatDockDrop) }, { translateY: chatHide.interpolate({ inputRange: [0, 1], outputRange: [0, -24] }) }] }]}
+            style={[styles.floatChat, (activeTab === 'home' || activeTab === 'activity' || activeTab === 'bids' || activeTab === 'mart') ? styles.floatChatHome : { top: -2 }, { opacity: chatHide.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }), transform: [{ translateY: (activeTab === 'home' || activeTab === 'activity' || activeTab === 'bids' || activeTab === 'mart') ? 0 : Animated.multiply(martHeaderCollapse, chatDockDrop) }, { translateY: chatHide.interpolate({ inputRange: [0, 1], outputRange: [0, -24] }) }] }]}
             pointerEvents={chatBlocked ? 'none' : 'box-none'}
           >
             <ChatHeaderButton scrolled={activeTab === 'home' ? sheetScroll : martHeaderCollapse} />
@@ -767,13 +718,15 @@ const styles = themedStyles(() => StyleSheet.create({
   containerFull: { backgroundColor: pageBg() },
   // Room on the right for the chat bubble that floats over the top right corner.
   flex1: { flex: 1 },
-  hamburger: { fontSize: 24, lineHeight: 26, color: '#1a73e8' },
+  bidsFree: { alignItems: 'flex-start' },
+  bidsIcons: { flexDirection: 'row', alignItems: 'center' },
+  hamburger: { fontSize: 24, lineHeight: 26, color: getThemeMode() === 'dark' ? Colors.textMain : '#ffffff' },
   // Just a plain line icon on a round tint, no words.
-  calendarBtn: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center', backgroundColor: '#e8f0fe' },
+  calendarBtn: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center', backgroundColor: '#eff6ff' },
   pageTitleBar: { height: PAGE_TITLE_H, flexDirection: 'row', alignItems: 'center', gap: 10, paddingLeft: 12, paddingRight: 90 },
   pageTitle: { flexShrink: 1, fontSize: 18, fontFamily: FONTS.titleBold, color: Colors.textMain },
-  pageTitleAction: { paddingHorizontal: 12, height: 32, borderRadius: 16, justifyContent: 'center', backgroundColor: '#e8f0fe', borderWidth: 1, borderColor: '#d2e3fc' },
-  pageTitleActionText: { fontSize: 12, fontFamily: FONTS.bodyBold, color: '#1a73e8' },
+  pageTitleAction: { paddingHorizontal: 12, height: 32, borderRadius: 16, justifyContent: 'center', backgroundColor: '#eff6ff', borderWidth: 1, borderColor: '#bfdbfe' },
+  pageTitleActionText: { fontSize: 12, fontFamily: FONTS.bodyBold, color: '#2563eb' },
   // On Home the OnChat pill floats at the bottom right, just above the tab bar (72px high).
   floatChatHome: { top: 'auto', bottom: 84 },
   floatChat: { position: 'absolute', top: 10, right: 14, zIndex: 50, height: 44, backgroundColor: 'transparent' },
@@ -783,55 +736,65 @@ const styles = themedStyles(() => StyleSheet.create({
   sosLayerHidden: { display: 'none' },
   sosReturn: { position: 'absolute', zIndex: 60, left: 16, right: 16, bottom: 96, alignItems: 'center', justifyContent: 'center', height: 46, borderRadius: 23, backgroundColor: '#dc2626', shadowColor: '#dc2626', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.4, shadowRadius: 12, elevation: 10 },
   sosReturnText: { fontSize: 14, fontFamily: FONTS.titleBold, color: '#ffffff' },
-  sheetOverlap: { marginTop: -18, borderTopLeftRadius: 24, borderTopRightRadius: 24, overflow: 'hidden' },
+  sheetOverlap: { marginTop: -18, borderTopLeftRadius: 30, borderTopRightRadius: 30, overflow: 'hidden' },
   // Home: the list sits in its own rounded, shadowed sheet that slides up over the padding under the banners.
   // No border or shadow where the sheet meets the banners: the header's sky shades into the same page colour.
   // Solid: the page colour behind the lists.
-  sheetHome: { marginTop: -16, zIndex: 2, backgroundColor: pageBg() },
+  sheetHome: { marginTop: 0, zIndex: 2, backgroundColor: 'transparent' },
   bottomNavContainer: { position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 20 },
   // Sticky banners on Home (outside the sheet so they don't move when sheet expands)
   // Starts 4px above the container (over only the last strip of the header, so the buildings stay visible) and runs down over the sheet's top; a plain rectangle, no corners.
     // The page colour behind the banners, from exactly where the header ends (the container itself overlaps the header by 18).
-  sheetBack: { position: 'absolute', left: 0, right: 0, top: 16, bottom: 0, backgroundColor: pageBg() },
+  cornerFill: { position: 'absolute', left: 0, right: 0, top: 0, height: 32, backgroundColor: getThemeMode() === 'dark' ? '#0e2a3f' : '#2563eb' },
+  sheetBack: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, backgroundColor: pageBg() },
   skyShade: { position: 'absolute', left: 0, right: 0, top: 16, height: 262, overflow: 'hidden' },
-  stickyBannersContainer: { marginTop: -18, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 6, paddingTop: 16, paddingBottom: 26, zIndex: 1, backgroundColor: 'transparent' },
+  stickyBannersContainer: { marginTop: -18, paddingHorizontal: 16, paddingTop: 0, paddingBottom: 12, zIndex: 1, backgroundColor: 'transparent' },
   pressed: { opacity: 0.9, transform: [{ scale: 0.99 }] },
-  sosBanner: { borderRadius: 22, overflow: 'hidden', backgroundColor: '#c81e2b', borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.2)', shadowColor: '#c81e2b', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.35, shadowRadius: 20, elevation: 7 },
+  // Both cards share one look: a vivid diagonal wash, a glass badge, a white round button with a coloured symbol, the same corners and no shadow.
+  // A plain light card: no strong blue or red, just soft tinted symbols on it.
+  // The one card that holds the SOS row, the free-quotes row and the search bar.
+  // No card round the three: the SOS row and the free-quotes row each have a border line of their own; the search bar sits under them.
+  bannerCard: { position: 'absolute', top: 0, left: 0 },
+  searchBox: { borderRadius: 26, shadowColor: '#0f172a', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.11, shadowRadius: 14, elevation: 4 },
+  rowContent: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 18 },
+  rowText: { flex: 1, gap: 4 },
+  // Each row is a plain light card of its own.
+  sosBanner: { backgroundColor: Colors.bgCard, borderRadius: 26, shadowColor: '#0f172a', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.11, shadowRadius: 14, elevation: 4 },
   // A soft light disc in the corner: depth without clutter.
-  sheen: { position: 'absolute', top: -70, right: -40, width: 190, height: 190, borderRadius: 95, backgroundColor: 'rgba(255, 255, 255, 0.07)' },
-  sosBannerContent: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 18, paddingVertical: 16, gap: 12 },
-  sosLeft: { flex: 1, gap: 3 },
-  sosBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'flex-start', paddingHorizontal: 9, paddingVertical: 3, borderRadius: 11, backgroundColor: '#ffffff', marginBottom: 3 },
-  jobBadge: { alignSelf: 'flex-start', paddingHorizontal: 9, paddingVertical: 3, borderRadius: 11, backgroundColor: '#ffffff', marginBottom: 3 },
-  pulseDot: { width: 6, height: 6, backgroundColor: '#fff', borderRadius: 3 },
-  badgeText: { fontSize: 10.5, fontWeight: '800', color: '#fff', letterSpacing: 0.4 },
+  sheen: { position: 'absolute', top: -50, right: -44, width: 130, height: 130, borderRadius: 65, backgroundColor: 'rgba(255, 255, 255, 0.10)' },
+  sosBannerContent: { paddingHorizontal: 14, paddingVertical: 12 },
+  sosLeft: { flex: 1, justifyContent: 'space-between' },
+  cardText: { gap: 2 },
+  cardTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  sosBadge: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 6, borderRadius: 16, backgroundColor: 'rgba(229, 40, 60, 0.10)' },
+  jobBadge: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 16, backgroundColor: 'rgba(37, 99, 235, 0.08)', borderWidth: 1, borderColor: 'rgba(37, 99, 235, 0.5)' },
+  pulseDot: { width: 6, height: 6, backgroundColor: '#e5283c', borderRadius: 3 },
+  badgeText: { fontSize: 12.5, fontWeight: '800', letterSpacing: 0.4 },
   // Solid white badges carry their colour in the text, so the small label reads on the white.
-  badgeTextSos: { color: '#b91c1c' },
-  badgeTextJob: { color: '#1b3a96' },
-  heroTitle: { fontSize: 17, fontFamily: FONTS.titleBold, color: '#fff', letterSpacing: 0.2 },
-  heroSub: { fontSize: 12, fontFamily: FONTS.bodyMedium, color: '#ffffff' },
-  sosButton: { width: 70, height: 70, borderRadius: 35, backgroundColor: '#ffffff', borderWidth: 5, borderColor: 'rgba(255, 255, 255, 0.35)', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  sosButtonText: { fontSize: 17, fontWeight: '900', color: '#c81e2b', letterSpacing: 1 },
+  badgeTextSos: { color: '#e5283c' },
+  badgeTextJob: { color: '#2563eb' },
+  heroTitle: { fontSize: 17, fontFamily: FONTS.titleBold, color: Colors.textMain, letterSpacing: 0.2 },
+  heroSub: { fontSize: 12.5, fontFamily: FONTS.bodyMedium, color: Colors.textMuted },
+  sosButton: { width: 56, height: 56, borderRadius: 28, backgroundColor: 'rgba(229, 40, 60, 0.12)', borderWidth: 2, borderColor: 'rgba(229, 40, 60, 0.55)', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  sosButtonText: { fontSize: 11.5, fontWeight: '900', color: '#e5283c', letterSpacing: 1 },
   // No shadow keys at all (the app's PickMe shape adds a soft shadow to any style that has one): its shadow showed as a pale streak between this card and the search bar.
-  jobSearchTint: { position: 'absolute', left: 0, right: 0, top: JOB_TOP_H - 14, bottom: 0 },
-  jobQuoteOutline: { position: 'absolute', left: 10, right: 10, top: 10, height: JOB_TOP_H - 14 },
-  jobBanner: { borderRadius: 22, overflow: 'hidden', backgroundColor: '#1b3a96', borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.2)' },
-  jobBannerContent: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 18, paddingVertical: 16, gap: 12 },
-  jobLeft: { flex: 1, gap: 2 },
-  jobBannerTitle: { fontSize: 17, fontFamily: FONTS.titleBold, color: '#fff', letterSpacing: 0.2 },
-  jobBannerSub: { fontSize: 12, fontFamily: FONTS.bodyMedium, color: '#ffffff' },
-  jobCta: { width: 60, height: 60, borderRadius: 30, backgroundColor: '#ffffff', borderWidth: 4, borderColor: 'rgba(255, 255, 255, 0.35)', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  jobBanner: { backgroundColor: Colors.bgCard, borderRadius: 26, shadowColor: '#0f172a', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.11, shadowRadius: 14, elevation: 4 },
+  jobBannerContent: { paddingHorizontal: 14, paddingVertical: 12 },
+  jobLeft: { flex: 1, justifyContent: 'space-between' },
+  jobBannerTitle: { fontSize: 17, fontFamily: FONTS.titleBold, color: Colors.textMain, letterSpacing: 0.2 },
+  jobBannerSub: { fontSize: 12.5, fontFamily: FONTS.bodyMedium, color: Colors.textMuted },
+  jobCta: { width: 56, height: 56, borderRadius: 28, backgroundColor: 'rgba(37, 99, 235, 0.10)', borderWidth: 1.5, borderColor: 'rgba(37, 99, 235, 0.45)', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   bannerAbs: { position: 'absolute' },
   bannerFull: { position: 'absolute', left: 0, top: 0, bottom: 0 },
   compactRow: { ...StyleSheet.absoluteFill, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
-  compactSos: { fontSize: 17, fontWeight: '900', color: '#fff', letterSpacing: 1 },
-  compactSmall: { fontSize: 11, fontWeight: '700', color: '#ffffff' },
-  compactPlus: { width: 28, height: 28, borderRadius: 14, borderWidth: 2, borderColor: 'rgba(255,255,255,0.85)', alignItems: 'center', justifyContent: 'center' },
-  compactDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: '#fff' },
+  compactSos: { fontSize: 17, fontWeight: '900', color: '#e5283c', letterSpacing: 1 },
+  compactSmall: { fontSize: 11, fontWeight: '700', color: Colors.textMuted },
+  compactPlus: { width: 28, height: 28, borderRadius: 14, borderWidth: 2, borderColor: '#2563eb', alignItems: 'center', justifyContent: 'center' },
+  compactDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: '#e5283c' },
   // The plus is drawn (not a glyph) so its stroke weight matches the dot's.
-  plusBarH: { position: 'absolute', width: 12, height: 2.5, borderRadius: 2, backgroundColor: '#fff' },
-  plusBarV: { position: 'absolute', width: 2.5, height: 12, borderRadius: 2, backgroundColor: '#fff' },
+  plusBarH: { position: 'absolute', width: 12, height: 2.5, borderRadius: 2, backgroundColor: '#2563eb' },
+  plusBarV: { position: 'absolute', width: 2.5, height: 12, borderRadius: 2, backgroundColor: '#2563eb' },
   compactPlusText: { fontSize: 15, fontWeight: '700', color: '#fff', marginTop: -2 },
-  compactJob: { fontSize: 14, fontFamily: FONTS.titleBold, color: '#fff' },
-  jobCtaText: { fontSize: 26, fontWeight: '700', color: '#1b3a96', marginTop: -2 },
+  compactJob: { fontSize: 14, fontFamily: FONTS.titleBold, color: Colors.textMain },
+  jobCtaText: { fontSize: 24, fontWeight: '700', color: '#2563eb', marginTop: -2 },
 }));

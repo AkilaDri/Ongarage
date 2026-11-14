@@ -11,7 +11,7 @@ import type { TowTruck } from '../constants/towOperators';
 export const TowTruckCard: React.FC<{ truck: TowTruck; body: string }> = ({ truck, body }) => (
   <View style={styles.card}>
     <View style={styles.photo}>
-      <Gradient stops={[{ offset: '0', color: '#e8f0fe' }, { offset: '1', color: '#c9dcf7' }]} />
+      <Gradient stops={[{ offset: '0', color: '#eff6ff' }, { offset: '1', color: '#c9dcf7' }]} />
       <View style={styles.drawing}>
       <Svg width={230} height={118} viewBox="0 0 230 118">
         {/* the road */}

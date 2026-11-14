@@ -23,10 +23,10 @@ export const MartHeader: React.FC = () => {
           <Text style={styles.badgeEmoji}>🛍️</Text>
         </View>
         <View style={styles.texts}>
-          <Text style={[styles.title, { color: ink.main }]} numberOfLines={1}>
+          <Text style={[styles.title, { color: '#ffffff' }]} numberOfLines={1}>
             OnMart
           </Text>
-          <Text style={[styles.sub, { color: ink.sub }]} numberOfLines={1}>
+          <Text style={[styles.sub, { color: '#e8e2d0' }]} numberOfLines={1}>
             📍 {locality}
           </Text>
         </View>
@@ -40,7 +40,7 @@ const dark = () => getThemeMode() === 'dark';
 
 const styles = themedStyles(() =>
   StyleSheet.create({
-    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12, paddingHorizontal: 18, paddingTop: 12, paddingBottom: 34, minHeight: HEADER_BAND_H, overflow: 'hidden', backgroundColor: dark() ? '#0e2a3f' : '#bfe4fa' },
+    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12, paddingHorizontal: 18, paddingTop: 12, paddingBottom: 34, minHeight: HEADER_BAND_H, overflow: 'hidden', backgroundColor: dark() ? '#0e2a3f' : '#2563eb' },
     left: { flexDirection: 'row', alignItems: 'center', gap: 10, flexShrink: 1 },
     badge: { width: 44, height: 44, borderRadius: 22, backgroundColor: dark() ? '#16415f' : '#ffffff', alignItems: 'center', justifyContent: 'center' },
     badgeEmoji: { fontSize: 22 },
