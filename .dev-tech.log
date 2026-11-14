@@ -1,0 +1,18 @@
+
+> tech
+> npm run start --workspace @ongarage/tech
+
+
+> @ongarage/tech@0.1.0 start
+> expo start --port 8094
+
+Starting project at C:\Users\Top Code\Desktop\topongarage\Ongarage\apps\tech
+Using src/app as the root directory for Expo Router.
+Expo Autolinking module resolution enabled
+Starting Metro Bundler
+
+Waiting on http://localhost:8094
+
+An update for expo is available: 57.0.26 → ~57.0.32
+9 other packages may need updating. Run npx expo install --check for details.
+Logs for your project will appear below.
