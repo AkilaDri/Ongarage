@@ -433,11 +433,6 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
               <Text style={styles.fbStars}>{'★'.repeat(Math.round(bid.rating))}{'☆'.repeat(5 - Math.round(bid.rating))}</Text> {bid.rating.toFixed(1)} ({bid.reviews})
             </Text>
           </View>
-          {!isAccepted && (
-            <Pressable style={styles.fbMore} onPress={() => setDeletingBid({ job, bid })} hitSlop={8} accessibilityLabel={`Delete bid from ${bid.garageName}`}>
-              <Icon name="trash" size={16} color={Colors.textMuted} />
-            </Pressable>
-          )}
         </View>
         <Text style={styles.fbSubLine} numberOfLines={1}>
           {ago(now - bid.submittedAt)} · {SERVICE_CATEGORIES.find((c) => c.id === job.categoryId)?.name ?? 'Service'}{isLowest && !job.acceptedBidId ? ' · 💰 අඩුම ලංසුව' : ''}
@@ -495,20 +490,22 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
     return (
       <Pressable key={bid.id} style={[styles.bidRow, isLowest && !job.acceptedBidId && styles.bidRowLowest, isAccepted && styles.bidRowAccepted]} onPress={() => setBidView({ job, bid })} accessibilityLabel={`${bid.garageName} bid`}>
         <View style={styles.flex1}>
-          <Text style={styles.bidRowName} numberOfLines={1}>
+          <Text style={styles.bidRowName} numberOfLines={2}>
             {bid.level ? `${LEVELS.find((l) => l.id === bid.level)?.icon} ` : ''}
             {bid.garageName}
           </Text>
           <Text style={styles.bidRowSub} numberOfLines={1}>
-            ★ {bid.rating.toFixed(1)} ({bid.reviews}) · km {bid.distanceKm} · මාස {bid.warrantyMonths}{isLowest && !job.acceptedBidId ? ' · 💰 අඩුම' : ''}{marketNote(job, bid) ? ` · ${marketNote(job, bid)!.short}` : ''}
+            ★ {bid.rating.toFixed(1)} ({bid.reviews}) · {bid.distanceKm} km{isLowest && !job.acceptedBidId ? ' · 💰 අඩුම' : ''}
           </Text>
         </View>
-        <Text style={styles.bidRowPrice}>{money(bid.price)}</Text>
         {isAccepted ? (
-          <Text style={styles.bidRowDone}>✓</Text>
+          <View style={styles.bidRowEnd}>
+            <Text style={styles.bidRowPrice}>{money(bid.price)}</Text>
+            <Text style={styles.bidRowDone}>✓</Text>
+          </View>
         ) : (
-          <Pressable style={[styles.bidRowAccept, isLowest && styles.bidRowAcceptLowest]} onPress={() => askAccept({ job, bid })} hitSlop={6} accessibilityLabel={`Accept the bid of ${bid.garageName}`}>
-            <Text style={styles.bidRowAcceptText}>පිළිගන්න</Text>
+          <Pressable style={[styles.bidRowPriceBtn, isLowest && styles.bidRowAcceptLowest]} onPress={() => askAccept({ job, bid })} hitSlop={6} accessibilityRole="button" accessibilityLabel={`Accept the bid of ${bid.garageName} for ${money(bid.price)}`}>
+            <Text style={styles.bidRowPriceBtnText}>{money(bid.price)}</Text>
           </Pressable>
         )}
       </Pressable>
@@ -594,7 +591,9 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
                 </View>
               )}
               {!job.acceptedBidId && now < biddingEndsAt(job) && (
-                <Text style={[styles.hint, { color: '#1d4ed8' }]}>⏱️ ලංසු අවසන් වීමට: {remaining(biddingEndsAt(job) - now)}</Text>
+                <View style={[styles.countChip, biddingEndsAt(job) - now < 3600000 && styles.countChipUrgent]} accessibilityLabel="Time left for bids">
+                  <Text style={[styles.countChipText, biddingEndsAt(job) - now < 3600000 && styles.countChipTextUrgent]}>⏱️ {remaining(biddingEndsAt(job) - now)} ඉතිරියි</Text>
+                </View>
               )}
               {rowsView ? <View style={styles.bidRows}>{shown.map((bid) => renderBidRow(job, bid))}</View> : shown.map((bid) => renderBidCard(job, bid))}
               {job.acceptedBidId && job.bids.length > 1 && (
@@ -982,6 +981,15 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
               }
             : undefined
         }
+        onDecline={
+          bidView && !bidView.job.acceptedBidId
+            ? () => {
+                const v = bidView;
+                setBidView(null);
+                setDeletingBid(v);
+              }
+            : undefined
+        }
       />
 
       {deletingBid && (
@@ -1174,11 +1182,14 @@ const styles = themedStyles(() => StyleSheet.create({
   bidRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 12, borderWidth: 1, borderColor: outline(), backgroundColor: Colors.bgCard },
   bidRowLowest: { borderColor: Colors.success },
   bidRowAccepted: { borderColor: Colors.success, backgroundColor: getThemeMode() === 'dark' ? 'rgba(129, 201, 149, 0.1)' : '#e6f4ea' },
-  bidRowName: { fontSize: 13.5, fontFamily: FONTS.titleBold, color: Colors.textMain },
+  bidRowName: { fontSize: 14.5, lineHeight: 19, fontFamily: FONTS.titleBold, color: Colors.textMain },
   bidRowSub: { fontSize: 11.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 1 },
-  bidRowPrice: { fontSize: 14, fontFamily: FONTS.titleBold, color: Colors.textMain },
+  bidRowPriceBtn: { minWidth: 104, height: 40, paddingHorizontal: 14, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: '#1e3a8a' },
+  bidRowPriceBtnText: { fontSize: 15, fontFamily: FONTS.titleBold, color: '#ffffff' },
+  bidRowEnd: { alignItems: 'flex-end', gap: 6 },
+  bidRowPrice: { fontSize: 15, fontFamily: FONTS.titleBold, color: Colors.textMain },
   bidRowDone: { fontSize: 16, color: Colors.successText },
-  bidRowAccept: { paddingHorizontal: 12, height: 32, justifyContent: 'center', borderRadius: 16, backgroundColor: '#1e3a8a' },
+  bidRowAccept: { paddingHorizontal: 14, height: 36, justifyContent: 'center', borderRadius: 16, backgroundColor: '#1e3a8a' },
   bidRowAcceptLowest: { backgroundColor: '#188038' },
   bidRowAcceptText: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: '#ffffff' },
   bidsHeader: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 40, paddingTop: 46, paddingHorizontal: 10, paddingBottom: 6, backgroundColor: pageHeaderBlue().from },
@@ -1220,6 +1231,10 @@ const styles = themedStyles(() => StyleSheet.create({
   peekPhoto: { width: '100%', height: '100%', borderRadius: 26 },
   peekBadge: { position: 'absolute', right: -2, bottom: -2, minWidth: 26, paddingHorizontal: 5, height: 18, borderRadius: 9, backgroundColor: '#0f172a', alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: '#fff' },
   peekBadgeText: { fontSize: 9.5, fontWeight: '800', color: '#fff' },
+  countChip: { alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, backgroundColor: 'rgba(245, 158, 11, 0.16)' },
+  countChipUrgent: { backgroundColor: 'rgba(239, 68, 68, 0.14)' },
+  countChipText: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: '#b45309' },
+  countChipTextUrgent: { color: '#b91c1c' },
   hint: { fontSize: 11, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
   link: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
   // Soft shadow instead of an outline (an outline only on dark, where a shadow would not show), like the Home garage tiles.
