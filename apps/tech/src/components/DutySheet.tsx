@@ -49,7 +49,7 @@ export const DutySheet: React.FC<{ visible: boolean; onClose: () => void }> = ({
             <View style={styles.flex1}>
               <Text style={styles.title}>{l.garage.name}</Text>
               <Text style={styles.sub}>
-                {l.kind === 'employee' ? 'සේවකයා' : 'නිදහස් කාර්මික'} · SOS රු. {l.rates.sos.toLocaleString()} · වැඩමුළු රු. {l.rates.workshop.toLocaleString()}
+                {l.kind === 'employee' ? 'සේවකයා' : 'නිදහස් කාර්මික'} · SOS LKR {l.rates.sos.toLocaleString()} · වැඩමුළු LKR {l.rates.workshop.toLocaleString()}
               </Text>
             </View>
             <Text style={styles.go}>පැමිණෙන්න ›</Text>

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Linking, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ActionButton, Colors, distanceKm, FONTS, finalNeedsApproval, Gradient, ModalCard, Pulse, themedStyles, zoomToFit } from '@ongarage/shared';
+import { TowButton } from './TowButton';
 import { TOW_OPERATORS } from '../../constants/towOperators';
 import { money } from '../../utils/format';
 import type { TowBidsDraft } from './TowBidsScreen';
@@ -408,9 +409,9 @@ export const TowTrackingScreen: React.FC<{
         {(stage === 'loaded' || stage === 'dropped') && (
           <View style={styles.bottomBar}>
             {stage === 'loaded' ? (
-              <ActionButton label="වාහනය flatbed එකේ — තහවුරු කරන්න" variant="primary" onPress={confirmOnFlatbed} />
+              <TowButton label="වාහනය flatbed එකේ — තහවුරු කරන්න" onPress={confirmOnFlatbed} />
             ) : (
-              <ActionButton label="වාහනය බැස්සූ බව තහවුරු කරන්න" variant="primary" onPress={confirmDropped} />
+              <TowButton label="වාහනය බැස්සූ බව තහවුරු කරන්න" onPress={confirmDropped} />
             )}
           </View>
         )}
@@ -429,7 +430,7 @@ export const TowTrackingScreen: React.FC<{
           body={`\n${finalReason ?? ''} ${bid.name} ${money(finalAmount - agreed)} ක අමතර මුදලක් ඉල්ලනවා. අනුමත කරනවාද?`}
         >
           <ActionButton label={`ගිවිසගත් ${money(agreed)} පමණක්`} variant="ghost" compact onPress={() => decideExtra('declined')} />
-          <ActionButton label={`${money(finalAmount)} අනුමත කරන්න`} variant="primary" compact onPress={() => decideExtra('accepted')} />
+          <TowButton label={`${money(finalAmount)} අනුමත කරන්න`} onPress={() => decideExtra('accepted')} />
         </ModalCard>
       )}
 
@@ -442,7 +443,7 @@ export const TowTrackingScreen: React.FC<{
           body={`\n${cancelFee > 0 ? 'ට්‍රක් ඉල්ලීම පිළිගත් පසු අවලංගු කළොත් ගාස්තුවෙන් 10%ක් අයවේ.' : 'ට්‍රක් කෙනෙක් ඉල්ලීම පිළිගන්නා තුරු නොමිලේ අවලංගු කළ හැක.'}`}
         >
           <ActionButton label="නැහැ" variant="ghost" compact onPress={() => setAskCancel(false)} />
-          <ActionButton label="අවලංගු කරන්න" variant="primary" compact onPress={() => onCancel?.(cancelFee)} />
+          <TowButton label="අවලංගු කරන්න" onPress={() => onCancel?.(cancelFee)} />
         </ModalCard>
       )}
     </SafeAreaView>

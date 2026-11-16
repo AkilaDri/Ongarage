@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { ClipboardLineIcon, ReceiptLineIcon, Colors, EmptyState, FONTS, RELATION_HELP, RELATION_LABEL, RELATION_PRIVACY, RelationSummary, RelationTag, getThemeMode, phoneKey, relationLevel, themedStyles } from '@ongarage/shared';
+import { ClipboardLineIcon, ReceiptLineIcon, Colors, EmptyState, FONTS, RELATION_HELP, RELATION_LABEL, RELATION_PRIVACY, RelationSummary, RelationTag, getThemeMode, phoneKey, relationLevel, themedStyles, MoneyText } from '@ongarage/shared';
 import { Sheet } from './Sheet';
 import { CategoryArt } from './CategoryArt';
 import { useGarage } from '../context/GarageContext';
@@ -94,7 +94,7 @@ export const CustomerHistoryList: React.FC<{ customer: Customer; /** Opens the f
               </Text>
               {!!b.progress?.warrantyUntil && <Text style={styles.sub}>🛡️ වගකීම {formatDate(b.progress.warrantyUntil)} දක්වා</Text>}
             </View>
-            <Text style={styles.price}>{money(b.price)}</Text>
+            <MoneyText style={styles.price}>{money(b.price)}</MoneyText>
           </Pressable>
         ))
       )}

@@ -1,4 +1,4 @@
-import { VehicleLine } from '@ongarage/shared';
+import { SegmentTabs, VehicleLine } from '@ongarage/shared';
 import React, { useEffect, useState } from 'react';
 import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { ActionButton, categoryInfo, CloseJobSheet, Colors, ReferralBadge, EmptyState, FONTS, GlassIcon, Icon, themedStyles, type IconName, softEdge, softShadow, NAVY, softFill, getThemeMode } from '@ongarage/shared';
@@ -307,20 +307,7 @@ export const OrdersScreen: React.FC = () => {
       ) : (
         <>
       <View style={styles.tabBar}>
-        {segments.map((t) => {
-          const on = segment === t.id;
-          return (
-            <Pressable key={t.id} style={[styles.tab, on && styles.tabActive]} onPress={() => setSegment(t.id)}>
-              <Icon name={t.icon} size={14} color={on ? Colors.primary : Colors.textMuted} />
-              <Text style={[styles.tabText, on && styles.tabTextActive]}>{t.label}</Text>
-              {t.count > 0 && (
-                <View style={[styles.tabCount, on && styles.tabCountActive, t.alert && styles.tabCountAlert]}>
-                  <Text style={[styles.tabCountText, (on || t.alert) && { color: '#fff' }]}>{t.count}</Text>
-                </View>
-              )}
-            </Pressable>
-          );
-        })}
+        <SegmentTabs items={segments.map((s) => ({ id: s.id, label: s.label, icon: s.icon, count: s.count, alert: s.alert }))} value={segment} onChange={setSegment} />
       </View>
 
       {list.length === 0 ? (
@@ -377,7 +364,7 @@ const styles = themedStyles(() =>
     stat: { flex: 1, alignItems: 'center', paddingVertical: 12, paddingHorizontal: 6, borderRadius: 20, borderWidth: 1, borderColor: softEdge(), backgroundColor: Colors.bgCard, ...softShadow() },
     statValue: { fontSize: 15, fontFamily: FONTS.titleBold },
     statLabel: { fontSize: 10, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 2 },
-    tabBar: { flexDirection: 'row', gap: 8, paddingTop: 4 },
+    tabBar: { paddingTop: 4 },
     tab: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10, paddingHorizontal: 8, borderRadius: 22, backgroundColor: softFill() },
     tabActive: { backgroundColor: NAVY, shadowColor: NAVY, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.28, shadowRadius: 8, elevation: 4 },
     tabText: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
@@ -404,7 +391,7 @@ const styles = themedStyles(() =>
     cardFailed: { borderColor: 'rgba(239, 68, 68, 0.4)' },
     title: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.textMain },
     sub: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 1, lineHeight: 16 },
-    price: { fontSize: 14, fontFamily: FONTS.titleBold, color: Colors.success },
+    price: { alignSelf: 'flex-end', fontSize: 14, fontFamily: FONTS.titleBold, color: Colors.success },
     lines: { gap: 4, padding: 10, borderRadius: 12, backgroundColor: Colors.subtleFill },
     lineText: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
     steps: { flexDirection: 'row', justifyContent: 'space-between' },

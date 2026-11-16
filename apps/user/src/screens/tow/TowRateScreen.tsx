@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ActionButton, Colors, FONTS, Gradient, pointsForJob, themedStyles } from '@ongarage/shared';
+import { TowButton } from './TowButton';
 import { useVehicles } from '../../context/VehiclesContext';
 import type { TowPaidDraft } from './TowPayScreen';
 import type { TowSite } from '@ongarage/shared';
@@ -160,7 +161,7 @@ export const TowRateScreen: React.FC<{
             <View style={styles.card}>
               <Text style={styles.cardTitle}>{`${vehicle.plate} ඔබේ වාහන ලැයිස්තුවට එකතු කරන්නද?`}</Text>
               <Text style={styles.cardSub}>ඊළඟ වතාවේ මේ වාහනය නැවත ඇතුළත් කරන්න ඕන නැහැ.</Text>
-              <ActionButton label="ඔව්, එකතු කරන්න" variant="primary" onPress={saveVehicle} />
+              <TowButton label="ඔව්, එකතු කරන්න" onPress={saveVehicle} />
               <ActionButton label="නැහැ" variant="ghost" onPress={() => onDone({ stars: 0, comment: '' })} />
             </View>
           )}
@@ -168,7 +169,7 @@ export const TowRateScreen: React.FC<{
 
         {!rated && (
           <View style={styles.bottomBar}>
-            <ActionButton label={stars === 0 ? 'ශ්‍රේණිගත නොකර අවසන් කරන්න' : 'ශ්‍රේණිගත කිරීම යවන්න'} icon="✓" variant="primary" onPress={submit} />
+            <TowButton label={stars === 0 ? 'ශ්‍රේණිගත නොකර අවසන් කරන්න' : 'ශ්‍රේණිගත කිරීම යවන්න'} icon="✓" onPress={submit} />
           </View>
         )}
       </View>

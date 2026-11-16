@@ -26,7 +26,7 @@ export const PaymentReminders: React.FC = () => {
         const key = `${w.id}:${day}`;
         if (told.current.has(key)) continue;
         told.current.add(key);
-        const left = `රු. ${pay.balance.toLocaleString('en-US')}`;
+        const left = `LKR ${pay.balance.toLocaleString('en-US')}`;
         notify(
           due === 'today'
             ? { icon: '💳', title: 'අද ගෙවිය යුතු දිනයයි', body: `${w.garageName} ට ඉතිරි ${left} අද ගෙවන්න (ඔබ පොරොන්දු වූ දිනය).`, tone: 'primary' }

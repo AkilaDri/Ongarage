@@ -23,7 +23,10 @@ export const NoticeToast: React.FC<{ notice: Notice | null; onDismiss: () => voi
 
   if (!notice) return null;
   const tone = { primary: Colors.primary, success: Colors.success, danger: Colors.error }[notice.tone] ?? Colors.primary;
-  const tint = { primary: 'rgba(56, 189, 248, 0.16)', success: 'rgba(16, 185, 129, 0.16)', danger: 'rgba(239, 68, 68, 0.14)' }[notice.tone] ?? 'rgba(56, 189, 248, 0.16)';
+  // The blue notice's tint follows the app's own primary colour.
+  const primaryHex = String(Colors.primary).replace('#', '');
+  const primaryTint = primaryHex.length === 6 ? `rgba(${parseInt(primaryHex.slice(0, 2), 16)}, ${parseInt(primaryHex.slice(2, 4), 16)}, ${parseInt(primaryHex.slice(4, 6), 16)}, 0.14)` : 'rgba(56, 189, 248, 0.16)';
+  const tint = { primary: primaryTint, success: 'rgba(16, 185, 129, 0.16)', danger: 'rgba(239, 68, 68, 0.14)' }[notice.tone] ?? primaryTint;
 
   return (
     <Animated.View

@@ -67,7 +67,7 @@ export const fairnessFlags = (s: FairnessStats, categoryName: (id: string) => st
   const flags = Object.entries(s.areaShareByCategory)
     .filter(([, share]) => share > FAIRNESS.maxAreaShare)
     .map(([cat, share]) => `ප්‍රදේශයේ ${categoryName(cat)} රැකියාවලින් ${Math.round(share * 100)}%`);
-  if (s.avgMonthlyEarnings > FAIRNESS.maxMonthlyEarnings) flags.push(`යෙදුමෙන් මාසික සාමාන්‍ය ආදායම රු. ${Math.round(s.avgMonthlyEarnings).toLocaleString()}`);
+  if (s.avgMonthlyEarnings > FAIRNESS.maxMonthlyEarnings) flags.push(`යෙදුමෙන් මාසික සාමාන්‍ය ආදායම LKR ${Math.round(s.avgMonthlyEarnings).toLocaleString()}`);
   return flags;
 };
 
@@ -79,9 +79,9 @@ export type SubscriptionPlan = { id: SubscriptionPlanId; name: string; minMonthl
 // from good work); it buys room (if the garage is limited), ad credits and reports, and
 // is a requirement for an invitation to the Premier level.
 export const PLANS: SubscriptionPlan[] = [
-  { id: 'growth', name: 'Growth', minMonthlyEarnings: 0, fee: 4900, intakeMultiplier: 2, perks: ['සීමා කර ඇත්නම් දෛනික සීමාව 2×', 'දැන්වීම් ණය රු. 1,000', 'ප්‍රිමියර් ආරාධනාවට සුදුසුකම'] },
-  { id: 'pro', name: 'Pro', minMonthlyEarnings: 400000, fee: 9900, intakeMultiplier: 3, perks: ['සීමා කර ඇත්නම් දෛනික සීමාව 3×', 'දැන්වීම් ණය රු. 2,000', 'මාසික ව්‍යාපාර වාර්තා', 'ප්‍රිමියර් ආරාධනාවට සුදුසුකම'] },
-  { id: 'premier', name: 'Premier', minMonthlyEarnings: 1000000, fee: 19900, intakeMultiplier: Infinity, perks: ['දෛනික සීමාවක් නැත', 'දැන්වීම් ණය රු. 5,000', 'මාසික ව්‍යාපාර වාර්තා', 'කැපවූ සහාය'] },
+  { id: 'growth', name: 'Growth', minMonthlyEarnings: 0, fee: 4900, intakeMultiplier: 2, perks: ['සීමා කර ඇත්නම් දෛනික සීමාව 2×', 'දැන්වීම් ණය LKR 1,000', 'ප්‍රිමියර් ආරාධනාවට සුදුසුකම'] },
+  { id: 'pro', name: 'Pro', minMonthlyEarnings: 400000, fee: 9900, intakeMultiplier: 3, perks: ['සීමා කර ඇත්නම් දෛනික සීමාව 3×', 'දැන්වීම් ණය LKR 2,000', 'මාසික ව්‍යාපාර වාර්තා', 'ප්‍රිමියර් ආරාධනාවට සුදුසුකම'] },
+  { id: 'premier', name: 'Premier', minMonthlyEarnings: 1000000, fee: 19900, intakeMultiplier: Infinity, perks: ['දෛනික සීමාවක් නැත', 'දැන්වීම් ණය LKR 5,000', 'මාසික ව්‍යාපාර වාර්තා', 'කැපවූ සහාය'] },
 ];
 
 /** The plan for a garage's average monthly app earnings (highest band it reaches). */

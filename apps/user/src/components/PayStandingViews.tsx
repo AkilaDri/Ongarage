@@ -55,7 +55,7 @@ export const PayReliabilityCard: React.FC = () => {
       {rated.map((w) => (
         <CustomerRatingView key={w.id} workshop={w} />
       ))}
-      <Text style={styles.fine}>දින {OVERDUE_LIMIT_DAYS}ක් හෝ රු. {OWED_LIMIT.toLocaleString('en-US')} ක් ප්‍රමාද වුවහොත් නව වැඩ නවතී.</Text>
+      <Text style={styles.fine}>දින {OVERDUE_LIMIT_DAYS}ක් හෝ LKR {OWED_LIMIT.toLocaleString('en-US')} ක් ප්‍රමාද වුවහොත් නව වැඩ නවතී.</Text>
     </View>
   );
 };
@@ -67,7 +67,7 @@ export const PayStandingBanner: React.FC<{ onPress: () => void }> = ({ onPress }
   return (
     <Pressable style={[styles.banner, s.limited && styles.bannerLimited]} onPress={onPress} accessibilityLabel="Payment balance reminder">
       <Text style={styles.bannerText} numberOfLines={2}>
-        {s.limited ? `⛔ දින ${s.overdueDays} ප්‍රමාදයි · අලුත් රැකියා නවතා ඇත · ගෙවන්න ›` : `⚠️ ගෙවිය යුතු ${money(s.owed)} ${s.overdueDays ? 'ප්‍රමාදයි' : 'අද'} · ගෙවන්න ›`}
+        {s.limited ? `⛔ දින ${s.overdueDays} කින් හිඟ මුදල් ගෙවීමක් ප්‍රමාදවී ඇත — අලුත් රැකියා නවතා ඇත. ගෙවීම් බලන්න ›` : `⚠️ ගෙවිය යුතු ${money(s.owed)} ${s.overdueDays ? 'ප්‍රමාදයි' : 'අද දිනයයි'} — බලන්න ›`}
       </Text>
     </Pressable>
   );
@@ -95,7 +95,7 @@ export const PayFirstSheet: React.FC<{ visible: boolean; onClose: () => void; on
       }
     >
       <Text style={styles.text}>
-        දින {s.overdueDays}ක් ප්‍රමාද වූ රු. {s.owed.toLocaleString('en-US')} ක හිඟ මුදල් ගෙවීමක් ඇත. එය ගරාජයට ගෙවා ගරාජය මගින්ද සහතික කළ පසු අලුත් රැකියා පළ කිරීම, ලංසු පිළිගැනීම සහ සෘජු වෙන් කිරීම නැවත විවෘත වේ.
+        දින {s.overdueDays}ක් ප්‍රමාද වූ LKR {s.owed.toLocaleString('en-US')} ක හිඟ මුදල් ගෙවීමක් ඇත. එය ගරාජයට ගෙවා ගරාජය මගින්ද සහතික කළ පසු අලුත් රැකියා පළ කිරීම, ලංසු පිළිගැනීම සහ සෘජු වෙන් කිරීම නැවත විවෘත වේ.
       </Text>
       <Text style={styles.fine}>SOS, OnChat, OnMart සහ ගෙවීම් සැමවිටම විවෘතයි.</Text>
     </Sheet>

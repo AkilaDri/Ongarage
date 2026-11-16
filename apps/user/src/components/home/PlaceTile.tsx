@@ -68,7 +68,7 @@ export const PlaceTile: React.FC<{ place: Place; distance: number; from?: { lati
             return (
               <View key={f.name} style={[styles.chip, stock === 'out' && styles.chipOut, stock === 'low' && styles.chipLow]}>
                 <Text style={[styles.chipText, stock === 'out' && styles.chipTextOut, stock === 'low' && styles.chipTextLow]}>
-                  {f.name} · රු. {f.price} · {STOCK_TEXT[stock]}
+                  {f.name} · LKR {f.price} · {STOCK_TEXT[stock]}
                   {crowd ? (crowd.byOwner ? ' ✔' : ` 👥${crowd.count}`) : ''}
                 </Text>
               </View>
@@ -85,7 +85,7 @@ export const PlaceTile: React.FC<{ place: Place; distance: number; from?: { lati
             return (
               <View key={c.type + c.kw} style={styles.connRow}>
                 <Text style={styles.connText} numberOfLines={1}>
-                  {c.type} · {c.kw} kW · රු. {c.price}/kWh{crowd && !crowd.value ? ' · 👥 නරකයි' : ''}
+                  {c.type} · {c.kw} kW · LKR {c.price}/kWh{crowd && !crowd.value ? ' · 👥 නරකයි' : ''}
                 </Text>
                 <PlugDots states={c.states} />
                 <Text style={[styles.connFree, freePlugs(c) === 0 && styles.connFreeNone]}>{freePlugs(c)}/{c.states.length}</Text>
@@ -123,7 +123,7 @@ const styles = themedStyles(() =>
   StyleSheet.create({
     flex1: { flex: 1 },
     tile: { padding: 14, borderRadius: 14, gap: 10, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), ...cardGlow() },
-    tilePicked: { borderColor: '#1a73e8', borderWidth: 2 },
+    tilePicked: { borderColor: '#1e3a8a', borderWidth: 2 },
     top: { flexDirection: 'row', alignItems: 'center', gap: 10 },
     badge: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
     badgeText: { fontSize: 11.5, fontFamily: FONTS.bodyBold, color: '#ffffff', letterSpacing: 0.3 },
@@ -156,8 +156,8 @@ const styles = themedStyles(() =>
     amenities: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
     amenity: { fontSize: 11, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
     actions: { flexDirection: 'row', gap: 8 },
-    action: { flex: 1, alignItems: 'center', paddingVertical: 9, borderRadius: 12, backgroundColor: dark() ? 'rgba(255, 255, 255, 0.08)' : '#eef2f7' },
-    actionMain: { backgroundColor: '#1a73e8' },
+    action: { flex: 1, alignItems: 'center', paddingVertical: 9, borderRadius: 12, backgroundColor: dark() ? 'rgba(255, 255, 255, 0.08)' : '#f0f0f0' },
+    actionMain: { backgroundColor: '#1e3a8a' },
     actionText: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
     actionMainText: { fontSize: 12.5, fontFamily: FONTS.bodyBold, color: '#ffffff' },
   })

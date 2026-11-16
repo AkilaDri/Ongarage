@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ActionButton, Colors, FONTS, Gradient, TOW_CONDITION_LIST, getThemeMode, VehicleLine, themedStyles, type TowCondition } from '@ongarage/shared';
+import { TowButton } from './TowButton';
 import { VehiclePicker } from '../../components/Header';
 import type { Vehicle } from '@ongarage/shared';
 import { TowAddVehicleSheet } from './TowAddVehicleSheet';
@@ -185,7 +186,7 @@ export const TowVehicleScreen: React.FC<{
         </ScrollView>
 
         <View style={styles.bottomBar}>
-          <ActionButton label={ready ? 'ඊළඟ' : 'වර්ගයක් තෝරන්න'} icon="🛻" variant="primary" disabled={!ready} onPress={submit} />
+          <TowButton label={ready ? 'ඊළඟ' : 'වර්ගයක් තෝරන්න'} icon="🛻" disabled={!ready} onPress={submit} />
         </View>
       </View>
 

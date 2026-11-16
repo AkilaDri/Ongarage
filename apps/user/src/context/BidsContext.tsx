@@ -118,6 +118,10 @@ type BidsState = {
   acceptBid: (jobId: string, bidId: string) => void;
   /** Dismiss a received bid that has not been accepted. */
   removeBid: (jobId: string, bidId: string) => void;
+  /** Deletes a posted job that has no bids to accept (waiting or expired). */
+  removeJob: (jobId: string) => void;
+  /** Gives a job that is still open more time to collect bids. */
+  extendBidding: (jobId: string, hours: number) => void;
 };
 
 const BidsContext = createContext<BidsState | null>(null);
@@ -171,7 +175,15 @@ export const BidsProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
 
-  return <BidsContext.Provider value={{ jobs, postJob, acceptBid, removeBid }}>{children}</BidsContext.Provider>;
+  const extendBidding = useCallback((jobId: string, hours: number) => {
+    setJobs((prev) => prev.map((j) => (j.id === jobId && !j.acceptedBidId ? { ...j, biddingHours: j.biddingHours + hours } : j)));
+  }, []);
+
+  const removeJob = useCallback((jobId: string) => {
+    setJobs((prev) => prev.filter((j) => j.id !== jobId || j.acceptedBidId));
+  }, []);
+
+  return <BidsContext.Provider value={{ jobs, postJob, acceptBid, removeBid, removeJob, extendBidding }}>{children}</BidsContext.Provider>;
 };
 
 export const useBids = () => {

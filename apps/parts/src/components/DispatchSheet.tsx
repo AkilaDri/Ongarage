@@ -62,7 +62,7 @@ export const DispatchSheet: React.FC<{ order: ShopOrder | null; onClose: () => v
 
       <Text style={styles.label}>බෙදාහරින්නේ</Text>
       {profile.courierEnabled && (
-        <Option active={method === 'courier'} onPress={() => setMethod('courier')} title={`🛵 ${COURIER}`} sub={`රියදුරෙකු සොයා ගනී · ගාස්තුව රු. ${q.delivery === 'courier' ? q.deliveryFee.toLocaleString() : '—'} කුරියර් වෙත`} />
+        <Option active={method === 'courier'} onPress={() => setMethod('courier')} title={`🛵 ${COURIER}`} sub={`රියදුරෙකු සොයා ගනී · ගාස්තුව LKR ${q.delivery === 'courier' ? q.deliveryFee.toLocaleString() : '—'} කුරියර් වෙත`} />
       )}
       {profile.ownDelivery &&
         profile.staff.map((s) => (

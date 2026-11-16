@@ -115,12 +115,12 @@ const styles = themedStyles(() =>
     chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
     label: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, marginTop: 4 },
     option: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 8, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline() },
-    optionOn: { borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#d2e3fc', backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe' },
+    optionOn: { borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#bfdbfe', backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#eff6ff' },
     optionTitle: { fontSize: 14, fontFamily: FONTS.bodyBold, color: Colors.textMain },
     radio: { width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: Colors.subtleBorder, alignItems: 'center', justifyContent: 'center' },
     radioOn: { borderColor: Colors.primary },
     dot: { width: 10, height: 10, borderRadius: 5, backgroundColor: Colors.primary },
     note: { gap: 4, padding: 12, borderRadius: 8, backgroundColor: Colors.subtleFill },
-    disclosure: { gap: 6, padding: 12, borderRadius: 8, backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe' },
+    disclosure: { gap: 6, padding: 12, borderRadius: 8, backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#eff6ff' },
   })
 );

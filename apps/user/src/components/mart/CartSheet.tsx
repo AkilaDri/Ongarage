@@ -68,7 +68,7 @@ export const CartPanel: React.FC<{ items: MartEnquiry[] }> = ({ items }) => {
   return (
     <>
       <View style={styles.panel}>
-        {mine.length > 0 && <Text style={styles.sub}>කොටස් {mine.length} ක් · රු. {total.toLocaleString()}</Text>}
+        {mine.length > 0 && <Text style={styles.sub}>කොටස් {mine.length} ක් · LKR {total.toLocaleString()}</Text>}
         {mine.length === 0 && <EmptyState icon="🛒" title="Cart එක හිස්" text="“වෙළඳසැල් අනුව සංසන්දනය” tab එකෙන් shop එකක quotation එක Add to cart කරන්න." />}
         {cheapGroups.length > 0 && (
           <View style={styles.mixWrap} accessibilityLabel="Cheapest for every part">
@@ -98,7 +98,7 @@ const styles = themedStyles(() =>
     part: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
     price: { fontSize: 13, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#81c995' : '#188038' },
     remove: { fontSize: 15, color: Colors.textMuted },
-    confirm: { minHeight: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: '#1a73e8' },
+    confirm: { minHeight: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: '#1e3a8a' },
     confirmText: { fontSize: 13.5, fontFamily: FONTS.bodySemiBold, color: '#ffffff' },
   })
 );

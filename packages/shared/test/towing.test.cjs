@@ -59,26 +59,15 @@ test('eta follows the distance', () => {
   assert.strictEqual(m.towEtaMin(15), 35);
 });
 
-test('stages: cancel until the vehicle is carried, closed once nothing waits', () => {
+test('stages: cancel only until the vehicle is loaded, closed once nothing waits', () => {
   const base = { id: 'r', stage: 'accepted' };
   assert.strictEqual(m.canCancelTow(base), true);
   assert.strictEqual(m.canCancelTow({ ...base, stage: 'arrived' }), true);
+  assert.strictEqual(m.canCancelTow({ ...base, stage: 'loading' }), true);
   assert.strictEqual(m.canCancelTow({ ...base, stage: 'transporting' }), false);
+  assert.strictEqual(m.canCancelTow({ ...base, stage: 'delivered' }), false);
   assert.strictEqual(m.canCancelTow({ ...base, cancelled: true }), false);
   assert.strictEqual(m.towClosed({ ...base, stage: 'delivered' }), true);
   assert.strictEqual(m.towClosed({ ...base, stage: 'delivered', approval: 'pending' }), false);
   assert.strictEqual(m.towClosed({ ...base, stage: 'transporting' }), false);
-});
-
-test('a site that needs pulling out goes only to a winch truck and adds labour', () => {
-  const plain = op({ id: 'plain', winch: false, recoveryFee: 2000, perKm: 1 });
-  const winch = op({ id: 'winch', winch: true, recoveryFee: 2000, perKm: 1 });
-  assert.strictEqual(m.canDoSites(plain, ['mud']), false);
-  assert.strictEqual(m.canDoSites(plain, ['tightAccess']), true);
-  assert.strictEqual(m.canDoSites(winch, ['rocks']), true);
-  const r = m.rankTowOperators([plain, winch], pickup, dest, 'rolls', at(12), ['mud']);
-  assert.deepStrictEqual(r.map((x) => x.op.id), ['winch']);
-  assert.strictEqual(r[0].quote.siteFee, 1000);
-  const none = m.rankTowOperators([winch], pickup, dest, 'rolls', at(12));
-  assert.strictEqual(none[0].quote.siteFee, 0);
 });

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Colors, FONTS, normalisePlate, VEHICLE_TYPES, VehicleIcon3D, themedStyles, type Vehicle } from '@ongarage/shared';
 import { elevation1, outline } from '../../utils/material';
+import { TowButton } from './TowButton';
 
 // Sri Lankan plates: optional province letters, 2–3 letters (or digits), dash, 4 digits.
 const PLATE_PATTERN = /^([A-Z]{2}-)?([A-Z]{2,3}|\d{2,3})-\d{4}$/;
@@ -124,9 +125,7 @@ export const TowAddVehicleSheet: React.FC<{
 
           {step > 0 && (
             <View style={styles.footer}>
-              <Pressable style={[styles.action, !stepOk[step] && styles.actionOff]} disabled={!stepOk[step]} onPress={next} accessibilityLabel={last ? 'Use this vehicle for this tow' : 'Next'}>
-                <Text style={styles.actionText}>{last ? 'Towing ඉල්ලීමට පමණයි' : 'ඊළඟ'}</Text>
-              </Pressable>
+              <TowButton label={last ? 'Towing ඉල්ලීමට පමණයි' : 'ඊළඟ'} disabled={!stepOk[step]} onPress={next} accessibilityLabel={last ? 'Use this vehicle for this tow' : 'Next'} />
             </View>
           )}
         </View>

@@ -2,7 +2,7 @@ import { EmptyState } from '@ongarage/shared';
 import { elevation1, outline } from '../utils/material';
 import React, { useEffect, useState } from 'react';
 import { Image, Linking, Pressable, ScrollView, StyleSheet, Share, Text, View, type ImageSourcePropType } from 'react-native';
-import { ActionButton, Colors, directionsUrl, FONTS, getThemeMode, LevelBadge, LEVELS, RATING_DIMENSIONS, SERVICE_CATEGORIES, themedStyles, type Bid, type Garage } from '@ongarage/shared';
+import { ActionButton, Colors, directionsUrl, FONTS, getThemeMode, GoogleMap, LevelBadge, LEVELS, RATING_DIMENSIONS, SERVICE_CATEGORIES, themedStyles, type Bid, type Garage } from '@ongarage/shared';
 import { MakeLogoStrip } from './MakeLogo';
 import { MOCK_GARAGES } from '../constants/mockData';
 import { GARAGE_COVERS, GARAGE_INFO } from '../constants/home';
@@ -13,7 +13,6 @@ import { ago, money } from '../utils/format';
 import { Sheet } from './Sheet';
 import { RatingSummary, ReviewCard, ReviewsSection } from './ReviewCard';
 import { BookedTag } from './BookedTag';
-import { AppMap } from './map/AppMap';
 
 /** The garage behind a bid: its full profile when known, else what the bid carries. */
 export const garageForBid = (b: Bid): Garage =>
@@ -36,7 +35,7 @@ export const garageForBid = (b: Bid): Garage =>
 const SERVICE_TAG_ROWS = 4;
 
 const REVIEW_W = 210;
-const AVATAR_COLORS = ['#2457e6', '#0e9f6e', '#e5483d', '#8b5cf6', '#f59e0b', '#0891b2', '#db2777'];
+const AVATAR_COLORS = ['#1e3a8a', '#0e9f6e', '#e5483d', '#8b5cf6', '#f59e0b', '#0891b2', '#db2777'];
 const avatarColor = (id: string) => AVATAR_COLORS[[...id].reduce((n, ch) => n + ch.charCodeAt(0), 0) % AVATAR_COLORS.length];
 const initialsOf = (name: string) =>
   (name.match(/[A-Za-z0-9]+/g) ?? [name]).slice(0, 2).map((w) => w[0]?.toUpperCase() ?? '').join('') || '🛠';
@@ -45,6 +44,9 @@ const initialsOf = (name: string) =>
  * A garage as owners judge it: its level, the four rating dimensions, and reviews with
  * the garage's public replies. Every review comes from a job closed with an owner's code.
  */
+/** A review card in the overview's sideways rail (like the place cards on a map): about 80% of the screen so the next one peeks in. */
+const REVIEW_CARD_W = 290;
+
 export const GarageReviewsSheet: React.FC<{
   garage: Garage | null;
   onClose: () => void;
@@ -230,7 +232,7 @@ export const GarageReviewsSheet: React.FC<{
               <View style={[styles.placeActionCircle, a.primary && styles.placeActionPrimary, a.on && styles.placeActionOn]}>
                 <Text style={[styles.placeActionIcon, a.primary && { color: '#ffffff' }, a.on && { color: '#e5483d' }]}>{a.icon}</Text>
               </View>
-              <Text style={[styles.placeActionLabel, a.primary && { color: '#1a73e8' }]}>{a.label}</Text>
+              <Text style={[styles.placeActionLabel, a.primary && { color: '#1e3a8a' }]}>{a.label}</Text>
             </Pressable>
           ))}
         </ScrollView>
@@ -246,6 +248,7 @@ export const GarageReviewsSheet: React.FC<{
       onClose={onClose}
       hero={hero}
       compact
+      roomy
       noDividers
       footer={
         bid && onAccept ? (
@@ -285,7 +288,7 @@ export const GarageReviewsSheet: React.FC<{
             </View>
             {!!bid.travelFee && (
               <View style={[styles.bidHeroChip, { backgroundColor: 'rgba(245, 158, 11, 0.25)' }]} accessibilityLabel="Bid includes travel fee">
-                <Text style={styles.bidHeroChipText}>🚗 ගමන් ගාස්තුව ඇතුළුව · රු. {bid.travelFee.toLocaleString()}</Text>
+                <Text style={styles.bidHeroChipText}>🚗 ගමන් ගාස්තුව ඇතුළුව · LKR {bid.travelFee.toLocaleString()}</Text>
               </View>
             )}
           </View>
@@ -395,7 +398,7 @@ export const GarageReviewsSheet: React.FC<{
           <View key={gg.id} style={styles.gig} accessibilityLabel={`Gig ${gg.title}`}>
             <Image source={gg.image} style={styles.gigImg} resizeMode="cover" />
             <View style={[styles.gigTag, { backgroundColor: gg.color }]}>
-              <Text style={styles.gigTagText}>රු. {gg.price.toLocaleString()}</Text>
+              <Text style={styles.gigTagText}>LKR {gg.price.toLocaleString()}</Text>
             </View>
             <View style={styles.gigBody}>
               <Text style={styles.gigTitle} numberOfLines={2}>
@@ -418,10 +421,33 @@ export const GarageReviewsSheet: React.FC<{
         ))}
       </ScrollView>
 
+
+
+      {/* A few of the reviews, at the foot of the overview: a touch on one goes to the main reviews tab. */}
+      {!!g.recentReviews?.length && (
+        <>
+          <View style={styles.sectionHead}>
+            <Text style={styles.sectionTitleBare}>⭐ සමාලෝචන</Text>
+            <Pressable onPress={() => setTab('reviews')} hitSlop={8} accessibilityLabel="See all reviews">
+              <Text style={styles.seeAll}>සියල්ල ›</Text>
+            </Pressable>
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} snapToInterval={REVIEW_CARD_W + 10} decelerationRate="fast" contentContainerStyle={styles.reviewRail}>
+          {g.recentReviews.slice(0, 5).map((r) => (
+            <Pressable key={r.id} style={styles.reviewSlot} onPress={() => setTab('reviews')} accessibilityLabel={`Reviews: ${r.customer}`}>
+              <View pointerEvents="none">
+                <ReviewCard review={{ id: r.id, name: r.customer, rating: r.rating, at: r.at, text: r.text, meta: '✓ කේතයෙන් අවසන් කළ රැකියාවක්', reply: r.reply ? { by: g.name, text: r.reply.text, at: r.reply.at } : undefined }} />
+              </View>
+            </Pressable>
+          ))}
+          </ScrollView>
+        </>
+      )}
+
       <Text style={styles.sectionTitle}>📍 ගරාජය ඇති ස්ථානය</Text>
       <View style={styles.mapCard}>
         <View style={styles.mapBox}>
-          <AppMap
+          <GoogleMap
             style={StyleSheet.absoluteFill}
             center={g.coords}
             zoom={15}
@@ -452,7 +478,7 @@ export const GarageReviewsSheet: React.FC<{
         <View style={styles.box}>
           <LevelBadge level={level.id} />
           <Text style={styles.sub}>{level.note} · OnGarage මට්ටම් තීරණය වන්නේ අවසන් කළ රැකියා, ශ්‍රේණිය සහ ගැටලු අනුපාතය අනුවය.</Text>
-          {level.id === 'premier' && <Text style={styles.protected}>🛡️ මෙම ගරාජයේ රැකියා OnGarage Guarantee මගින් ආරක්ෂිතයි (උපරිම රු. 50,000).</Text>}
+          {level.id === 'premier' && <Text style={styles.protected}>🛡️ මෙම ගරාජයේ රැකියා OnGarage Guarantee මගින් ආරක්ෂිතයි (උපරිම LKR 50,000).</Text>}
         </View>
       )}
 
@@ -573,7 +599,7 @@ export const GarageReviewsSheet: React.FC<{
                 <Text style={styles.rateName} numberOfLines={1}>
                   {r.icon} {r.name}
                 </Text>
-                <Text style={styles.ratePrice}>රු. {r.labour.toLocaleString()} සිට</Text>
+                <Text style={styles.ratePrice}>LKR {r.labour.toLocaleString()} සිට</Text>
               </View>
             ))}
             <Text style={styles.sub}>ශ්‍රම ගාස්තු පමණි (කොටස් වෙනම). නිශ්චිත මිල ලැබෙන්නේ වාහනය පරීක්ෂා කළ පසුවය. පැකේජ මිල ගණන් සඳහා “දළ විස්තරය” බලන්න.</Text>
@@ -658,17 +684,20 @@ const styles = themedStyles(() =>
     // No thin divider lines in the profile (under the tabs, between the contact rows, between service rows): the sections are told apart by their spacing.
     tabs: { flexDirection: 'row', marginTop: 8 },
     tabBtn: { flex: 1, height: 42, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4, borderBottomWidth: 3, borderBottomColor: 'transparent' },
-    tabBtnOn: { borderBottomColor: '#1a73e8' },
+    tabBtnOn: { borderBottomColor: '#1e3a8a' },
     tabText: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
-    tabTextOn: { color: '#1a73e8', fontFamily: FONTS.bodyBold },
+    tabTextOn: { color: '#1e3a8a', fontFamily: FONTS.bodyBold },
     // The profile's sections breathe: 22px above every section heading and 4px more under it, and the cards / chips of a row sit 10px apart.
-    sectionTitle: { fontSize: 14, fontFamily: FONTS.bodyBold, color: Colors.primary, letterSpacing: 0.2, marginTop: 22, marginBottom: 4 },
+    sectionTitle: { fontSize: 14, fontFamily: FONTS.bodyBold, color: Colors.primary, letterSpacing: 0.2, marginTop: 30, marginBottom: 8 },
     hRow: { gap: 10, paddingRight: 10 },
     offerCard: { width: 150, padding: 8, borderRadius: 12, gap: 2 },
     offerCardIcon: { fontSize: 22 },
     offerCardTitle: { fontSize: 13, fontFamily: FONTS.titleBold, color: '#ffffff', lineHeight: 17 },
     offerCardDetail: { fontSize: 10.5, fontFamily: FONTS.bodyMedium, color: 'rgba(255,255,255,0.85)' },
-    sectionHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 22, marginBottom: 4 },
+    sectionHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 30, marginBottom: 8 },
+    reviewRail: { gap: 10, paddingRight: 16 },
+    reviewSlot: { width: REVIEW_CARD_W },
+    seeAll: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
     sectionTitleBare: { fontSize: 14, fontFamily: FONTS.bodyBold, color: Colors.primary, letterSpacing: 0.2 },
     jobsPill: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, backgroundColor: 'rgba(16, 185, 129, 0.15)' },
     jobsPillText: { fontSize: 11, fontFamily: FONTS.bodyBold, color: Colors.success },
@@ -680,7 +709,7 @@ const styles = themedStyles(() =>
     serviceTag: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, height: 32, borderRadius: 16, borderWidth: 1 },
     serviceTagText: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
     moreBtn: { alignSelf: 'center', paddingHorizontal: 16, height: 36, borderRadius: 8, justifyContent: 'center', backgroundColor: 'rgba(36, 87, 230, 0.1)' },
-    moreBtnText: { fontSize: 12, fontFamily: FONTS.bodyBold, color: '#2457e6' },
+    moreBtnText: { fontSize: 12, fontFamily: FONTS.bodyBold, color: '#1e3a8a' },
     gig: { width: 210, borderRadius: 12, overflow: 'hidden', backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), ...elevation1() },
     gigImg: { width: '100%', height: 104, backgroundColor: Colors.subtleFill },
     gigTag: { position: 'absolute', top: 8, left: 8, paddingHorizontal: 10, height: 24, borderRadius: 12, justifyContent: 'center' },
@@ -689,7 +718,7 @@ const styles = themedStyles(() =>
     gigTitle: { fontSize: 14, fontFamily: FONTS.titleBold, color: Colors.textMain, lineHeight: 17 },
     gigMeta: { flexDirection: 'row', justifyContent: 'space-between' },
     gigMetaText: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: Colors.textSoft },
-    gigBtn: { alignSelf: 'flex-start', marginTop: 2, paddingHorizontal: 14, height: 30, borderRadius: 8, justifyContent: 'center', backgroundColor: '#2457e6' },
+    gigBtn: { alignSelf: 'flex-start', marginTop: 2, paddingHorizontal: 14, height: 30, borderRadius: 8, justifyContent: 'center', backgroundColor: '#1e3a8a' },
     gigBtnText: { fontSize: 11.5, fontFamily: FONTS.bodyBold, color: '#ffffff' },
     serviceList: { borderRadius: 12, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), overflow: 'hidden', ...elevation1() },
     serviceRow: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12 },
@@ -714,7 +743,7 @@ const styles = themedStyles(() =>
     mapPin: { position: 'absolute', transform: [{ translateX: -8 }, { translateY: -20 }] },
     mapPinEmoji: { fontSize: 18 },
     mapFooter: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 8, paddingVertical: 6 },
-    dirBtn: { paddingHorizontal: 11, height: 28, borderRadius: 8, justifyContent: 'center', backgroundColor: '#2457e6' },
+    dirBtn: { paddingHorizontal: 11, height: 28, borderRadius: 8, justifyContent: 'center', backgroundColor: '#1e3a8a' },
     dirBtnText: { fontSize: 12, fontFamily: FONTS.bodyBold, color: '#ffffff' },
     coverWrap: { height: 360, overflow: 'hidden', borderTopLeftRadius: 28, borderTopRightRadius: 28 },
     cover: { width: '100%', height: '100%' },
@@ -775,10 +804,10 @@ const styles = themedStyles(() =>
     flex2: { flex: 2 },
     bidHero: { padding: 16, gap: 12, borderRadius: 12, backgroundColor: getThemeMode() === 'dark' ? 'rgba(96, 165, 250, 0.16)' : '#e3eeff' },
     bidHeroTop: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-    bidHeroLabel: { fontSize: 12.5, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#93c5fd' : '#1e4fa8' },
+    bidHeroLabel: { fontSize: 12.5, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#93c5fd' : '#1d4ed8' },
     bidHeroPrice: { fontSize: 26, lineHeight: 32, fontFamily: FONTS.titleBold, color: getThemeMode() === 'dark' ? '#dbeafe' : '#0f2f6b', letterSpacing: -0.5 },
     bidHeroTag: { paddingHorizontal: 12, height: 26, borderRadius: 8, justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? 'rgba(147, 197, 253, 0.22)' : '#c7dcfb' },
-    bidHeroTagText: { fontSize: 11, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#93c5fd' : '#1e4fa8' },
+    bidHeroTagText: { fontSize: 11, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#93c5fd' : '#1d4ed8' },
     bidHeroChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
     bidHeroChip: { paddingHorizontal: 11, height: 28, borderRadius: 8, justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.7)' },
     bidHeroChipText: { fontSize: 11.5, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#bfdbfe' : '#1e3f86' },
@@ -798,10 +827,10 @@ const styles = themedStyles(() =>
     placeActions: { gap: 16, paddingTop: 6, paddingBottom: 4, paddingRight: 6 },
     placeAction: { alignItems: 'center', gap: 8, minWidth: 64},
     placeActionCircle: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? Colors.subtleFill : '#ffffff', borderWidth: 1, borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#dadce0' },
-    placeActionPrimary: { backgroundColor: '#1a73e8', borderColor: '#1a73e8' },
-    placeActionOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(229, 72, 61, 0.16)' : '#fdecea', borderColor: '#f5b5b0' },
-    placeActionIcon: { fontSize: 19, color: '#1a73e8' },
-    placeActionLabel: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
+    placeActionPrimary: { backgroundColor: '#1e3a8a', borderColor: '#1e3a8a' },
+    placeActionOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(229, 72, 61, 0.16)' : '#eff6ff', borderColor: '#f5b5b0' },
+    placeActionIcon: { fontSize: 19, color: '#1e3a8a' },
+    placeActionLabel: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1e3a8a' },
     gmList: { marginHorizontal: 4 },
     gmRow: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 4, paddingHorizontal: 4 },
     gmIcon: { width: 22, fontSize: 16, textAlign: 'center' },
@@ -815,7 +844,7 @@ const styles = themedStyles(() =>
     hourDay: { fontSize: 13, fontFamily: FONTS.bodyMedium, color: Colors.textMain },
     hourTime: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
     hourClosed: { color: Colors.errorText },
-    hourToday: { fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1e4fa8' },
+    hourToday: { fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1d4ed8' },
     noteBox: { padding: 10, borderRadius: 8, backgroundColor: Colors.subtleFill },
     noteBoxOn: { backgroundColor: 'rgba(239, 68, 68, 0.12)' },
     noteText: { fontSize: 12.5, fontFamily: FONTS.bodyMedium, color: Colors.textSoft, lineHeight: 17 },
@@ -824,7 +853,7 @@ const styles = themedStyles(() =>
     tagChip: { paddingHorizontal: 12, height: 32, borderRadius: 8, justifyContent: 'center', backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline() },
     tagChipText: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
     tagChipBrand: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e3ecfd', borderColor: 'transparent' },
-    tagChipBrandText: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#1e4fa8' },
+    tagChipBrandText: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#1d4ed8' },
     staffRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
     staffAvatar: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
     staffAvatarText: { fontSize: 14, fontFamily: FONTS.titleBold, color: '#ffffff' },

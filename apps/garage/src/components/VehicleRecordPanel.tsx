@@ -1,4 +1,4 @@
-import { EmptyState } from '@ongarage/shared';
+import { EmptyState, MoneyText } from '@ongarage/shared';
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Colors, FONTS, LkPlate, getThemeMode, themedStyles } from '@ongarage/shared';
@@ -71,7 +71,7 @@ export const VehicleRecordPanel: React.FC<{ bookings: Booking[]; query: string; 
                   {!!b.progress?.warrantyUntil && <Text style={styles.sub}>🛡️ වගකීම {formatDate(b.progress.warrantyUntil)} දක්වා</Text>}
                 </View>
                 <View style={styles.right}>
-                  <Text style={styles.price}>{money(b.price)}</Text>
+                  <MoneyText style={styles.price}>{money(b.price)}</MoneyText>
                   <Text style={styles.link}>විස්තර ›</Text>
                 </View>
               </Pressable>

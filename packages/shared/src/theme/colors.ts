@@ -1,32 +1,6 @@
 import { fontWeightOf } from './fonts';
 export type ThemeMode = 'dark' | 'light';
 
-/** The OnGarage logo colours (OnMart, OnChat and OnGarage marks): the same in both themes. */
-export const BRAND = {
-  /** The logo's navy: the wordmark, and the towing card. */
-  navy: '#0D2B3E',
-  /** The logo's orange: the "On" and the power mark, and the vehicle repair card. */
-  orange: '#EE5E16',
-} as const;
-
-/**
- * The app's band palette (the header bands, the active pills and their accents). Roles:
- * deep = the dark band and dark-mode band; brown = the band in light mode and the active pill;
- * orange = a secondary accent, never on SOS; amber = small badges only (dark ink on it); cream = the title on the band and light tints.
- * SOS keeps its own orange; these colours never appear on SOS surfaces. Contrast pairs were checked against WCAG (see the skill's usage log).
- */
-export const BAND = {
-  deep: '#1C1008',
-  brown: '#5C2E0D',
-  orange: '#B45309',
-  amber: '#F59E0B',
-  cream: '#FEF3C7',
-  /** A quieter cream for the line under a title on the band (7.5:1 on brown). */
-  creamSoft: '#E4CFA8',
-  /** The pill behind the band's controls (13.5:1 with cream). */
-  pill: '#3D1F09',
-} as const;
-
 const dark = {
   // Background
   bgBody: '#07090e',
@@ -71,7 +45,7 @@ const light: Palette = {
   bgCard: '#ffffff',
   bgCardHover: '#e2e8f0',
   bgDark: '#eef2f7',
-  sheetBg: '#f7f7f7',
+  sheetBg: '#f0f0f0',
   mapBg: '#dbe4ee',
   barBg: 'rgba(255, 255, 255, 0.97)',
   cardGlass: 'rgba(255, 255, 255, 0.95)',
@@ -100,7 +74,7 @@ const light: Palette = {
 
 const PALETTES: Record<ThemeMode, Palette> = { dark, light };
 
-let current: ThemeMode = 'light';
+let current: ThemeMode = 'dark';
 
 export const getThemeMode = () => current;
 
@@ -110,8 +84,14 @@ export const setThemeMode = (mode: ThemeMode) => {
   current = mode;
 };
 
+// An app may recolour a few palette entries for itself (the vehicle-owner app swaps page and card colours): set once at start, before the first screen is drawn.
+let overrides: Partial<Record<ThemeMode, Partial<Palette>>> = {};
+export const setAppPalette = (o: Partial<Record<ThemeMode, Partial<Palette>>>) => {
+  overrides = o;
+};
+
 export const Colors: Palette = new Proxy({} as Palette, {
-  get: (_, key) => PALETTES[current][key as keyof Palette],
+  get: (_, key) => overrides[current]?.[key as keyof Palette] ?? PALETTES[current][key as keyof Palette],
 });
 
 /**
@@ -164,6 +144,17 @@ export const getAppShape = () => shape;
 
 const LIGHT_EDGE: Record<string, string> = { '#dadce0': '#eceff3', '#e8eaed': '#f1f3f4', '#d2e3fc': '#dbe8fd' };
 
+/** The one corner every card and panel has in all four apps (the PickMe shape used to enlarge each corner by 1.6, so cards differed from 16 to 28). */
+let CARD_CORNER = 12;
+/** An app may choose its own card corner (before its first screen is drawn). */
+export const setCardCorner = (n: number) => {
+  CARD_CORNER = n;
+};
+/** The padding inside every card and panel (vertical: two less). */
+const CARD_PAD = 16;
+/** The space between the lines of content inside a card. */
+const CARD_GAP = 24;
+
 const reshapePickMe = <T extends object>(sheet: T): T => {
   const out: Record<string, unknown> = {};
   for (const [name, style] of Object.entries(sheet)) {
@@ -172,15 +163,30 @@ const reshapePickMe = <T extends object>(sheet: T): T => {
       continue;
     }
     const st = { ...(style as Record<string, unknown>) };
-    // Corners: a button or chip (a fixed height with side padding) becomes a pill; a card or panel gets a much bigger corner; a circle stays a circle.
+    // Corners: a button or chip (a fixed height with side padding) becomes a pill; a card or panel gets the one shared corner (CARD_CORNER); a circle stays a circle.
     const r = st.borderRadius;
-    if (typeof r === 'number' && r < 500) {
+    // A chip (a style named chip / tag) has the same corner as a card, whatever its height (a round count badge stays round).
+    if (typeof r === 'number' && r < 500 && /chip|Chip|^tag|Tag/.test(name) && !(typeof st.width === 'number' && st.width === st.height)) {
+      st.borderRadius = typeof st.height === 'number' ? Math.min(CARD_CORNER, Math.round(st.height / 2)) : CARD_CORNER;
+    } else if (typeof r === 'number' && r < 500) {
       const h = typeof st.height === 'number' ? st.height : typeof st.minHeight === 'number' ? st.minHeight : 0;
       const w = typeof st.width === 'number' ? st.width : 0;
       const circle = (h && w && h === w && r >= h / 2 - 1) || (h && r >= h / 2);
       if (!circle) {
         if (h >= 26 && h <= 64 && r >= 5 && r <= 16 && (st.paddingHorizontal !== undefined || st.flexDirection === 'row' || st.alignItems === 'center')) st.borderRadius = Math.round(h / 2);
-        else if (r >= 5) st.borderRadius = Math.min(28, Math.round(r * 1.6));
+        else if (r >= 10) {
+          st.borderRadius = CARD_CORNER;
+          // Room inside the card is the same everywhere too: a card's own padding (when it has some and is not a fixed-height control) is lifted to the shared level.
+          if (!h) {
+            const lift = (v: unknown, to: number) => (typeof v === 'number' && v >= 6 && v <= 20 ? to : v);
+            if (st.padding !== undefined) st.padding = lift(st.padding, CARD_PAD);
+            if (st.paddingHorizontal !== undefined) st.paddingHorizontal = lift(st.paddingHorizontal, CARD_PAD);
+            if (typeof st.gap === 'number' && st.gap >= 4 && st.gap < CARD_GAP) st.gap = CARD_GAP;
+            if (st.paddingLeft !== undefined) st.paddingLeft = lift(st.paddingLeft, CARD_PAD);
+            if (st.paddingRight !== undefined) st.paddingRight = lift(st.paddingRight, CARD_PAD);
+            if (st.paddingVertical !== undefined) st.paddingVertical = lift(st.paddingVertical, CARD_PAD - 2);
+          }
+        }
       }
     }
     // Edges: the hard grey outline becomes a very light edge.
@@ -209,3 +215,20 @@ export function themedStyles<T extends object>(factory: () => T): T {
     },
   });
 }
+
+/**
+ * An app's own tone for the few shared pieces that carry a fixed colour (the page header's band and the bottom tabs' icons): an app that sets none keeps the default look.
+ * Only the light theme uses it.
+ */
+export type AppTone = {
+  /** The band at the top of every tab's page: its colour, the title's and the subtitle's. */
+  header?: { bg: string; title: string; sub: string };
+  /** The bottom tabs: the active icon's body and its small details. */
+  navInk?: string;
+  navAccent?: string;
+};
+let appTone: AppTone = {};
+export const setAppTone = (t: AppTone) => {
+  appTone = t;
+};
+export const getAppTone = () => (current === 'light' ? appTone : {});

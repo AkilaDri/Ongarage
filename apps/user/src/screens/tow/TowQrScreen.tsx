@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ActionButton, CloseCode, Colors, FONTS, Gradient, makeCloseCode, themedStyles } from '@ongarage/shared';
 import { money } from '../../utils/format';
 import type { TowPaidDraft } from './TowPayScreen';
+import { TowButton } from './TowButton';
 
 const TOW_BAND = [
   { offset: '0', color: '#1d367f' },
@@ -83,7 +84,7 @@ export const TowQrScreen: React.FC<{
         </ScrollView>
 
         <View style={styles.bottomBar}>
-          <ActionButton label="ට්‍රක් කාර්මිකයා ස්කෑන් කළා" icon="📷" variant="success" onPress={() => onNext({ ...draft, closeCode: code })} />
+          <TowButton label="ට්‍රක් කාර්මිකයා ස්කෑන් කළා" icon="📷" onPress={() => onNext({ ...draft, closeCode: code })} />
         </View>
       </View>
     </SafeAreaView>

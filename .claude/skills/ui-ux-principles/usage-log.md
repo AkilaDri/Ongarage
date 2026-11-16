@@ -13,6 +13,16 @@ Entry format:
 
 ## Entries
 
+## 2026-11-15 · Owner Home header · vehicle line weight, logo spacing
+- Principles used: C13 (plate and vehicle name share one weight, so the chip reads as one control), C2 (16px gap keeps the logo clear of the location chip), UPD 152 proximity.
+- Core missing: none.
+- Outcome: user asked for the small change set. Not yet checked on a phone.
+
+## 2026-11-10 · Owner Bids tab · accept on the card, timer in hours, map permanent
+- Principles used: C6 (accept sits on the card as the one primary action), C9 (the accept confirm and the new delete confirm stay; no other window opens), C4 (the timer names the closing time in hours and minutes, and updates per minute, not every second: UPD 087), C7 (delete target 44px), C13 (the title is Sinhala, as every other label; English only for brand names).
+- Core missing: none.
+- Outcome: user asked for accept from the card, no navigation to other windows, the timer to show time left, and the map to stay. Not yet checked on screen.
+
 ## 2026-11-10 · Towing step 2 (route) · placing feedback
 - Principles used: C2 (removed the "දැන් සකසන්නේ" chip: the pin label and the highlighted row already say which place is set), C8 and UPD 087 (spinner only after 1 s, not on every move), C4 (the pin label names the place being set), C7 (names wrap onto two lines), coordinates never shown as text.
 - Core missing: none.

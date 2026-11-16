@@ -1,20 +1,19 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, Modal, Animated, Easing, useWindowDimensions } from 'react-native';
+import { View, Image, Text, StyleSheet, Pressable, Modal, Animated, Easing, useWindowDimensions } from 'react-native';
 import { Colors, getThemeMode, themedStyles } from '@ongarage/shared';
 import { FONTS } from '@ongarage/shared';
 import { useProfile } from '../context/ProfileContext';
 import { useVehicles } from '../context/VehiclesContext';
 import { VehicleIcon3D } from '@ongarage/shared';
 import { Gradient, GRADIENTS } from '@ongarage/shared';
-import WeatherAnimation, { periodOf, skyInk, useHour } from './WeatherAnimation';
+import Svg, { Circle, Defs, RadialGradient, Stop } from 'react-native-svg';
+import WeatherAnimation, { periodOf, useHour } from './WeatherAnimation';
 import { MOCK_USER } from '../constants/mockData';
-import { AddVehicleSheet } from './AddVehicleSheet';
 
 /** Every page's top band is this tall - the height of Home's greeting band. */
 export const HEADER_BAND_H = 100;
 // The top bar keeps its emoji as they are (the line-icon patch skips a Text marked this way).
 const KEEP_EMOJI = { keepEmoji: true } as object;
-const eveningShadow = { textShadowColor: 'rgba(20, 10, 40, 0.45)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 };
 const POPOVER_WIDTH = 264;
 const EDGE_GAP = 12;
 
@@ -24,19 +23,15 @@ interface VehiclePickerProps {
   anchorRef: React.RefObject<View | null>;
   onSelect: (vehicleId: string) => void;
   onClose: () => void;
-  /** Adds a row that shows every vehicle's jobs and costs in Bids and Activity, instead of only the chosen one's. */
-  withAll?: boolean;
 }
 
 type Placement = { top: number; left: number; originX: number };
 
-export const VehiclePicker: React.FC<VehiclePickerProps> = ({ visible, activeVehicle, anchorRef, onSelect, onClose, withAll }) => {
-  // Every picker can add a vehicle: the row at the bottom opens the same add form, and the new vehicle is chosen when it is saved.
-  const [addOpen, setAddOpen] = useState(false);
+export const VehiclePicker: React.FC<VehiclePickerProps> = ({ visible, activeVehicle, anchorRef, onSelect, onClose }) => {
   const { width: screenW } = useWindowDimensions();
   const [placement, setPlacement] = useState<Placement | null>(null);
   const progress = useRef(new Animated.Value(0)).current;
-  const { vehicles, showAllVehicles, setShowAllVehicles } = useVehicles();
+  const { vehicles } = useVehicles();
   const rows = useMemo(() => vehicles.map(() => new Animated.Value(0)), [vehicles.length]);
   const closing = useRef(false);
 
@@ -79,7 +74,6 @@ export const VehiclePicker: React.FC<VehiclePickerProps> = ({ visible, activeVeh
   };
 
   return (
-    <>
     <Modal visible={visible} transparent animationType="none" statusBarTranslucent onRequestClose={close}>
       <Animated.View style={[styles.backdrop, { opacity: progress }]}>
         <Pressable style={StyleSheet.absoluteFill} onPress={close} />
@@ -148,67 +142,13 @@ export const VehiclePicker: React.FC<VehiclePickerProps> = ({ visible, activeVeh
               </Animated.View>
             );
           })}
-          {withAll && (
-            <Pressable
-              style={({ pressed }) => [styles.row, showAllVehicles && styles.rowActive, pressed && !showAllVehicles && styles.rowPressed]}
-              onPress={() => {
-                setShowAllVehicles(!showAllVehicles);
-                close();
-              }}
-              accessibilityRole="checkbox"
-              accessibilityLabel="Show every vehicle"
-              accessibilityState={{ checked: showAllVehicles }}
-            >
-              <View style={[styles.iconTile, showAllVehicles && styles.iconTileActive]}>
-                {showAllVehicles && <Gradient stops={GRADIENTS.issue} />}
-                <Text style={{ fontSize: 20 }}>🚗</Text>
-              </View>
-              <View style={styles.rowText}>
-                <Text style={[styles.name, showAllVehicles && styles.nameActive]}>සියලු වාහන</Text>
-                <Text style={styles.plate}>ඔබගේ සියලු වාහනවල ලංසු සහ වියදම්</Text>
-              </View>
-              {showAllVehicles ? (
-                <View style={styles.check}>
-                  <Text style={styles.checkText}>✓</Text>
-                </View>
-              ) : (
-                <View style={styles.radio} />
-              )}
-            </Pressable>
-          )}
-          {(
-            <Pressable
-              style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
-              onPress={() => {
-                close();
-                setAddOpen(true);
-              }}
-              accessibilityLabel="Add a new vehicle"
-            >
-              <View style={styles.iconTile}>
-                <Text style={{ fontSize: 22, color: Colors.primary }}>＋</Text>
-              </View>
-              <View style={styles.rowText}>
-                <Text style={styles.name}>Add Vehicle</Text>
-              </View>
-            </Pressable>
-          )}
         </Animated.View>
       )}
     </Modal>
-      <AddVehicleSheet
-        visible={addOpen}
-        onClose={() => setAddOpen(false)}
-        onAdded={(v) => {
-          onSelect(v.id);
-          setAddOpen(false);
-        }}
-      />
-    </>
   );
 };
 
-export const greetingFor = (hour: number) => {
+const greetingFor = (hour: number) => {
   if (hour < 12) return 'සුභ උදෑසනක්';
   if (hour < 17) return 'සුභ දහවලක්';
   if (hour < 20) return 'සුභ සන්ධ්‍යාවක්';
@@ -221,7 +161,7 @@ export const TitleBand: React.FC<{ title: string; action?: { label: string; onPr
   return (
     <View style={styles.titleBand}>
       <WeatherAnimation hour={hour} />
-      <Text style={[styles.titleBandText, { color: skyInk(periodOf(hour)).main }, action && styles.titleWithAction]} accessibilityRole="header">
+      <Text style={[styles.titleBandText, { color: '#ffffff' }, action && styles.titleWithAction]} accessibilityRole="header">
         {title}
       </Text>
       {action && (
@@ -233,74 +173,135 @@ export const TitleBand: React.FC<{ title: string; action?: { label: string; onPr
   );
 };
 
-/** Home's header band. `children` sits under the greeting (the active-vehicle chip). */
-export const Header: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
-  const { firstName } = useProfile();
+/** A soft round glow (the design's blurred circles): a radial gradient that fades to nothing. */
+const Glow: React.FC<{ size: number; color: string; opacity: number; style: object }> = ({ size, color, opacity, style }) => (
+  <Svg width={size} height={size} style={[{ position: 'absolute' }, style]} pointerEvents="none">
+    <Defs>
+      <RadialGradient id="glow" cx="50%" cy="50%" r="50%">
+        <Stop offset="0" stopColor={color} stopOpacity={opacity} />
+        <Stop offset="1" stopColor={color} stopOpacity={0} />
+      </RadialGradient>
+    </Defs>
+    <Circle cx={size / 2} cy={size / 2} r={size / 2} fill="url(#glow)" />
+  </Svg>
+);
 
+export const Header: React.FC<{ vehicleId?: string; onSelectVehicle?: (id: string) => void }> = ({ vehicleId, onSelectVehicle }) => {
+  const { fullName } = useProfile();
+  const { findVehicle } = useVehicles();
+  const vehicle = vehicleId ? findVehicle(vehicleId) : undefined;
   const hour = useHour();
-  const period = periodOf(hour);
-  const night = period === 'night';
-  const evening = period === 'evening';
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const anchorRef = useRef<View>(null);
 
   return (
-    <View style={styles.header}>
-      <WeatherAnimation hour={hour} fadeBottom />
-      <View style={styles.greetingRow}>
-        <View style={styles.greetingText}>
-          <Text {...KEEP_EMOJI} style={[styles.city, night ? styles.cityNight : evening ? styles.cityEvening : styles.cityDay]}>📍 {MOCK_USER.city}</Text>
-          <Text style={[styles.hi, night ? styles.hiNight : evening ? styles.hiEvening : styles.hiDay]} numberOfLines={1}>
-            Hi {firstName},{' '}
-            <Text style={[styles.greeting, night ? styles.greetingNight : evening ? styles.greetingEvening : styles.greetingDay]}>{greetingFor(hour)}</Text>
-          </Text>
-          {children && <View style={styles.headerChild}>{children}</View>}
+    <View style={hh.wrap}>
+      <View style={hh.topRow}>
+        <View style={hh.cityPill}>
+          <Text style={hh.cityPin}>📍</Text>
+          <Text style={hh.cityText}>{MOCK_USER.city}</Text>
         </View>
+        <Image source={require('../../assets/ongarage-logo.png')} style={hh.logo} resizeMode="contain" accessibilityLabel="OnGarage" />
       </View>
-
-      <View style={{ width: 66 }} />
+      <Text style={hh.hi} numberOfLines={1}>
+        Hi {fullName},
+      </Text>
+      <View style={hh.vehicleRow} accessibilityLabel={vehicle ? `Your vehicle ${vehicle.name} ${vehicle.plate}` : 'Your vehicle'}>
+        <Text style={hh.ready}>ඔබේ වාහනය</Text>
+        {vehicle && (
+          <>
+            <Text style={hh.vehicleName} numberOfLines={1}>
+              {vehicle.name}
+            </Text>
+            {/* The number plate with a small arrow: touch it to choose another vehicle. */}
+            <Pressable ref={anchorRef} style={hh.plateBtn} onPress={() => setPickerOpen(true)} hitSlop={8} accessibilityLabel="Choose another vehicle">
+              <View style={hh.plate}>
+                <Text style={hh.plateText}>{vehicle.plate}</Text>
+              </View>
+              <Text style={hh.plateArrow}>⌄</Text>
+            </Pressable>
+          </>
+        )}
+      </View>
+      {vehicleId && (
+        <VehiclePicker
+          visible={pickerOpen}
+          activeVehicle={vehicleId}
+          anchorRef={anchorRef}
+          onSelect={(id) => onSelectVehicle?.(id)}
+          onClose={() => setPickerOpen(false)}
+        />
+      )}
     </View>
   );
 };
 
+/** The Home header band, written with plain styles so it matches the design exactly. */
+const hh = StyleSheet.create({
+  wrap: { paddingHorizontal: 24, paddingTop: 20, paddingBottom: 72, borderBottomLeftRadius: 36, borderBottomRightRadius: 36, overflow: 'hidden', backgroundColor: '#1e3a8a' },
+  topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
+  cityPill: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20, backgroundColor: 'rgba(255, 255, 255, 0.15)', borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.15)' },
+  cityPin: { fontSize: 13.5, color: '#facc15' },
+  cityText: { fontSize: 13.5, fontFamily: FONTS.bodySemiBold, letterSpacing: 0.3, color: '#ffffff' },
+  vehiclePill: { flexShrink: 1, flexDirection: 'row', alignItems: 'center', gap: 6, marginLeft: 10, paddingLeft: 12, paddingRight: 8, paddingVertical: 5, borderRadius: 20, backgroundColor: 'rgba(255, 255, 255, 0.15)', borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.2)' },
+  vehicleIcon: { fontSize: 13.5 },
+  plate: { paddingHorizontal: 2, paddingVertical: 1 },
+  plateText: { fontSize: 13.5, fontWeight: '800', letterSpacing: 0.3, color: '#ffffff' },
+  cityChevron: { fontSize: 19, lineHeight: 19, color: '#facc15', marginTop: -6 },
+  logoPill: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 4, borderRadius: 20, backgroundColor: 'rgba(255, 255, 255, 0.15)', borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.2)' },
+  logoDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#facc15', marginRight: 8 },
+  logoText: { fontSize: 12, fontWeight: '800', letterSpacing: 0.6, color: '#ffffff' },
+  logoG: { fontSize: 14, fontWeight: '900', color: '#facc15' },
+  hi: { fontSize: 25, lineHeight: 33, fontFamily: FONTS.titleBold, letterSpacing: -0.3, color: '#ffffff' },
+  logo: { width: 86, height: 26 },
+  vehicleRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginTop: 4 },
+  vehicleName: { flexShrink: 1, fontSize: 16, lineHeight: 22, fontFamily: FONTS.bodyBold, color: '#facc15' },
+  plateBtn: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  plateArrow: { fontSize: 22, lineHeight: 22, marginTop: -7, color: '#facc15' },
+  ready: { fontSize: 16, lineHeight: 22, fontFamily: FONTS.bodySemiBold, color: '#facc15' },
+  greeting: { fontSize: 18, lineHeight: 24, marginTop: 2, fontFamily: FONTS.bodyMedium, color: 'rgba(219, 234, 254, 0.9)' },
+});
+
 const styles = themedStyles(() => StyleSheet.create({
   // A soft sky-blue band (dark text on light, light text on dark); the screen below overlaps it.
   header: {
-    zIndex: 1,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     gap: 12,
-    paddingHorizontal: 18,
-    paddingTop: 20,
-    paddingBottom: 22,
+    paddingHorizontal: 22,
+    paddingTop: 22,
+    paddingBottom: 74,
+    borderBottomLeftRadius: 36,
+    borderBottomRightRadius: 36,
     minHeight: HEADER_BAND_H,
     overflow: 'hidden',
-    backgroundColor: getThemeMode() === 'dark' ? '#0e2a3f' : '#bfe4fa',
+    backgroundColor: getThemeMode() === 'dark' ? '#0e2a3f' : '#1e3a8a',
   },
   // The sky behind the greeting is light by day and dark at night in either theme, so the text colour follows it.
-  cityDay: { color: '#2b4a63' },
-  hiDay: { color: '#0f2a3d' },
-  greetingDay: { color: '#2b4a63' },
+  cityDay: { color: '#ffffff' },
+  hiDay: { color: '#ffffff' },
+  greetingDay: { color: '#d9d6d2' },
   cityNight: { color: '#a9cbe6' },
   hiNight: { color: '#e6f3fc' },
   greetingNight: { color: '#a9cbe6' },
-  // The dusk sky is purple at the top and orange below: white with a soft shadow reads on both.
-  cityEvening: { color: '#ffffff', ...eveningShadow },
-  hiEvening: { color: '#ffffff', ...eveningShadow },
-  greetingEvening: { color: '#ffffff', ...eveningShadow },
   // Leaves room at the right for the floating chat icon (52px + its 14px margin), so the button never sits under it.
   titleBandAction: { marginRight: 66, paddingHorizontal: 14, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? '#16415f' : '#0f2f4a' },
   titleBandActionText: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: '#ffffff' },
   // Leaves room for the sun / moon between the title and the action button.
   titleWithAction: { flexShrink: 1, maxWidth: '44%' },
-  titleBand: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, paddingHorizontal: 18, paddingTop: 14, paddingBottom: 34, minHeight: HEADER_BAND_H, overflow: 'hidden', backgroundColor: getThemeMode() === 'dark' ? '#0e2a3f' : '#bfe4fa' },
-  titleBandText: { fontSize: 20, fontFamily: FONTS.titleBold, color: getThemeMode() === 'dark' ? '#d6eefc' : '#0f2a3d' },
-  city: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: getThemeMode() === 'dark' ? '#8fc3e3' : '#2b4a63', marginBottom: 2 },
+  titleBand: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, paddingHorizontal: 18, paddingTop: 14, paddingBottom: 34, minHeight: HEADER_BAND_H, overflow: 'hidden', backgroundColor: getThemeMode() === 'dark' ? '#0e2a3f' : '#1e3a8a' },
+  titleBandText: { fontSize: 20, fontFamily: FONTS.titleBold, color: getThemeMode() === 'dark' ? '#d6eefc' : '#ffffff' },
+  topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 },
+  cityPill: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingVertical: 8, paddingHorizontal: 14, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.13)' },
+  cityPin: { fontSize: 13, color: '#1e3a8a' },
+  cityChevron: { fontSize: 13, color: '#e8e2d0', marginTop: -4 },
+  city: { fontSize: 12.5, fontFamily: FONTS.bodyBold },
   // Above the sky: the sun, clouds and birds drift behind the greeting, never over it.
   greetingRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 6, position: 'relative' },
-  greetingText: { gap: 1, flex: 1 },
-  headerChild: { alignSelf: 'flex-start', marginTop: 6 },
-  hi: { fontSize: 15, fontFamily: FONTS.titleBold, color: getThemeMode() === 'dark' ? '#d6eefc' : '#0f2a3d' },
-  greeting: { fontSize: 12.5, fontFamily: FONTS.bodyMedium, color: getThemeMode() === 'dark' ? '#8fc3e3' : '#2b4a63' },
+  greetingText: { gap: 4, flex: 1 },
+  hi: { fontSize: 20, fontFamily: FONTS.titleBold, color: getThemeMode() === 'dark' ? '#d6eefc' : '#ffffff' },
+  greeting: { fontSize: 13, fontFamily: FONTS.bodyMedium, color: getThemeMode() === 'dark' ? '#8fc3e3' : '#e8e2d0' },
   vehiclePill: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -314,11 +315,15 @@ const styles = themedStyles(() => StyleSheet.create({
     elevation: 3,
     backgroundColor: getThemeMode() === 'dark' ? '#16415f' : '#0f2f4a',
   },
+  brandLogo: { width: 92, height: 27, marginTop: 2 },
+  brandTag: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingVertical: 7, paddingHorizontal: 14, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.1)' },
+  brandDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#1e3a8a' },
+  brandText: { fontSize: 11.5, fontFamily: FONTS.bodyBold, letterSpacing: 1.2, color: '#facc15' },
   vehiclePillOpen: { opacity: 0.85 },
   pillCar: { width: 30, height: 30, borderRadius: 15, backgroundColor: '#d6eefc', alignItems: 'center', justifyContent: 'center' },
   pillCarIcon: { fontSize: 16 },
   pillLabel: { fontSize: 12, fontFamily: FONTS.bodyBold, color: '#fff', letterSpacing: 0.5 },
-  pillArrow: { fontSize: 10, color: '#bfe4fa' },
+  pillArrow: { fontSize: 10, color: '#facc15' },
 
   backdrop: { ...StyleSheet.absoluteFill, backgroundColor: Colors.overlay },
   popover: {

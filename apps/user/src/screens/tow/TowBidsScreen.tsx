@@ -19,6 +19,7 @@ import {
   type TowCondition,
   type TowQuote,
 } from '@ongarage/shared';
+import { TowButton } from './TowButton';
 import { TOW_OPERATORS } from '../../constants/towOperators';
 import { TOW_SITE_TEXT } from '../../constants/towSites';
 import { TowOperatorSheet } from './TowOperatorSheet';
@@ -413,11 +414,11 @@ export const TowBidsScreen: React.FC<{
             ) : slotLabel && onChangeTime ? (
               // No truck is free at this time: the next step is a different time, so that is the main button.
               <View style={styles.twoRow}>
-                <ActionButton label="වේලාව වෙනස් කරන්න" variant="primary" onPress={onChangeTime} />
+                <TowButton label="වේලාව වෙනස් කරන්න" onPress={onChangeTime} />
                 <ActionButton label="නැවත ඉල්ලන්න" variant="ghost" onPress={askAgain} />
               </View>
             ) : (
-              <ActionButton label="නැවත ඉල්ලන්න" variant="primary" onPress={askAgain} />
+              <TowButton label="නැවත ඉල්ලන්න" onPress={askAgain} />
             )
           ) : next !== null ? (
             <ActionButton label="තවත් ට්‍රක් සොයන්න" variant="ghost" onPress={widen} />
@@ -455,7 +456,7 @@ export const TowBidsScreen: React.FC<{
           body={'\nමෙම කලාපයේ ට්‍රක් නැත. ඒ නිසා සෙවුම් කලාපය වැඩි කරන්න ද?'}
         >
           <ActionButton label="නැහැ, නැවත සොයන්න" variant="ghost" compact onPress={keepRadius} />
-          <ActionButton label="ඔව්, වැඩි කරන්න" variant="primary" compact onPress={widen} />
+          <TowButton label="ඔව්, වැඩි කරන්න" onPress={widen} />
         </ModalCard>
       )}
     </SafeAreaView>
