@@ -89,6 +89,48 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onSOSPress, onPostJob, o
     else setList({ title: 'ආරක්ෂිත රැකියා (OnGarage Guarantee)', garages: protectedGarages });
   };
 
+  // The home sections, defined here so the order below can change with what the owner has (used garages or not).
+  const dealsSection = (
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>ගනුදෙනු සහ දීමනා</Text>
+        <OfferTiles offers={OFFERS} onOpen={openOffer} />
+      </View>
+  );
+  const usedSection = (
+      <GarageGridSection
+        title="ඔබ පෙර භාවිතා කළ ගරාජ"
+        garages={usedGarages}
+        onOpen={setOpen}
+        onSaveChange={save}
+        onSeeAll={() => setList({ title: 'ඔබ පෙර භාවිතා කළ ගරාජ', garages: usedGarages })}
+      />
+  );
+  const nearbySection = (
+      <GarageGridSection
+        title="ඔබට ළඟම"
+        garages={nearbyList.slice(0, 4)}
+        chips={[
+          { id: 'near', label: 'ළඟම' },
+          { id: 'rating', label: 'ඉහළ ශ්‍රේණිය' },
+        ]}
+        activeChip={nearbySort}
+        onChip={(id) => setNearbySort(id as 'near' | 'rating')}
+        onOpen={setOpen}
+        onSaveChange={save}
+        onSeeAll={() => setList({ title: 'ඔබට ළඟම ගරාජ', garages: nearbyList })}
+      />
+  );
+  const sponsoredSection = (
+      <GarageGridSection
+        title="විශේෂාංග · දැන්වීම්"
+        garages={sponsored}
+        ad
+        onOpen={setOpen}
+        onSaveChange={save}
+        onSeeAll={() => setList({ title: 'විශේෂාංග · දැන්වීම්', garages: sponsored, ad: true })}
+      />
+  );
+
   return (
     <View style={styles.container}>
       <ScrollView style={styles.scroll} contentContainerStyle={[styles.content, { paddingBottom: 90 + collapsePx }]} showsVerticalScrollIndicator={false} scrollEventThrottle={16} onScroll={(e) => {
@@ -113,41 +155,20 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onSOSPress, onPostJob, o
           }}
         />
 
-        {/* Deals */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>ගනුදෙනු සහ දීමනා</Text>
-          <OfferTiles offers={OFFERS} onOpen={openOffer} />
-        </View>
-
-        {/* Garage rows */}
-        <GarageGridSection
-          title="ඔබ පෙර භාවිතා කළ ගරාජ"
-          garages={usedGarages}
-          onOpen={setOpen}
-          onSaveChange={save}
-          onSeeAll={() => setList({ title: 'ඔබ පෙර භාවිතා කළ ගරාජ', garages: usedGarages })}
-        />
-        <GarageGridSection
-          title="ඔබට ළඟම"
-          garages={nearbyList.slice(0, 4)}
-          chips={[
-            { id: 'near', label: 'ළඟම' },
-            { id: 'rating', label: 'ඉහළ ශ්‍රේණිය' },
-          ]}
-          activeChip={nearbySort}
-          onChip={(id) => setNearbySort(id as 'near' | 'rating')}
-          onOpen={setOpen}
-          onSaveChange={save}
-          onSeeAll={() => setList({ title: 'ඔබට ළඟම ගරාජ', garages: nearbyList })}
-        />
-        <GarageGridSection
-          title="විශේෂාංග · දැන්වීම්"
-          garages={sponsored}
-          ad
-          onOpen={setOpen}
-          onSaveChange={save}
-          onSeeAll={() => setList({ title: 'විශේෂාංග · දැන්වීම්', garages: sponsored, ad: true })}
-        />
+        {/* The first garage row comes right after the promo; the offers follow it, so the two promotions are not back to back. (No used garages: the nearby row is the first.) */}
+        {usedGarages.length > 0 ? (
+          <>
+            {usedSection}
+            {dealsSection}
+            {nearbySection}
+          </>
+        ) : (
+          <>
+            {nearbySection}
+            {dealsSection}
+          </>
+        )}
+        {sponsoredSection}
         </Animated.View>
       </ScrollView>
       {/* Once the big action card has scrolled away, the two actions stay at the top of the screen as a compact bar. */}
@@ -227,7 +248,8 @@ const stickySt = StyleSheet.create({
   sos: { flex: 1, height: 46, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(254, 226, 226, 0.9)', backgroundColor: 'rgba(254, 242, 242, 0.8)' },
   sosDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#ef4444' },
   sosText: { fontSize: 15, fontWeight: '800', color: '#dc2626', letterSpacing: 0.5 },
-  sosSmall: { fontSize: 10, fontWeight: '700', color: '#ef4444' },
+  // 12px (it was 10) in a darker red: the lighter red on the pink bar was under 4.5:1.
+  sosSmall: { fontSize: 12, fontFamily: FONTS.bodyBold, color: '#b91c1c' },
   job: { flex: 1.3, height: 46, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(219, 234, 254, 0.9)', backgroundColor: 'rgba(239, 246, 255, 0.9)' },
   jobPlus: { fontSize: 20, lineHeight: 22, fontWeight: '700', color: '#1e3a8a' },
   jobText: { fontSize: 13, fontWeight: '700', color: '#1e3a8a' },

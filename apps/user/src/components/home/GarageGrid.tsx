@@ -125,7 +125,7 @@ const styles = themedStyles(() =>
     heartOn: { color: '#e5283c' },
     body: { padding: 12, gap: 4 },
     name: { fontSize: 14.5, lineHeight: 19, fontFamily: FONTS.bodyBold, color: Colors.textMain },
-    meta: { fontSize: 12, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
+    meta: { fontSize: 13, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
     eta: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
   })
 );

@@ -573,15 +573,6 @@ function AppShell() {
         </Animated.View>
 
         <View style={styles.bottomNavContainer}>
-          {/* A balance is due or late (and new work limited when it is long late): tap to see what is owed. */}
-          {activeTab !== 'home' && (
-            <PayStandingBanner
-              onPress={() => {
-                focusActivity({ kind: 'done' });
-                setActiveTab('activity');
-              }}
-            />
-          )}
           {activeTab === 'mart' ? (
             <OwnerMartNav
               activeTab={martSegment}

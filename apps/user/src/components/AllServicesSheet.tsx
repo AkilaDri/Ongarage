@@ -1,7 +1,8 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Colors, FONTS, GlassIcon, marketPrice, SERVICE_CATEGORIES, themedStyles, type ServiceCategory } from '@ongarage/shared';
+import { Colors, FONTS, marketPrice, SERVICE_CATEGORIES, themedStyles, type ServiceCategory } from '@ongarage/shared';
 import { Sheet } from './Sheet';
+import { CategoryPhoto } from './home/CategoryPhoto';
 import { money } from '../utils/format';
 import { useRankedCategories } from '../utils/rankedCategories';
 
@@ -10,7 +11,9 @@ export const AllServicesSheet: React.FC<{ visible: boolean; onClose: () => void;
   // Same order as the Home strip: the common services first.
   const ranked = useRankedCategories();
   return (
-  <Sheet visible={visible} title="සියලු සේවා" subtitle="සේවාවක් තෝරා ළඟම ගරාජ බලන්න" onClose={onClose}>
+  <Sheet visible={visible} noDividers title="සියලු සේවා" subtitle="සේවාවක් තෝරා ළඟම ගරාජ බලන්න" onClose={onClose}>
+    {/* Room under the title and subtitle, and at the end of the list. */}
+    <View style={styles.list}>
     {ranked.map((c) => (
       <Pressable
         key={c.id}
@@ -21,19 +24,21 @@ export const AllServicesSheet: React.FC<{ visible: boolean; onClose: () => void;
         }}
         accessibilityLabel={`Service ${c.name}`}
       >
-        <GlassIcon emoji={c.icon} small />
+        <CategoryPhoto categoryId={c.id} size={44} />
         <View style={styles.flex1}>
           <Text style={styles.name}>{c.name}</Text>
-          <Text style={styles.sub} numberOfLines={1}>
+          <Text style={styles.sub} numberOfLines={2}>
             {c.subcategories.join(' · ')}
           </Text>
         </View>
         <View style={styles.right}>
           <Text style={styles.price}>{money(marketPrice(c.id))}</Text>
-          <Text style={styles.sub}>සාමාන්‍ය</Text>
+          <Text style={styles.priceLabel}>සාමාන්‍ය මිල</Text>
         </View>
+        <Text style={styles.chevron}>›</Text>
       </Pressable>
     ))}
+    </View>
   </Sheet>
   );
 };
@@ -41,11 +46,15 @@ export const AllServicesSheet: React.FC<{ visible: boolean; onClose: () => void;
 const styles = themedStyles(() =>
   StyleSheet.create({
     flex1: { flex: 1 },
-    row: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 14, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.borderColor },
+    list: { paddingTop: 16, paddingBottom: 24, gap: 10 },
+    row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 12, minHeight: 72, borderRadius: 16, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.borderColor },
     pressed: { opacity: 0.75 },
-    name: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.textMain },
-    sub: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 1 },
+    // The name leads (15px bold), what it covers follows (12px, two lines), the price is a separate column: three levels, each a step apart.
+    name: { fontSize: 15, lineHeight: 21, fontFamily: FONTS.titleBold, color: Colors.textMain },
+    sub: { fontSize: 12, lineHeight: 17, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 2 },
+    priceLabel: { fontSize: 12, lineHeight: 17, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 2 },
+    chevron: { fontSize: 22, lineHeight: 26, fontFamily: FONTS.bodyBold, color: Colors.textMuted },
     right: { alignItems: 'flex-end' },
-    price: { fontSize: 12, fontFamily: FONTS.bodyBold, color: Colors.primary },
+    price: { fontSize: 14, lineHeight: 20, fontFamily: FONTS.bodyBold, color: Colors.primary },
   })
 );

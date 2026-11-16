@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { ActionButton, Colors, FONTS, getThemeMode, OVERDUE_LIMIT_DAYS, OWED_LIMIT, PAY_LEVEL_TEXT, themedStyles } from '@ongarage/shared';
 import { usePayStanding } from '../context/PayStanding';
 import { useCustomerRecord } from '../context/CustomerRecord';
@@ -63,12 +63,26 @@ export const PayReliabilityCard: React.FC = () => {
 /** A calm bar above the tab bar while a balance is due or late (tap: where it is owed); louder once new work is limited. */
 export const PayStandingBanner: React.FC<{ onPress: () => void; /** Inside the Home card, between the action cards and the search bar, not floating above the tab bar. */ inline?: boolean }> = ({ onPress, inline }) => {
   const s = usePayStanding();
+  const { width } = useWindowDimensions();
   if (!s.warn && !s.limited) return null;
+  // The notice's two lines each stay on one line on most phones: the text size follows the width left for the text. Measured in Noto Sans Sinhala, the second line is
+  // 24.75 times its size wide and the bold first line 17.2 times; the bar's padding and the Home card's own padding come off the screen's width. 13px is the most, 11px the least.
+  const textWidth = width - (inline ? 86 : 38);
+  const bodySize = Math.min(13, Math.max(11, Math.floor((textWidth / 25.3) * 10) / 10));
+  const titleSize = Math.min(14.5, Math.max(12.5, Math.floor((textWidth / 17.9) * 10) / 10));
   return (
     <Pressable style={[styles.banner, inline && styles.bannerInline, s.limited && styles.bannerLimited]} onPress={onPress} accessibilityLabel="Payment balance reminder">
-      <Text style={styles.bannerText} numberOfLines={2}>
-        {s.limited ? `⛔ දින ${s.overdueDays} කින් හිඟ මුදල් ගෙවීමක් ප්‍රමාදවී ඇත — අලුත් රැකියා නවතා ඇත. ගෙවීම් බලන්න ›` : `⚠️ ගෙවිය යුතු ${money(s.owed)} ${s.overdueDays ? 'ප්‍රමාදයි' : 'අද දිනයයි'} — බලන්න ›`}
-      </Text>
+      {s.limited ? (
+        // What happened (bold, dark red), then what to do (regular, the main text colour), each on its own line.
+        <View style={styles.bannerLines}>
+          <Text style={[styles.bannerTitle, { fontSize: titleSize, lineHeight: Math.round(titleSize * 1.7) }]}>ප්‍රමාද වූ හිඟ මුදල් ගෙවිමක් ඇත.</Text>
+          <Text style={[styles.bannerBody, { fontSize: bodySize, lineHeight: Math.round(bodySize * 1.7) }]}>Ongarage සේවා ලබා ගැනීමට එම මුදල පියවන්න.</Text>
+        </View>
+      ) : (
+        <Text style={styles.bannerText} numberOfLines={3}>
+          {`⚠️ ගෙවිය යුතු ${money(s.owed)} ${s.overdueDays ? 'ප්‍රමාදයි' : 'අද දිනයයි'} — බලන්න ›`}
+        </Text>
+      )}
     </Pressable>
   );
 };
@@ -121,9 +135,15 @@ const styles = themedStyles(() =>
     limit: { gap: 2, padding: 10, borderRadius: 10, backgroundColor: getThemeMode() === 'dark' ? 'rgba(239, 68, 68, 0.1)' : '#fce8e6', borderWidth: 1, borderColor: 'rgba(239, 68, 68, 0.4)' },
     limitTitle: { fontSize: 12.5, fontFamily: FONTS.bodyBold, color: Colors.errorText },
     limitText: { fontSize: 12, fontFamily: FONTS.bodyRegular, color: Colors.textMain, lineHeight: 18 },
-    banner: { marginHorizontal: 6, marginBottom: 6, paddingHorizontal: 12, paddingVertical: 9, borderRadius: 12, backgroundColor: getThemeMode() === 'dark' ? '#4a3200' : '#fef7e0', borderWidth: 1, borderColor: 'rgba(245, 158, 11, 0.5)' },
-    bannerInline: { marginHorizontal: 4, marginBottom: 0, marginTop: 6 },
+    banner: { marginHorizontal: 6, marginBottom: 6, paddingHorizontal: 12, paddingVertical: 12, borderRadius: 12, backgroundColor: getThemeMode() === 'dark' ? '#4a3200' : '#fef7e0', borderWidth: 1, borderColor: 'rgba(245, 158, 11, 0.5)' },
+    // Inside the Home card, the search bar keeps its place (28px under the notice: the card's 8 gap + its own 20 top margin); the notice has the same 28px above it, so it sits in the middle of the space.
+    bannerInline: { marginHorizontal: 4, marginBottom: 0, marginTop: 20 },
     bannerLimited: { backgroundColor: getThemeMode() === 'dark' ? '#4a1512' : '#fce8e6', borderColor: 'rgba(239, 68, 68, 0.5)' },
-    bannerText: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textMain, lineHeight: 17 },
+    // Sinhala has vowel signs above and below the line, so it needs about 1.7 times its size between lines.
+    // The late-payment notice: the fact first (bold, dark red: about 7:1 on the pink), the action under it (regular). Leading about 1.7 times the size, for Sinhala's vowel signs.
+    bannerLines: { gap: 2 },
+    bannerTitle: { fontSize: 14.5, lineHeight: 25, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#fecaca' : '#991b1b' },
+    bannerBody: { fontSize: 13.5, lineHeight: 23, fontFamily: FONTS.bodyRegular, color: Colors.textMain },
+    bannerText: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textMain, lineHeight: 22 },
   })
 );

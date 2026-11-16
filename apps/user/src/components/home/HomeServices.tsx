@@ -61,7 +61,7 @@ export const HomeServices: React.FC<{ onSelect: (c: ServiceCategory) => void; on
         <Text style={st.title}>Quick Booking</Text>
         <Pressable onPress={onSeeAll} hitSlop={8} accessibilityLabel="See all services">
           <Text style={st.seeAll}>
-            {SERVICES.length} <Text style={st.seeAllArrow}>›</Text>
+            සියල්ල {SERVICES.length} <Text style={st.seeAllArrow}>›</Text>
           </Text>
         </Pressable>
       </View>
@@ -95,7 +95,7 @@ export const HomeServices: React.FC<{ onSelect: (c: ServiceCategory) => void; on
                   <View style={[st.card, { width: cell, height: cell }, on && st.cardOn]}>
                     <CategoryPhoto categoryId={id} size={Math.round(cell * 0.72)} />
                   </View>
-                  <Text style={[st.label, on && st.labelOn]} numberOfLines={1}>
+                  <Text style={[st.label, /[A-Za-z]/.test(label) && st.labelLatin, on && st.labelOn]} numberOfLines={1}>
                     {label}
                   </Text>
                 </Pressable>
@@ -151,8 +151,7 @@ export const HomePromo: React.FC<{ onOpen: () => void }> = ({ onOpen }) => (
 
 const st = themedStyles(() =>
   StyleSheet.create({
-  // The "see all" link stands beside the title, not at the far right (where the floating OnChat logo travels).
-  head: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16, paddingHorizontal: 4 },
+  head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
   title: { fontSize: 16, fontFamily: FONTS.bodyBold, color: Colors.textMain },
   seeAll: { fontSize: 13, fontFamily: FONTS.bodyMedium, color: BLUE },
   seeAllArrow: { color: BLUE, fontSize: 18 },
@@ -168,6 +167,8 @@ const st = themedStyles(() =>
   iconBox: { width: 54, height: 54, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: '#f9fafb', marginBottom: 6 },
   iconBoxOn: { backgroundColor: '#dbeafe' },
   label: { marginTop: 6, fontSize: 12.5, lineHeight: 18, fontFamily: FONTS.bodySemiBold, color: '#000000' },
+  // Latin letters are small beside Sinhala at the same size and weight (a low x-height), so the English labels are bold and 2px larger to carry the same visual weight.
+  labelLatin: { fontFamily: FONTS.bodyBold, fontSize: 14.5, lineHeight: 18 },
   labelOn: { fontFamily: FONTS.bodyBold, color: BLUE },
   promo: { minHeight: 150, justifyContent: 'center', borderRadius: 20, padding: 20, overflow: 'hidden', backgroundColor: BLUE, shadowColor: '#000000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 6, elevation: 3 },
   bolt: { position: 'absolute', right: -14, bottom: -26, fontSize: 120, opacity: 0.1 },

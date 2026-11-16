@@ -11,7 +11,7 @@ export const OfferTiles = <T extends Tile>({ offers, onOpen }: { offers: T[]; on
       <Pressable key={o.id} style={({ pressed }) => [styles.tile, pressed && styles.pressed]} onPress={() => onOpen(o)} accessibilityLabel={`Offer ${o.title}`}>
         <Gradient stops={o.stops} />
         <Text style={styles.title}>{o.title}</Text>
-        <Text style={styles.subtitle} numberOfLines={2}>
+        <Text style={styles.subtitle} numberOfLines={3}>
           {o.subtitle}
         </Text>
         <Text style={styles.emoji}>{o.emoji}</Text>
@@ -27,10 +27,10 @@ export const OfferTiles = <T extends Tile>({ offers, onOpen }: { offers: T[]; on
 const styles = themedStyles(() =>
   StyleSheet.create({
     row: { gap: 10, paddingRight: 8 },
-    tile: { width: 132, height: 150, borderRadius: 16, overflow: 'hidden', padding: 12, gap: 2, shadowColor: '#0f172a', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.11, shadowRadius: 14, elevation: 4 },
+    tile: { width: 150, height: 164, borderRadius: 16, overflow: 'hidden', padding: 12, gap: 2, shadowColor: '#0f172a', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.11, shadowRadius: 14, elevation: 4 },
     pressed: { opacity: 0.85 },
-    title: { fontSize: 14, fontFamily: FONTS.titleBold, color: '#fff' },
-    subtitle: { fontSize: 10.5, fontFamily: FONTS.bodyMedium, color: 'rgba(255, 255, 255, 0.9)', lineHeight: 14 },
+    title: { fontSize: 15, lineHeight: 21, fontFamily: FONTS.titleBold, color: '#fff' },
+    subtitle: { fontSize: 13, fontFamily: FONTS.bodyMedium, color: 'rgba(255, 255, 255, 0.92)', lineHeight: 18 },
     emoji: { position: 'absolute', right: 8, bottom: 6, fontSize: 46 },
     arrow: { position: 'absolute', left: 12, bottom: 12, width: 22, height: 22, borderRadius: 11, backgroundColor: 'rgba(255, 255, 255, 0.9)', alignItems: 'center', justifyContent: 'center' },
     arrowText: { fontSize: 15, fontWeight: '900', color: '#0f172a', marginTop: -2 },
