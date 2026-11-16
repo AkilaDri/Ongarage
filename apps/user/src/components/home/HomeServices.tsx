@@ -151,7 +151,8 @@ export const HomePromo: React.FC<{ onOpen: () => void }> = ({ onOpen }) => (
 
 const st = themedStyles(() =>
   StyleSheet.create({
-  head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, paddingHorizontal: 4 },
+  // The "see all" link stands beside the title, not at the far right (where the floating OnChat logo travels).
+  head: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16, paddingHorizontal: 4 },
   title: { fontSize: 16, fontFamily: FONTS.bodyBold, color: Colors.textMain },
   seeAll: { fontSize: 13, fontFamily: FONTS.bodyMedium, color: BLUE },
   seeAllArrow: { color: BLUE, fontSize: 18 },

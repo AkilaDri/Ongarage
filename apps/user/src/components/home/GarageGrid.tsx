@@ -29,12 +29,11 @@ export const GarageGridSection: React.FC<{
   if (!garages.length) return null;
   return (
     <View style={styles.section}>
-      <View style={styles.header}>
+      {/* The whole title is the "see all" button, with its arrow beside it: nothing tappable sits at the far right, where the floating OnChat logo travels. */}
+      <Pressable style={styles.header} onPress={onSeeAll} hitSlop={8} accessibilityRole="button" accessibilityLabel={`See all ${title}`}>
         <Text style={styles.title}>{title}</Text>
-        <Pressable onPress={onSeeAll} hitSlop={8} accessibilityLabel={`See all ${title}`}>
-          <Text style={styles.seeAll}>සියල්ල ›</Text>
-        </Pressable>
-      </View>
+        <Text style={styles.seeAll}>›</Text>
+      </Pressable>
       {!!chips && (
         <View style={styles.chips}>
           {chips.map((c) => {
@@ -106,9 +105,9 @@ const GridCard: React.FC<{ garage: Garage; ad?: boolean; width: number; onOpen: 
 const styles = themedStyles(() =>
   StyleSheet.create({
     section: { gap: 10 },
-    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    header: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', gap: 6, minHeight: 32 },
     title: { fontSize: 16, fontFamily: FONTS.bodyBold, color: Colors.textMain },
-    seeAll: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
+    seeAll: { fontSize: 22, lineHeight: 26, fontFamily: FONTS.bodyBold, color: Colors.primary },
     chips: { flexDirection: 'row', gap: 8 },
     chip: { height: 32, paddingHorizontal: 14, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.subtleFill },
     chipOn: { backgroundColor: '#1e3a8a' },

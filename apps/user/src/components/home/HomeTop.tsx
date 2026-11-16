@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { FONTS, Pulse } from '@ongarage/shared';
 import { HomeHeader } from './HomeHeader';
 
+
 /**
  * The top of Home, one piece with the rest of the page: the blue header, then the white action card (SOS and free quotes) that overlaps its bottom edge, then the search card.
  * Written with plain styles (the theme does not reshape or rescale them) so it matches the design exactly. It is the first thing inside Home's scroll, so the header, the
@@ -22,8 +23,8 @@ export const HomeTop: React.FC<{ onSOS: () => void; onPost: () => void; search: 
             <Text style={hs.sosCircleText}>SOS</Text>
           </View>
           <View style={hs.rowText}>
-            <Text style={hs.btnTitle} numberOfLines={1}>Breakdown එකක්ද?</Text>
-            <Text style={hs.btnSub} numberOfLines={1}>ළඟම උදව් ඉල්ලන්න</Text>
+            <Text style={hs.btnTitle} numberOfLines={1}>Breakdown <Text style={hs.sinhala}>එකක්ද?</Text></Text>
+            <Text style={hs.btnSub} numberOfLines={1}>Ongarage උදව් ඉල්ලන්න</Text>
           </View>
           <View style={hs.sosPill}>
             <Pulse style={hs.pillDot} />
@@ -35,8 +36,8 @@ export const HomeTop: React.FC<{ onSOS: () => void; onPost: () => void; search: 
             <Text style={hs.jobCircleText}>+</Text>
           </View>
           <View style={hs.rowText}>
-            <Text style={hs.btnTitle} numberOfLines={1}>Repair එකක්ද?</Text>
-            <Text style={hs.btnSub} numberOfLines={1}>ගරාජ් මිල ගණන් ඉල්ලන්න</Text>
+            <Text style={hs.btnTitle} numberOfLines={1}>Repair <Text style={hs.sinhala}>එකක්ද?</Text></Text>
+            <Text style={hs.btnSub} numberOfLines={1}>Ongarage Quotes ඉල්ලන්න</Text>
           </View>
           <View style={hs.freePill}>
             <Text style={hs.freePillText}>නොමිලේ</Text>
@@ -62,13 +63,16 @@ const hs = StyleSheet.create({
   btnTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   sosCircle: { width: 56, height: 56, borderRadius: 28, backgroundColor: '#fee2e2', borderWidth: 1, borderColor: '#fecaca', alignItems: 'center', justifyContent: 'center' },
   sosCircleText: { fontSize: 16, fontWeight: '800', color: '#dc2626' },
-  sosPill: { flexDirection: 'row', gap: 5, backgroundColor: '#ef4444', height: 26, minWidth: 74, paddingHorizontal: 10, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+  // The badges stand in the top right corner of their cards, out of the row, so the subtitles have the whole width.
+  sosPill: { position: 'absolute', top: 8, right: 10, flexDirection: 'row', gap: 5, backgroundColor: '#ef4444', height: 26, minWidth: 74, paddingHorizontal: 10, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
   pillDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#ffffff' },
   sosPillText: { fontSize: 12, fontWeight: '800', color: '#ffffff' },
   jobCircle: { width: 56, height: 56, borderRadius: 28, backgroundColor: '#dbeafe', borderWidth: 1, borderColor: '#bfdbfe', alignItems: 'center', justifyContent: 'center' },
   jobCircleText: { fontSize: 26, lineHeight: 30, fontWeight: '700', color: '#2563eb' },
-  freePill: { backgroundColor: '#facc15', height: 26, minWidth: 74, paddingHorizontal: 10, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+  freePill: { position: 'absolute', top: 8, right: 10, backgroundColor: '#facc15', height: 26, minWidth: 74, paddingHorizontal: 10, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
   freePillText: { fontSize: 12, fontWeight: '800', color: '#111827' },
   btnTitle: { fontSize: 15, lineHeight: 21, fontFamily: FONTS.bodyMedium, color: '#000000' },
+  // The Sinhala words of the titles are set in Noto Sans Sinhala (the same face as the line under them), not in whatever Sinhala face the system picks first.
+  sinhala: { fontFamily: 'NotoSansSinhala_500Medium' },
   btnSub: { fontSize: 13.5, lineHeight: 18, marginTop: 6, fontFamily: FONTS.bodyRegular, color: '#6b7280' },
 });
