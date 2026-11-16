@@ -487,16 +487,6 @@ function AppShell() {
           {activeTab === 'home' ? (
             <HomeScreen
               onSOSPress={() => setSOSStage('map')}
-              sosReturn={sosStage === 'flow' && sosHidden ? (
-                <Pressable style={styles.sosReturnInline} onPress={() => setSosHidden(false)} accessibilityLabel="Back to the SOS job">
-                  <Text style={styles.sosReturnText}>{sosStatus.label ? `🚨 ${sosStatus.label} ›` : '🚨 SOS රැකියාවට ආපසු ›'}</Text>
-                </Pressable>
-              ) : null}
-              towReturn={towMinimised && towStatus.running ? (
-                <Pressable style={styles.towReturnInline} onPress={() => setTowMinimised(false)} accessibilityLabel="Back to the towing job">
-                  <Text style={styles.sosReturnText}>{`🛻 ${towStatus.label} ›`}</Text>
-                </Pressable>
-              ) : null}
               onPostJob={() => openPost(null)}
               onServicePress={(c, sub) => {
                 setSelectedSubName(sub);
@@ -509,13 +499,25 @@ function AppShell() {
               top={
                 <HomeTop
                   notice={
-                    <PayStandingBanner
-                      inline
-                      onPress={() => {
-                        focusActivity({ kind: 'done' });
-                        setActiveTab('activity');
-                      }}
-                    />
+                    <>
+                      {sosStage === 'flow' && sosHidden ? (
+                <Pressable style={styles.sosReturnInline} onPress={() => setSosHidden(false)} accessibilityLabel="Back to the SOS job">
+                  <Text style={styles.sosReturnText}>{sosStatus.label ? `🚨 ${sosStatus.label} ›` : '🚨 SOS රැකියාවට ආපසු ›'}</Text>
+                </Pressable>
+              ) : null}
+                      {towMinimised && towStatus.running ? (
+                <Pressable style={styles.towReturnInline} onPress={() => setTowMinimised(false)} accessibilityLabel="Back to the towing job">
+                  <Text style={styles.sosReturnText}>{`🛻 ${towStatus.label} ›`}</Text>
+                </Pressable>
+              ) : null}
+                      <PayStandingBanner
+                        inline
+                        onPress={() => {
+                          focusActivity({ kind: 'done' });
+                          setActiveTab('activity');
+                        }}
+                      />
+                    </>
                   }
                   onCardY={setHomeCardY}
                   vehicleId={selectedVehicle}
@@ -655,6 +657,8 @@ function AppShell() {
             onVehicleChange={setSelectedVehicle}
             onChangeLocation={() => setSOSStage('map')}
             onClose={closeSOS}
+            onMinimize={() => setSosHidden(true)}
+            onStatus={setSosStatus}
             onOpenShop={(shopId) => {
               setMartShopReq({ id: shopId, at: Date.now() });
               setMartSegment('shops');

@@ -119,7 +119,7 @@ export const garageProfileContent = (g: Garage): GarageProfileContent => {
     { name: 'කසුන් පෙරේරා', role: 'ප්‍රධාන කාර්මික ශිල්පී', cert: 'NVQ Level 5' },
     { name: 'නිමල් ජයසිංහ', role: 'එන්ජින් / ස්කෑනින් විශේෂඥ', cert: 'Bosch සහතික' },
     { name: 'චමින්ද සිල්වා', role: 'විදුලි පද්ධති තාක්ෂණික', cert: 'NVQ Level 4' },
-    { name: 'LKR න් ප්‍රනාන්දු', role: 'AC / හයිබ්‍රිඩ් කාර්මික', cert: 'Toyota Hybrid පුහුණුව' },
+    { name: 'සුනිල් ප්‍රනාන්දු', role: 'AC / හයිබ්‍රිඩ් කාර්මික', cert: 'Toyota Hybrid පුහුණුව' },
     { name: 'සුරංග ගුණවර්ධන', role: 'බොඩි / පේන්ට් ශිල්පී', cert: 'NVQ Level 4' },
   ];
   const staff: GarageStaff[] = pick(staffPool, 3, 0).map((s, i) => ({ id: `st-${i}`, ...s, years: 5 + ((seed * (i + 2)) % 14) }));
@@ -134,7 +134,6 @@ export const garageProfileContent = (g: Garage): GarageProfileContent => {
     ...(g.level === 'premier' || g.rating >= 4.5 ? [{ id: 'c-ins', icon: '🛡️', title: 'රක්ෂණ අනුමත ගරාජය', note: 'Insurance Approved Garage' }] : []),
     { id: 'c-og', icon: '✅', title: 'OnGarage තහවුරු කළ ගරාජය', note: 'ව්‍යාපාර ලියාපදිංචිය සහ ස්ථානය සත්‍යාපනය කර ඇත' },
     { id: 'c-nvq', icon: '🎓', title: 'NVQ සහතික ලත් කාර්මිකයන්', note: 'ජාතික වෘත්තීය සුදුසුකම් ඇති කාර්ය මණ්ඩලය' },
-    ...(seed % 2 === 0 ? [{ id: 'c-iso', icon: '🏅', title: 'ISO 9001 ගුණාත්මක සහතිකය', note: 'ගුණාත්මක කළමනාකරණ පද්ධතිය' }] : []),
   ];
 
   // The wall: the newest things the garage has put up, boiled down to a headline each.

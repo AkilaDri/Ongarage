@@ -242,9 +242,9 @@ export const ModalCard: React.FC<{
           <View style={styles.modalRows}>
             {rows.map((r) => (
               <View key={r.label} style={styles.modalRow}>
-                <Text style={styles.modalRowLabel}>{r.label}</Text>
+                <Text style={[styles.modalRowLabel, { width: Math.ceil(Math.max(...rows.map((x) => x.label.length)) * 7.4) }]} numberOfLines={1}>{r.label}</Text>
                 <Text style={styles.modalRowColon}>:</Text>
-                <Text style={styles.modalRowValue}>{r.value}</Text>
+                <Text style={styles.modalRowValue} numberOfLines={1}>{r.value}</Text>
               </View>
             ))}
           </View>
@@ -338,9 +338,9 @@ const styles = themedStyles(() => StyleSheet.create({
   modalBody: { fontSize: 12.5, fontFamily: FONTS.bodyRegular, color: Colors.textSoft, textAlign: 'center', lineHeight: 19, marginBottom: 10 },
   modalRows: { alignSelf: 'center', gap: 4 },
   modalRow: { flexDirection: 'row', alignItems: 'flex-start' },
-  modalRowLabel: { width: 56, fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain, lineHeight: 19, textAlign: 'right' },
+  modalRowLabel: { flexShrink: 0, fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain, lineHeight: 19, textAlign: 'right' },
   modalRowColon: { width: 14, fontSize: 12.5, fontFamily: FONTS.bodyRegular, color: Colors.textSoft, lineHeight: 19, textAlign: 'center' },
-  modalRowValue: { fontSize: 12.5, fontFamily: FONTS.bodyRegular, color: Colors.textSoft, lineHeight: 19, textAlign: 'left' },
+  modalRowValue: { flexShrink: 0, fontSize: 12.5, fontFamily: FONTS.bodyRegular, color: Colors.textSoft, lineHeight: 19, textAlign: 'left' },
   modalBodySuffix: { fontSize: 9, color: Colors.red },
   modalBodyStrong: { fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
   // The Latin letters beside the Sinhala body: a step larger, so they match the Sinhala visually.

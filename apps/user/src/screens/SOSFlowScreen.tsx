@@ -699,7 +699,9 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
   const cancelFee = cancelStage ? cancelFeeFor(cancelStage, surcharge) : 0;
   // The status line outside the flow: a decision (part, price, QR) brings the owner back to the job on its own.
   const sosStatusLabel =
-    baseStep === 'searching' || baseStep === 'nearby'
+    baseStep === 'nearby'
+      ? 'ගරාජයක් තෝරන්න'
+      : baseStep === 'searching'
       ? 'ළඟම ගරාජ සොයමින්...'
       : baseStep === 'tracking'
         ? 'කාර්මිකයා පැමිණෙමින් සිටී'
@@ -712,7 +714,7 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
               : baseStep === 'rating'
                 ? 'ශ්‍රේණිගත කිරීම'
                 : 'SOS ඉල්ලීම';
-  const sosNeedsAction = partPopup || deferAsk || expansionPrompt || baseStep === 'qrScan';
+  const sosNeedsAction = partPopup || deferAsk || expansionPrompt || baseStep === 'nearby' || baseStep === 'qrScan';
   useEffect(() => {
     onStatus?.({ label: sosStatusLabel, needsAction: sosNeedsAction });
   }, [sosStatusLabel, sosNeedsAction]);
@@ -901,22 +903,19 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
 
       {step === 'consent' && (
         <>
-          <Text style={[styles.sectionLabel, { color: Colors.textMain }]}>SOS ඉල්ලීම තහවුරු කරන්න</Text>
           <View style={styles.card}>
             <FactValue label="Call-out fee" value={money(BASE_FEE)} />
+            <View style={styles.consentList}>
+              <Text style={styles.consentLine}>{`✓  ඔබගේ ස්ථානයේ සිට km ${INITIAL_RADIUS_KM} ක් ඇතුළත ගරාජ වලට දැනුම් දෙයි.`}</Text>
+              <Text style={styles.consentLine}>{`✓  කාර්මිකයා පිටත් වූ පසු පමණක් ${feeText()} ගාස්තුව අය කෙරේ.`}</Text>
+              <Text style={styles.consentLine}>✓  කාර්මිකයෙක් පිළිගන්නා තුරු නොමිලේ අවලංගු කළ හැක.</Text>
+            </View>
           </View>
-          <Text style={styles.consentBody}>
-            {`ඔබගේ ස්ථානයේ සිට km ${INITIAL_RADIUS_KM} ක් ඇතුළත ගරාජ වලට දැනුම් දෙයි.\nඅලුත්වැඩියාවක් නොවුණත්, කාර්මිකයාගේ ගමන් වියදම වෙනුවෙන් `}
-            <Text style={styles.consentStrong}>{`${feeText()} ක`}</Text>
-            {' ගාස්තුව ගෙවිය යුතුයි.'}
-          </Text>
           <View style={styles.consentActions}>
-            <View style={styles.flex1}>
-              <ActionButton label="අවලංගු" variant="ghost" compact onPress={() => setStep('confirm')} />
-            </View>
-            <View style={styles.flex1}>
-              <ActionButton label="SOS යවන්න" variant="sos" compact onPress={startSearch} />
-            </View>
+            <ActionButton label={`SOS යවන්න · ${feeText()} දක්වා`} variant="sos" onPress={startSearch} />
+            <Pressable style={styles.consentCancel} onPress={() => setStep('confirm')} hitSlop={8} accessibilityRole="button" accessibilityLabel="Cancel">
+              <Text style={styles.consentCancelText}>අවලංගු</Text>
+            </Pressable>
           </View>
         </>
       )}
@@ -2051,7 +2050,11 @@ const styles = themedStyles(() => StyleSheet.create({
   accidentNoteText: { fontSize: 14, fontFamily: FONTS.bodyBold, color: Colors.errorText, textAlign: 'center' },
   consentBody: { fontSize: 14, fontFamily: FONTS.bodyRegular, color: Colors.textMain, lineHeight: 21, paddingHorizontal: 4 },
   consentStrong: { fontFamily: FONTS.bodyBold, color: Colors.textMain },
-  consentActions: { flexDirection: 'row', gap: 10 },
+  consentList: { gap: 8, paddingTop: 12 },
+  consentLine: { fontSize: 14, lineHeight: 22, fontFamily: FONTS.bodyRegular, color: Colors.textMain },
+  consentCancel: { alignSelf: 'center', minHeight: 44, justifyContent: 'center', paddingHorizontal: 20 },
+  consentCancelText: { fontSize: 14, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
+  consentActions: { gap: 4, marginTop: 8 },
   codeBlock: { alignItems: 'center', gap: 12, alignSelf: 'stretch' },
   codeCaption: { fontSize: 13, fontFamily: FONTS.bodyRegular, color: Colors.textMain, textAlign: 'center', lineHeight: 19, paddingHorizontal: 12 },
   termGroup: { gap: 10, marginBottom: 18 },

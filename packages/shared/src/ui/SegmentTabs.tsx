@@ -1,5 +1,5 @@
-import React from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Colors, getAppTone, getThemeMode, themedStyles } from '../theme/colors';
 import { FONTS } from '../theme/fonts';
 import { TOP_BAR } from './topBar';
@@ -15,13 +15,14 @@ export type SegmentItem<T extends string = string> = { id: T; label: string; ico
  * are plain slate. The same in every app.
  */
 export function SegmentTabs<T extends string>({ items, value, onChange, pills, radius }: { items: SegmentItem<T>[]; value: T; onChange: (id: T) => void; /** A white bar with round chips; the open one is filled blue. */ pills?: boolean; /** Corner radius of the pill bar (box-like when small); the chips follow it. Default: the round pill. */ radius?: number }) {
+  const [narrow, setNarrow] = useState(false);
   const body = (
     <>
       {items.map((t) => {
         const on = t.id === value;
         return (
           <Pressable key={t.id} style={[styles.chip, on && styles.chipOn, pills && styles.pillChip, pills && radius !== undefined && { borderRadius: radius }, pills && !!t.count && t.count > 0 && styles.pillChipCount, pills && on && styles.pillChipOn]} onPress={() => onChange(t.id)} accessibilityRole="tab" accessibilityState={{ selected: on }} accessibilityLabel={t.label}>
-            {!!t.icon && <Icon name={t.icon} size={pills ? TOP_BAR.nav.iconSize : 14} color={pills && on ? '#ffffff' : on ? (getThemeMode() === 'dark' ? '#8db1ff' : brandBlue()) : '#94a3b8'} />}
+            {!!t.icon && !(pills && narrow) && <Icon name={t.icon} size={pills ? TOP_BAR.nav.iconSize : 14} color={pills && on ? '#ffffff' : on ? (getThemeMode() === 'dark' ? '#8db1ff' : brandBlue()) : '#94a3b8'} />}
             <Text style={[styles.text, on && styles.textOn, pills && styles.pillText, pills && on && styles.pillTextOn]} numberOfLines={1}>
               {t.label}
             </Text>
@@ -38,10 +39,8 @@ export function SegmentTabs<T extends string>({ items, value, onChange, pills, r
   // The pill bar slides sideways when its tabs are wider than the screen.
   if (pills) {
     return (
-      <View style={[styles.pillTrack, radius !== undefined && { borderRadius: radius }]}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.pillRow}>
-          {body}
-        </ScrollView>
+      <View onLayout={(e) => setNarrow(e.nativeEvent.layout.width < 360)} style={[styles.pillTrack, radius !== undefined && { borderRadius: radius }]}>
+        <View style={styles.pillRow}>{body}</View>
       </View>
     );
   }
@@ -54,14 +53,14 @@ const styles = themedStyles(() =>
     track: { flexDirection: 'row', backgroundColor: 'transparent', borderBottomWidth: 1, borderBottomColor: getThemeMode() === 'dark' ? Colors.borderColor : '#e5e7eb' },
     chip: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, height: 46, paddingHorizontal: 8, borderBottomWidth: 3, borderBottomColor: 'transparent' },
     pillTrack: { marginBottom: TOP_BAR.nav.trackMarginBottom, marginHorizontal: TOP_BAR.nav.trackMarginHorizontal, backgroundColor: getThemeMode() === 'dark' ? Colors.bgCard : '#ffffff', borderRadius: TOP_BAR.nav.trackRadius, padding: TOP_BAR.nav.trackPadding, shadowColor: brandBlue(), shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.26, shadowRadius: 20, elevation: 8 },
-    pillRow: { gap: 4, flexGrow: 1 },
-    pillCount: { top: 1, right: 5, minWidth: 15, height: 15, borderWidth: 0, backgroundColor: '#facc15' },
-    pillChipCount: { paddingRight: 22 },
+    pillRow: { flexDirection: 'row', gap: 4 },
+    pillCount: { position: 'relative', top: 0, right: 0, minWidth: 16, height: 16, borderWidth: 0, backgroundColor: '#facc15' },
+    pillChipCount: {},
     pillCountText: { color: '#111827' },
-    pillChip: { flexGrow: 1, flexShrink: 0, minWidth: TOP_BAR.nav.chipMinWidth, height: TOP_BAR.nav.chipHeight, borderRadius: TOP_BAR.nav.chipRadius, borderBottomWidth: 0 },
-    pillChipOn: { backgroundColor: brandBlue(), borderBottomColor: 'transparent' },
+    pillChip: { flexGrow: 1, flexShrink: 1, flexBasis: 0, minWidth: 0, paddingHorizontal: 6, gap: 4, height: TOP_BAR.nav.chipHeight, borderRadius: TOP_BAR.nav.chipRadius, borderBottomWidth: 0 },
+    pillChipOn: { flexGrow: 0, flexShrink: 0, flexBasis: 'auto', backgroundColor: brandBlue(), borderBottomColor: 'transparent' },
     pillText: { fontSize: TOP_BAR.nav.labelSize, fontFamily: FONTS.bodySemiBold },
-    pillTextOn: { color: '#ffffff', fontFamily: FONTS.bodyMedium },
+    pillTextOn: { color: '#ffffff' },
     chipOn: { borderBottomColor: brandBlue() },
     text: { flexShrink: 1, fontSize: 12, fontFamily: FONTS.bodyMedium, color: getThemeMode() === 'dark' ? Colors.textMuted : '#6b7280' },
     textOn: { fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? Colors.textMain : '#111827' },

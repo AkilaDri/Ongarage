@@ -95,7 +95,7 @@ export const ReviewCard: React.FC<{ review: ReviewView; /** A narrow card for a 
           <Text style={styles.replyHead}>
             {r.reply.by} ගෙන් පිළිතුර{r.reply.at ? ` · ${ago(Date.now() - r.reply.at)}` : ''}
           </Text>
-          <Text style={styles.replyText}>{r.reply.text}</Text>
+          <Text style={styles.replyText} numberOfLines={2}>{r.reply.text}</Text>
         </View>
       )}
     </View>
@@ -130,9 +130,9 @@ const styles = themedStyles(() =>
     when: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     text: { fontSize: 13.5, fontFamily: FONTS.bodyRegular, color: Colors.textMain, lineHeight: 20 },
     actions: { flexDirection: 'row' },
-    helpful: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 18, borderWidth: 1, borderColor: dark() ? Colors.borderColor : '#dadce0' },
+    helpful: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 14, borderWidth: 1, borderColor: dark() ? Colors.borderColor : '#dadce0' },
     helpfulOn: { backgroundColor: dark() ? 'rgba(141, 177, 255, 0.16)' : '#eff6ff', borderColor: 'transparent' },
-    helpfulText: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
+    helpfulText: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
     helpfulTextOn: { color: '#1e3a8a' },
     reply: { marginLeft: 20, padding: 12, borderRadius: 12, gap: 3, backgroundColor: dark() ? 'rgba(255, 255, 255, 0.06)' : '#f1f3f4' },
     replyHead: { fontSize: 12, fontFamily: FONTS.bodyBold, color: Colors.textMain },

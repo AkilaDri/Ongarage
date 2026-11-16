@@ -137,7 +137,7 @@ const styles = themedStyles(() =>
     limitText: { fontSize: 12, fontFamily: FONTS.bodyRegular, color: Colors.textMain, lineHeight: 18 },
     banner: { marginHorizontal: 6, marginBottom: 6, paddingHorizontal: 12, paddingVertical: 12, borderRadius: 12, backgroundColor: getThemeMode() === 'dark' ? '#4a3200' : '#fef7e0', borderWidth: 1, borderColor: 'rgba(245, 158, 11, 0.5)' },
     // Inside the Home card, the search bar keeps its place (28px under the notice: the card's 8 gap + its own 20 top margin); the notice has the same 28px above it, so it sits in the middle of the space.
-    bannerInline: { marginHorizontal: 4, marginBottom: 0, marginTop: 20 },
+    bannerInline: { marginHorizontal: 4, marginBottom: 0, marginTop: 6 },
     bannerLimited: { backgroundColor: getThemeMode() === 'dark' ? '#4a1512' : '#fce8e6', borderColor: 'rgba(239, 68, 68, 0.5)' },
     // Sinhala has vowel signs above and below the line, so it needs about 1.7 times its size between lines.
     // The late-payment notice: the fact first (bold, dark red: about 7:1 on the pink), the action under it (regular). Leading about 1.7 times the size, for Sinhala's vowel signs.

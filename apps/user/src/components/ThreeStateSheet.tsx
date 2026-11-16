@@ -71,6 +71,13 @@ export const ThreeStateSheet: React.FC<{
   const sizes = useRef({ peek: peekHeight, collapsed, expanded: full });
   sizes.current = { peek: peekHeight, collapsed, expanded: full };
 
+  // An open sheet follows its own top height: when the space above it changes (a header that grows or shrinks, say a tab with no chip row), it moves to the new top.
+  useEffect(() => {
+    if (stateRef.current !== 'expanded') return;
+    Animated.spring(height, { toValue: full, stiffness: 210, damping: 26, useNativeDriver: false }).start();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [full]);
+
   useEffect(() => {
     onHeight?.(height);
     // eslint-disable-next-line react-hooks/exhaustive-deps

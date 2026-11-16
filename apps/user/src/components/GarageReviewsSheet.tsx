@@ -69,6 +69,9 @@ export const GarageReviewsSheet: React.FC<{
   const user = useUserLocation();
   // The profile is split into four tabs so it reads one topic at a time instead of as one long scroll.
   const [tab, setTab] = useState<'overview' | 'info' | 'media' | 'reviews'>('overview');
+  const [allStaff, setAllStaff] = useState(false);
+  // The cover photo starts compact; a tap on it opens it to its full height, another tap folds it back.
+  const [coverBig, setCoverBig] = useState(false);
   // The cover is a row of the garage's photos and videos that scrolls sideways, one at a time.
   const [coverW, setCoverW] = useState(0);
   const [slide, setSlide] = useState(0);
@@ -133,7 +136,7 @@ export const GarageReviewsSheet: React.FC<{
 
   const hero = (
     <View>
-      <View style={styles.coverWrap}>
+      <View style={[styles.coverWrap, coverBig ? styles.coverWrapBig : styles.coverWrapSlim]}>
         <ScrollView
           horizontal
           pagingEnabled
@@ -148,7 +151,7 @@ export const GarageReviewsSheet: React.FC<{
           accessibilityLabel="Garage photos and videos"
         >
           {coverMedia.map((m) => (
-            <View key={m.id} style={[styles.coverSlide, { width: coverW || '100%' }]}>
+            <Pressable key={m.id} onPress={() => setCoverBig((v) => !v)} accessibilityRole="button" accessibilityLabel={coverBig ? 'Make the photo smaller' : 'Enlarge the photo'} style={[styles.coverSlide, { width: coverW || '100%' }]}>
               {m.source ? <Image source={m.source} style={styles.cover} resizeMode="cover" /> : <View style={[styles.cover, { backgroundColor: avatarColor(g.id) }]} />}
               {m.kind === 'video' && (
                 <>
@@ -160,13 +163,13 @@ export const GarageReviewsSheet: React.FC<{
                   </View>
                 </>
               )}
-            </View>
+            </Pressable>
           ))}
         </ScrollView>
         <View style={styles.coverShade} pointerEvents="none" />
         <View style={styles.coverCount} pointerEvents="none">
           <Text style={styles.coverCountText}>
-            {Math.min(slide, coverMedia.length - 1) + 1} / {coverMedia.length}
+            {Math.min(slide, coverMedia.length - 1) + 1} / {coverMedia.length}  {coverBig ? '⤡' : '⤢'}
           </Text>
         </View>
         <View style={styles.coverDots} pointerEvents="none">
@@ -213,13 +216,14 @@ export const GarageReviewsSheet: React.FC<{
         <Text style={styles.placeType} numberOfLines={2}>
           {[g.specialization || 'වාහන අලුත්වැඩියා ගරාජය', `km ${g.distance}`].filter(Boolean).join(' · ')}
         </Text>
-        <Text style={styles.placeStatus}>
-          <Text style={open ? styles.placeOpen : styles.placeClosed}>{open ? 'විවෘතයි' : 'වසා ඇත'}</Text>
-          {open && closesAt ? <Text style={styles.placeMuted}> ⋅ {closesAt} දක්වා</Text> : null}
-        </Text>
+        {level?.id === 'premier' && (
+          <View style={styles.guaranteeBadge} accessibilityLabel="OnGarage Guarantee">
+            <Text style={styles.guaranteeText}>🛡️ OnGarage Guarantee · LKR 50,000 දක්වා</Text>
+          </View>
+        )}
         <BookedTag garageId={g.id} />
         {/* The makes this garage works on, as one row of logos right under the opening hours (above the action buttons). */}
-        <MakeLogoStrip makes={content.brands} />
+        {tab === 'overview' && <MakeLogoStrip makes={content.brands} />}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.placeActions}>
           {[
             { id: 'dir', icon: '🧭', label: 'දිශාවන්', primary: true, onPress: () => Linking.openURL(directionsUrl(g.coords, user.coords)) },
@@ -319,37 +323,33 @@ export const GarageReviewsSheet: React.FC<{
           <Pressable style={styles.gmRow} onPress={() => Linking.openURL(directionsUrl(g.coords, user.coords))} accessibilityLabel="Address">
             <Text style={styles.gmIcon}>📍</Text>
             <View style={styles.flex1}><Text style={styles.gmText}>{g.address || g.name}</Text></View>
+            <Text style={styles.gmChevron}>›</Text>
           </Pressable>
           <Pressable style={styles.gmRow} onPress={() => setTab('info')} accessibilityLabel="Hours">
             <Text style={styles.gmIcon}>🕗</Text>
             <View style={styles.flex1}><Text style={styles.gmText}>{todayHours ? <Text><Text style={open ? styles.placeOpen : styles.placeClosed}>අද · </Text>{todayHours}</Text> : 'අද වසා ඇත'}</Text></View>
+            <Text style={styles.gmChevron}>›</Text>
           </Pressable>
           <Pressable style={styles.gmRow} onPress={() => (g.phone ? Linking.openURL(`tel:${g.phone.replace(/\s/g, '')}`) : undefined)} accessibilityLabel="Phone">
             <Text style={styles.gmIcon}>📞</Text>
             <View style={styles.flex1}><Text style={styles.gmText}>{g.phone || content.contact.hotline}</Text></View>
-          </Pressable>
-          <Pressable style={styles.gmRow} onPress={openChat} accessibilityLabel="OnChat">
-            <Text style={styles.gmIcon}>💬</Text>
-            <View style={styles.flex1}><Text style={styles.gmText}>OnChat · {g.name}</Text></View>
+            <Text style={styles.gmChevron}>›</Text>
           </Pressable>
           <Pressable style={styles.gmRow} onPress={() => Linking.openURL(`mailto:${content.contact.email}`)} accessibilityLabel="Email">
             <Text style={styles.gmIcon}>✉️</Text>
             <View style={styles.flex1}><Text style={styles.gmText}>{content.contact.email}</Text></View>
-          </Pressable>
-          <Pressable style={styles.gmRow} onPress={() => undefined} accessibilityLabel="Offer">
-            <Text style={styles.gmIcon}>🏷️</Text>
-            <View style={styles.flex1}><Text style={styles.gmText}>{info?.offer ?? 'පළමු සේවාවට 10% වට්ටම'}</Text></View>
+            <Text style={styles.gmChevron}>›</Text>
           </Pressable>
       </View>
       <Text style={styles.sectionTitle}>🎁 දැනට ඇති දීමනා</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.hRow}>
         {content.offers.map((o) => (
-          <View key={o.id} style={[styles.offerCard, { backgroundColor: o.tone }]}>
+          <View key={o.id} style={styles.offerCard}>
             <Text style={styles.offerCardIcon}>{o.icon}</Text>
             <Text style={styles.offerCardTitle} numberOfLines={2}>
               {o.title}
             </Text>
-            <Text style={styles.offerCardDetail} numberOfLines={1}>
+            <Text style={styles.offerCardDetail} numberOfLines={2}>
               {o.detail}
             </Text>
           </View>
@@ -373,7 +373,7 @@ export const GarageReviewsSheet: React.FC<{
                 {group.map((row, r) => (
                   <View key={r} style={styles.serviceTagRow}>
                     {row.map((sv) => (
-                      <View key={sv.id} style={[styles.serviceTag, { backgroundColor: `${sv.color}26`, borderColor: `${sv.color}8c` }]} accessibilityLabel={`Service ${sv.name}`}>
+                      <View key={sv.id} style={styles.serviceTag} accessibilityLabel={`Service ${sv.name}`}>
                         <Text style={styles.serviceTagText}>{sv.name}</Text>
                         {sv.isNew && (
                           <View style={styles.newBadge}>
@@ -397,10 +397,8 @@ export const GarageReviewsSheet: React.FC<{
         {content.gigs.map((gg) => (
           <View key={gg.id} style={styles.gig} accessibilityLabel={`Gig ${gg.title}`}>
             <Image source={gg.image} style={styles.gigImg} resizeMode="cover" />
-            <View style={[styles.gigTag, { backgroundColor: gg.color }]}>
-              <Text style={styles.gigTagText}>LKR {gg.price.toLocaleString()}</Text>
-            </View>
             <View style={styles.gigBody}>
+              <Text style={styles.gigPrice}>LKR {gg.price.toLocaleString()}</Text>
               <Text style={styles.gigTitle} numberOfLines={2}>
                 {gg.title}
               </Text>
@@ -411,11 +409,6 @@ export const GarageReviewsSheet: React.FC<{
                 <Text style={styles.gigMetaText}>⏱️ පැය {gg.hours}</Text>
                 <Text style={styles.gigMetaText}>★ {gg.rating.toFixed(1)} ({gg.orders})</Text>
               </View>
-              {!!onBook && (
-                <Pressable style={styles.gigBtn} onPress={onBook} accessibilityLabel={`Book ${gg.title}`}>
-                  <Text style={styles.gigBtnText}>වෙන් කරන්න</Text>
-                </Pressable>
-              )}
             </View>
           </View>
         ))}
@@ -478,7 +471,6 @@ export const GarageReviewsSheet: React.FC<{
         <View style={styles.box}>
           <LevelBadge level={level.id} />
           <Text style={styles.sub}>{level.note} · OnGarage මට්ටම් තීරණය වන්නේ අවසන් කළ රැකියා, ශ්‍රේණිය සහ ගැටලු අනුපාතය අනුවය.</Text>
-          {level.id === 'premier' && <Text style={styles.protected}>🛡️ මෙම ගරාජයේ රැකියා OnGarage Guarantee මගින් ආරක්ෂිතයි (උපරිම LKR 50,000).</Text>}
         </View>
       )}
 
@@ -486,58 +478,56 @@ export const GarageReviewsSheet: React.FC<{
       )}
       {tab === 'info' && (
         <>
-          <Text style={styles.sectionTitle}>📞 සම්බන්ධතා තොරතුරු</Text>
+          <Text style={styles.sectionTitle}>✅ සහතික සහ අනුමැතිය</Text>
           <View style={styles.box}>
-            {!!content.contact.hotline && (
-            <Pressable style={styles.infoLine} onPress={() => Linking.openURL(`tel:${content.contact.hotline.replace(/\s/g, '')}`)} accessibilityLabel="Call hotline">
-              <Text style={styles.infoIcon}>☎️</Text>
-              <View style={styles.flex1}>
-                <Text style={styles.sub}>Hotline</Text>
-                <Text style={styles.infoValue}>{content.contact.hotline}</Text>
+            {content.certifications.map((c) => (
+              <View key={c.id} style={styles.certRow}>
+                <Text style={styles.infoIcon}>{c.icon}</Text>
+                <View style={styles.flex1}>
+                  <Text style={styles.infoValue}>{c.title}</Text>
+                  <Text style={styles.sub}>{c.note}</Text>
+                </View>
               </View>
-              <Text style={styles.infoAction}>අමතන්න ›</Text>
-            </Pressable>
-            )}
-            <Pressable style={styles.infoLine} onPress={openChat} accessibilityLabel="Open OnChat">
-              <Text style={styles.infoIcon}>💬</Text>
-              <View style={styles.flex1}>
-                <Text style={styles.sub}>OnChat</Text>
-                <Text style={styles.infoValue}>{g.name}</Text>
+            ))}
+          </View>
+          <Text style={styles.sectionTitle}>💰 සේවා ගාස්තු</Text>
+          <View style={styles.box}>
+            {content.rates.map((r) => (
+              <View key={r.id} style={styles.rateRow}>
+                <Text style={styles.rateName} numberOfLines={1}>
+                  {r.icon} {r.name}
+                </Text>
+                <Text style={styles.ratePrice}>LKR {r.labour.toLocaleString()} සිට</Text>
               </View>
-              <Text style={styles.infoAction}>කතා කරන්න ›</Text>
-            </Pressable>
-            <Pressable style={styles.infoLine} onPress={() => Linking.openURL(`mailto:${content.contact.email}`)} accessibilityLabel="Send email">
-              <Text style={styles.infoIcon}>✉️</Text>
-              <View style={styles.flex1}>
-                <Text style={styles.sub}>විද්‍යුත් තැපෑල</Text>
-                <Text style={styles.infoValue}>{content.contact.email}</Text>
-              </View>
-              <Text style={styles.infoAction}>ලියන්න ›</Text>
-            </Pressable>
-            <Pressable style={styles.infoLine} onPress={() => Linking.openURL(directionsUrl(g.coords, user.coords))} accessibilityLabel="Directions to the garage">
-              <Text style={styles.infoIcon}>📍</Text>
-              <View style={styles.flex1}>
-                <Text style={styles.sub}>ලිපිනය</Text>
-                <Text style={styles.infoValue}>{g.address || g.name}</Text>
-              </View>
-              <Text style={styles.infoAction}>දිශාවන් ›</Text>
-            </Pressable>
+            ))}
+            <View style={styles.rateNoteBox}>
+              <Text style={[styles.rateNote, styles.rateNoteMain]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>ශ්‍රම ගාස්තු පමණි · කොටස් වෙනම</Text>
+              <Text style={styles.rateNote} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>නිශ්චිත මිල පරීක්ෂාවෙන් පසු</Text>
+            </View>
           </View>
 
           <Text style={styles.sectionTitle}>🕗 සේවා කාලය</Text>
           <View style={styles.box}>
-            {content.hours.map((h, i) => {
-              const today = i === (new Date().getDay() + 6) % 7;
-              return (
-                <View key={h.day} style={[styles.hourRow, today && styles.hourRowToday]}>
-                  <Text style={[styles.hourDay, today && styles.hourToday]}>
-                    {h.day}
-                    {today ? ' · අද' : ''}
+            {(() => {
+              const todayIdx = (new Date().getDay() + 6) % 7;
+              const groups: { first: string; last: string; open: string | null; today: boolean }[] = [];
+              content.hours.forEach((h, i) => {
+                const last = groups[groups.length - 1];
+                if (last && last.open === (h.open ?? null)) {
+                  last.last = h.day;
+                  last.today = last.today || i === todayIdx;
+                } else groups.push({ first: h.day, last: h.day, open: h.open ?? null, today: i === todayIdx });
+              });
+              return groups.map((gr) => (
+                <View key={gr.first} style={[styles.hourRow, gr.today && styles.hourRowToday]}>
+                  <Text style={[styles.hourDay, gr.today && styles.hourToday]}>
+                    {gr.first === gr.last ? gr.first : `${gr.first} – ${gr.last}`}
+                    {gr.today ? ' · අද' : ''}
                   </Text>
-                  <Text style={[styles.hourTime, !h.open && styles.hourClosed, today && styles.hourToday]}>{h.open ?? 'වසා ඇත'}</Text>
+                  <Text style={[styles.hourTime, !gr.open && styles.hourClosed, gr.today && styles.hourToday]}>{gr.open ?? 'වසා ඇත'}</Text>
                 </View>
-              );
-            })}
+              ));
+            })()}
             <View style={[styles.noteBox, content.emergency24 && styles.noteBoxOn]}>
               <Text style={[styles.noteText, content.emergency24 && styles.noteTextOn]}>
                 {content.emergency24 ? '🚨 ' : '🗓️ '}
@@ -557,15 +547,31 @@ export const GarageReviewsSheet: React.FC<{
           <Text style={styles.sectionTitle}>🔧 විශේෂඥතාව ඇති වාහන බ්‍රෑන්ඩ්</Text>
           <View style={styles.chipWrap}>
             {content.brands.map((b) => (
-              <View key={b} style={[styles.tagChip, styles.tagChipBrand]}>
-                <Text style={[styles.tagChipText, styles.tagChipBrandText]}>{b}</Text>
+              <View key={b} style={styles.tagChip}>
+                <Text style={styles.tagChipText}>{b}</Text>
               </View>
             ))}
           </View>
 
-          <Text style={styles.sectionTitle}>👷 කාර්ය මණ්ඩලය</Text>
+          <Text style={styles.sectionTitle}>🏢 ගරාජයේ පහසුකම්</Text>
+          <View style={styles.chipWrap}>
+            {content.facilities.map((f) => (
+              <View key={f} style={styles.tagChip}>
+                <Text style={styles.tagChipText}>{f}</Text>
+              </View>
+            ))}
+          </View>
+
+          <View style={styles.sectionHead}>
+            <Text style={styles.sectionTitleBare}>👷 කාර්ය මණ්ඩලය · {content.staff.length}</Text>
+            {content.staff.length > 1 && (
+              <Pressable onPress={() => setAllStaff((v) => !v)} hitSlop={8} accessibilityLabel={allStaff ? 'Show fewer staff' : 'Show all staff'}>
+                <Text style={styles.seeAll}>{allStaff ? 'අඩු කරන්න ‹' : 'සියල්ල ›'}</Text>
+              </Pressable>
+            )}
+          </View>
           <View style={styles.box}>
-            {content.staff.map((st) => (
+            {(allStaff ? content.staff : content.staff.slice(0, 1)).map((st) => (
               <View key={st.id} style={styles.staffRow}>
                 <View style={[styles.staffAvatar, { backgroundColor: avatarColor(st.id + g.id) }]}>
                   <Text style={styles.staffAvatarText}>{st.name.slice(0, 1)}</Text>
@@ -583,40 +589,28 @@ export const GarageReviewsSheet: React.FC<{
             ))}
           </View>
 
-          <Text style={styles.sectionTitle}>🏢 ගරාජයේ පහසුකම්</Text>
-          <View style={styles.chipWrap}>
-            {content.facilities.map((f) => (
-              <View key={f} style={styles.tagChip}>
-                <Text style={styles.tagChipText}>{f}</Text>
+          <Text style={styles.sectionTitle}>📞 සම්බන්ධතා තොරතුරු</Text>
+          <View style={styles.box}>
+            {!!content.contact.hotline && (
+            <Pressable style={styles.infoLine} onPress={() => Linking.openURL(`tel:${content.contact.hotline.replace(/\s/g, '')}`)} accessibilityLabel="Call hotline">
+              <Text style={styles.infoIcon}>☎️</Text>
+              <View style={styles.flex1}>
+                <Text style={styles.sub}>Hotline</Text>
+                <Text style={styles.infoValue}>{content.contact.hotline}</Text>
               </View>
-            ))}
+              <Text style={styles.infoAction}>අමතන්න ›</Text>
+            </Pressable>
+            )}
+            <Pressable style={styles.infoLine} onPress={() => Linking.openURL(`mailto:${content.contact.email}`)} accessibilityLabel="Send email">
+              <Text style={styles.infoIcon}>✉️</Text>
+              <View style={styles.flex1}>
+                <Text style={styles.sub}>විද්‍යුත් තැපෑල</Text>
+                <Text style={styles.infoValue}>{content.contact.email}</Text>
+              </View>
+              <Text style={styles.infoAction}>ලියන්න ›</Text>
+            </Pressable>
           </View>
 
-          <Text style={styles.sectionTitle}>💰 සේවා ගාස්තු</Text>
-          <View style={styles.box}>
-            {content.rates.map((r) => (
-              <View key={r.id} style={styles.rateRow}>
-                <Text style={styles.rateName} numberOfLines={1}>
-                  {r.icon} {r.name}
-                </Text>
-                <Text style={styles.ratePrice}>LKR {r.labour.toLocaleString()} සිට</Text>
-              </View>
-            ))}
-            <Text style={styles.sub}>ශ්‍රම ගාස්තු පමණි (කොටස් වෙනම). නිශ්චිත මිල ලැබෙන්නේ වාහනය පරීක්ෂා කළ පසුවය. පැකේජ මිල ගණන් සඳහා “දළ විස්තරය” බලන්න.</Text>
-          </View>
-
-          <Text style={styles.sectionTitle}>🏅 සහතික සහ අනුමැතිය</Text>
-          <View style={styles.box}>
-            {content.certifications.map((c) => (
-              <View key={c.id} style={styles.certRow}>
-                <Text style={styles.infoIcon}>{c.icon}</Text>
-                <View style={styles.flex1}>
-                  <Text style={styles.infoValue}>{c.title}</Text>
-                  <Text style={styles.sub}>{c.note}</Text>
-                </View>
-              </View>
-            ))}
-          </View>
         </>
       )}
       {tab === 'media' && (
@@ -688,17 +682,17 @@ const styles = themedStyles(() =>
     tabText: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
     tabTextOn: { color: '#1e3a8a', fontFamily: FONTS.bodyBold },
     // The profile's sections breathe: 22px above every section heading and 4px more under it, and the cards / chips of a row sit 10px apart.
-    sectionTitle: { fontSize: 14, fontFamily: FONTS.bodyBold, color: Colors.primary, letterSpacing: 0.2, marginTop: 30, marginBottom: 8 },
+    sectionTitle: { fontSize: 15, fontFamily: FONTS.bodyBold, color: Colors.primary, letterSpacing: 0.2, marginTop: 24, marginBottom: 10 },
     hRow: { gap: 10, paddingRight: 10 },
-    offerCard: { width: 150, padding: 8, borderRadius: 12, gap: 2 },
+    offerCard: { width: 168, minHeight: 116, padding: 12, borderRadius: 14, gap: 4, backgroundColor: '#1e3a8a' },
     offerCardIcon: { fontSize: 22 },
-    offerCardTitle: { fontSize: 13, fontFamily: FONTS.titleBold, color: '#ffffff', lineHeight: 17 },
-    offerCardDetail: { fontSize: 10.5, fontFamily: FONTS.bodyMedium, color: 'rgba(255,255,255,0.85)' },
-    sectionHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 30, marginBottom: 8 },
+    offerCardTitle: { fontSize: 14, fontFamily: FONTS.titleBold, color: '#ffffff', lineHeight: 17 },
+    offerCardDetail: { fontSize: 12, lineHeight: 17, fontFamily: FONTS.bodyMedium, color: 'rgba(255,255,255,0.9)' },
+    sectionHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 24, marginBottom: 10 },
     reviewRail: { gap: 10, paddingRight: 16 },
     reviewSlot: { width: REVIEW_CARD_W },
     seeAll: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
-    sectionTitleBare: { fontSize: 14, fontFamily: FONTS.bodyBold, color: Colors.primary, letterSpacing: 0.2 },
+    sectionTitleBare: { fontSize: 15, fontFamily: FONTS.bodyBold, color: Colors.primary, letterSpacing: 0.2 },
     jobsPill: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, backgroundColor: 'rgba(16, 185, 129, 0.15)' },
     jobsPillText: { fontSize: 11, fontFamily: FONTS.bodyBold, color: Colors.success },
     serviceGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
@@ -706,7 +700,7 @@ const styles = themedStyles(() =>
     serviceTagRows: { paddingRight: 10 },
     serviceTagGrid: { gap: 8 },
     serviceTagRow: { flexDirection: 'row', gap: 8, alignSelf: 'flex-start' },
-    serviceTag: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, height: 32, borderRadius: 16, borderWidth: 1 },
+    serviceTag: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, height: 32, borderRadius: 16, borderWidth: 1, backgroundColor: Colors.subtleFill, borderColor: Colors.subtleBorder },
     serviceTagText: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
     moreBtn: { alignSelf: 'center', paddingHorizontal: 16, height: 36, borderRadius: 8, justifyContent: 'center', backgroundColor: 'rgba(36, 87, 230, 0.1)' },
     moreBtnText: { fontSize: 12, fontFamily: FONTS.bodyBold, color: '#1e3a8a' },
@@ -715,6 +709,7 @@ const styles = themedStyles(() =>
     gigTag: { position: 'absolute', top: 8, left: 8, paddingHorizontal: 10, height: 24, borderRadius: 12, justifyContent: 'center' },
     gigTagText: { fontSize: 11.5, fontFamily: FONTS.bodyBold, color: '#ffffff' },
     gigBody: { padding: 12, gap: 3 },
+    gigPrice: { fontSize: 17, fontFamily: FONTS.bodyBold, color: Colors.textMain, lineHeight: 22 },
     gigTitle: { fontSize: 14, fontFamily: FONTS.titleBold, color: Colors.textMain, lineHeight: 17 },
     gigMeta: { flexDirection: 'row', justifyContent: 'space-between' },
     gigMetaText: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: Colors.textSoft },
@@ -722,7 +717,7 @@ const styles = themedStyles(() =>
     gigBtnText: { fontSize: 11.5, fontFamily: FONTS.bodyBold, color: '#ffffff' },
     serviceList: { borderRadius: 12, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), overflow: 'hidden', ...elevation1() },
     serviceRow: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12 },
-    serviceName: { fontSize: 12.5, fontFamily: FONTS.bodyBold, color: Colors.textMain },
+    serviceName: { fontSize: 14, fontFamily: FONTS.bodyBold, color: Colors.textMain },
     newBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5, backgroundColor: '#ef4444' },
     newBadgeText: { fontSize: 9, fontFamily: FONTS.bodyBold, color: '#ffffff' },
     photoTile: { width: 128, gap: 5 },
@@ -739,13 +734,15 @@ const styles = themedStyles(() =>
     reelTitle: { fontSize: 11, fontFamily: FONTS.bodyBold, color: '#ffffff', lineHeight: 14 },
     reelViews: { fontSize: 10, fontFamily: FONTS.bodyMedium, color: 'rgba(255,255,255,0.85)' },
     mapCard: { borderRadius: 12, overflow: 'hidden', backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), ...elevation1() },
-    mapBox: { height: 60, backgroundColor: Colors.subtleFill },
+    mapBox: { height: 160, backgroundColor: Colors.subtleFill },
     mapPin: { position: 'absolute', transform: [{ translateX: -8 }, { translateY: -20 }] },
     mapPinEmoji: { fontSize: 18 },
-    mapFooter: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 8, paddingVertical: 6 },
-    dirBtn: { paddingHorizontal: 11, height: 28, borderRadius: 8, justifyContent: 'center', backgroundColor: '#1e3a8a' },
-    dirBtnText: { fontSize: 12, fontFamily: FONTS.bodyBold, color: '#ffffff' },
-    coverWrap: { height: 360, overflow: 'hidden', borderTopLeftRadius: 28, borderTopRightRadius: 28 },
+    mapFooter: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 12 },
+    dirBtn: { paddingHorizontal: 16, height: 44, borderRadius: 22, justifyContent: 'center', backgroundColor: '#1e3a8a' },
+    dirBtnText: { fontSize: 13.5, fontFamily: FONTS.bodyBold, color: '#ffffff' },
+    coverWrapSlim: { height: 130 },
+    coverWrapBig: { height: 360 },
+    coverWrap: { height: 220, overflow: 'hidden', borderTopLeftRadius: 28, borderTopRightRadius: 28 },
     cover: { width: '100%', height: '100%' },
     coverSlide: { height: '100%' },
     coverPlay: { position: 'absolute', alignSelf: 'center', top: '38%', width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.55)', borderWidth: 2, borderColor: '#ffffff' },
@@ -798,6 +795,8 @@ const styles = themedStyles(() =>
     text: { fontSize: 13, fontFamily: FONTS.bodyRegular, color: Colors.textSoft, lineHeight: 20 },
     sub: { fontSize: 12, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 18 },
     reply: { marginTop: 4, padding: 10, borderRadius: 8, backgroundColor: Colors.subtleFill, gap: 2 },
+    guaranteeBadge: { alignSelf: 'flex-start', marginTop: 8, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12, backgroundColor: 'rgba(245, 158, 11, 0.14)' },
+    guaranteeText: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.warning, lineHeight: 18 },
     protected: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: Colors.warning, lineHeight: 17 },
     actions: { flexDirection: 'row', gap: 8 },
     flex1: { flex: 1 },
@@ -832,13 +831,17 @@ const styles = themedStyles(() =>
     placeActionIcon: { fontSize: 19, color: '#1e3a8a' },
     placeActionLabel: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1e3a8a' },
     gmList: { marginHorizontal: 4 },
-    gmRow: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 4, paddingHorizontal: 4 },
-    gmIcon: { width: 22, fontSize: 16, textAlign: 'center' },
-    gmText: { fontSize: 12.5, fontFamily: FONTS.bodyRegular, color: Colors.textMain, lineHeight: 18 },
+    gmRow: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44, paddingVertical: 6, paddingHorizontal: 4 },
+    gmIcon: { width: 26, fontSize: 18, textAlign: 'center' },
+    gmChevron: { fontSize: 20, color: Colors.textMuted, paddingRight: 4 },
+    gmText: { fontSize: 14, fontFamily: FONTS.bodyRegular, color: Colors.textMain, lineHeight: 18 },
     infoLine: { flexDirection: 'row', alignItems: 'center', gap: 10 },
     infoIcon: { fontSize: 18, width: 26, textAlign: 'center' },
     infoValue: { fontSize: 13.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
     infoAction: { fontSize: 11, fontFamily: FONTS.bodyBold, color: Colors.primary },
+    rateNoteBox: { gap: 2, marginTop: 4, paddingTop: 10, borderTopWidth: 1, borderTopColor: Colors.subtleBorder },
+    rateNote: { fontSize: 13, lineHeight: 20, fontFamily: FONTS.bodyRegular, color: Colors.textSoft },
+    rateNoteMain: { fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
     hourRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 6, paddingHorizontal: 8, borderRadius: 8 },
     hourRowToday: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e3ecfd' },
     hourDay: { fontSize: 13, fontFamily: FONTS.bodyMedium, color: Colors.textMain },
@@ -846,10 +849,10 @@ const styles = themedStyles(() =>
     hourClosed: { color: Colors.errorText },
     hourToday: { fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1d4ed8' },
     noteBox: { padding: 10, borderRadius: 8, backgroundColor: Colors.subtleFill },
-    noteBoxOn: { backgroundColor: 'rgba(239, 68, 68, 0.12)' },
+    noteBoxOn: { backgroundColor: 'rgba(245, 158, 11, 0.14)' },
     noteText: { fontSize: 12.5, fontFamily: FONTS.bodyMedium, color: Colors.textSoft, lineHeight: 17 },
-    noteTextOn: { color: Colors.errorText, fontFamily: FONTS.bodySemiBold },
-    chipWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+    noteTextOn: { color: Colors.warning, fontFamily: FONTS.bodySemiBold },
+    chipWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
     tagChip: { paddingHorizontal: 12, height: 32, borderRadius: 8, justifyContent: 'center', backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline() },
     tagChipText: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
     tagChipBrand: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e3ecfd', borderColor: 'transparent' },

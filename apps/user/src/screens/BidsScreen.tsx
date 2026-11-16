@@ -11,6 +11,7 @@ import { FONTS } from '@ongarage/shared';
 
 import { SERVICE_CATEGORIES } from '@ongarage/shared';
 import { useVehicles } from '../context/VehiclesContext';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { bookingStatusText } from '../components/BidBookingStatus';
 import { FilterChips, Icon, ClipboardLineIcon, ReceiptLineIcon, ScheduleLineIcon, SegmentTabs } from '@ongarage/shared';
 import { GoogleMap, zoomToFit } from '@ongarage/shared';
@@ -124,6 +125,8 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
   const [area, setArea] = useState(0);
   // The measured height of the Bids header band (title row, tabs, chips): the sheet stops under it.
   const [headH, setHeadH] = useState(0);
+  // The status bar above this screen: with the header's height it is where the popups must stop.
+  const insets = useSafeAreaInsets();
   // The height of the header's title row (it folds away as the list scrolls).
   const [titleH, setTitleH] = useState(0);
   // The tab's height with the page header showing: the sheet is sized from this, so folding the header (which makes the tab taller) does not re-size it; its top edge rides up with the header through `boost` instead.
@@ -342,6 +345,7 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
     return (
       <Sheet
         visible={!!job}
+        topInset={headH + insets.top}
         title="නැවත පළ කරන්න"
         subtitle="ඔබ පළ කළ ලංසු ඉල්ලීමේ සාරාංශය"
         onClose={() => setRepub(null)}
@@ -512,13 +516,13 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
   };
 
   // The three tabs (received / waiting / expired): over the map while the sheet is low, in the sheet once it is open to the top.
-  // The same tab pills as the Activity page (the shared SegmentTabs): an icon, the label and the count on each.
+  // The same tab pills as the Activity page (the shared SegmentTabs): the label and the count on each.
   const tabIcon: Record<BidsTab, 'inbox' | 'clock' | 'x'> = { received: 'inbox', pending: 'clock', expired: 'x' };
   const renderTabs = () => (
     <SegmentTabs
       pills
       radius={12}
-      items={tabs.map((t) => ({ id: t.id, label: t.label, icon: tabIcon[t.id], count: t.count }))}
+      items={tabs.map((t) => ({ id: t.id, label: t.label, count: t.count }))}
       value={tab}
       onChange={onTabChange}
     />
@@ -721,10 +725,13 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
         <View style={styles.bidsTitleRow} onLayout={(e) => setTitleH(Math.round(e.nativeEvent.layout.height))}>
           <Text style={styles.bidsTitle} numberOfLines={1} accessibilityRole="header">Your Bids</Text>
           <View style={styles.bidsIcons}>
-            <Pressable onPress={onToggleRows} hitSlop={8} accessibilityRole="button" accessibilityLabel={rowsView ? 'Show the bids as cards' : 'Show all the bids as rows'} style={styles.bidsIconBtn}>
-              <Text style={styles.bidsIconText}>{rowsView ? '▤' : '☰'}</Text>
-            </Pressable>
-            <Pressable onPress={() => setMapOpen((v) => !v)} hitSlop={8} accessibilityRole="button" accessibilityLabel={mapOpen ? 'Close the map' : 'Open the map'} style={styles.bidsIconBtn}>
+            {/* The cards / rows switch does nothing while the map is open (the map shows every bid as a pin), so it is hidden then. */}
+            {!mapOpen && tab === 'received' && (
+              <Pressable onPress={onToggleRows} hitSlop={8} accessibilityRole="button" accessibilityLabel={rowsView ? 'Show the bids as cards' : 'Show all the bids as rows'} style={styles.bidsIconBtn}>
+                <Text style={styles.bidsIconText}>{rowsView ? '▤' : '☰'}</Text>
+              </Pressable>
+            )}
+            {tab === 'received' && <Pressable onPress={() => setMapOpen((v) => !v)} hitSlop={8} accessibilityRole="button" accessibilityLabel={mapOpen ? 'Close the map' : 'Open the map'} style={styles.bidsIconBtn}>
               {mapOpen ? (
                 <Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth={2.4} strokeLinecap="round">
                   <Path d="M6 6l12 12M18 6 6 18" />
@@ -734,7 +741,7 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
                   <Path d="M9 4 3 6.5V20l6-2.5 6 2.5 6-2.5V4l-6 2.5L9 4zM9 4v13.5M15 6.5V20" />
                 </Svg>
               )}
-            </Pressable>
+            </Pressable>}
           </View>
         </View>
         </Animated.View>
@@ -893,14 +900,12 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
             return (
             <>
       <Animated.View
-        style={[styles.tabBar, { paddingTop: topP.interpolate({ inputRange: [0, 1], outputRange: [2, tab === 'received' ? 2 : 14] }) }]}
+        style={[styles.tabBar, { paddingTop: topP.interpolate({ inputRange: [0, 1], outputRange: [2, 2] }) }]}
         onLayout={(e) => {
           tabBarH.current = Math.round(e.nativeEvent.layout.height);
           syncDock();
         }}
       >
-        {/* Waiting / expired: the header's blue carries on behind the tab bar and ends in round corners, so the tab bar overlaps it as Home's card does. */}
-        {tab !== 'received' && <View pointerEvents="none" style={styles.tabBand} />}
         <Animated.View style={{ height: 0, opacity: topP, overflow: 'hidden' }} pointerEvents={sheetState === 'expanded' ? 'auto' : 'none'}>
           <View style={styles.titleRow}>
             <View style={styles.flex1} />
@@ -917,7 +922,7 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
               <ScrollView
                 ref={api.scrollRef}
                 style={styles.flex1}
-                contentContainerStyle={[styles.body, { paddingTop: tab === 'received' ? 60 : 40 }]}
+                contentContainerStyle={[styles.body, { paddingTop: 12 }]}
                 showsVerticalScrollIndicator={false}
                 scrollEventThrottle={16}
                 // Like Home: scrolling the sheet leaves the "＋ නව ලංසුවක්" chip and the tabs pinned at the top, and the chat icon docked right under them.

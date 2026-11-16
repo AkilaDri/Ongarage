@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Easing, KeyboardAvoidingView, Modal, PanResponder, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Animated, Easing, KeyboardAvoidingView, Modal, PanResponder, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { Colors, getThemeMode, themedStyles } from '../theme/colors';
 import { FONTS } from '../theme/fonts';
 import { Icon } from './Icons';
@@ -35,8 +35,11 @@ export const Sheet: React.FC<{
   titleIcon?: React.ReactNode;
   /** Each time this number changes the body scrolls back to its top (a form that starts again, like "add another part"). */
   scrollToTopKey?: number;
+  /** The space kept free at the top of the window (a page header the sheet must not cover): the sheet rises to this line and no higher. */
+  topInset?: number;
   children: React.ReactNode;
-}> = ({ visible, title, subtitle, onClose, footer, overlay, hero, compact, roomy, noDividers, fullScreen, bare, headerRight, titleIcon, scrollToTopKey, children }) => {
+}> = ({ visible, title, subtitle, onClose, footer, overlay, hero, compact, roomy, noDividers, fullScreen, bare, headerRight, titleIcon, scrollToTopKey, topInset, children }) => {
+  const { height: windowH } = useWindowDimensions();
   const bodyRef = useRef<ScrollView>(null);
   useEffect(() => {
     if (scrollToTopKey) bodyRef.current?.scrollTo({ y: 0, animated: true });
@@ -93,7 +96,7 @@ export const Sheet: React.FC<{
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
       </Animated.View>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.anchor} pointerEvents="box-none">
-        <Animated.View style={[styles.sheet, hero ? styles.sheetHero : null, hero && full ? styles.sheetFull : null, fullScreen ? styles.sheetScreen : null, { transform: [{ translateY: slide.interpolate({ inputRange: [0, 1], outputRange: [700, 0] }) }, { translateY: dragY }] }]} {...(fullScreen ? {} : pan.panHandlers)}>
+        <Animated.View style={[styles.sheet, topInset && !fullScreen ? { maxHeight: Math.max(240, windowH - topInset) } : null, hero ? styles.sheetHero : null, hero && full ? [styles.sheetFull, { maxHeight: windowH - (topInset ?? 76), height: windowH - (topInset ?? 76) }] : null, fullScreen ? styles.sheetScreen : null, { transform: [{ translateY: slide.interpolate({ inputRange: [0, 1], outputRange: [700, 0] }) }, { translateY: dragY }] }]} {...(fullScreen ? {} : pan.panHandlers)}>
           {hero || fullScreen ? null : <View style={[styles.handle, webNoPan]} />}
           {fullScreen && (
             <View style={styles.appBar}>
@@ -160,7 +163,7 @@ const styles = themedStyles(() =>
     },
     // With a hero the cover starts at the very top edge, so there is no strip of sheet above it as the body scrolls.
     sheetHero: { paddingTop: 0 },
-    sheetFull: { maxHeight: '100%', height: '100%', borderTopLeftRadius: 0, borderTopRightRadius: 0 },
+    sheetFull: {},
     sheetScreen: { maxHeight: '100%', height: '100%', borderTopLeftRadius: 0, borderTopRightRadius: 0, borderWidth: 0, paddingTop: 0 },
     appBar: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 8, paddingTop: Platform.OS === 'web' ? 10 : 36, paddingBottom: 10, backgroundColor: getThemeMode() === 'dark' ? '#202124' : '#ffffff', borderBottomWidth: 1, borderBottomColor: getThemeMode() === 'dark' ? '#3c4043' : '#dadce0' },
     backBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },

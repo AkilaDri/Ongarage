@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Easing, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Animated, Easing, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { CategoryPhoto } from './CategoryPhoto';
 import { Colors, FONTS, Gradient, SERVICE_CATEGORIES, themedStyles, type ServiceCategory } from '@ongarage/shared';
@@ -128,26 +128,32 @@ export const HomeServices: React.FC<{ onSelect: (c: ServiceCategory) => void; on
 };
 
 /** The blue "special offer" banner under the grid. */
-export const HomePromo: React.FC<{ onOpen: () => void }> = ({ onOpen }) => (
-  <View style={st.promo}>
-    <Gradient stops={[{ offset: '0', color: '#1e3a8a' }, { offset: '1', color: BLUE }]} />
-    <Text style={st.bolt}>⚡</Text>
-    <View style={st.promoRow}>
-      <View style={st.promoText}>
-        <View style={st.promoBadge}>
-          <Text style={st.promoBadgeText}>විශේෂ දීමනා</Text>
+export const HomePromo: React.FC<{ onOpen: () => void }> = ({ onOpen }) => {
+  const { width } = useWindowDimensions();
+  // One scale for the whole card, so it keeps this look on every phone: 1 at the Pixel 8's 412px, smaller on a narrow phone, a little larger on a wide one.
+  const k = Math.min(1.12, Math.max(0.86, width / 412));
+  const z = (n: number) => Math.round(n * k * 10) / 10;
+  return (
+    <View style={[st.promo, { minHeight: z(150), padding: z(20), borderRadius: z(20) }]}>
+      <Gradient stops={[{ offset: '0', color: '#1e3a8a' }, { offset: '1', color: BLUE }]} />
+      <Text style={st.bolt}>⚡</Text>
+      <View style={[st.promoRow, { gap: z(10) }]}>
+        <View style={st.promoText}>
+          <View style={[st.promoBadge, { paddingHorizontal: z(10), paddingVertical: z(3), borderRadius: z(8) }]}>
+            <Text style={[st.promoBadgeText, { fontSize: z(12) }]}>විශේෂ දීමනා</Text>
+          </View>
+          <Text style={[st.promoTitle, { fontSize: z(20), lineHeight: z(27), marginTop: z(8) }]}>හයිබ්‍රිඩ් / EV සේවාව</Text>
+          <Text style={[st.promoSub, { fontSize: z(13.5), lineHeight: z(19), marginTop: z(4) }]}>Galle Hybrid Care - පළමු සේවාවට 10% වට්ටමක්</Text>
         </View>
-        <Text style={st.promoTitle}>හයිබ්‍රිඩ් / EV සේවාව</Text>
-        <Text style={st.promoSub}>Galle Hybrid Care - පළමු සේවාවට 10% වට්ටමක්</Text>
+        <Pressable style={[st.promoBtn, { paddingHorizontal: z(16), paddingVertical: z(11), borderRadius: z(14) }]} onPress={onOpen} accessibilityLabel="See the offer">
+          <Text style={[st.promoBtnText, { fontSize: z(13.5) }]}>
+            බලන්න <Text style={[st.promoBtnArrow, { fontSize: z(16) }]}>›</Text>
+          </Text>
+        </Pressable>
       </View>
-      <Pressable style={st.promoBtn} onPress={onOpen} accessibilityLabel="See the offer">
-        <Text style={st.promoBtnText}>
-          බලන්න <Text style={st.promoBtnArrow}>›</Text>
-        </Text>
-      </Pressable>
     </View>
-  </View>
-);
+  );
+};
 
 const st = themedStyles(() =>
   StyleSheet.create({
@@ -163,13 +169,13 @@ const st = themedStyles(() =>
   arrow: { width: 36, height: 44, alignItems: 'center', justifyContent: 'center' },
   column: { gap: 14 },
   card: { alignItems: 'center', justifyContent: 'center', padding: 4, borderRadius: 16, backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#f3f4f6', shadowColor: '#0f172a', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 3 },
-  cardOn: { backgroundColor: 'rgba(239, 246, 255, 0.7)', borderWidth: 2, borderColor: BLUE, shadowOpacity: 0.1, shadowRadius: 3 },
+  cardOn: {},
   iconBox: { width: 54, height: 54, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: '#f9fafb', marginBottom: 6 },
   iconBoxOn: { backgroundColor: '#dbeafe' },
   label: { marginTop: 6, fontSize: 12.5, lineHeight: 18, fontFamily: FONTS.bodySemiBold, color: '#000000' },
   // Latin letters are small beside Sinhala at the same size and weight (a low x-height), so the English labels are bold and 2px larger to carry the same visual weight.
   labelLatin: { fontFamily: FONTS.bodyBold, fontSize: 14.5, lineHeight: 18 },
-  labelOn: { fontFamily: FONTS.bodyBold, color: BLUE },
+  labelOn: {},
   promo: { minHeight: 150, justifyContent: 'center', borderRadius: 20, padding: 20, overflow: 'hidden', backgroundColor: BLUE, shadowColor: '#000000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 6, elevation: 3 },
   bolt: { position: 'absolute', right: -14, bottom: -26, fontSize: 120, opacity: 0.1 },
   promoRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
@@ -178,7 +184,7 @@ const st = themedStyles(() =>
   promoBadgeText: { fontSize: 12, fontWeight: '800', letterSpacing: 0.4, color: '#111827' },
   promoTitle: { fontSize: 20, lineHeight: 27, fontFamily: FONTS.bodyBold, color: '#ffffff', marginTop: 8 },
   promoSub: { fontSize: 13.5, lineHeight: 19, marginTop: 4, fontFamily: FONTS.bodyRegular, color: '#dbeafe' },
-  promoBtn: { backgroundColor: '#ffffff', paddingHorizontal: 16, paddingVertical: 11, borderRadius: 14, shadowColor: '#000000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 2, elevation: 1 },
+  promoBtn: { flexShrink: 0, backgroundColor: '#ffffff', paddingHorizontal: 16, paddingVertical: 11, borderRadius: 14, shadowColor: '#000000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 2, elevation: 1 },
   promoBtnText: { fontSize: 13.5, fontFamily: FONTS.bodyBold, color: BLUE },
   promoBtnArrow: { color: GOLD, fontSize: 16 },
   })
