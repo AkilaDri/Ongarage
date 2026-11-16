@@ -36,9 +36,10 @@ export const GRADIENTS = {
     { offset: '0', color: '#f59e0b' },
     { offset: '1', color: '#d97706' },
   ],
+  // The app's primary button: a navy blue (the theme colour), a shade lighter than the deep navy.
   issue: [
-    { offset: '0', color: '#0ea5e9' },
-    { offset: '1', color: '#2563eb' },
+    { offset: '0', color: '#2748a8' },
+    { offset: '1', color: '#1e3a8a' },
   ],
   bid: [
     { offset: '0', color: '#1e3a8a' },

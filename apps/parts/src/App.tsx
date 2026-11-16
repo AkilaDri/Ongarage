@@ -10,10 +10,12 @@ import {
   NotoSansSinhala_600SemiBold,
   NotoSansSinhala_700Bold,
 } from '@expo-google-fonts/noto-sans-sinhala';
-import { BottomNav, pageHeaderBlue, TitleBand, Colors, ThemeProvider, themedStyles, useTheme, headerBand, getThemeMode, setAppShape } from '@ongarage/shared';
+import { BottomNav, pageHeaderBlue, TitleBand, Colors, ThemeProvider, themedStyles, useTheme, headerBand, getThemeMode, setAppShape, setAppTone } from '@ongarage/shared';
 
 // This app has PickMe's shapes too (big rounded cards, pill buttons and chips, light edges, soft shadows), like the garage app. Set before the first screen is drawn.
 setAppShape('pickme');
+// The same navy header, nav ink and yellow accent as the owner app.
+setAppTone({ header: { bg: '#1e3a8a', title: '#ffffff', sub: '#dbe4f5' }, navInk: '#1e3a8a', navAccent: '#facc15' });
 import { ShopProvider, useShop } from './context/ShopContext';
 import { PARTS_TABS, type TabId } from './constants/tabs';
 import { ShopHeader } from './components/ShopHeader';

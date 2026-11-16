@@ -80,6 +80,8 @@ export * from './ui/OnChatPill';
 export * from './ui/CalendarGridIcon';
 export * from './ui/SegmentTabs';
 export * from './ui/FilterChips';
+export * from './ui/topBar';
+export * from './ui/TopBandLayout';
 export * from './ui/Icons';
 export * from './ui/OnMartIcon';
 export * from './ui/NoticeToast';

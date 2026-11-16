@@ -54,3 +54,46 @@ Activity uses `FilterChips plain onBlue` (fit row, shared). Bids uses its own `S
 ## How to check
 
 Start the dev server (`npm run user:web`), open Activity and Bids in the browser at 390px wide with `ongarage.themeMode` set to `light`, and measure: track top/bottom (white pixels at a column inside the track), chip top/bottom (amber edge on the selected chip), and the heading text rows. The two pages must agree within 1px.
+
+## 6. Garage app: Jobs and Garage (Schedule) pages (saved as the user agreed them)
+
+These two pages live in `apps/garage`. They are not measured against the owner pages above; they were tuned by hand on the garage app.
+
+**Blue band (both pages)**
+- Band = the page's `tabBar`: `paddingTop: 46`, `paddingHorizontal: 10`, background `pageHeaderBlue().from`.
+- Jobs (`JobFeedScreen.tsx`): `paddingBottom: 18`.
+- Garage / Schedule (`ScheduleScreen.tsx`): `paddingBottom: 6`, and its `navCard` has `marginBottom: 10`. Together these give the same band bottom (measured y = 193 on 390px) as Jobs. Keep the two in step: if one band changes, change the other.
+
+**Title row (`jobsHead`)**
+- Row, centred, `paddingHorizontal: 6`, `gap: 8`, `paddingBottom: 14` (Jobs and Garage).
+- Jobs title: the garage's name (`profile.name`), `fontSize: 17`, `lineHeight: 22`, bold white, no icon. Calendar icon (`CalendarGridIcon size 28`) at the right, in the same row.
+- Garage title: the text "Garage", `fontSize: 19`, `lineHeight: 24`, bold white, `flex: 1`. Icon `GarageLineIcon active={false} size={32}` (line, not filled) white, to the left of the text. Calendar icon at the far right (`marginLeft: auto`).
+
+**Nav pill (top navi bar)**
+- Jobs: `segRow` white, `borderRadius: 26`, `padding: 2`, `gap: 2`, `marginBottom: 14`. Chip `segChip` height `38`, `borderRadius: 22`, `paddingHorizontal: 4`, label `fontSize: TOP_BAR.nav.labelSize` (14), medium weight. Selected chip: filled with the header blue, label white.
+- Garage (Schedule): `SegmentTabs pills`. Chip height 40 from the page's own style is not used; the shared pill chip (38) applies.
+
+**Sub navi bar (filter pills)**
+- Jobs: `barFilters` `paddingTop: 10`, `paddingBottom: 4`, `paddingRight: 2`, wraps with `rowGap: 8`. Pills `filter` height `36`, `borderRadius: 20`, `borderWidth: 1.5`, border white, `minWidth: 40`, label `fontSize 12`, white.
+- Selected pill: `filterActive` amber edge `#fbbf24`, `borderWidth 2.5`, label white (no yellow label, no bold).
+- Icons on the chips: white (`#ffffff`).
+- Garage (Schedule): `FilterChips plain onBlue`, icons passed as white (`color="#ffffff"`).
+- The filter icon (☰ style, the last item) has no border, white sliders icon, 36×36, `marginLeft: auto` so it sits at the far right.
+- The filter list opens as a message popup: centred under the icon, white card, `borderRadius 16`, amber edge 1.5px, close ✕ at its top right, dim backdrop; rows are one per line with the name.
+
+**Chip icons**
+- Sub bar chips (ලංසු රැකියා, My bids, Lost): icons 15px, white.
+- Top nav icons come from the shared pill component (`size 20`).
+
+**SOS chip**
+- No flashing animation. Soft red fill `#fecaca`, border `#f87171` (the last agreed values).
+
+**Do not change without re-measuring**
+- The `jobsHead` `paddingBottom` (14) and the band `paddingBottom` move together: changing one moves the nav and the band.
+- Measure with a 390px screenshot: band bottom at x = 4 (both pages should read the same y), nav white rows at x = 60, filter yellow rows at the selected chip.
+
+## 7. LOCKED: Garage (Schedule) page
+
+The garage app's Garage page (`apps/garage/src/screens/ScheduleScreen.tsx`) is locked as the user approved it in the screenshot "44": the white "Garage" heading with the house icon on the left, the calendar icon on the right, the navy band, the three tabs (ඉදිරියට / සම්පූර්ණ / අවලංගු) as a white pill, and the chip row (SOS, Booking, ලංසු, Search) under it, with the band ending just under the chips.
+
+Do not change its spacing, sizes, icons or colours unless the user explicitly asks for that exact change. Other pages are matched to this one, not the other way round.

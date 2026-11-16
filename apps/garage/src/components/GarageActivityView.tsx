@@ -1,4 +1,4 @@
-import { EmptyState } from '@ongarage/shared';
+import { EmptyState, CalendarGridIcon, Icon, pageHeaderBlue, type IconName } from '@ongarage/shared';
 import React, { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Colors, FONTS, getThemeMode, monthKey, themedStyles } from '@ongarage/shared';
@@ -12,11 +12,11 @@ export type Kind = 'job' | 'ongarage' | 'onmart';
 export type Txn = { id: string; at: number; kind: Kind; icon: string; title: string; sub: string; amount: number; note?: string; noteGood?: boolean };
 type Filter = 'all' | Kind;
 
-const FILTERS: { id: Filter; label: string }[] = [
-  { id: 'all', label: 'සියල්ල' },
-  { id: 'job', label: 'ආදායම' },
-  { id: 'ongarage', label: 'OnGarage' },
-  { id: 'onmart', label: 'OnMart' },
+const FILTERS: { id: Filter; label: string; icon: IconName }[] = [
+  { id: 'all', label: 'සියල්ල', icon: 'inbox' },
+  { id: 'job', label: 'ආදායම', icon: 'check-circle' },
+  { id: 'ongarage', label: 'OnGarage', icon: 'tag' },
+  { id: 'onmart', label: 'OnMart', icon: 'clock' },
 ];
 
 /** Every money movement of this garage, newest first: finished jobs, the commission to OnGarage on each, the commissions OnMart's shops owe. */
@@ -56,7 +56,7 @@ export const useGarageTxns = (): Txn[] => {
  * Every money movement of this garage in one list, newest first: what the finished jobs earned, the commission it pays OnGarage on each of them,
  * and the commission OnMart's shops owe it for the parts it sent customers to buy. The Schedule page's second title.
  */
-export const GarageActivityView: React.FC = () => {
+export const GarageActivityView: React.FC<{ onOpenCalendar?: () => void }> = ({ onOpenCalendar }) => {
   const [filter, setFilter] = useState<Filter>('all');
 
   const txns = useGarageTxns();
@@ -69,6 +69,25 @@ export const GarageActivityView: React.FC = () => {
 
   return (
     <ScrollView style={styles.flex1} contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
+      <View style={styles.band}>
+        <View style={styles.bandTitleRow}>
+          <Text style={styles.bandTitle}>Activity</Text>
+          <Pressable onPress={onOpenCalendar} hitSlop={8} accessibilityRole="button" accessibilityLabel="Open transactions calendar">
+            <CalendarGridIcon size={28} color="#ffffff" />
+          </Pressable>
+        </View>
+        <View style={styles.bandFilters}>
+          {FILTERS.map((f) => {
+            const on = filter === f.id;
+            return (
+              <Pressable key={f.id} style={[styles.bandPill, on && styles.bandPillOn]} onPress={() => setFilter(f.id)} accessibilityLabel={`Show ${f.label}`}>
+                <Icon name={f.icon} size={12} color="#ffffff" />
+              <Text style={styles.bandPillText} numberOfLines={1}>{f.label}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      </View>
       <EarningsSummaryCard />
       <View style={styles.tiles}>
         <Tile label="ආදායම" value={money(income)} color={Colors.successText} />
@@ -78,16 +97,6 @@ export const GarageActivityView: React.FC = () => {
       <View style={styles.net}>
         <Text style={styles.netLabel}>ඔබට ඉතිරි වන්නේ</Text>
         <Text style={styles.netValue}>{money(income + toOnGarage + fromOnMart)}</Text>
-      </View>
-      <View style={styles.filters}>
-        {FILTERS.map((f) => {
-          const on = filter === f.id;
-          return (
-            <Pressable key={f.id} style={[styles.filter, on && styles.filterOn]} onPress={() => setFilter(f.id)} accessibilityLabel={`Show ${f.label}`}>
-              <Text style={[styles.filterText, on && styles.filterTextOn]}>{f.label}</Text>
-            </Pressable>
-          );
-        })}
       </View>
       {list.length === 0 ? (
         <EmptyState icon="🧾" title="ගනුදෙනු නැත" text="ආදායම් සහ කොමිස් ගනුදෙනු මෙහි පෙන්වයි." />
@@ -142,6 +151,14 @@ const styles = themedStyles(() =>
     net: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, height: 46, borderRadius: 12, backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe' },
     netLabel: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
     netValue: { fontSize: 17, fontFamily: FONTS.titleBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
+    // The navy band on top, the same as the Garage and Jobs pages: the title, the calendar, and the filters as pills.
+    band: { backgroundColor: pageHeaderBlue().from, marginHorizontal: -6, marginTop: -4, paddingHorizontal: 16, paddingTop: 36, paddingBottom: 14, borderBottomLeftRadius: 0, borderBottomRightRadius: 0 },
+    bandTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
+    bandTitle: { fontSize: 19, lineHeight: 24, fontFamily: FONTS.titleBold, color: '#ffffff' },
+    bandFilters: { flexDirection: 'row', gap: 6 },
+    bandPill: { flex: 1, flexDirection: 'row', gap: 3, paddingHorizontal: 2, height: 36, alignItems: 'center', justifyContent: 'center', borderRadius: 20, borderWidth: 1.5, borderColor: '#ffffff', backgroundColor: pageHeaderBlue().from },
+    bandPillOn: { borderWidth: 2.5, borderColor: '#fbbf24' },
+    bandPillText: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: '#ffffff' },
     filters: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
     filter: { paddingHorizontal: 14, height: 32, justifyContent: 'center', borderRadius: 16, borderWidth: 1, borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#dadce0', backgroundColor: Colors.bgCard },
     filterOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe', borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#d2e3fc' },

@@ -14,7 +14,7 @@ import {
 } from '@expo-google-fonts/noto-sans-sinhala';
 import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
 import Svg, { Path } from 'react-native-svg';
-import { Icon, CalendarGridIcon, HeaderIconButton, pageHeaderBlue, Colors, DialogButton, FONTS, getThemeMode, Gradient, ModalCard, Pulse, themedStyles } from '@ongarage/shared';
+import { Icon, CalendarGridIcon, HeaderIconButton, pageHeaderBlue, Colors, DialogButton, FONTS, getThemeMode, Gradient, ModalCard, Pulse, themedStyles, TopBandLayout, ReceiptLineIcon } from '@ongarage/shared';
 import { ThemeProvider, useTheme, setAppShape, setAppPalette, setAppTone, setCardCorner } from '@ongarage/shared';
 
 // This app has PickMe's shapes too (big rounded cards, pill buttons and chips, light edges, soft shadows), like the garage app. Set before the first screen is drawn.
@@ -287,6 +287,8 @@ function AppShell() {
   const [payFirst, setPayFirst] = useState(false);
   // The hamburger in the Bids sheet header: every received bid as one row.
   const [bidsRows, setBidsRows] = useState(false);
+  // The Bids top band's own height: it folds up while the sheet is open and scrolled.
+  const [bidsBandH, setBidsBandH] = useState(0);
   // The Received sheet is open to the top: the same top header bar then drops its heading and carries Free Quote, the cards / rows switch and the close mark.
   const [bidsUp, setBidsUp] = useState(false);
   const bidsMinimize = useRef<(() => void) | null>(null);
@@ -418,7 +420,45 @@ function AppShell() {
       <StatusBar style={isDark ? "light" : "dark"} />
       <SafeAreaView style={[styles.container, styles.containerFull, (activeTab === 'activity' || activeTab === 'mart' || activeTab === 'bids') && { backgroundColor: pageHeaderBlue().from }]} edges={['top']}>
         {/* Every other tab starts with its title; it folds away with the page scroll like the old header did. */}
-        {activeTab !== 'home' && !!TAB_TITLES[activeTab] && (
+        {/* Bids has the same top as Activity: the title, its icons, the three tabs and the sort row (the sort row is pinned by the Bids screen). */}
+        {activeTab === 'bids' && (
+          <Animated.View style={{ overflow: 'hidden', height: bidsCollapse && bidsBandH ? bidsCollapse.interpolate({ inputRange: [0, 1], outputRange: [bidsBandH, 0] }) : undefined }}>
+          <Animated.View onLayout={(e) => setBidsBandH(Math.round(e.nativeEvent.layout.height))} style={bidsCollapse && bidsBandH ? { transform: [{ translateY: bidsCollapse.interpolate({ inputRange: [0, 1], outputRange: [0, -bidsBandH] }) }] } : undefined}>
+          <TopBandLayout
+            paddingTop={Platform.OS === 'web' ? 40 : 12}
+            title={TAB_TITLES.bids!}
+            icon={<ReceiptLineIcon active={false} size={32} color="#ffffff" />}
+            navRadius={12}
+            navGap={-10}
+            navBottom={bidsTab === 'received' ? 40 : 16}
+            right={
+              <View style={styles.bidsIcons}>
+                <HeaderIconButton onPress={() => setBidsRows((v) => !v)} label={bidsRows ? 'Show the bids as cards' : 'Show all the bids as rows'} background={pageBg()}>
+                  <Text style={styles.hamburger}>{bidsRows ? '▤' : '☰'}</Text>
+                </HeaderIconButton>
+                {bidsMapOpen ? (
+                  <HeaderIconButton onPress={() => bidsCloseMap.current?.()} label="Close the map" background={pageBg()}>
+                    <Text style={styles.hamburger}>✕</Text>
+                  </HeaderIconButton>
+                ) : (
+                  <HeaderIconButton onPress={() => bidsOpenMap.current?.()} label="Open the map" background={pageBg()}>
+                    <MapIcon />
+                  </HeaderIconButton>
+                )}
+              </View>
+            }
+            tabs={[
+              { id: 'received' as const, label: 'Received', icon: 'inbox' as const },
+              { id: 'pending' as const, label: 'Pending', icon: 'clock' as const },
+              { id: 'expired' as const, label: 'Expired', icon: 'x' as const },
+            ]}
+            tabValue={bidsTab}
+            onTabChange={setBidsTab}
+          />
+          </Animated.View>
+          </Animated.View>
+        )}
+        {activeTab !== 'home' && (activeTab as string) !== 'activity' && (activeTab as string) !== 'bids' && !!TAB_TITLES[activeTab] && (
           <Animated.View style={{ height: (activeTab === 'bids' && bidsCollapse ? bidsCollapse : martHeaderCollapse).interpolate({ inputRange: [0, 1], outputRange: [activeTab === 'bids' || activeTab === 'activity' ? BIDS_TITLE_H : PAGE_TITLE_H, 0] }), overflow: 'hidden', backgroundColor: pageHeaderBlue().from, marginBottom: -2 }}>
             {/* On Bids the heading / Free Quote row vanishes at once as the header starts to fold (it is not squeezed away with the blue). */}
             <Animated.View style={{ opacity: activeTab === 'bids' && bidsCollapse ? bidsCollapse.interpolate({ inputRange: [0, 0.15], outputRange: [1, 0], extrapolate: 'clamp' }) : 1 }}>
@@ -429,6 +469,12 @@ function AppShell() {
                 <View style={{ flex: 1, paddingTop: 14 }}>
                 <AppPageHeader
                   title={TAB_TITLES[activeTab]!}
+                  titleNode={activeTab === 'activity' || activeTab === 'bids' ? (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                      {(() => { const HIcon = USER_TABS.find((t) => t.id === activeTab)?.icon; return HIcon ? <HIcon active size={32} /> : null; })()}
+                      <Text style={{ fontSize: 19, lineHeight: 24, fontFamily: FONTS.titleBold, color: '#ffffff' }}>{TAB_TITLES[activeTab]!}</Text>
+                    </View>
+                  ) : undefined}
                   hideChat
                   subtitle={activeTab === 'activity' || activeTab === 'bids' ? undefined : 'කොටස් වෙළඳපොළ'}
                   icon={TabIcon ? <TabIcon active size={26} /> : undefined}
@@ -531,7 +577,7 @@ function AppShell() {
               onHeaderVisibilityChange={onBidsHeaderVisible}
             />
           ) : activeTab === 'activity' ? (
-            <ActivityScreen onHeaderProgress={(p) => martHeaderCollapse.setValue(p)} onOpenMart={() => setActiveTab('mart')} onOpenBids={() => setActiveTab('bids')} onBookAgain={(b) => setSelectedService(categoryInfo(b.categoryId))} />
+            <ActivityScreen onOpenCalendar={openActivityCalendar} onHeaderProgress={(p) => martHeaderCollapse.setValue(p)} onOpenMart={() => setActiveTab('mart')} onOpenBids={() => setActiveTab('bids')} onBookAgain={(b) => setSelectedService(categoryInfo(b.categoryId))} />
           ) : activeTab === 'mart' ? (
             <MartScreen
               activeVehicle={selectedVehicle}

@@ -49,8 +49,10 @@ export const ThreeStateSheet: React.FC<{
   onHeight?: (height: Animated.Value) => void;
   /** Holds the sheet open to the top (no map to see behind it); it goes back to its middle height when released. */
   locked?: boolean;
+  /** The sheet cannot be pulled down to its minimised (peek) height: its lowest height is the collapsed one. */
+  noPeek?: boolean;
   children: (api: SheetApi) => React.ReactNode;
-}> = ({ areaHeight, peekHeight, collapsedRatio = 0.55, bottomInset = 0, expandedExtra = 0, headColor, boost, canLower, peek, onStateChange, onHeight, locked, children }) => {
+}> = ({ areaHeight, peekHeight, collapsedRatio = 0.55, bottomInset = 0, expandedExtra = 0, headColor, boost, canLower, peek, onStateChange, onHeight, locked, noPeek, children }) => {
   // The top height is the same before and after the bar folds: (smaller area + its extra) = (bigger area + nothing).
   const full = Math.max(areaHeight - bottomInset + expandedExtra, peekHeight + 120);
   const collapsed = Math.max(peekHeight + 60, Math.round(full * collapsedRatio));
@@ -103,6 +105,12 @@ export const ThreeStateSheet: React.FC<{
 
   // Re-snap when the area is measured or changes.
   useEffect(() => {
+    // An expanded sheet follows its area at once (the header above it folds away frame by frame), so no gap opens above it.
+    if (stateRef.current === 'expanded') {
+      height.stopAnimation();
+      height.setValue(full);
+      return;
+    }
     Animated.spring(height, { toValue: sizes.current[stateRef.current], stiffness: 210, damping: 26, useNativeDriver: false }).start();
   }, [full, collapsed, peekHeight, height]);
 
@@ -110,10 +118,10 @@ export const ThreeStateSheet: React.FC<{
     const h = current.current;
     const { peek: p, collapsed: c, expanded: e } = sizes.current;
     let target: SheetState;
-    if (vy > 0.4) target = 'peek';
+    if (vy > 0.4) target = noPeek ? 'collapsed' : 'peek';
     else if (vy < -0.4) target = h < c - 10 ? 'collapsed' : 'expanded';
     else {
-      const options: [SheetState, number][] = [['peek', p], ['collapsed', c], ['expanded', e]];
+      const options: [SheetState, number][] = noPeek ? [['collapsed', c], ['expanded', e]] : [['peek', p], ['collapsed', c], ['expanded', e]];
       target = options.reduce((best, o) => (Math.abs(o[1] - h) < Math.abs(best[1] - h) ? o : best))[0];
     }
     animateTo(target, -vy);
@@ -137,7 +145,8 @@ export const ThreeStateSheet: React.FC<{
         dragStart.current = current.current;
       },
       onPanResponderMove: (_, g) => {
-        const { peek: p, expanded: e } = sizes.current;
+        const { peek: p0, expanded: e, collapsed: c } = sizes.current;
+        const p = noPeek ? c : p0;
         const raw = dragStart.current - g.dy;
         height.setValue(raw > e ? e + (raw - e) * 0.25 : raw < p ? p - (p - raw) * 0.25 : raw);
       },

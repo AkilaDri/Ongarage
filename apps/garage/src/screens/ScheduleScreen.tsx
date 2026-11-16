@@ -2,11 +2,12 @@ import { CustomerHistoryTag } from '../components/CustomerHistory';
 import { onOpenBookingDetail, onOpenPartsRequest } from '../utils/scheduleSignal';
 import { VehicleSearchSheet } from '../components/VehicleSearchSheet';
 import { CategoryArt } from '../components/CategoryArt';
-import { SosLineIcon, ScheduleLineIcon, ReceiptLineIcon, MoneyText } from '@ongarage/shared';
+import { SosLineIcon, ScheduleLineIcon, ReceiptLineIcon, MoneyText, GarageLineIcon } from '@ongarage/shared';
 import { chatDockOffset } from '../utils/chatDock';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Animated, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { CalendarGridIcon, FilterChips, SegmentTabs } from '@ongarage/shared';
+import { CalendarGridIcon, FilterChips, SegmentTabs, pageHeaderBlue } from '@ongarage/shared';
+import { OnlineToggle } from '../components/GarageHeader';
 import { VehiclePlateTap } from '../components/VehiclePlateTap';
 import { WorkTimer } from '../components/WorkTimer';
 import { InfoChip, fittingLabel, Colors, EmptyState, FONTS, GridRow, Icon, JobReportSheet, LkPlate, SwipeCard, themedStyles, vehicleIcon, type IconName, softFill, softShadow, getThemeMode, PinnedEdge, usePinnedEdge } from '@ongarage/shared';
@@ -48,7 +49,7 @@ export const ScheduleScreen: React.FC<{ onOpenParts: (requestId: string) => void
     chatDockOffset.setValue(barH);
     return () => chatDockOffset.setValue(0);
   }, [barH]);
-  const { bookings } = useGarage();
+  const { bookings, profile } = useGarage();
   const { requestFor, toOrderFor } = useParts();
   // Parts only for lines the owner approved (or named in the post), or once a request exists.
   // SOS parts are handled after the roadside job.
@@ -217,7 +218,7 @@ export const ScheduleScreen: React.FC<{ onOpenParts: (requestId: string) => void
   const shown = segment === 'upcoming' ? upcoming : segment === 'cancelled' ? cancelledList : completed;
   const bySource = source !== 'all' ? shown.filter((b) => b.source === source) : shown;
   const list = bySource;
-  const sources: { id: Booking['source'] | 'all'; label: string; icon: React.ComponentType<{ active: boolean; size?: number }>; count: number }[] = [
+  const sources: { id: Booking['source'] | 'all'; label: string; icon: React.ComponentType<{ active: boolean; size?: number; color?: string }>; count: number }[] = [
     { id: 'sos', label: 'SOS', icon: SosLineIcon, count: shown.filter((b) => b.source === 'sos').length },
     { id: 'direct', label: 'Booking', icon: BookingCalendarIcon, count: shown.filter((b) => b.source === 'direct').length },
     { id: 'bid', label: 'ලංසු', icon: ReceiptLineIcon, count: shown.filter((b) => b.source === 'bid').length },
@@ -227,15 +228,21 @@ export const ScheduleScreen: React.FC<{ onOpenParts: (requestId: string) => void
     <View style={styles.flex1}>
       <Animated.View style={styles.tabBar} onLayout={(e) => e.nativeEvent.layout.height > 0 && setBarH(e.nativeEvent.layout.height)}>
         <PinnedEdge progress={edge} />
-        {/* One white card on the grey page holds the tabs and the chips. */}
+        {/* The same top as the Jobs page: the garage's name with the Online switch, then the tabs and the chips on the blue band. */}
+        <View style={styles.jobsHead}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}><GarageLineIcon active={false} size={32} color="#ffffff" /><Text style={styles.jobsTitle} numberOfLines={1}>Garage</Text></View>
+          <View style={{ marginLeft: 'auto' }}><CalendarGridIcon size={28} color="#ffffff" /></View>
+        </View>
         <View style={styles.navCard}>
-        <SegmentTabs items={segments.map((s) => ({ id: s.id, label: s.label, icon: s.icon, count: s.id === 'upcoming' ? s.count : 0 }))} value={segment} onChange={setSegment} />
+        <SegmentTabs pills items={segments.map((s) => ({ id: s.id, label: s.label, icon: s.icon, count: s.id === 'upcoming' ? s.count : 0 }))} value={segment} onChange={setSegment} />
         {/* Under the tabs: chips for the kind of job (SOS, bookings, bids), with the number of each on the chip, and a search for a vehicle. */}
         <FilterChips
           items={[
-            ...sources.map((c) => ({ id: c.id as string, label: c.label, tone: (c.id === 'sos' ? 'red' : c.id === 'direct' ? 'blue' : 'amber') as 'red' | 'blue' | 'amber', icon: <c.icon active size={16} />, count: segment === 'upcoming' ? c.count : 0 })),
-            { id: 'search', label: 'Search', tone: 'slate' as const, icon: <Icon name="search" size={16} color="#94a3b8" /> },
+            ...sources.map((c) => ({ id: c.id as string, label: c.label, tone: (c.id === 'sos' ? 'red' : c.id === 'direct' ? 'blue' : 'amber') as 'red' | 'blue' | 'amber', icon: <c.icon active size={16} color="#ffffff" />, count: segment === 'upcoming' ? c.count : 0 })),
+            { id: 'search', label: 'Search', tone: 'slate' as const, icon: <Icon name="search" size={16} color="#ffffff" /> },
           ]}
+          plain
+          onBlue
           value={source === 'all' ? null : source}
           onChange={(id) => (id === 'search' ? setSearchOpen(true) : setSource((id ?? 'all') as Booking['source'] | 'all'))}
         />
@@ -298,11 +305,13 @@ const styles = themedStyles(() =>
     // One soft track with a raised active segment, a red count on its corner (same as the Jobs tab).
     // The bar sits on top of the list layer, which starts under it and reaches one bar-height past the bottom.
     listLayer: { position: 'absolute', left: 0, right: 0 },
-    tabBar: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 5, paddingHorizontal: 10, paddingTop: 10, paddingBottom: 6, backgroundColor: pageBg() },
+    tabBar: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 5, paddingHorizontal: 10, paddingTop: 46, paddingBottom: 6, backgroundColor: pageHeaderBlue().from },
+    jobsHead: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 6, gap: 8, paddingBottom: 14 },
+    jobsTitle: { flex: 1, fontSize: 19, lineHeight: 24, fontFamily: FONTS.titleBold, color: '#ffffff' },
     // The two views are two separate chips, bigger than the filter chips under them: each its own outlined chip, the selected one tonal blue.
     // The tabs: a slate-100 track with a slate-200 edge (padding 5 keeps it clear of the shared card padding rule), the open one a white raised segment.
     // The tabs and the chips stand straight on the page (no white card behind them).
-    navCard: {},
+    navCard: { marginBottom: 10 },
     segRow: { flexDirection: 'row', gap: 4, padding: 5, borderRadius: 16, backgroundColor: getThemeMode() === 'dark' ? Colors.subtleFill : '#ffffff', borderWidth: 1, borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#e2e8f0' },
     segChip: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, height: 40, paddingHorizontal: 8, borderRadius: 12 },
     segChipOn: { backgroundColor: getThemeMode() === 'dark' ? Colors.bgCard : '#eff6ff' },

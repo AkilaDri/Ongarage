@@ -10,6 +10,17 @@ const greetingFor = (hour: number) => {
   return 'සුභ රාත්‍රියක් 🌙';
 };
 
+/** Online / offline switch, shown on the header's blue band (tap to change). */
+export const OnlineToggle: React.FC = () => {
+  const { isOpen, setOpen } = useGarage();
+  return (
+    <Pressable style={{ flexDirection: 'row', alignItems: 'center', gap: 6, height: 24, paddingHorizontal: 9, borderRadius: 12, backgroundColor: 'rgba(255, 255, 255, 0.14)', borderWidth: 1, borderColor: '#ffffff' }} onPress={() => setOpen(!isOpen)} accessibilityRole="switch" accessibilityState={{ checked: isOpen }} accessibilityLabel={isOpen ? 'Online, tap to go offline' : 'Offline, tap to go online'}>
+      <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: isOpen ? '#22c55e' : '#94a3b8' }} />
+      <Text style={{ fontSize: 10.5, fontFamily: FONTS.bodySemiBold, color: '#ffffff' }}>{isOpen ? 'Online' : 'Offline'}</Text>
+    </Pressable>
+  );
+};
+
 // Same layout as the owner app's header; the garage badge pulses while the
 // garage is online, and tapping it switches availability.
 export const GarageHeader: React.FC = () => {

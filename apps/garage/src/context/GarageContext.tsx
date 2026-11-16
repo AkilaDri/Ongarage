@@ -154,6 +154,21 @@ const makeRequest = (i: number, garage: GarageProfile, at: number): SOSRequest =
   };
 };
 
+// Two bids the owner did not pick (lost), so the "Rejected bids" chip has something to show.
+// The garages that can win a job when this one loses (a simulation's stand-in for the other bids).
+const RIVAL_GARAGES = [
+  { name: 'Apex Motors & Hybrid Hub', factor: 0.92, warranty: 6, hours: 2 },
+  { name: 'Speed Works Garage', factor: 0.95, warranty: 3, hours: 1 },
+  { name: 'TOPCODE Tuning & Service', factor: 0.97, warranty: 12, hours: 3 },
+];
+const seedRejectedBids = (): MyBid[] =>
+  [4, 6].map((i, k) => {
+    const job = makeFeedJob(i, GARAGE, Date.now());
+    const price = Math.round(marketPrice(job.categoryId) * 1.12);
+    const rival = RIVAL_GARAGES[k];
+    return { id: `rej-${i}`, jobId: job.id, job, price, warrantyMonths: 3, estHours: 2 + k, note: '', submittedAt: Date.now() - (k + 1) * 3600000, status: 'lost' as const, outcome: { garageName: rival.name, price: Math.round(price * rival.factor), warrantyMonths: rival.warranty, estHours: rival.hours } };
+  });
+
 const makeFeedJob = (i: number, garage: GarageProfile, now: number): FeedJob => {
   const { address, km, bearing, postedMinAgo, ...seed } = FEED_POOL[i];
   const coords = offsetCoordinate(garage.coords, km, bearing);
@@ -397,7 +412,7 @@ export const GarageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [feed, setFeed] = useState<FeedJob[]>(() => [0, 1, 2, 3, 5, 6].map((i) => makeFeedJob(i, GARAGE, Date.now())));
   const [inquiries, setInquiries] = useState<GarageInquiry[]>(INQUIRIES);
   const [directs, setDirects] = useState<DirectRequest[]>(() => [makeDirect(0, GARAGE, Date.now()), makeDirect(1, GARAGE, Date.now())]);
-  const [bids, setBids] = useState<MyBid[]>([]);
+  const [bids, setBids] = useState<MyBid[]>(() => seedRejectedBids());
   const [bookings, setBookings] = useState<Booking[]>(BOOKINGS);
   const [reviews, setReviews] = useState<Review[]>(REVIEWS);
   const [notice, setNotice] = useState<Notice | null>(null);
@@ -873,7 +888,10 @@ export const GarageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         if (!current || current.status !== 'pending' || current.submittedAt !== bid.submittedAt) return;
         // The travel fee is the owner's agreed compensation, not part of the price compared with the market.
         const won = bidWins(job, current.price - (current.travelFee ?? 0));
-        setBids((prev) => prev.map((b) => (b.id === bid.id ? { ...b, status: won ? 'won' : 'lost' } : b)));
+        // A lost bid keeps the winning garage's offer, so the record can show who won and on what terms.
+        const rival = RIVAL_GARAGES[Math.floor(Math.random() * RIVAL_GARAGES.length)];
+        const outcome = won ? undefined : { garageName: rival.name, price: Math.round(current.price * rival.factor), warrantyMonths: rival.warranty, estHours: rival.hours };
+        setBids((prev) => prev.map((b) => (b.id === bid.id ? { ...b, status: won ? 'won' : 'lost', outcome } : b)));
         const cat = categoryInfo(job.categoryId);
         if (won) {
           const at = new Date(Date.now() + 24 * 60 * MIN);

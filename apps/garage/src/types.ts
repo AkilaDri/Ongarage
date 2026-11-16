@@ -147,6 +147,8 @@ export type MyBid = {
   note: string;
   submittedAt: number;
   status: BidStatus;
+  /** When the bid was lost: the garage that won the job, its price and terms (the record the garage sees). */
+  outcome?: { garageName: string; price: number; warrantyMonths: number; estHours: number };
 };
 
 export type BookingStatus = 'scheduled' | 'inProgress' | 'completed' | 'cancelled';
