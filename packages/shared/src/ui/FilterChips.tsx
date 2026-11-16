@@ -23,12 +23,13 @@ const TONES: Record<FilterTone, { bg: string; edge: string; text: string; count:
  * The filter chips under the tabs of a page: tinted chips with the count on the chip's top edge. Touching the open one again clears it
  * (`onChange(null)`). The row slides sideways when it is longer than the screen.
  */
-export function FilterChips<T extends string>({ items, value, onChange, plain, onBlue, radius, height }: { items: FilterItem<T>[]; value: T | null; onChange: (id: T | null) => void; /** No chip background or edge (light theme): just the label. */ plain?: boolean; /** The chips sit on the blue header band: white labels, a yellow line under the open one. */ onBlue?: boolean; /** Corner radius of the chips on the blue band (default: the round chip). */ radius?: number; /** Height of the chips on the blue band (default: the shared height). */ height?: number }) {
+export function FilterChips<T extends string>({ items, value, onChange, plain, onBlue, radius, height, scroll }: { /** With `plain` + `onBlue`: keep the outlined blue-band chips but let the row slide sideways, each chip as wide as its label (one line), instead of sharing the width equally. */ scroll?: boolean;  items: FilterItem<T>[]; value: T | null; onChange: (id: T | null) => void; /** No chip background or edge (light theme): just the label. */ plain?: boolean; /** The chips sit on the blue header band: white labels, a yellow line under the open one. */ onBlue?: boolean; /** Corner radius of the chips on the blue band (default: the round chip). */ radius?: number; /** Height of the chips on the blue band (default: the shared height). */ height?: number }) {
   const dark = getThemeMode() === 'dark';
   // Plain (light theme): the chips share the bar's width equally, so the row is as wide as the tab bar above it and does not slide.
-  const fit = !!plain && !dark;
+  const blue = !!plain && !dark;
+  const fit = blue && !scroll;
   const Wrap: React.ComponentType<any> = fit ? View : ScrollView;
-  const wrapProps = fit ? { style: styles.fitRow } : { horizontal: true, showsHorizontalScrollIndicator: false, contentContainerStyle: [styles.row, plain && styles.plainRow] };
+  const wrapProps = fit ? { style: styles.fitRow } : { horizontal: true, showsHorizontalScrollIndicator: false, contentContainerStyle: [styles.row, plain && styles.plainRow, blue && onBlue && styles.blueScrollRow] };
   return (
     <Wrap {...wrapProps}>
       {items.map((c) => {
@@ -37,14 +38,14 @@ export function FilterChips<T extends string>({ items, value, onChange, plain, o
         return (
           <Pressable
             key={c.id}
-            style={[styles.chip, { backgroundColor: dark ? Colors.bgCard : tone.bg, borderColor: dark ? Colors.borderColor : tone.edge }, plain && !dark && { backgroundColor: 'transparent', borderColor: 'transparent' }, !(plain && !dark) && on && styles.chipOn, !(plain && !dark) && on && { borderColor: tone.count }, plain && !dark && styles.plainChip, fit && styles.fitChip, fit && onBlue && styles.onBlueChip, fit && onBlue && radius !== undefined && { borderRadius: radius }, fit && onBlue && height !== undefined && { height }, fit && onBlue && on && styles.onBlueOn]}
+            style={[styles.chip, { backgroundColor: dark ? Colors.bgCard : tone.bg, borderColor: dark ? Colors.borderColor : tone.edge }, plain && !dark && { backgroundColor: 'transparent', borderColor: 'transparent' }, !(plain && !dark) && on && styles.chipOn, !(plain && !dark) && on && { borderColor: tone.count }, plain && !dark && styles.plainChip, fit && styles.fitChip, blue && onBlue && styles.onBlueChip, blue && onBlue && radius !== undefined && { borderRadius: radius }, blue && onBlue && height !== undefined && { height }, blue && onBlue && on && styles.onBlueOn]}
             onPress={() => onChange(on ? null : c.id)}
             accessibilityRole="button"
             accessibilityState={{ selected: on }}
             accessibilityLabel={c.label}
           >
             {typeof c.icon === 'function' ? c.icon(on) : c.icon}
-            <Text style={[styles.text, { color: dark ? Colors.textMain : tone.text }, fit && onBlue && { color: '#ffffff' }]}>{c.label}</Text>
+            <Text style={[styles.text, { color: dark ? Colors.textMain : tone.text }, blue && onBlue && { color: '#ffffff' }]} numberOfLines={scroll ? 1 : undefined}>{c.label}</Text>
             {plain && !dark && on && !onBlue && <View pointerEvents="none" style={[styles.plainLine, { backgroundColor: tone.count }]} />}
             {!!c.count && c.count > 0 && (
               <View style={[styles.count, { backgroundColor: tone.count, borderColor: dark ? Colors.bgBody : '#ffffff' }]}>
@@ -70,6 +71,8 @@ const styles = themedStyles(() =>
     onBlueChip: { backgroundColor: brandBlue(), borderWidth: TOP_BAR.filter.chipBorderWidth, borderColor: TOP_BAR.filter.chipBorderColor, borderRadius: TOP_BAR.filter.chipRadius, height: TOP_BAR.filter.chipHeight },
     onBlueOn: { backgroundColor: brandBlue(), borderWidth: TOP_BAR.filter.selectedBorderWidth, borderColor: TOP_BAR.filter.selectedBorderColor },
     plainRow: { paddingHorizontal: 14 },
+    // Scrolling blue-band chips: the same gap and room as the equal-width row.
+    blueScrollRow: { gap: TOP_BAR.filter.rowGap, paddingTop: TOP_BAR.filter.rowPaddingTop, paddingHorizontal: TOP_BAR.filter.rowMarginHorizontal },
     // Plain chips: no edge at all; the open one has a thick line under it.
     plainChip: { borderWidth: 0, paddingHorizontal: 8 },
     // A straight line along the chip's foot (a separate view, so no rounded corner can bend it).

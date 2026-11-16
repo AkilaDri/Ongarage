@@ -9,7 +9,7 @@ import { Colors, getThemeMode, Gradient, MoneyIcon, OnMartIcon, pageHeaderBlue, 
 import { FONTS } from '@ongarage/shared';
 import { categoryInfo, SERVICE_CATEGORIES } from '@ongarage/shared';
 import { useVehicles } from '../context/VehiclesContext';
-import { EmptyState, GridRow, SwipeCard, TopBandLayout, ClipboardLineIcon, CalendarGridIcon } from '@ongarage/shared';
+import { EmptyState, FilterChips, GridRow, SwipeCard, SegmentTabs, CalendarGridIcon } from '@ongarage/shared';
 import { PinnedEdge } from '../components/PinnedEdge';
 import { CategoryPhoto } from '../components/home/CategoryPhoto';
 import { PopCount } from '../components/PopCount';
@@ -123,13 +123,10 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
   const edge = useRef(new Animated.Value(0)).current;
   // The chat icon in the pinned filter card is always the short one; the floating icon hides while the page is scrolled.
   const shortChat = useRef(new Animated.Value(1)).current;
+  // The height of the title row, so it can fold away smoothly as the page scrolls.
+  const [titleH, setTitleH] = useState(0);
   useEffect(() => () => { chatHide.setValue(0); }, []);
-  // The chat icon sits under the pinned tiles while this screen is shown.
   const pinnedH = useRef(0);
-  useEffect(() => {
-    chatDockOffset.setValue(pinnedH.current);
-    return () => chatDockOffset.setValue(0);
-  }, []);
   // Each kind of record has its own chip: pick one to see only those records.
   const [tab, setTab] = useState<'current' | 'done' | 'ended'>('done');
   // The top band's own height: it folds up as the page scrolls (edge 0 to 1).
@@ -305,7 +302,6 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
         onScroll={(e) => {
           const y = e.nativeEvent.contentOffset.y;
           edge.setValue(Math.min(1, Math.max(0, (y - 8) / 30)));
-          chatHide.setValue(y > 8 ? 1 : 0);
           // The title band folds away in step with the scroll (the first PAGE_TITLE_H px) and comes back the same way, straight from the offset: no thresholds or
           // timers, so nothing shakes.
           onHeaderProgress?.(Math.min(1, Math.max(0, y / 40)));
@@ -315,53 +311,54 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
         {/* Folded away, the pinned strip has no padding left, so no white or blue strip stays behind. */}
         <Animated.View style={[styles.statsPinned, { paddingTop: edge.interpolate({ inputRange: [0, 0.5, 1], outputRange: [2, 20, 0] }), paddingBottom: edge.interpolate({ inputRange: [0, 1], outputRange: [4, 0] }) }]} onLayout={(e) => {
           pinnedH.current = Math.round(e.nativeEvent.layout.height);
-          chatDockOffset.setValue(pinnedH.current);
         }}>
         {/* The header's blue carries on behind the tab bar and the filter chips, ending straight under the chips. */}
         {/* The blue goes with the band: it fades away as the band folds, so no strip stays behind. */}
-        <Animated.View pointerEvents="none" style={[styles.pinnedBand, { opacity: edge.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }) }]} />
+        <View pointerEvents="none" style={styles.pinnedBand} />
         {/* The band folds up as the page scrolls (the same as the Bids band), so the list gets the room. */}
-        <Animated.View style={{ overflow: 'hidden', height: bandH ? edge.interpolate({ inputRange: [0, 1], outputRange: [bandH, 0] }) : undefined }}>
+        <Animated.View style={{ overflow: 'hidden' }}>
         <View onLayout={(e) => setBandH(Math.round(e.nativeEvent.layout.height))}>
         {/* The shared top of the page (the garage's Garage layout): title, calendar, the tabs, and the kind-of-record chips under them. */}
         {/* Under the tabs: the kind of record (bids, bookings, SOS), one always open, the number of each on its chip. */}
-        <TopBandLayout
-          paddingTop={4}
-          hideTitleRow
-          navGap={-2}
-          navRadius={12}
-          navBottom={8}
-          chipLift={0}
-          chipRadius={10}
-          bandX={4}
-          titleX={2}
-          title="Activity"
-          icon={<ClipboardLineIcon active={false} size={32} color="#ffffff" />}
-          right={
+        {/* The garage's Jobs layout: the title row, then the pill tabs, then the filter chips, all on the same blue band. */}
+        <Animated.View style={[styles.bandHead, { paddingTop: edge.interpolate({ inputRange: [0, 1], outputRange: [46, 12] }) }]}>
+          {/* Scrolling folds the title row away: only the tabs and the chips stay pinned. */}
+          <Animated.View style={{ overflow: 'hidden', opacity: edge.interpolate({ inputRange: [0, 0.6], outputRange: [1, 0], extrapolate: 'clamp' }), height: titleH ? edge.interpolate({ inputRange: [0, 1], outputRange: [titleH, 0] }) : undefined }}>
+          <View style={styles.bandTitleRow} onLayout={(e) => setTitleH(Math.round(e.nativeEvent.layout.height))}>
+            <Text style={styles.bandTitle} numberOfLines={1} accessibilityRole="header">Activity</Text>
             <Pressable onPress={onOpenCalendar} hitSlop={8} accessibilityRole="button" accessibilityLabel="Open calendar">
               <CalendarGridIcon size={28} color="#ffffff" />
             </Pressable>
-          }
-          tabs={[
-            { id: 'current' as const, label: 'පවතින', icon: 'clock' as const, count: ongoing.length + liveBookings.length },
-            { id: 'done' as const, label: 'සම්පූර්ණ', icon: 'check-circle' as const },
-            { id: 'ended' as const, label: 'අවලංගු', icon: 'x' as const },
-          ]}
-          tabValue={tab}
-          onTabChange={setKind}
-          chips={
-            tab === 'current' ? withMart(kindItems([ongoing.length, liveBookings.length, 0]))
-              : tab === 'done' ? withMart(kindItems([doneJobs.length, doneBookings.length, sosRecords.length]))
-              : withMart(kindItems([0, 0, 0]))
-          }
-          chipValue={martOn ? 'mart' : tab === 'current' ? currentKind : tab === 'done' ? doneKind : endedKind}
-          onChipChange={(id) => pickKind(id as 'bids' | 'direct' | 'sos' | 'mart' | null, tab === 'current' ? setCurrentKind : tab === 'done' ? setDoneKind : setEndedKind)}
-        />
+          </View>
+          </Animated.View>
+          <View style={styles.bandNav}>
+            <SegmentTabs
+              pills
+              radius={12}
+              items={[
+                { id: 'current' as const, label: 'පවතින', icon: 'clock' as const, count: ongoing.length + liveBookings.length },
+                { id: 'done' as const, label: 'සම්පූර්ණ', icon: 'check-circle' as const },
+                { id: 'ended' as const, label: 'අවලංගු', icon: 'x' as const },
+              ]}
+              value={tab}
+              onChange={setKind}
+            />
+            <FilterChips
+              plain
+              onBlue
+              radius={10}
+              items={
+                tab === 'current' ? withMart(kindItems([ongoing.length, liveBookings.length, 0]))
+                  : tab === 'done' ? withMart(kindItems([doneJobs.length, doneBookings.length, sosRecords.length]))
+                  : withMart(kindItems([0, 0, 0]))
+              }
+              value={martOn ? 'mart' : tab === 'current' ? currentKind : tab === 'done' ? doneKind : endedKind}
+              onChange={(id) => pickKind(id as 'bids' | 'direct' | 'sos' | 'mart' | null, tab === 'current' ? setCurrentKind : tab === 'done' ? setDoneKind : setEndedKind)}
+            />
+          </View>
+        </Animated.View>
         </View>
         </Animated.View>
-          <Animated.View pointerEvents="box-none" style={[styles.pinnedChat, { opacity: edge }]}>
-            <ChatHeaderButton scrolled={shortChat} />
-          </Animated.View>
           <PinnedEdge progress={edge} />
         </Animated.View>
 
@@ -532,6 +529,10 @@ const styles = themedStyles(() => StyleSheet.create({
   rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
   body: { paddingHorizontal: 6, paddingTop: 0, gap: 20, paddingBottom: 100 },
   // Opaque and full width (the negative margin cancels the body padding), so the lists scroll underneath it.
+  bandHead: { paddingTop: 46, paddingHorizontal: 10, paddingBottom: 6, backgroundColor: pageHeaderBlue().from },
+  bandTitleRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 6, gap: 8, paddingBottom: 14 },
+  bandTitle: { flex: 1, fontSize: 19, lineHeight: 24, fontFamily: FONTS.titleBold, color: '#ffffff' },
+  bandNav: { marginBottom: 10 },
   statsPinned: { marginHorizontal: -6, paddingHorizontal: 6, paddingTop: 2, paddingBottom: 4, backgroundColor: pageBg() },
   pinnedBand: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: pageHeaderBlue().from },
   // The short OnChat icon inside the filter card, on its right side.

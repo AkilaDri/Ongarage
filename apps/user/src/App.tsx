@@ -441,10 +441,9 @@ function AppShell() {
       <StatusBar style={isDark ? "light" : "dark"} />
       <SafeAreaView style={[styles.container, styles.containerFull, (activeTab === 'activity' || activeTab === 'mart' || activeTab === 'bids') && { backgroundColor: pageHeaderBlue().from }]} edges={['top']}>
         {/* Every other tab starts with its title; it folds away with the page scroll like the old header did. */}
-        {activeTab !== 'home' && !!TAB_TITLES[activeTab] && (
-          <Animated.View style={{ height: (activeTab === 'bids' && bidsCollapse ? bidsCollapse : martHeaderCollapse).interpolate({ inputRange: [0, 1], outputRange: [activeTab === 'bids' || activeTab === 'activity' ? BIDS_TITLE_H : PAGE_TITLE_H, 0] }), overflow: 'hidden', backgroundColor: pageHeaderBlue().from, marginBottom: -2 }}>
-            {/* On Bids the heading / Free Quote row vanishes at once as the header starts to fold (it is not squeezed away with the blue). */}
-            <Animated.View style={{ opacity: activeTab === 'bids' && bidsCollapse ? bidsCollapse.interpolate({ inputRange: [0, 0.15], outputRange: [1, 0], extrapolate: 'clamp' }) : 1 }}>
+        {activeTab !== 'home' && activeTab !== 'activity' && activeTab !== 'bids' && !!TAB_TITLES[activeTab] && (
+          <Animated.View style={{ height: martHeaderCollapse.interpolate({ inputRange: [0, 1], outputRange: [PAGE_TITLE_H, 0] }), overflow: 'hidden', backgroundColor: pageHeaderBlue().from, marginBottom: -2 }}>
+            <Animated.View style={{ opacity: 1 }}>
             {(() => {
               // The icon of the tab that was chosen in the bottom bar, in its open colours; the page's own button (the calendar, or the On Feed record) before the ONCHAT pill.
               const TabIcon = USER_TABS.find((t) => t.id === activeTab)?.icon;
@@ -453,31 +452,12 @@ function AppShell() {
                 <AppPageHeader
                   title={TAB_TITLES[activeTab]!}
                   hideChat
-                  subtitle={activeTab === 'activity' || activeTab === 'bids' ? undefined : 'කොටස් වෙළඳපොළ'}
+                  subtitle="කොටස් වෙළඳපොළ"
                   icon={TabIcon ? <TabIcon active size={26} /> : undefined}
                   actions={
                     activeTab === 'mart' && martSegment === 'wall' ? (
                       <HeaderIconButton onPress={openFeedRecord} label="Open my On Feed record" background={pageBg()}>
                         <Text style={styles.hamburger}>☰</Text>
-                      </HeaderIconButton>
-                    ) : activeTab === 'bids' ? (
-                      <View style={styles.bidsIcons}>
-                        <HeaderIconButton onPress={() => setBidsRows((v) => !v)} label={bidsRows ? 'Show the bids as cards' : 'Show all the bids as rows'} background={pageBg()}>
-                          <Text style={styles.hamburger}>{bidsRows ? '▤' : '☰'}</Text>
-                        </HeaderIconButton>
-                        {bidsMapOpen ? (
-                          <HeaderIconButton onPress={() => bidsCloseMap.current?.()} label="Close the map" background={pageBg()}>
-                            <Text style={styles.hamburger}>✕</Text>
-                          </HeaderIconButton>
-                        ) : (
-                          <HeaderIconButton onPress={() => bidsOpenMap.current?.()} label="Open the map" background={pageBg()}>
-                            <MapIcon />
-                          </HeaderIconButton>
-                        )}
-                      </View>
-                    ) : activeTab === 'activity' ? (
-                      <HeaderIconButton onPress={openActivityCalendar} label="Open calendar" background={pageBg()}>
-                        <CalendarGridIcon size={32} color={getThemeMode() === 'dark' ? Colors.textMain : '#ffffff'} />
                       </HeaderIconButton>
                     ) : undefined
                   }
