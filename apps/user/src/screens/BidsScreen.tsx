@@ -660,6 +660,14 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
     return { latitude: user.coords.latitude - (mapArea * 0.22 * metersPerPx) / 111320, longitude: user.coords.longitude };
   })();
 
+  // The full-screen map is free to move (drag, pinch, the zoom buttons), as in the SOS map: it starts on the owner's dot, wide enough for every bid pin.
+  const [mapView, setMapView] = useState<{ center: { latitude: number; longitude: number }; zoom: number } | null>(null);
+  useEffect(() => {
+    if (mapOpen) setMapView({ center: user.coords, zoom: Math.min(16, Math.max(11, mapZoom)) });
+    else setMapView(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mapOpen]);
+
   return (
     <View style={styles.container} onLayout={(e) => {
         const h = Math.round(e.nativeEvent.layout.height);
@@ -680,8 +688,9 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
         <View style={styles.mapFullLayer}>
           <GoogleMap
             style={styles.fullMap}
-            center={mapCenter}
-            zoom={mapZoom}
+            center={mapView?.center ?? user.coords}
+            zoom={mapView?.zoom ?? mapZoom}
+            onRegionChange={(c, z) => setMapView({ center: c, zoom: z })}
         renderOverlay={(project) => (
           <>
             {mapBids.map(({ job, bid, lowest }) => {
@@ -713,6 +722,7 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
       <View style={styles.navBackfill} pointerEvents="none" />
 
       {/* The Bids header, the same as Activity's: the title row (with the list and map icons), the tabs and the sort chips, on one blue band. */}
+      {!(tab === 'received' && mapOpen) && (
       <Animated.View
         style={[styles.bidsHeader, { paddingTop: listFold.interpolate({ inputRange: [0, 1], outputRange: [46, 12] }) }]}
         onLayout={(e) => {
@@ -760,6 +770,35 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
         )}
         </View>
       </Animated.View>
+      )}
+
+      {/* The map, full screen: the header goes away; only a close button and the sort chips (sliding sideways) float over the map, as in the SOS map. */}
+      {tab === 'received' && mapOpen && (
+        <View style={[styles.mapTopBar, { top: insets.top + 12 }]} pointerEvents="box-none">
+          <View style={styles.mapTopRow} pointerEvents="box-none">
+            <Pressable style={styles.mapCloseBtn} onPress={() => setMapOpen(false)} hitSlop={6} accessibilityRole="button" accessibilityLabel="Close the map">
+              <Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="#1e3a8a" strokeWidth={2.6} strokeLinecap="round">
+                <Path d="M6 6l12 12M18 6 6 18" />
+              </Svg>
+            </Pressable>
+            <View style={styles.mapTitlePill}>
+              <Text style={styles.mapTitleText} numberOfLines={1}>Your Bids</Text>
+              <Text style={styles.mapTitleCount}>{mapBids.length} ලංසු</Text>
+            </View>
+          </View>
+          {received.some((j) => j.bids.length > 0) && (
+            <FilterChips
+              items={SORTS.map((x) => ({ id: x.id, label: x.label, tone: 'blue' as const, icon: (on: boolean) => <SortChipIcon id={x.id} on={on} /> }))}
+              plain
+              onBlue
+              scroll
+              radius={10}
+              value={bidSort}
+              onChange={(id) => id && setBidSort(id as typeof bidSort)}
+            />
+          )}
+        </View>
+      )}
 
       {/* The header's blue carries on behind the tabs and ends in round corners (as on Activity), so the tab bar overlaps it. */}
       {tab !== 'received' && <Animated.View pointerEvents="none" style={[styles.floatBand, { opacity: mapP }]} />}
@@ -767,8 +806,27 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
       {tab === 'received' && !mapOpen && <View pointerEvents="none" style={styles.headBlock} />}
 
 
+      {/* The map's own buttons, on the right as in the SOS map: my location, zoom in, zoom out. */}
+      {tab === 'received' && mapOpen && (
+        <View style={styles.mapSideBtns} pointerEvents="box-none">
+          <Pressable style={styles.mapCloseBtn} onPress={() => { setPinBid(null); user.refresh().catch(() => {}); setMapView((v) => ({ center: user.coords, zoom: v?.zoom ?? 14 })); }} accessibilityLabel="My location">
+            <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke="#1e3a8a" strokeWidth={2} strokeLinecap="round">
+              <Circle cx={12} cy={12} r={3.5} fill="#1e3a8a" />
+              <Circle cx={12} cy={12} r={7.5} />
+              <Path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
+            </Svg>
+          </Pressable>
+          <Pressable style={styles.mapCloseBtn} onPress={() => setMapView((v) => (v ? { ...v, zoom: Math.min(v.zoom + 1, 19) } : v))} accessibilityLabel="Zoom in">
+            <Text style={styles.mapSideText}>＋</Text>
+          </Pressable>
+          <Pressable style={styles.mapCloseBtn} onPress={() => setMapView((v) => (v ? { ...v, zoom: Math.max(v.zoom - 1, 4) } : v))} accessibilityLabel="Zoom out">
+            <Text style={styles.mapSideText}>－</Text>
+          </Pressable>
+        </View>
+      )}
+
       {/* My location: a round button on the map that rides the sheet's top edge (right side), so it always sits just above the sheet; it reads the GPS again and shows the owner's dot. */}
-      {sheetH && (
+      {sheetH && !mapOpen && (
         <Animated.View style={[styles.myLocation, { bottom: Animated.add(sheetH, NAV_HEIGHT + 12), opacity: mapP }]} pointerEvents={sheetState === 'expanded' ? 'none' : 'box-none'}>
         <Pressable
           style={styles.myLocationBtn}
@@ -1206,6 +1264,14 @@ const styles = themedStyles(() => StyleSheet.create({
   tabCountTextActive: {},
   body: { paddingHorizontal: 4, paddingTop: 4, gap: 12, paddingBottom: 24 },
   fullMap: { ...StyleSheet.absoluteFill },
+  mapTopBar: { position: 'absolute', left: 12, right: 0, zIndex: 41 },
+  mapTopRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingRight: 12 },
+  mapTitlePill: { flex: 1, height: 44, borderRadius: 22, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#ffffff', shadowColor: '#0f172a', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 6 },
+  mapTitleText: { fontSize: 15, fontFamily: FONTS.bodyBold, color: '#1e3a8a' },
+  mapTitleCount: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: '#64748b' },
+  mapSideBtns: { position: 'absolute', right: 16, bottom: 110, zIndex: 41, gap: 10 },
+  mapSideText: { fontSize: 22, color: '#1e3a8a', fontWeight: '700' },
+  mapCloseBtn: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: '#ffffff', shadowColor: '#0f172a', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 6 },
   mapFullLayer: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 2, elevation: 2 },
   // Fixed height, stuck to the bottom of the tab: it does not move when the tab grows upward as the band folds away.
   mapAnchored: { position: 'absolute', left: 0, right: 0, bottom: 0 },
