@@ -1,4 +1,6 @@
-import { PostBody, PostHead } from './PostCard';
+import { GridRow, MoneyText } from '@ongarage/shared';
+import { DoneTag, PostBody, PostHead, PriceText } from './PostCard';
+import { WorkTimer } from './WorkTimer';
 import { WaitingDots } from './WaitingDots';
 import { elevation1, outline } from '../utils/material';
 import React, { useEffect, useState } from 'react';
@@ -10,7 +12,6 @@ import { useWorkshops } from '../context/WorkshopContext';
 import { WorkshopTracker } from './workshop/WorkshopTracker';
 import { RatingSheet } from './workshop/RatingSheet';
 import { CategoryPhoto } from './home/CategoryPhoto';
-import { ChatButton } from './ChatButton';
 import { VehicleBlock } from './VehicleBlock';
 import { useUserLocation } from '../context/LocationContext';
 import { countdown, formatDate, formatTime, money } from '../utils/format';
@@ -41,35 +42,44 @@ export const DirectBookingCard: React.FC<{ booking: DirectBooking; onBookAgain: 
   const started = (workshops[b.id]?.progress.stage ?? 'booked') !== 'booked';
   // A finished job shows just its card: the step-by-step tracker is for running work (the details view has it all).
   const w = workshops[b.id];
+  const priceText = b.estimate ? money(b.estimate) : b.proposal ? money(b.proposal.estimate) : '—';
   const finishedJob = w?.progress.stage === 'declined' || (w?.progress.stage === 'closed' && !!w.acknowledged);
+  // A running job (step bar) or a finished one shows its price on a line of its own; the other states keep it on the vehicle line.
+  const doneOk = finishedJob && !cancelledJob;
+  const runningJob = b.status === 'confirmed' && !!b.scheduledAt && started && !finishedJob;
   const media = [b.photos.length && `📷 ${b.photos.length}`, b.voiceNotes.length && `🎙️ ${b.voiceNotes.length}`].filter(Boolean).join('  ');
 
   return (
-    <View style={[styles.card, b.status === 'confirmed' && styles.confirmed, b.status === 'proposed' && styles.proposed, (ended || cancelledJob) && styles.ended, finishedJob && !cancelledJob && styles.done]}>
+    <View style={[styles.card, { borderWidth: 1, borderColor: '#10b981' }, b.status === 'confirmed' && styles.confirmed, b.status === 'proposed' && styles.proposed, (ended || cancelledJob) && styles.ended, finishedJob && !cancelledJob && styles.done]}>
       {/* Laid out like a Facebook post (the same as the garage app's cards): the picture, the garage and its tag, the date, the price with three dots; the vehicle line and the subject under. */}
       <PostHead
+        bleed={13}
         photo={<CategoryPhoto categoryId={b.categoryId} size={48} />}
         name={b.garage.name}
         garage={{ id: b.garage.id, name: b.garage.name }}
         meta={`${formatDate(b.scheduledAt ?? b.preferredAt)} · ${formatTime(b.scheduledAt ?? b.preferredAt)}`}
-        price={b.estimate ? money(b.estimate) : b.proposal ? money(b.proposal.estimate) : '—'}
-        onMore={() => onOpen?.()}
-        chat={<ChatButton plain size={36} target={{ id: b.id, title: b.garage.name, subtitle: cat.name, phone: b.garage.phone, vehicle: v }} />}
+        kind="direct"
       />
-      <PostBody vehicle={v} kind="direct" subject={`${cat.name}${b.service ? ` · ${b.service}` : ''}`} onPress={onOpen}>
-        {finishedJob && !cancelledJob && (
-          workshops[b.id]?.review?.rating ? (
-            <Text style={styles.rating}>
-              {'★'.repeat(Math.round(workshops[b.id]!.review!.rating))}
-              {'☆'.repeat(5 - Math.round(workshops[b.id]!.review!.rating))} {workshops[b.id]!.review!.rating.toFixed(1)}
-            </Text>
-          ) : w ? (
-            <Pressable style={styles.rateChip} onPress={() => setRating(true)} hitSlop={6} accessibilityLabel="Rate this job">
-              <Text style={styles.rateChipText}>☆ Rate</Text>
-            </Pressable>
-          ) : null
+      <PostBody bleed={8} price={priceText} swap={runningJob} vehicle={v} kind="direct" subject={`${cat.name}${b.service ? ` · ${b.service}` : ''}`} onPress={onOpen}>
+        {doneOk && (
+          <GridRow
+            left={
+              workshops[b.id]?.review?.rating ? (
+                <Text style={styles.rating}>
+                  {'★'.repeat(Math.round(workshops[b.id]!.review!.rating))}
+                  {'☆'.repeat(5 - Math.round(workshops[b.id]!.review!.rating))} {workshops[b.id]!.review!.rating.toFixed(1)}
+                </Text>
+              ) : w ? (
+                <Pressable style={styles.rateChip} onPress={() => setRating(true)} hitSlop={6} accessibilityLabel="Rate this job">
+                  <Text style={styles.rateChipText}>☆ Rate</Text>
+                </Pressable>
+              ) : null
+            }
+            right={<DoneTag />}
+          />
         )}
       </PostBody>
+      {!!w?.progress.workStartedAt && !doneOk && <WorkTimer startedAt={w.progress.workStartedAt} endedAt={w.progress.handover?.readyAt} />}
       <View style={styles.divider} />
 
       {b.status === 'requested' && (
@@ -105,7 +115,7 @@ export const DirectBookingCard: React.FC<{ booking: DirectBooking; onBookAgain: 
         </>
       )}
 
-      {b.status === 'confirmed' && b.scheduledAt && started && !finishedJob && <WorkshopTracker id={b.id} />}
+      {runningJob && <WorkshopTracker id={b.id} />}
 
       {b.status === 'confirmed' && b.scheduledAt && !started && (
         <>
@@ -115,7 +125,7 @@ export const DirectBookingCard: React.FC<{ booking: DirectBooking; onBookAgain: 
             <Text style={[styles.state, { color: Colors.successText }]}>
               ✓ තහවුරුයි · {formatDate(b.scheduledAt)} · {formatTime(b.scheduledAt)}
             </Text>
-            {!!b.estimate && <Text style={styles.price}>~{money(b.estimate)}</Text>}
+            {!!b.estimate && <MoneyText style={styles.price}>~{money(b.estimate)}</MoneyText>}
           </View>
           <View style={styles.divider} />
           <View style={styles.box}>

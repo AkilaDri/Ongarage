@@ -164,7 +164,7 @@ export const GarageProfileScreen: React.FC<{ shift: Animated.Value; onScrollY: (
         </View>
         <Text style={styles.sub}>
           {limited
-            ? `දෛනික සීමාව ක්‍රියාත්මකයි · හෙට ඉඩ ${tomorrow.remaining === Infinity ? '∞' : `රු. ${tomorrow.remaining.toLocaleString()}`}`
+            ? `දෛනික සීමාව ක්‍රියාත්මකයි · හෙට ඉඩ ${tomorrow.remaining === Infinity ? '∞' : `LKR ${tomorrow.remaining.toLocaleString()}`}`
             : limitFrom
               ? 'සීමාව පිළිබඳ දැනුම්දීමක් ඇත'
               : 'ඔබ සීමා කර නැත'}{' '}
@@ -271,7 +271,7 @@ const styles = themedStyles(() =>
     presetActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
     presetText: { fontSize: 12, fontFamily: FONTS.bodyBold, color: Colors.textMain },
     ratingBig: { fontSize: 22, fontWeight: '900', color: Colors.warning },
-    badge: { minWidth: 22, height: 22, paddingHorizontal: 6, borderRadius: 11, backgroundColor: '#ef4444', alignItems: 'center', justifyContent: 'center' },
+    badge: { minWidth: 16, height: 16, paddingHorizontal: 4, borderRadius: 6, backgroundColor: '#ef4444', alignItems: 'center', justifyContent: 'center' },
     badgeText: { fontSize: 11, fontWeight: '800', color: '#fff' },
     chevron: { fontSize: 20, color: Colors.textMuted },
     latest: { fontSize: 11.5, fontFamily: FONTS.bodyRegular, color: Colors.textSoft, lineHeight: 18 },

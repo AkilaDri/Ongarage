@@ -110,6 +110,6 @@ test('the statement text names every row and the totals', () => {
   assert.match(text, /Southern/);
   assert.match(text, /ආපසු 1/);
   assert.match(text, /30,000/);
-  assert.match(text, /එකතුව: යොමු 4, මිලදී ගත් 3, කොටස් රු\. 35,000, කොමිස් රු\. 1,050/);
+  assert.match(text, /එකතුව: යොමු 4, මිලදී ගත් 3, කොටස් LKR 35,000, කොමිස් LKR 1,050/);
   assert.equal(text.split('\n').length, 4);
 });

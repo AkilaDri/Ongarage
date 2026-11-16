@@ -31,6 +31,8 @@ type ChatApi = {
   openWith: (target: ChatTarget, text: string) => void;
   /** Messages from the customer the garage has not read yet. */
   unread: (id: string) => number;
+  /** Of the unread, the calls the other side made. */
+  unreadCalls: (id: string) => number;
   /** On the Jobs tab, backing out of a conversation opened from the inbox returns to the inbox (set by the app shell per tab). */
   setInboxReturn: (on: boolean) => void;
   /** The list of every conversation (the inbox in the top header). */
@@ -288,7 +290,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [count, target, store.markRead]);
 
   return (
-    <ChatContext.Provider value={{ open, openWith, unread: (id) => store.unread(chatKey(id)), editReq, clearEditReq, rewriteReport, rewriteCheckIn, openInbox: () => setInbox(true), setInboxReturn: (on: boolean) => { inboxReturn.current = on; }, totalUnread, logCall }}>
+    <ChatContext.Provider value={{ open, openWith, unread: (id) => store.unread(chatKey(id)), unreadCalls: (id) => store.unreadCalls(chatKey(id)), editReq, clearEditReq, rewriteReport, rewriteCheckIn, openInbox: () => setInbox(true), setInboxReturn: (on: boolean) => { inboxReturn.current = on; }, totalUnread, logCall }}>
       {children}
       <ChatInboxSheet visible={inbox} onClose={() => setInbox(false)} threads={threads} onOpen={(t) => {
           fromInbox.current = true;

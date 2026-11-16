@@ -38,6 +38,8 @@ type ChatApi = {
   start: (target: ChatTarget) => void;
   /** Messages from the garage the owner has not read yet. */
   unread: (id: string) => number;
+  /** Of the unread, the calls the other side made. */
+  unreadCalls: (id: string) => number;
   /** The list of every conversation (the chat icon in the top bar). */
   openInbox: () => void;
   totalUnread: number;
@@ -119,7 +121,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode; /** The Home ta
     for (const j of jobs) {
       const bid = j.bids.find((x) => x.id === j.acceptedBidId);
       if (!bid) continue;
-      list.set(j.id, { id: j.id, done: isOver(j.id), kind: 'job', icon: '🔧', title: bid.garageName, subtitle: `ලංසු · ${categoryInfo(j.categoryId).name}`, phone: MOCK_GARAGES.find((g) => g.name === bid.garageName)?.phone, vehicle: findVehicle(j.vehicleId), record: jobRecordText({ title: `${categoryInfo(j.categoryId).name} (ලංසුවෙන් ලැබුණු රැකියාව)`, who: { label: 'ගරාජය', name: bid.garageName, phone: MOCK_GARAGES.find((g) => g.name === bid.garageName)?.phone }, vehicle: findVehicle(j.vehicleId), description: j.description, partType: j.sparePart, doorstep: j.doorstep, price: bid.price, priceLabel: 'එකඟ වූ මිල', photos: j.photos?.length, voiceNotes: j.voiceNotes?.length, notes: [`වගකීම මාස ${bid.warrantyMonths}`, `ඇස්තමේන්තු කාලය පැය ${bid.estHours}`, ...(bid.travelFee ? [`දුර ගමන් ගාස්තුව රු. ${bid.travelFee.toLocaleString('en-US')} ඇතුළුව (රැකියාව රු. ${(bid.price - bid.travelFee).toLocaleString('en-US')})`] : []), ...(j.fitting ? [`සවි කළ යුතු කොටස: ${j.fitting.partName}`] : [])] }) });
+      list.set(j.id, { id: j.id, done: isOver(j.id), kind: 'job', icon: '🔧', title: bid.garageName, subtitle: `ලංසු · ${categoryInfo(j.categoryId).name}`, phone: MOCK_GARAGES.find((g) => (bid.garageId ? g.id === bid.garageId : g.name === bid.garageName))?.phone, vehicle: findVehicle(j.vehicleId), record: jobRecordText({ title: `${categoryInfo(j.categoryId).name} (ලංසුවෙන් ලැබුණු රැකියාව)`, who: { label: 'ගරාජය', name: bid.garageName, phone: MOCK_GARAGES.find((g) => g.name === bid.garageName)?.phone }, vehicle: findVehicle(j.vehicleId), description: j.description, partType: j.sparePart, doorstep: j.doorstep, price: bid.price, priceLabel: 'එකඟ වූ මිල', photos: j.photos?.length, voiceNotes: j.voiceNotes?.length, notes: [`වගකීම මාස ${bid.warrantyMonths}`, `ඇස්තමේන්තු කාලය පැය ${bid.estHours}`, ...(bid.travelFee ? [`දුර ගමන් ගාස්තුව LKR ${bid.travelFee.toLocaleString('en-US')} ඇතුළුව (රැකියාව LKR ${(bid.price - bid.travelFee).toLocaleString('en-US')})`] : []), ...(j.fitting ? [`සවි කළ යුතු කොටස: ${j.fitting.partName}`] : [])] }) });
     }
     for (const r of records) {
       list.set(r.id, { id: r.id, done: true, kind: 'sos', icon: r.breakdown.icon, title: r.responder.name, subtitle: `SOS · ${r.breakdown.label}`, phone: r.responder.phone, vehicle: { name: r.vehicleName, plate: r.vehiclePlate, type: 'Car' } });
@@ -202,7 +204,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode; /** The Home ta
         const key = `${w.id}:${line}`;
         if (seenBought.current.has(key)) continue;
         seenBought.current.add(key);
-        store.postUpdate(w.id, `🛒 කොටසක් මිලට ගත්තා (OnMart · ${bought.shopName}): රු. ${Math.round(bought.amount).toLocaleString('en-US')}.`, 'owner');
+        store.postUpdate(w.id, `🛒 කොටසක් මිලට ගත්තා (OnMart · ${bought.shopName}): LKR ${Math.round(bought.amount).toLocaleString('en-US')}.`, 'owner');
       }
     }
   }, [workshops, store.postUpdate]);
@@ -302,7 +304,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode; /** The Home ta
   }, [count, target, store.markRead]);
 
   return (
-    <ChatContext.Provider value={{ open, openWith, start, unread: store.unread, openInbox: () => setInbox(true), totalUnread, logCall, openBasket: setBasketFor, askInquiry: (t, back) => setDraft({ target: t, back }), say: (id, text) => store.postUpdate(id, text, 'owner') }}>
+    <ChatContext.Provider value={{ open, openWith, start, unread: store.unread, unreadCalls: store.unreadCalls, openInbox: () => setInbox(true), totalUnread, logCall, openBasket: setBasketFor, askInquiry: (t, back) => setDraft({ target: t, back }), say: (id, text) => store.postUpdate(id, text, 'owner') }}>
       {children}
       <ChatInboxSheet
         visible={inbox}

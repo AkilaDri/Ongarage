@@ -62,7 +62,7 @@ const recordFor = (j: TechJob, side: 'customer' | 'garage') =>
     priceLabel: 'ඔබේ ආදායම',
     photos: j.workshop?.photos?.length,
     voiceNotes: j.workshop?.voiceNotes?.length,
-    notes: j.sos ? [`ඇමතුම් ගාස්තුව රු. ${j.sos.calloutFee.toLocaleString('en-US')}`, `ගරාජයේ ඇස්තමේන්තුව ${j.sos.quote ? `රු. ${j.sos.quote.toLocaleString('en-US')}` : 'පරීක්ෂා කළ පසු'}`] : undefined,
+    notes: j.sos ? [`ඇමතුම් ගාස්තුව LKR ${j.sos.calloutFee.toLocaleString('en-US')}`, `ගරාජයේ ඇස්තමේන්තුව ${j.sos.quote ? `LKR ${j.sos.quote.toLocaleString('en-US')}` : 'පරීක්ෂා කළ පසු'}`] : undefined,
   });
 
 /**

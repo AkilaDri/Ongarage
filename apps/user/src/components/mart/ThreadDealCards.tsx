@@ -93,7 +93,7 @@ export const ThreadDealCards: React.FC<{ enquiryId: string; shopId: string }> = 
         )}
         {p.stage === 'arrived' && (
           <>
-            <Text style={styles.text}>🚪 රියදුරු දොරකඩ — කොටස පරීක්ෂා කර ගෙවන්න{p.delivery?.fee ? ` (බෙදාහැරීම රු. ${p.delivery.fee.toLocaleString()})` : ''}.</Text>
+            <Text style={styles.text}>🚪 රියදුරු දොරකඩ — කොටස පරීක්ෂා කර ගෙවන්න{p.delivery?.fee ? ` (බෙදාහැරීම LKR ${p.delivery.fee.toLocaleString()})` : ''}.</Text>
             <Pressable style={[styles.btn, styles.yes]} onPress={() => setInspect(p)} accessibilityLabel="Inspect the part">
               <Text style={styles.yesText}>🔍 කොටස පරීක්ෂා කරන්න</Text>
             </Pressable>
@@ -176,7 +176,7 @@ export const ThreadDealCards: React.FC<{ enquiryId: string; shopId: string }> = 
               </Pressable>
               {!!o.delivery && (
                 <Pressable style={[styles.btn, styles.part]} onPress={() => reserve(o.id, 'delivery')} accessibilityLabel="Reserve with delivery">
-                  <Text style={styles.partText}>🛵 ගෙදරටම · රු. {o.delivery.fee.toLocaleString()}</Text>
+                  <Text style={styles.partText}>🛵 ගෙදරටම · LKR {o.delivery.fee.toLocaleString()}</Text>
                 </Pressable>
               )}
             </View>
@@ -204,7 +204,7 @@ export const ThreadDealCards: React.FC<{ enquiryId: string; shopId: string }> = 
   );
 };
 
-const BLUE = () => (getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8');
+const BLUE = () => (getThemeMode() === 'dark' ? '#8db1ff' : '#1e3a8a');
 
 const styles = themedStyles(() =>
   StyleSheet.create({
@@ -222,7 +222,7 @@ const styles = themedStyles(() =>
     star: { fontSize: 24, color: '#f59e0b' },
     buttons: { flexDirection: 'row', gap: 8, marginTop: 4 },
     btn: { flex: 1, minHeight: 40, paddingHorizontal: 8, borderRadius: 20, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
-    part: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe', borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#d2e3fc' },
+    part: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#eff6ff', borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#bfdbfe' },
     partText: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: BLUE() },
     yes: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(129, 201, 149, 0.16)' : '#e6f4ea', borderColor: getThemeMode() === 'dark' ? 'rgba(129, 201, 149, 0.3)' : '#ceead6' },
     yesText: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: getThemeMode() === 'dark' ? '#81c995' : '#188038' },

@@ -47,7 +47,7 @@ export const jobRecordText = (job: {
     job.at ? `📅 ${formatDate(job.at)} · ${formatTime(job.at)}` : '',
     job.doorstep === undefined ? '' : job.doorstep ? '🏠 ගරාජය වාහනය ඇති තැනට පැමිණේ' : '🏢 වාහනය ගරාජයට රැගෙන එන්න',
     job.place ? `📍 ${job.place}` : '',
-    job.price ? `💰 ${job.priceLabel ?? 'මිල'}: රු. ${job.price.toLocaleString('en-US')}` : '',
+    job.price ? `💰 ${job.priceLabel ?? 'මිල'}: LKR ${job.price.toLocaleString('en-US')}` : '',
     attached,
     ...(job.notes ?? []).map((n) => `ℹ️ ${n}`),
   ]

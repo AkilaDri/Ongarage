@@ -41,24 +41,22 @@ export const chatTargetOfDirect = (d: DirectRequest) => ({ id: chatKey(d.id), ti
 
 /** The OnChat button on a booked job (or a direct request): opens the chat with its customer. */
 export const ChatButton: React.FC<{ booking?: Booking; direct?: DirectRequest; size?: number; plain?: boolean; /** The same bubble as the Home page's floating OnChat button: filled blue with ONCHAT in white. */ solid?: boolean }> = ({ booking, direct, size, plain, solid }) => {
-  const { open, unread } = useChat();
+  const { open, unread, unreadCalls } = useChat();
   const target = booking ? chatTargetOf(booking) : direct ? chatTargetOfDirect(direct) : null;
   if (!target) return null;
   const id = booking ? booking.id : direct!.id;
   if (solid) {
-    const n = unread(id);
+    const calls = unreadCalls(id);
+    const msgs = Math.max(0, unread(id) - calls);
+    const kind = calls === 0 && msgs > 0 ? 'message' : 'call';
+    const n = kind === 'message' ? msgs : calls;
     return (
       <Pressable onPress={() => open(target)} hitSlop={6} accessibilityLabel={`Chat with ${target.title}`}>
         <CallingBubble width={size ?? 52}>
-          <OnChatIcon width={size ?? 52} color="#ffffff" fill={getThemeMode() === 'dark' ? '#3b6fd4' : '#1a73e8'} />
+          <OnChatIcon width={Math.round((size ?? 52) * 0.6)} outline kind={kind} short color={getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8'} label={n > 0 ? (n > 9 ? '9+' : String(n)) : undefined} />
         </CallingBubble>
-        {n > 0 && (
-          <View style={{ position: 'absolute', top: -5, right: -4, minWidth: 18, height: 18, paddingHorizontal: 4, borderRadius: 9, borderWidth: 2, borderColor: getThemeMode() === 'dark' ? '#12161c' : '#ffffff', backgroundColor: '#ef4444', alignItems: 'center', justifyContent: 'center' }}>
-            <Text style={{ fontSize: 10, lineHeight: 12, fontWeight: '800', color: '#ffffff' }}>{n > 9 ? '9+' : n}</Text>
-          </View>
-        )}
       </Pressable>
     );
   }
-  return <ChatIconButton onPress={() => open(target)} unread={unread(id)} label={`Chat with ${target.title}`} size={size} plain={plain} />;
+  return <ChatIconButton onPress={() => open(target)} unread={unread(id)} calls={unreadCalls(id)} label={`Chat with ${target.title}`} size={size} plain={plain} />;
 };

@@ -252,7 +252,7 @@ const styles = themedStyles(() =>
     title: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.textMain },
     sub: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 1, lineHeight: 16 },
     note: { fontSize: 11.5, fontFamily: FONTS.bodyRegular, color: Colors.textSoft, fontStyle: 'italic' },
-    pay: { fontSize: 13.5, fontFamily: FONTS.titleBold, color: Colors.success },
+    pay: { alignSelf: 'flex-end', fontSize: 13.5, fontFamily: FONTS.titleBold, color: Colors.success },
     section: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textMain, marginTop: 4 },
     hint: { fontSize: 10.5, fontFamily: FONTS.bodyMedium, color: Colors.textMuted, textAlign: 'center' },
     chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },

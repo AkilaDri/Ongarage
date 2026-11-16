@@ -22,7 +22,7 @@ export const PaymentReminders: React.FC = () => {
         const pay = b.progress?.payment;
         const due = paymentDue(pay);
         if (!pay || (due !== 'today' && due !== 'overdue') || pay.confirm === 'disputed') continue;
-        const left = `රු. ${pay.balance.toLocaleString('en-US')}`;
+        const left = `LKR ${pay.balance.toLocaleString('en-US')}`;
         const morning = `${b.id}:${day}:m`;
         const evening = `${b.id}:${day}:e`;
         if (now.getHours() >= MORNING && now.getHours() < EVENING && !pay.missedAt && !told.current.has(morning)) {

@@ -39,15 +39,11 @@ interface HomeScreenProps {
   collapsePx?: number;
   /** The top of the page (the header, the action card and the search), which scrolls with everything else as one sheet. */
   top?: React.ReactNode;
-  /** The SOS job minimised: a bar back to it, under the top card. */
-  sosReturn?: React.ReactNode;
-  /** The towing job minimised: a bar back to it, under the top card. */
-  towReturn?: React.ReactNode;
   /** The scroll position from which the compact SOS / quotes bar sticks to the top of the screen. */
   stickyFrom?: number;
 }
 
-export const HomeScreen: React.FC<HomeScreenProps> = ({ onSOSPress, onPostJob, onServicePress, onBookGarage, onScrollChange, collapsePx = 0, top, sosReturn, towReturn, stickyFrom = 300 }) => {
+export const HomeScreen: React.FC<HomeScreenProps> = ({ onSOSPress, onPostJob, onServicePress, onBookGarage, onScrollChange, collapsePx = 0, top, stickyFrom = 300 }) => {
   const user = useUserLocation();
   const { width: screenW } = useWindowDimensions();
   // Four category tiles fit the page width (20px sides, 12px gaps); the fifth peeks in at the right edge.
@@ -97,8 +93,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onSOSPress, onPostJob, o
         {/* While the banners above fold and the sheet rises (the first `collapsePx` of scrolling) this content is held back by the same distance, so it moves with the
             finger one for one instead of also sliding up inside the rising sheet. */}
         {top}
-        {sosReturn}
-        {towReturn}
         <Animated.View style={[styles.contentInner, collapsePx > 0 && { transform: [{ translateY: scrollAnim.interpolate({ inputRange: [0, collapsePx], outputRange: [0, collapsePx], extrapolate: 'clamp' }) }] }]}>
         {/* The service grid (4 x 2) and the offer banner, as in the design. */}
         <HomeServices onSelect={onServicePress} onSeeAll={() => setAllServices(true)} />
@@ -186,7 +180,7 @@ const styles = themedStyles(() => StyleSheet.create({
   // Opaque and full width (the negative margin cancels the content padding), so the lists scroll underneath it.
   adsPinned: { marginHorizontal: -20, paddingHorizontal: 20, paddingTop: 0, paddingBottom: 4, backgroundColor: pageBg() },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  seeAll: { fontSize: 12.5, fontFamily: FONTS.bodyBold, color: '#2563eb' },
+  seeAll: { fontSize: 12.5, fontFamily: FONTS.bodyBold, color: '#1e3a8a' },
   catTitle: { fontSize: 13, fontFamily: FONTS.bodyBold, color: Colors.textMuted },
   // The same size as the titles of the garage rows (GarageRow), so every section heading on the page reads alike.
   sectionTitle: { fontSize: 14, fontFamily: FONTS.bodyBold, color: Colors.textMain, letterSpacing: 0.2 },
@@ -194,13 +188,13 @@ const styles = themedStyles(() => StyleSheet.create({
 
 /** The compact SOS / quotes bar that sticks to the top once the big card has scrolled away (plain styles, as in the design). */
 const stickySt = StyleSheet.create({
-  bar: { position: 'absolute', left: 0, right: 0, top: 16, zIndex: 20, flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingVertical: 10, paddingTop: 14, backgroundColor: '#ffffff', borderBottomWidth: 1, borderBottomColor: '#f3f4f6', shadowColor: '#2563eb', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.14, shadowRadius: 14, elevation: 6 },
+  bar: { position: 'absolute', left: 0, right: 0, top: 0, zIndex: 20, flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingVertical: 10, backgroundColor: '#ffffff', borderBottomWidth: 1, borderBottomColor: '#f3f4f6', shadowColor: '#1e3a8a', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.14, shadowRadius: 14, elevation: 6 },
   pressed: { opacity: 0.9, transform: [{ scale: 0.99 }] },
   sos: { flex: 1, height: 46, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(254, 226, 226, 0.9)', backgroundColor: 'rgba(254, 242, 242, 0.8)' },
   sosDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#ef4444' },
-  sosText: { fontSize: 15, fontFamily: FONTS.bodyBold, color: '#dc2626', letterSpacing: 0.5 },
-  sosSmall: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: '#ef4444' },
+  sosText: { fontSize: 15, fontWeight: '800', color: '#dc2626', letterSpacing: 0.5 },
+  sosSmall: { fontSize: 10, fontWeight: '700', color: '#ef4444' },
   job: { flex: 1.3, height: 46, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(219, 234, 254, 0.9)', backgroundColor: 'rgba(239, 246, 255, 0.9)' },
-  jobPlus: { fontSize: 20, lineHeight: 22, fontFamily: FONTS.bodyBold, color: '#2563eb' },
-  jobText: { fontSize: 13, fontFamily: FONTS.bodyBold, color: '#2563eb' },
+  jobPlus: { fontSize: 20, lineHeight: 22, fontWeight: '700', color: '#1e3a8a' },
+  jobText: { fontSize: 13, fontWeight: '700', color: '#1e3a8a' },
 });

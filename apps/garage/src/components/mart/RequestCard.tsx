@@ -687,7 +687,7 @@ export const RequestCard: React.FC<{ items: MartEnquiry[]; renderFull: (m: MartE
           <View style={styles.flex1}>
             <View style={styles.cartLine}>
               <Text style={styles.cartTitle}>Cart එක</Text>
-              <Text style={styles.cartSum}>රු. {cartTotal.toLocaleString()}</Text>
+              <Text style={styles.cartSum}>LKR {cartTotal.toLocaleString()}</Text>
             </View>
             <Text style={[styles.cartTime, cartLeft <= 15 && styles.cartTimeLow]}>⏳ මිනිත්තු {cartLeft} ක් ඇතුළත shop එකෙන් තහවුරු කරන්න</Text>
             <View style={styles.cartTrack}>
@@ -931,7 +931,7 @@ const styles = themedStyles(() =>
     cartBar: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 8, borderRadius: 14, borderWidth: 1, borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.35)' : '#d2e3fc', backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.1)' : '#f1f6fe', ...elevation1() },
     cartIconWrap: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center', backgroundColor: '#1a73e8', borderWidth: 3, borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.45)' : '#a8c7fa' },
     cartBarGlyph: { fontSize: 21 },
-    cartCount: { position: 'absolute', top: -4, right: -4, minWidth: 20, height: 20, paddingHorizontal: 5, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: '#ffffff', borderWidth: 1.5, borderColor: '#1a73e8' },
+    cartCount: { position: 'absolute', top: -4, right: -4, minWidth: 16, height: 16, paddingHorizontal: 4, borderRadius: 6, alignItems: 'center', justifyContent: 'center', backgroundColor: '#ffffff', borderWidth: 1.5, borderColor: '#1a73e8' },
     cartCountText: { fontSize: 11, fontFamily: FONTS.bodyBold, color: '#1a73e8' },
     cartLine: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 },
     cartTitle: { fontSize: 14.5, fontFamily: FONTS.bodyBold, color: Colors.textMain },
@@ -954,7 +954,7 @@ const styles = themedStyles(() =>
     popTabTextOn: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
     headCart: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8', backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe' },
     headCartGlyph: { fontSize: 16 },
-    headCartBadge: { position: 'absolute', top: -4, right: -4, minWidth: 18, height: 18, paddingHorizontal: 4, borderRadius: 9, alignItems: 'center', justifyContent: 'center', backgroundColor: '#1a73e8' },
+    headCartBadge: { position: 'absolute', top: -4, right: -4, minWidth: 16, height: 16, paddingHorizontal: 4, borderRadius: 6, alignItems: 'center', justifyContent: 'center', backgroundColor: '#1a73e8' },
     headCartBadgeText: { fontSize: 10.5, fontFamily: FONTS.bodyBold, color: '#ffffff' },
     partShops: { gap: 8, paddingVertical: 4 },
     psCard: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 10, borderRadius: 12, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), ...elevation1() },

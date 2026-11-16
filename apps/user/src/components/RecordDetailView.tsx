@@ -40,11 +40,6 @@ export const RecordDetailView: React.FC<{ target: RecordTarget | null; onClose: 
               <Icon name="x" size={16} color={Colors.textMain} />
             </Pressable>
             <Text style={styles.headerTitle}>{w ? 'සම්පූර්ණ කළ රැකියාව' : 'SOS සේවා විස්තර'}</Text>
-            {w ? (
-              <ChatButton size={36} target={{ id: w.id, title: w.garageName, subtitle: title, phone: MOCK_GARAGES.find((g) => g.name === w.garageName)?.phone, vehicle: vehicle ?? undefined }} />
-            ) : (
-              <ChatButton size={36} target={{ id: r!.id, title: r!.responder.name, subtitle: `SOS · ${r!.breakdown.label}`, phone: r!.responder.phone, profile: 'sos' }} />
-            )}
             <View style={styles.donePill}>
               <Text style={styles.doneText}>✓ සම්පූර්ණයි</Text>
             </View>
@@ -59,6 +54,13 @@ export const RecordDetailView: React.FC<{ target: RecordTarget | null; onClose: 
                   {w ? [vehicle?.name, vehicle?.plate].filter(Boolean).join(' · ') : `${r!.vehicleName} · ${r!.vehiclePlate}`}
                 </Text>
                 <TxnTag kind={w ? 'JOB' : 'SOS'} source={w ? w.id : r!.id} />
+              </View>
+              <View style={styles.rowChat}>
+              {w ? (
+                <ChatButton size={36} target={{ id: w.id, title: w.garageName, subtitle: title, phone: MOCK_GARAGES.find((g) => g.name === w.garageName)?.phone, vehicle: vehicle ?? undefined }} />
+              ) : (
+                <ChatButton size={36} target={{ id: r!.id, title: r!.responder.name, subtitle: `SOS · ${r!.breakdown.label}`, phone: r!.responder.phone, profile: 'sos' }} />
+              )}
               </View>
             </View>
 
@@ -178,6 +180,8 @@ const styles = themedStyles(() =>
     flex1: { flex: 1 },
     root: { flex: 1, backgroundColor: pageBg() },
     row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    // The call icon stays level with the top of the title, not the middle of the row.
+    rowChat: { alignSelf: 'flex-start', paddingTop: 2 },
     header: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 6, minHeight: 56, backgroundColor: Colors.bgCard, borderBottomWidth: 1, borderBottomColor: outline(), ...elevation1() },
     iconBtn: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
     headerTitle: { flex: 1, fontSize: 15, fontFamily: FONTS.titleBold, color: Colors.textMain },

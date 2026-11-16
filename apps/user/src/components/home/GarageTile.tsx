@@ -1,4 +1,4 @@
-import { cardGlow, outline } from '../../utils/material';
+import { outline } from '../../utils/material';
 import React, { useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Colors, FONTS, InfoChip, LEVELS, getThemeMode, marketPrice, themedStyles, type Garage } from '@ongarage/shared';
@@ -15,8 +15,6 @@ import { BookedTag } from '../BookedTag';
 export const GarageTile: React.FC<{
   garage: Garage;
   width?: number | `${number}%`;
-  /** A shorter photo, so more garages fit on a list (the browse screen). */
-  compact?: boolean;
   ad?: boolean;
   /** Shows whether the garage is online (open) right now, as a tag on its photo. */
   showStatus?: boolean;
@@ -24,11 +22,9 @@ export const GarageTile: React.FC<{
   showDetails?: boolean;
   /** The service being browsed (the estimate is for it). */
   categoryId?: string;
-  /** A short text hint about what this garage charged the owner before (e.g. "බ්‍රේක් · රු. 8,200"). */
-  priceHint?: string;
   onOpen: () => void;
   onSaveChange: (saved: boolean) => void;
-}> = ({ garage: g, width = 236, compact, ad, showStatus, showDetails, categoryId, priceHint, onOpen, onSaveChange }) => {
+}> = ({ garage: g, width = 236, ad, showStatus, showDetails, categoryId, onOpen, onSaveChange }) => {
   const [saved, setSaved] = useState(false);
   const info = GARAGE_INFO[g.id];
   const level = g.level ? LEVELS.find((l) => l.id === g.level) : undefined;
@@ -42,7 +38,7 @@ export const GarageTile: React.FC<{
   return (
     <Pressable style={({ pressed }) => [styles.tile, { width }, pressed && styles.pressed]} onPress={onOpen} accessibilityLabel={`Garage ${g.name}`}>
       <View>
-        <Image source={GARAGE_COVERS[g.id] ?? { uri: g.photos?.[0] }} style={[styles.cover, compact && styles.coverCompact]} resizeMode="cover" />
+        <Image source={GARAGE_COVERS[g.id] ?? { uri: g.photos?.[0] }} style={styles.cover} resizeMode="cover" />
         {!!badge && (
           <View style={[styles.badge, ad && styles.badgeAd]}>
             <Text style={[styles.badgeText, ad && styles.badgeAdText]} numberOfLines={1}>
@@ -76,7 +72,7 @@ export const GarageTile: React.FC<{
         </Pressable>
       </View>
       <View style={styles.body}>
-        <Text style={styles.name} numberOfLines={2}>
+        <Text style={styles.name} numberOfLines={1}>
           {level ? `${level.icon} ` : ''}
           {g.name}
         </Text>
@@ -85,13 +81,12 @@ export const GarageTile: React.FC<{
             <Text style={styles.star}>★ {g.rating.toFixed(1)}</Text> ({g.reviews})
           </Text>
           <Text style={styles.meta}>📍 {g.distance} km</Text>
-          {info && <Text style={styles.meta}>⏱️ විනාඩි {info.replyMin}</Text>}
+          {info && <Text style={styles.meta}>⏱️ ~මිනි. {info.replyMin}</Text>}
         </View>
-        {!!priceHint && <Text style={styles.priceHint} numberOfLines={1}>💰 {priceHint}</Text>}
         {content && (
           <View style={styles.details}>
             <InfoChip text={today?.open ? `🕒 ${today.open}` : '🕒 අද වසා ඇත'} />
-            {estimate !== undefined && <InfoChip text={`💰 ආසන්න මිල රු. ${estimate.toLocaleString()} සිට`} />}
+            {estimate !== undefined && <InfoChip text={`💰 ආසන්න මිල LKR ${estimate.toLocaleString()} සිට`} />}
             {/* The makes the garage works on as their logos (a round badge each), not as words. */}
             {content.brands.length > 0 && (
               <View style={styles.logos} accessibilityLabel={`Works on ${content.brands.slice(0, 4).join(', ')}`}>
@@ -111,18 +106,17 @@ export const GarageTile: React.FC<{
 };
 
 // A stronger, softer shadow than the usual card one, so the garage cards stand clearly off the page.
-const cardShadow = cardGlow;
+const cardShadow = () => ({ boxShadow: '0 3px 14px rgba(0, 0, 0, 0.09), 0 1px 3px rgba(0, 0, 0, 0.05)' }) as object;
 
 const styles = themedStyles(() =>
   StyleSheet.create({
-    tile: { borderRadius: 12, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), overflow: 'hidden', ...cardShadow() },
+    tile: { borderRadius: 16, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), overflow: 'hidden', ...cardShadow() },
     pressed: { opacity: 0.85 },
     cover: { width: '100%', height: 128 },
-    coverCompact: { height: 92 },
     // Badges and the heart sit on the photo: fixed light chips readable in both themes.
     badge: { position: 'absolute', top: 8, left: 8, maxWidth: '70%', paddingHorizontal: 8, height: 22, justifyContent: 'center', borderRadius: 6, backgroundColor: 'rgba(255, 255, 255, 0.92)' },
     badgeAd: { backgroundColor: 'rgba(15, 23, 42, 0.75)' },
-    badgeText: { fontSize: 10, fontFamily: FONTS.bodyBold, color: '#2563eb' },
+    badgeText: { fontSize: 10, fontFamily: FONTS.bodyBold, color: '#1e3a8a' },
     badgeAdText: { color: '#fff' },
     // Online / Offline sits on the photo's top right (where the save heart used to be); the heart is at the lower right: a light chip with a coloured dot, readable in both themes.
     status: { position: 'absolute', top: 8, right: 8, flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, height: 30, borderRadius: 15, backgroundColor: 'rgba(255, 255, 255, 0.92)' },
@@ -143,11 +137,9 @@ const styles = themedStyles(() =>
     logoBadge: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline() },
     details: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 },
     body: { paddingHorizontal: 14, paddingVertical: 12, gap: 4 },
-    // Two lines reserved, so a long name wraps instead of cutting off, and the rating row sits at the same height on every card.
-    name: { fontSize: 15, lineHeight: 20, minHeight: 40, fontFamily: FONTS.titleBold, color: Colors.textMain },
+    name: { fontSize: 15, fontFamily: FONTS.titleBold, color: Colors.textMain },
     meta: { fontSize: 12, fontFamily: FONTS.bodyMedium, color: Colors.textMuted },
     metaRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: 10, rowGap: 2 },
     star: { color: Colors.warning, fontFamily: FONTS.bodyBold },
-    priceHint: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.successText, marginTop: 2 },
   })
 );

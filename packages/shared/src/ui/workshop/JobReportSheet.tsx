@@ -6,6 +6,7 @@ import { Sheet } from '../Sheet';
 import { PhotoStrip } from '../PhotoStrip';
 import { VoiceNotePlayer } from '../VoiceNotePlayer';
 import { SERVICE_FLUIDS, SERVICE_KINDS } from '../../marketplace/service';
+import { LATE_VIA_LABEL } from '../../marketplace/workshop';
 import { formatDate, formatTime, money } from '../../utils/format';
 import type { DiagnosisLine, ExtraWorkRequest, OwnerDecision, WorkshopProgress } from '../../types';
 
@@ -108,7 +109,7 @@ export const JobReportSheet: React.FC<{
             {x.voiceNotes?.map((n, i) => <VoiceNotePlayer key={n.id} note={n} index={i} compact />)}
             <Lines title="🔩 අමතර කොටස්" lines={x.lines.filter((l) => l.kind === 'part')} />
             <Lines title="🔧 අමතර වැඩ" lines={x.lines.filter((l) => l.kind === 'labour')} />
-            <Text style={styles.decision}>{x.waitingSince && !x.decision ? '⏳ අයිතිකරුට පිළිතුරු දිය නොහැකි නිසා රැඳී සිටී' : decisionText(x.decision, x.lines)}</Text>
+            <Text style={styles.decision}>{x.noteOnly ? '📋 වාර්තාවක් පමණි — අනුමැතියක් අවශ්‍ය නැත' : x.waitingSince && !x.decision ? '⏳ අයිතිකරුට පිළිතුරු දිය නොහැකි නිසා රැඳී සිටී' : decisionText(x.decision, x.lines)}</Text>
           </View>
         ))}
 
@@ -147,6 +148,16 @@ export const JobReportSheet: React.FC<{
             </>
           )}
           {p.handover.oldPartsKept && <Text style={styles.body}>♻️ ඉවත් කළ පැරණි කොටස් අයිතිකරුට පෙන්වීමට තබා ඇත.</Text>}
+          {!!p.handover.lateLines?.length && (
+            <>
+              <Text style={styles.heading}>භාරදීමේදී එකතු කළ (ඇප් එකෙන් අනුමැතිය නොගත්):</Text>
+              {p.handover.lateLines.map((l) => (
+                <Text key={l.id} style={styles.body}>
+                  {l.kind === 'part' ? '🔩' : '🔧'} {l.name} · {money(l.price)} · {LATE_VIA_LABEL[l.via]}
+                </Text>
+              ))}
+            </>
+          )}
           <View style={styles.group}>
             <View style={styles.lineRow}>
               <Text style={styles.line}>🔧 වැඩ ගාස්තුව</Text>

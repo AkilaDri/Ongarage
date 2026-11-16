@@ -34,7 +34,7 @@ const stops = (a: string, b: string) => [
 export const martBanners = (now: number = Date.now()): MartBanner[] => [
   { id: 'mb1', shopId: 'ps4', title: 'Genuine කොටස් · වගකීම මාස 12', subtitle: 'Lanka Genuine Parts · සැබෑ ටොයෝටා, හොන්ඩා කොටස්', cta: 'බලන්න', emoji: '🏅', stops: stops('#162b63', '#2a4690'), target: { kind: 'shop', shopId: 'ps4' }, endsAt: now + 12 * DAY },
   { id: 'mb2', shopId: 'ps1', title: 'බ්‍රේක් සතිය', subtitle: 'Galle Auto Parts · පෑඩ්, ඩිස්ක්, ද්‍රවය · −15% දක්වා', cta: 'දීමනා බලන්න', emoji: '🛑', stops: stops('#dc2626', '#f97316'), target: { kind: 'deals' }, endsAt: now + 5 * DAY },
-  { id: 'mb3', shopId: 'ps8', title: 'ලංකාව පුරා ඉක්මන් බෙදාහැරීම', subtitle: 'Colombo Genuine Hub · රු. 8,000 ඉක්මවූ ඇණවුම් නොමිලේ', cta: 'බලන්න', emoji: '🚚', stops: stops('#0ea5e9', '#22d3ee'), target: { kind: 'shop', shopId: 'ps8' }, endsAt: now + 9 * DAY },
+  { id: 'mb3', shopId: 'ps8', title: 'ලංකාව පුරා ඉක්මන් බෙදාහැරීම', subtitle: 'Colombo Genuine Hub · LKR 8,000 ඉක්මවූ ඇණවුම් නොමිලේ', cta: 'බලන්න', emoji: '🚚', stops: stops('#0ea5e9', '#22d3ee'), target: { kind: 'shop', shopId: 'ps8' }, endsAt: now + 9 * DAY },
 ];
 
 export const martOffers = (now: number = Date.now()): MartOffer[] => [

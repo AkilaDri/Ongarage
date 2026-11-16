@@ -176,7 +176,7 @@ const styles = themedStyles(() =>
     filterOn: { backgroundColor: dark() ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe', borderColor: dark() ? 'rgba(141, 177, 255, 0.3)' : '#d2e3fc' },
     filterText: { fontSize: 14.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
     filterTextOn: { color: dark() ? '#8db1ff' : GREEN },
-    filterBadge: { position: 'absolute', top: -8, right: -6, minWidth: 19, height: 19, paddingHorizontal: 5, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: dark() ? '#12161c' : '#ffffff', backgroundColor: dark() ? 'rgba(141, 177, 255, 0.34)' : '#d2e3fc' },
+    filterBadge: { position: 'absolute', top: -8, right: -6, minWidth: 16, height: 16, paddingHorizontal: 4, borderRadius: 6, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: dark() ? '#12161c' : '#ffffff', backgroundColor: dark() ? 'rgba(141, 177, 255, 0.34)' : '#d2e3fc' },
     filterBadgeOn: { backgroundColor: dark() ? 'rgba(141, 177, 255, 0.5)' : '#aecbfa' },
     filterBadgeText: { fontSize: 10, fontWeight: '800', color: dark() ? '#8db1ff' : '#1a73e8' },
     filterBadgeTextOn: {},
@@ -199,7 +199,7 @@ const styles = themedStyles(() =>
     previewUnread: { color: Colors.textMain },
     kind: { paddingHorizontal: 5, height: 16, justifyContent: 'center', borderRadius: 4 },
     kindText: { fontSize: 9, fontWeight: '800' },
-    badge: { minWidth: 18, height: 18, paddingHorizontal: 5, borderRadius: 9, backgroundColor: dark() ? '#8db1ff' : GREEN, alignItems: 'center', justifyContent: 'center' },
+    badge: { minWidth: 16, height: 16, paddingHorizontal: 4, borderRadius: 6, backgroundColor: dark() ? '#8db1ff' : GREEN, alignItems: 'center', justifyContent: 'center' },
     badgeText: { fontSize: 10.5, fontWeight: '800', color: dark() ? '#0b1b3a' : '#ffffff' },
   })
 );

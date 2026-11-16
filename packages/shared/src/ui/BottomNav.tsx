@@ -15,8 +15,6 @@ export type NavItem<T extends string> = {
   path?: string;
   icon?: React.ComponentType<{ active: boolean; size?: number }>;
   badge?: number;
-  /** The badge's colour; red (the default) is for urgent counts only. */
-  badgeColor?: string;
   /**
    * A light around the icon that says what is going on, so it can be read without opening the tab:
    * 'incoming' a red emergency strobe (new requests waiting for an answer), 'approval' a fast red / amber strobe with a shake (something critical waits for
@@ -150,7 +148,7 @@ export function BottomNav<T extends string>({ items, activeTab, onTabChange }: B
             )}
             </AlertIcon>
             {!!item.badge && (
-              <View style={[styles.badge, item.badgeColor ? { backgroundColor: item.badgeColor } : null]}>
+              <View style={styles.badge}>
                 <Text style={styles.badgeText}>{item.badge > 9 ? '9+' : item.badge}</Text>
               </View>
             )}
@@ -212,12 +210,12 @@ const styles = themedStyles(() => StyleSheet.create({
 
 // ---------- Line icons for the garage, parts shop and technician bars and OnMart's bar ----------
 // Plain rounded outlines in the same style as the owner app's bar: the open tab is dark navy with a soft tint inside, the others grey.
-type LineIconProps = { active: boolean; size?: number };
+type LineIconProps = { active: boolean; size?: number; /** Draws the lines in this colour instead of the nav ink. */ color?: string };
 
-const LineFrame: React.FC<LineIconProps & { fill?: string; children: React.ReactNode }> = ({ active, size = 26, fill, children }) => {
+const LineFrame: React.FC<LineIconProps & { fill?: string; children: React.ReactNode }> = ({ active, size = 26, fill, color, children }) => {
   const t = navIconTones(active);
   return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={t.ink} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color ?? t.ink} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
       {!!fill && <Path d={fill} fill={active ? t.accent : 'none'} fillOpacity={0.28} stroke="none" />}
       {children}
     </Svg>

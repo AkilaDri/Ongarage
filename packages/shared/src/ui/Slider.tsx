@@ -54,10 +54,10 @@ export const Slider: React.FC<SliderProps> = ({ min, max, value, onChange }) => 
   );
 };
 
-const THUMB = 28;
+const THUMB = 24;
 
 const styles = themedStyles(() => StyleSheet.create({
-  hitArea: { height: 48, justifyContent: 'center' },
+  hitArea: { height: 40, justifyContent: 'center' },
   track: { height: 6, borderRadius: 3, backgroundColor: Colors.subtleBorder, overflow: 'hidden' },
   fill: { height: '100%', backgroundColor: Colors.primary },
   fillIdle: { backgroundColor: 'transparent' },

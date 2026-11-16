@@ -9,7 +9,7 @@ import { FONTS, Gradient, SERVICE_CATEGORIES, type ServiceCategory } from '@onga
  * two rows of white cards that slide sideways (four columns show at a time), each with its blue and yellow service picture on a soft square, the chosen one in blue; then the blue "special offer" banner.
  */
 
-const BLUE = '#2563eb';
+const BLUE = '#1e3a8a';
 const GOLD = '#facc15';
 
 /** Every service, the design's eight first. The first half is the top row, the second half the bottom row; the two rows slide sideways together. */
@@ -167,7 +167,7 @@ const st = StyleSheet.create({
   iconBoxOn: { backgroundColor: '#dbeafe' },
   label: { marginTop: 6, fontSize: 12.5, lineHeight: 18, fontFamily: FONTS.bodySemiBold, color: '#000000' },
   labelOn: { fontFamily: FONTS.bodyBold, color: BLUE },
-  promo: { minHeight: 150, justifyContent: 'center', borderRadius: 24, padding: 20, overflow: 'hidden', backgroundColor: BLUE, shadowColor: '#000000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 6, elevation: 3 },
+  promo: { minHeight: 150, justifyContent: 'center', borderRadius: 20, padding: 20, overflow: 'hidden', backgroundColor: BLUE, shadowColor: '#000000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 6, elevation: 3 },
   bolt: { position: 'absolute', right: -14, bottom: -26, fontSize: 120, opacity: 0.1 },
   promoRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
   promoText: { flex: 1 },
@@ -175,7 +175,7 @@ const st = StyleSheet.create({
   promoBadgeText: { fontSize: 12, fontWeight: '800', letterSpacing: 0.4, color: '#111827' },
   promoTitle: { fontSize: 20, lineHeight: 27, fontFamily: FONTS.bodyBold, color: '#ffffff', marginTop: 8 },
   promoSub: { fontSize: 13.5, lineHeight: 19, marginTop: 4, fontFamily: FONTS.bodyRegular, color: '#dbeafe' },
-  promoBtn: { backgroundColor: '#ffffff', paddingHorizontal: 16, paddingVertical: 11, borderRadius: 16, shadowColor: '#000000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 2, elevation: 1 },
+  promoBtn: { backgroundColor: '#ffffff', paddingHorizontal: 16, paddingVertical: 11, borderRadius: 14, shadowColor: '#000000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 2, elevation: 1 },
   promoBtnText: { fontSize: 13.5, fontFamily: FONTS.bodyBold, color: BLUE },
   promoBtnArrow: { color: GOLD, fontSize: 16 },
 });

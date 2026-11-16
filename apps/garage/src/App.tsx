@@ -2,7 +2,6 @@ import { onFly } from './utils/fly';
 import { FlyLayer } from './components/FlyLayer';
 import { GarageActivityView } from './components/GarageActivityView';
 import { GarageCalendar } from './components/GarageCalendar';
-import { MoneyCalendarIcon } from './components/MoneyCalendarIcon';
 import { pageBg } from './utils/pageBg';
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
@@ -16,7 +15,7 @@ import {
   NotoSansSinhala_600SemiBold,
   NotoSansSinhala_700Bold,
 } from '@expo-google-fonts/noto-sans-sinhala';
-import { BottomNav, ClipboardLineIcon, FONTS, ScheduleLineIcon, type NavAlert, TitleBand, Colors, ThemeProvider, themedStyles, useTheme, headerBand, getThemeMode, setAppShape } from '@ongarage/shared';
+import { BottomNav, CalendarGridIcon, ClipboardLineIcon, Icon, HeaderIconButton, pageHeaderBlue, OnMartIcon, FONTS, ScheduleLineIcon, type NavAlert, TitleBand, Colors, ThemeProvider, themedStyles, useTheme, headerBand, getThemeMode, setAppShape } from '@ongarage/shared';
 
 // The garage app has PickMe's shapes (big rounded cards, pill buttons and chips, light edges, soft shadows); the other apps keep the Material shapes. Set before the first screen is drawn.
 setAppShape('pickme');
@@ -35,6 +34,7 @@ import { chatDockDrop, chatDockOffset } from './utils/chatDock';
 import { WallProvider } from './context/WallContext';
 import { ChatProvider, useChat } from './context/ChatContext';
 import { ChatHeaderButton } from './components/ChatHeaderButton';
+import { AppPageHeader } from './components/AppPageHeader';
 import { GARAGE_TABS, type TabId } from './constants/tabs';
 import { GarageHeader } from './components/GarageHeader';
 import { Toast } from './components/Toast';
@@ -104,6 +104,8 @@ function AppShell() {
   const [calendarOpen, setCalendarOpen] = useState(false);
   const scheduleView: 'schedule' | 'activity' = tab === 'activity' ? 'activity' : 'schedule';
   const onSchedulePage = tab === 'schedule' || tab === 'activity';
+  // Schedule, Activity and OnMart all start with the same page header, so their sheet is plain (no rounded corners over a sky band) and the floating chat icon gives way to the header's ONCHAT pill.
+  const plainTop = onSchedulePage || tab === 'parts';
   // On the Jobs tab, backing out of a conversation opened from the inbox returns to the inbox.
   const { setInboxReturn } = useChat();
   useEffect(() => setInboxReturn(tab === 'jobs'), [tab]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -200,7 +202,7 @@ function AppShell() {
   return (
     <SafeAreaProvider>
       <StatusBar style={isDark ? 'light' : 'dark'} />
-      <SafeAreaView style={[styles.container, (tab === 'garage' || onSchedulePage || sosFull) && styles.containerFull]} edges={['top']}>
+      <SafeAreaView style={[styles.container, (tab === 'garage' || plainTop || sosFull) && styles.containerFull, plainTop && { backgroundColor: pageHeaderBlue().from }]} edges={['top']}>
         <Animated.View style={{ flex: 1, opacity: pageAnim, transform: [{ translateY: pageAnim.interpolate({ inputRange: [0, 1], outputRange: [14, 0] }) }] }}>
         {(tab === 'jobs' && !sosFull) || onSchedulePage || tab === 'parts' ? (
           // Jobs, Schedule and OnMart: the title band and the sheet move up together as the page's list scrolls (a transform, so
@@ -209,26 +211,28 @@ function AppShell() {
           <Animated.View style={{ flex: 1, marginBottom: -band, transform: [{ translateY: martShift.interpolate({ inputRange: [0, HEADER_SCROLL], outputRange: [0, -band], extrapolate: 'clamp' }) }] }}>
             <View onLayout={(e) => e.nativeEvent.layout.height > 0 && setBandH(e.nativeEvent.layout.height)}>
               {tab === 'jobs' && <GarageHeader />}
-              {tab === 'parts' && <TitleBand title={TAB_TITLES.parts!} />}
-              {onSchedulePage && <TitleBand
+              {tab === 'parts' && <AppPageHeader title="OnMart" subtitle="කොටස් වෙළඳපොළ" icon={<OnMartIcon size={24} color="#2563eb" />} />}
+              {onSchedulePage && (
+                <AppPageHeader
                   title={scheduleView === 'activity' ? 'Activity' : 'Schedule'}
-                  backgroundColor={pageBg()}
-                  right={
-                    // Two calendars that can be told apart: the Schedule's is the plain calendar (blue); the Activitys' is a calendar with a coin on its page (green), for the money.
-                    <Pressable style={[styles.calendarBtn, scheduleView === 'activity' && styles.calendarBtnMoney]} onPress={() => setCalendarOpen(true)} accessibilityLabel={scheduleView === 'activity' ? 'Open transactions calendar' : 'Open schedule calendar'}>
-                      {scheduleView === 'activity' ? <MoneyCalendarIcon size={36} /> : <ScheduleLineIcon active size={36} />}
-                    </Pressable>
+                  subtitle={scheduleView === 'activity' ? 'ගනුදෙනු සහ ආදායම' : 'දෛනික කාලසටහන'}
+                  icon={scheduleView === 'activity' ? <ClipboardLineIcon active size={24} /> : <ScheduleLineIcon active size={24} />}
+                  actions={
+                    // Two calendars that can be told apart: the Schedule's is the plain calendar (blue); the Activity's is a calendar with a coin on its page (green), for the money.
+                    <HeaderIconButton onPress={() => setCalendarOpen(true)} label={scheduleView === 'activity' ? 'Open transactions calendar' : 'Open schedule calendar'} count={scheduleBadge} background={pageBg()}>
+                      <CalendarGridIcon size={32} color={Colors.textMain} />
+                    </HeaderIconButton>
                   }
-                  icon={scheduleView === 'activity' ? <ClipboardLineIcon active size={28} /> : <ScheduleLineIcon active size={28} />}
-                />}
+                />
+              )}
             </View>
             {/* The tab's screen overlaps the header band with rounded top corners, like the owner app. */}
             {/* The sheet overlaps the band by 18px with rounded corners; as the header folds away the overlap and the corners go too, so the sheet ends exactly at the top of the screen (nothing of it is cut off). */}
             <Animated.View
               style={[
                 styles.sheet,
-                onSchedulePage && styles.sheetFull,
-                !onSchedulePage && {
+                plainTop && styles.sheetFull,
+                !plainTop && {
                   marginTop: martShift.interpolate({ inputRange: [0, HEADER_SCROLL], outputRange: [-18, 0], extrapolate: 'clamp' }),
                   borderTopLeftRadius: martShift.interpolate({ inputRange: [0, HEADER_SCROLL], outputRange: [24, 0], extrapolate: 'clamp' }),
                   borderTopRightRadius: martShift.interpolate({ inputRange: [0, HEADER_SCROLL], outputRange: [24, 0], extrapolate: 'clamp' }),
@@ -286,10 +290,12 @@ function AppShell() {
             }} />
           )}
         </View>
-        {/* The chat icon stays put at the top right however the header folds away while the page scrolls. */}
-        <Animated.View style={[styles.floatChat, { opacity: martShift.interpolate({ inputRange: [0, 4], outputRange: [1, 0.4], extrapolate: 'clamp' }), transform: [{ translateY: Animated.multiply(Animated.multiply(martShift, 1 / HEADER_SCROLL), chatDockDrop) }] }]} pointerEvents="box-none">
+        {/* The chat icon floats at the bottom right, just above the tab bar. */}
+        {!plainTop && (
+        <Animated.View style={styles.floatChat} pointerEvents="box-none">
           <ChatHeaderButton />
         </Animated.View>
+        )}
         {/* A technician's repair charge waits for the owner during an SOS job: it follows the owner to every screen until answered. */}
         <SosApprovalBanner />
         <Toast />
@@ -325,6 +331,7 @@ const styles = themedStyles(() =>
     sosBackText: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
     calendarBtn: { width: 58, height: 58, borderRadius: 29, alignItems: 'center', justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe' },
     calendarBtnMoney: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(129, 201, 149, 0.16)' : '#e6f4ea' },
-    floatChat: { position: 'absolute', top: 10, right: 14, zIndex: 50 },
+    // The OnChat pill floats at the bottom right, just above the tab bar (72px high).
+    floatChat: { position: 'absolute', top: 'auto', bottom: 84, right: 14, zIndex: 50 },
   })
 );

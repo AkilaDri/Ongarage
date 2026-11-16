@@ -39,5 +39,5 @@ export const cancelCompensationFor = (p: WorkshopProgress, agreedPrice: number):
 /** What cancelling costs the owner, said before they confirm: nothing before the vehicle reached the garage, otherwise the inspection fee. */
 export const cancelFeeNote = (p: WorkshopProgress) =>
   p.receivedAt || p.stage !== 'booked'
-    ? `ගරාජයට වාහනය භාර දී හෝ වැඩ ආරම්භ කර ඇති නිසා පරීක්ෂා ගාස්තුව (රු. ${INSPECTION_FEE.toLocaleString('en-US')}) පමණක් ගෙවිය යුතුයි; ඉතිරි වැඩ නවත්වයි.`
+    ? `ගරාජයට වාහනය භාර දී හෝ වැඩ ආරම්භ කර ඇති නිසා පරීක්ෂා ගාස්තුව (LKR ${INSPECTION_FEE.toLocaleString('en-US')}) පමණක් ගෙවිය යුතුයි; ඉතිරි වැඩ නවත්වයි.`
     : 'වාහනය තවම ගරාජයට භාර දී නැති නිසා ගාස්තුවක් නැත.';
