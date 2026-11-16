@@ -105,6 +105,9 @@ export const ActionButton: React.FC<{
         modern && !pill && styles.actionBtnBox,
         variant === 'ghost' && !modern && styles.actionBtnGhost,
         tonal && !disabled && (variant === 'success' ? styles.actionBtnTonalGreen : styles.actionBtnTonalBlue),
+        variant === 'primary' && !tonal && !disabled && { borderWidth: 2, borderColor: '#facc15' },
+        // The soft (tonal) buttons get the same yellow edge.
+        tonal && !disabled && { borderWidth: 1.5, borderColor: '#facc15' },
         modern && !tonal && !disabled && variant !== 'sos' && styles.actionBtnLift,
         disabled && styles.actionBtnDisabled,
         disabled && modern && styles.actionBtnDisabledModern,

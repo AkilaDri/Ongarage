@@ -2,6 +2,7 @@ import React from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Colors, getAppTone, getThemeMode, themedStyles } from '../theme/colors';
 import { FONTS } from '../theme/fonts';
+import { TOP_BAR } from './topBar';
 
 /** The app's own header blue (the page band and the chips on it); the standard blue when the app sets none. */
 const brandBlue = () => getAppTone().header?.bg ?? '#2563eb';
@@ -22,7 +23,7 @@ const TONES: Record<FilterTone, { bg: string; edge: string; text: string; count:
  * The filter chips under the tabs of a page: tinted chips with the count on the chip's top edge. Touching the open one again clears it
  * (`onChange(null)`). The row slides sideways when it is longer than the screen.
  */
-export function FilterChips<T extends string>({ items, value, onChange, plain, onBlue }: { items: FilterItem<T>[]; value: T | null; onChange: (id: T | null) => void; /** No chip background or edge (light theme): just the label. */ plain?: boolean; /** The chips sit on the blue header band: white labels, a yellow line under the open one. */ onBlue?: boolean }) {
+export function FilterChips<T extends string>({ items, value, onChange, plain, onBlue, radius, height }: { items: FilterItem<T>[]; value: T | null; onChange: (id: T | null) => void; /** No chip background or edge (light theme): just the label. */ plain?: boolean; /** The chips sit on the blue header band: white labels, a yellow line under the open one. */ onBlue?: boolean; /** Corner radius of the chips on the blue band (default: the round chip). */ radius?: number; /** Height of the chips on the blue band (default: the shared height). */ height?: number }) {
   const dark = getThemeMode() === 'dark';
   // Plain (light theme): the chips share the bar's width equally, so the row is as wide as the tab bar above it and does not slide.
   const fit = !!plain && !dark;
@@ -36,7 +37,7 @@ export function FilterChips<T extends string>({ items, value, onChange, plain, o
         return (
           <Pressable
             key={c.id}
-            style={[styles.chip, { backgroundColor: dark ? Colors.bgCard : tone.bg, borderColor: dark ? Colors.borderColor : tone.edge }, plain && !dark && { backgroundColor: 'transparent', borderColor: 'transparent' }, !(plain && !dark) && on && styles.chipOn, !(plain && !dark) && on && { borderColor: tone.count }, plain && !dark && styles.plainChip, fit && styles.fitChip, fit && onBlue && styles.onBlueChip, fit && onBlue && on && styles.onBlueOn]}
+            style={[styles.chip, { backgroundColor: dark ? Colors.bgCard : tone.bg, borderColor: dark ? Colors.borderColor : tone.edge }, plain && !dark && { backgroundColor: 'transparent', borderColor: 'transparent' }, !(plain && !dark) && on && styles.chipOn, !(plain && !dark) && on && { borderColor: tone.count }, plain && !dark && styles.plainChip, fit && styles.fitChip, fit && onBlue && styles.onBlueChip, fit && onBlue && radius !== undefined && { borderRadius: radius }, fit && onBlue && height !== undefined && { height }, fit && onBlue && on && styles.onBlueOn]}
             onPress={() => onChange(on ? null : c.id)}
             accessibilityRole="button"
             accessibilityState={{ selected: on }}
@@ -63,11 +64,11 @@ const styles = themedStyles(() =>
     row: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingTop: 10, paddingRight: 8 },
     chip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, height: 38, borderRadius: 12, borderWidth: 1 },
     // Plain chips: room on both sides so they do not touch the screen edges.
-    fitRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingTop: 10, marginHorizontal: 6 },
+    fitRow: { flexDirection: 'row', alignItems: 'center', gap: TOP_BAR.filter.rowGap, paddingTop: TOP_BAR.filter.rowPaddingTop, marginHorizontal: TOP_BAR.filter.rowMarginHorizontal },
     fitChip: { flex: 1, minWidth: 0, justifyContent: 'center', paddingHorizontal: 2, gap: 4 },
     // On the blue band: blue chips with a yellow edge; the open one is a deeper blue with a thicker edge.
-    onBlueChip: { backgroundColor: brandBlue(), borderWidth: 1.5, borderColor: '#ffffff', borderRadius: 20, height: 36 },
-    onBlueOn: { backgroundColor: brandBlue(), borderWidth: 2.5, borderColor: '#fbbf24' },
+    onBlueChip: { backgroundColor: brandBlue(), borderWidth: TOP_BAR.filter.chipBorderWidth, borderColor: TOP_BAR.filter.chipBorderColor, borderRadius: TOP_BAR.filter.chipRadius, height: TOP_BAR.filter.chipHeight },
+    onBlueOn: { backgroundColor: brandBlue(), borderWidth: TOP_BAR.filter.selectedBorderWidth, borderColor: TOP_BAR.filter.selectedBorderColor },
     plainRow: { paddingHorizontal: 14 },
     // Plain chips: no edge at all; the open one has a thick line under it.
     plainChip: { borderWidth: 0, paddingHorizontal: 8 },

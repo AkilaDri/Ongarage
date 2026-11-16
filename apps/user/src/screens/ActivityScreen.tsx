@@ -4,12 +4,12 @@ import { onActivityFocus, takeActivityFocus, type ActivityFocus } from '../utils
 import { elevation1, outline, pageBg } from '../utils/material';
 import { PAGE_TITLE_H } from '../constants/layout';
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Image, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Animated, Image, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Colors, getThemeMode, Gradient, MoneyIcon, OnMartIcon, pageHeaderBlue, themedStyles, ReceiptLineIcon, ScheduleLineIcon, SosLineIcon } from '@ongarage/shared';
 import { FONTS } from '@ongarage/shared';
 import { categoryInfo, SERVICE_CATEGORIES } from '@ongarage/shared';
 import { useVehicles } from '../context/VehiclesContext';
-import { EmptyState, FilterChips, GridRow, SegmentTabs, SwipeCard } from '@ongarage/shared';
+import { EmptyState, GridRow, SwipeCard, TopBandLayout, ClipboardLineIcon, CalendarGridIcon } from '@ongarage/shared';
 import { PinnedEdge } from '../components/PinnedEdge';
 import { CategoryPhoto } from '../components/home/CategoryPhoto';
 import { PopCount } from '../components/PopCount';
@@ -80,7 +80,7 @@ const SubChipIcon: React.FC<{ id: string; on: boolean }> = ({ id, on }) => {
   return <Ico active size={18} color={on ? '#facc15' : '#ffffff'} />;
 };
 
-export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b: DirectBooking) => void; onOpenMart?: () => void; onHeaderProgress?: (progress: number) => void }> = ({ onOpenBids, onBookAgain, onOpenMart, onHeaderProgress }) => {
+export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b: DirectBooking) => void; onOpenMart?: () => void; onOpenCalendar?: () => void; onHeaderProgress?: (progress: number) => void }> = ({ onOpenBids, onBookAgain, onOpenMart, onOpenCalendar, onHeaderProgress }) => {
   const { jobs } = useBids();
   const { bookings } = useBookings();
   const { workshops } = useWorkshops();
@@ -132,6 +132,8 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
   }, []);
   // Each kind of record has its own chip: pick one to see only those records.
   const [tab, setTab] = useState<'current' | 'done' | 'ended'>('done');
+  // The top band's own height: it folds up as the page scrolls (edge 0 to 1).
+  const [bandH, setBandH] = useState(0);
   // OnMart is a chip beside the kinds of record (under every tab), not a tab: when it is on it shows the OnMart records instead.
   const [martOn, setMartOn] = useState(false);
   const kind: 'current' | 'done' | 'ended' | 'mart' = martOn ? 'mart' : tab;
@@ -310,31 +312,52 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
         }}
       >
         {/* Pinned: the three summary tiles stay at the top while the lists scroll beneath */}
-        <Animated.View style={[styles.statsPinned, { paddingTop: edge.interpolate({ inputRange: [0, 1], outputRange: [2, 14] }) }]} onLayout={(e) => {
+        {/* Folded away, the pinned strip has no padding left, so no white or blue strip stays behind. */}
+        <Animated.View style={[styles.statsPinned, { paddingTop: edge.interpolate({ inputRange: [0, 0.5, 1], outputRange: [2, 20, 0] }), paddingBottom: edge.interpolate({ inputRange: [0, 1], outputRange: [4, 0] }) }]} onLayout={(e) => {
           pinnedH.current = Math.round(e.nativeEvent.layout.height);
           chatDockOffset.setValue(pinnedH.current);
         }}>
         {/* The header's blue carries on behind the tab bar and the filter chips, ending straight under the chips. */}
-        <View pointerEvents="none" style={styles.pinnedBand} />
-        <View style={{ marginTop: 14 }}>
-        <SegmentTabs
-          pills
-          items={[
+        {/* The blue goes with the band: it fades away as the band folds, so no strip stays behind. */}
+        <Animated.View pointerEvents="none" style={[styles.pinnedBand, { opacity: edge.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }) }]} />
+        {/* The band folds up as the page scrolls (the same as the Bids band), so the list gets the room. */}
+        <Animated.View style={{ overflow: 'hidden', height: bandH ? edge.interpolate({ inputRange: [0, 1], outputRange: [bandH, 0] }) : undefined }}>
+        <View onLayout={(e) => setBandH(Math.round(e.nativeEvent.layout.height))}>
+        {/* The shared top of the page (the garage's Garage layout): title, calendar, the tabs, and the kind-of-record chips under them. */}
+        {/* Under the tabs: the kind of record (bids, bookings, SOS), one always open, the number of each on its chip. */}
+        <TopBandLayout
+          paddingTop={Platform.OS === 'web' ? 46 : 14}
+          navGap={-2}
+          navRadius={12}
+          navBottom={8}
+          chipLift={0}
+          chipRadius={10}
+          bandX={4}
+          titleX={2}
+          title="Activity"
+          icon={<ClipboardLineIcon active={false} size={32} color="#ffffff" />}
+          right={
+            <Pressable onPress={onOpenCalendar} hitSlop={8} accessibilityRole="button" accessibilityLabel="Open calendar">
+              <CalendarGridIcon size={28} color="#ffffff" />
+            </Pressable>
+          }
+          tabs={[
             { id: 'current' as const, label: 'පවතින', icon: 'clock' as const, count: ongoing.length + liveBookings.length },
             { id: 'done' as const, label: 'සම්පූර්ණ', icon: 'check-circle' as const },
             { id: 'ended' as const, label: 'අවලංගු', icon: 'x' as const },
           ]}
-          value={tab}
-          onChange={setKind}
+          tabValue={tab}
+          onTabChange={setKind}
+          chips={
+            tab === 'current' ? withMart(kindItems([ongoing.length, liveBookings.length, 0]))
+              : tab === 'done' ? withMart(kindItems([doneJobs.length, doneBookings.length, sosRecords.length]))
+              : withMart(kindItems([0, 0, 0]))
+          }
+          chipValue={martOn ? 'mart' : tab === 'current' ? currentKind : tab === 'done' ? doneKind : endedKind}
+          onChipChange={(id) => pickKind(id as 'bids' | 'direct' | 'sos' | 'mart' | null, tab === 'current' ? setCurrentKind : tab === 'done' ? setDoneKind : setEndedKind)}
         />
         </View>
-        {/* Under the tabs: the kind of record (bids, bookings, SOS), one always open, the number of each on its chip. */}
-        {/* The filter row sits a little higher, closer to the tabs above it. */}
-        <View style={{ marginTop: 4 }}>
-          {tab === 'current' && <FilterChips plain onBlue items={withMart(kindItems([ongoing.length, liveBookings.length, 0]))} value={martOn ? 'mart' : currentKind} onChange={(id) => pickKind(id, setCurrentKind)} />}
-          {tab === 'done' && <FilterChips plain onBlue items={withMart(kindItems([doneJobs.length, doneBookings.length, sosRecords.length]))} value={martOn ? 'mart' : doneKind} onChange={(id) => pickKind(id, setDoneKind)} />}
-          {tab === 'ended' && <FilterChips plain onBlue items={withMart(kindItems([0, 0, 0]))} value={martOn ? 'mart' : endedKind} onChange={(id) => pickKind(id, setEndedKind)} />}
-        </View>
+        </Animated.View>
           <Animated.View pointerEvents="box-none" style={[styles.pinnedChat, { opacity: edge }]}>
             <ChatHeaderButton scrolled={shortChat} />
           </Animated.View>
@@ -415,7 +438,7 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
                 <PostHead
           bleed={5}
                   photo={
-                    <View style={styles.sosIcon}> {r.breakdown.id && BREAKDOWN_IMAGES[r.breakdown.id] ? <Image source={BREAKDOWN_IMAGES[r.breakdown.id]} style={styles.sosImage} resizeMode="contain" /> : <Text style={styles.sosIconText}>{r.breakdown.icon}</Text>} </View>
+                    <View style={styles.sosIcon}>{r.breakdown.id && BREAKDOWN_IMAGES[r.breakdown.id] ? <Image source={BREAKDOWN_IMAGES[r.breakdown.id]} style={styles.sosImage} resizeMode="contain" /> : <Text style={styles.sosIconText}>{r.breakdown.icon}</Text>} </View>
                   }
                   name={r.responder.name}
                   meta={`${r.responder.mechanic} · ${formatDate(new Date(r.completedAt))}`}
@@ -508,7 +531,7 @@ const styles = themedStyles(() => StyleSheet.create({
   rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
   body: { paddingHorizontal: 6, paddingTop: 0, gap: 20, paddingBottom: 100 },
   // Opaque and full width (the negative margin cancels the body padding), so the lists scroll underneath it.
-  statsPinned: { marginHorizontal: -6, paddingHorizontal: 6, paddingTop: 2, paddingBottom: 8, backgroundColor: pageBg() },
+  statsPinned: { marginHorizontal: -6, paddingHorizontal: 6, paddingTop: 2, paddingBottom: 4, backgroundColor: pageBg() },
   pinnedBand: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: pageHeaderBlue().from },
   // The short OnChat icon inside the filter card, on its right side.
   pinnedChat: { position: 'absolute', right: 8, bottom: -12 },
@@ -561,7 +584,7 @@ const styles = themedStyles(() => StyleSheet.create({
   spendCount: { fontSize: 10, fontFamily: FONTS.bodyRegular, color: '#000000' },
   segment: { flexDirection: 'row', gap: 6, marginTop: 14 },
   segItem: { flex: 1, height: 40, borderRadius: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4, overflow: 'visible', borderWidth: 1, borderColor: outline(), backgroundColor: Colors.bgCard },
-  segItemOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#eff6ff', borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#bfdbfe' },
+  segItemOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8edf8', borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#c3cde3' },
   segText: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
   segTextOn: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#1e3a8a' },
   badge: { position: 'absolute', top: -9, right: 8, minWidth: 16, height: 16, paddingHorizontal: 4, borderRadius: 6, alignItems: 'center', justifyContent: 'center', backgroundColor: '#1e3a8a', borderWidth: 2, borderColor: pageBg() },
@@ -570,7 +593,7 @@ const styles = themedStyles(() => StyleSheet.create({
   kindChips: { gap: 10, paddingTop: 14, paddingRight: 16 },
   subBadge: { position: 'absolute', top: -9, right: 4, minWidth: 16, height: 16, paddingHorizontal: 4, borderRadius: 6, alignItems: 'center', justifyContent: 'center', backgroundColor: '#1e3a8a', borderWidth: 2, borderColor: pageBg() },
   subBadgeText: { fontSize: 10, fontFamily: FONTS.bodyBold, color: '#ffffff' },
-  kindChipOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#eff6ff', borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#bfdbfe' },
+  kindChipOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8edf8', borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#c3cde3' },
   subChip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, height: 32, borderRadius: 8, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline() },
   kindChipText: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textSoft },
   kindChipTextOn: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#1e3a8a' },
@@ -595,7 +618,7 @@ const styles = themedStyles(() => StyleSheet.create({
   // Room under the icons that sit in the card's corner.
   rightIcons: { paddingTop: 56 },
   price: { fontSize: 16, fontFamily: FONTS.titleBold, color: getThemeMode() === 'dark' ? Colors.textSoft : '#1e3a8a' },
-  kindTag: { paddingHorizontal: 10, height: 24, justifyContent: 'center', borderRadius: 12, backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#eff6ff' },
+  kindTag: { paddingHorizontal: 10, height: 24, justifyContent: 'center', borderRadius: 12, backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8edf8' },
   kindTagText: { fontSize: 11, fontWeight: '700', color: getThemeMode() === 'dark' ? '#8db1ff' : '#1e3a8a' },
   status: { paddingHorizontal: 10, height: 24, justifyContent: 'center', borderRadius: 12 },
   statusOngoing: { backgroundColor: 'rgba(245, 158, 11, 0.12)' },

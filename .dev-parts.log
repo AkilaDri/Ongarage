@@ -9,9 +9,10 @@
 Starting project at C:\Users\Top Code\Desktop\topongarage\Ongarage\apps\parts
 Using src/app as the root directory for Expo Router.
 Expo Autolinking module resolution enabled
-Metro is running in CI mode, reloads are disabled. Remove CI=true to enable watch mode.
 Starting Metro Bundler
 
 Waiting on http://localhost:8093
 
+An update for expo is available: 57.0.26 → ~57.0.32
+7 other packages may need updating. Run npx expo install --check for details.
 Logs for your project will appear below.

@@ -15,10 +15,12 @@ import {
   NotoSansSinhala_600SemiBold,
   NotoSansSinhala_700Bold,
 } from '@expo-google-fonts/noto-sans-sinhala';
-import { BottomNav, CalendarGridIcon, ClipboardLineIcon, Icon, HeaderIconButton, pageHeaderBlue, OnMartIcon, FONTS, ScheduleLineIcon, type NavAlert, TitleBand, Colors, ThemeProvider, themedStyles, useTheme, headerBand, getThemeMode, setAppShape } from '@ongarage/shared';
+import { BottomNav, CalendarGridIcon, JobsLineIcon, ClipboardLineIcon, Icon, HeaderIconButton, pageHeaderBlue, OnMartIcon, FONTS, ScheduleLineIcon, type NavAlert, TitleBand, Colors, ThemeProvider, themedStyles, useTheme, headerBand, getThemeMode, setAppShape, setAppTone } from '@ongarage/shared';
 
 // The garage app has PickMe's shapes (big rounded cards, pill buttons and chips, light edges, soft shadows); the other apps keep the Material shapes. Set before the first screen is drawn.
 setAppShape('pickme');
+// The same navy header, nav ink and yellow accent as the owner app.
+setAppTone({ header: { bg: '#1e3a8a', title: '#ffffff', sub: '#dbe4f5' }, navInk: '#1e3a8a', navAccent: '#facc15' });
 import { GarageProvider, useGarage } from './context/GarageContext';
 import { PartsProvider, useParts } from './context/PartsContext';
 import { ACTIVE_STAGES, MartProvider, useMart } from './context/MartContext';
@@ -36,7 +38,6 @@ import { ChatProvider, useChat } from './context/ChatContext';
 import { ChatHeaderButton } from './components/ChatHeaderButton';
 import { AppPageHeader } from './components/AppPageHeader';
 import { GARAGE_TABS, type TabId } from './constants/tabs';
-import { GarageHeader } from './components/GarageHeader';
 import { Toast } from './components/Toast';
 import { SOSDispatchScreen } from './screens/SOSDispatchScreen';
 import { JobFeedScreen } from './screens/JobFeedScreen';
@@ -210,9 +211,8 @@ function AppShell() {
           // moved up it still fills the screen. The page's own tab bar moves with it (see the page).
           <Animated.View style={{ flex: 1, marginBottom: -band, transform: [{ translateY: martShift.interpolate({ inputRange: [0, HEADER_SCROLL], outputRange: [0, -band], extrapolate: 'clamp' }) }] }}>
             <View onLayout={(e) => e.nativeEvent.layout.height > 0 && setBandH(e.nativeEvent.layout.height)}>
-              {tab === 'jobs' && <GarageHeader />}
               {tab === 'parts' && <AppPageHeader title="OnMart" subtitle="කොටස් වෙළඳපොළ" icon={<OnMartIcon size={24} color="#2563eb" />} />}
-              {onSchedulePage && (
+              {onSchedulePage && tab !== 'schedule' && tab !== 'activity' && (
                 <AppPageHeader
                   title={scheduleView === 'activity' ? 'Activity' : 'Schedule'}
                   subtitle={scheduleView === 'activity' ? 'ගනුදෙනු සහ ආදායම' : 'දෛනික කාලසටහන'}
@@ -241,7 +241,7 @@ function AppShell() {
             >
               {tab === 'jobs' && <JobFeedScreen shift={martShift} onScrollY={header.onScrollY} onOpenSos={() => setSosOpen(true)} />}
               {tab === 'schedule' && <ScheduleScreen onOpenParts={openParts} shift={martShift} onScrollY={header.onScrollY} />}
-              {tab === 'activity' && <GarageActivityView />}
+              {tab === 'activity' && <GarageActivityView onOpenCalendar={() => setCalendarOpen(true)} />}
               {tab === 'parts' && (
                 <OnMartScreen shift={martShift} onScrollY={header.onScrollY} setBarShown={header.setShown} reset={header.reset} bandHeight={band} top={martTop} onTopChange={setMartTop} section={martSection} onSectionChange={setMartSection} searchSeed={martSeed} shopRequest={martShopReq} focusId={partsFocus} onFocusHandled={() => setPartsFocus(null)} />
               )}

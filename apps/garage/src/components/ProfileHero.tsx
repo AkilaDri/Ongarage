@@ -21,7 +21,7 @@ export const ProfileHero: React.FC<{ onOpenCard: () => void }> = ({ onOpenCard }
         </View>
         <View style={styles.nameRow}>
           <Text style={styles.name} numberOfLines={1}>
-            {profile.name}
+            Garage
           </Text>
           <Text style={styles.arrow}>›</Text>
         </View>

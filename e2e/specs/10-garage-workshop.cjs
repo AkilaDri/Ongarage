@@ -51,7 +51,7 @@ module.exports = spec('Garage · workshop jobs, parts and pickup', 'garage', asy
   await t.type('New labour price', '2500');
   await t.clickText('+ වැඩ');
   await t.clickText('අයිතිකරුගේ අනුමැතියට යවන්න');
-  t.check('extra work waits for the owner', await t.has('අමතර වැඩ (රු. 2,500) අයිතිකරුගේ අනුමැතියට'));
+  t.check('extra work waits for the owner', await t.has('අමතර වැඩ (LKR 2,500) අයිතිකරුගේ අනුමැතියට'));
   await t.wait(6000);
 
   await t.clickLabel('Order approved parts');

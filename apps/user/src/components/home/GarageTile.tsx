@@ -1,4 +1,4 @@
-import { cardGlow, outline } from '../../utils/material';
+import { outline } from '../../utils/material';
 import React, { useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Colors, FONTS, InfoChip, LEVELS, getThemeMode, marketPrice, themedStyles, type Garage } from '@ongarage/shared';
@@ -91,7 +91,7 @@ export const GarageTile: React.FC<{
         {content && (
           <View style={styles.details}>
             <InfoChip text={today?.open ? `🕒 ${today.open}` : '🕒 අද වසා ඇත'} />
-            {estimate !== undefined && <InfoChip text={`💰 ආසන්න මිල රු. ${estimate.toLocaleString()} සිට`} />}
+            {estimate !== undefined && <InfoChip text={`💰 ආසන්න මිල LKR ${estimate.toLocaleString()} සිට`} />}
             {/* The makes the garage works on as their logos (a round badge each), not as words. */}
             {content.brands.length > 0 && (
               <View style={styles.logos} accessibilityLabel={`Works on ${content.brands.slice(0, 4).join(', ')}`}>
@@ -111,18 +111,18 @@ export const GarageTile: React.FC<{
 };
 
 // A stronger, softer shadow than the usual card one, so the garage cards stand clearly off the page.
-const cardShadow = cardGlow;
+const cardShadow = () => ({ boxShadow: '0 3px 14px rgba(0, 0, 0, 0.09), 0 1px 3px rgba(0, 0, 0, 0.05)' }) as object;
 
 const styles = themedStyles(() =>
   StyleSheet.create({
-    tile: { borderRadius: 12, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), overflow: 'hidden', ...cardShadow() },
+    tile: { borderRadius: 16, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), overflow: 'hidden', ...cardShadow() },
     pressed: { opacity: 0.85 },
     cover: { width: '100%', height: 128 },
     coverCompact: { height: 92 },
     // Badges and the heart sit on the photo: fixed light chips readable in both themes.
     badge: { position: 'absolute', top: 8, left: 8, maxWidth: '70%', paddingHorizontal: 8, height: 22, justifyContent: 'center', borderRadius: 6, backgroundColor: 'rgba(255, 255, 255, 0.92)' },
     badgeAd: { backgroundColor: 'rgba(15, 23, 42, 0.75)' },
-    badgeText: { fontSize: 10, fontFamily: FONTS.bodyBold, color: '#2563eb' },
+    badgeText: { fontSize: 10, fontFamily: FONTS.bodyBold, color: '#1e3a8a' },
     badgeAdText: { color: '#fff' },
     // Online / Offline sits on the photo's top right (where the save heart used to be); the heart is at the lower right: a light chip with a coloured dot, readable in both themes.
     status: { position: 'absolute', top: 8, right: 8, flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, height: 30, borderRadius: 15, backgroundColor: 'rgba(255, 255, 255, 0.92)' },

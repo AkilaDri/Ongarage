@@ -357,4 +357,4 @@ export const DIRECT_ARRIVAL_MS = 60000;
 
 export const SOS_ARRIVAL_MS = 30000;
 export const FEED_ARRIVAL_MS = 45000;
-export const BID_DECISION_MS = 20000;
+export const BID_DECISION_MS = 6000;

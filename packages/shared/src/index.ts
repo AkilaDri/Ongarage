@@ -121,3 +121,6 @@ export * from './marketplace/loyalty';
 export * from './marketplace/towCancel';
 export * from './marketplace/serviceSearch';
 export * from './marketplace/searchLog';
+
+export * from './ui/topBar';
+export * from './ui/TopBandLayout';

@@ -37,10 +37,10 @@ module.exports = spec('Owner · cards, history, receipts, ratings, Guarantee', '
   t.check('all four eligibility checks met', (await t.page.evaluate(() => (document.body.innerText.match(/✓ (ප්‍රිමියර් ගරාජයක|ඔබගේ QR|පැමිණීමේ සහ|වගකීම් කාලය)/g) || []).length)) === 4);
   await t.type('Guarantee reason', 'Engine oil leak came back twice, the garage says it is the sump and cannot fix it free');
   await t.type('Guarantee amount', '30000');
-  t.check('split: garage deductible, guarantee the rest', (await t.has('රු. 5,000')) && (await t.has('රු. 25,000')));
+  t.check('split: garage deductible, guarantee the rest', (await t.has('LKR 5,000')) && (await t.has('LKR 25,000')));
   await t.clickText('ඉල්ලීම යවන්න');
   await t.wait(10000);
-  t.check('garage responded, OnGarage approved', (await t.has('✅ අනුමතයි')) && (await t.has('OnGarage රු. 25,000')));
+  t.check('garage responded, OnGarage approved', (await t.has('✅ අනුමතයි')) && (await t.has('OnGarage LKR 25,000')));
 
   // Accept a bid, then stop at the diagnosis: inspection fee only
   await t.clickText('Bids');

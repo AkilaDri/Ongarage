@@ -9,7 +9,7 @@ module.exports = spec('Owner · workshop job, extra work, problem, rating, Recon
   await t.clickText('වාර්තාව බලා අනුමත කරන්න');
   const lines = (await t.labels('Approve line ')).map((l) => l.slice(13));
   await t.clickLabel(`Approve line ${lines[lines.length - 1]}`);
-  t.check('unticking a line lowers the total', await t.has('අනුමත කරන්න · රු. 10,650'));
+  t.check('unticking a line lowers the total', await t.has('අනුමත කරන්න · LKR 10,650'));
   await t.clickText('අනුමත කරන්න ·');
   await t.wait(9000);
 
@@ -36,7 +36,7 @@ module.exports = spec('Owner · workshop job, extra work, problem, rating, Recon
   t.check('QR with the 6-digit code', (await t.labels('Close code ')).length === 1);
   await t.wait(5800);
   await t.clickText('ශ්‍රේණිගත කරන්න');
-  t.check('technician rated separately', await t.has('රුවන් පෙරේරා'));
+  t.check('technician rated separately', await t.has('LKR න් පෙරේරා'));
   for (const d of ['quality', 'pricing', 'onTime', 'communication']) await t.clickLabel(`Rate ${d} 5`);
   await t.clickLabel('Rate technician 5');
   await t.clickText('යවන්න · ★');

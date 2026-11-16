@@ -59,7 +59,7 @@ export const TowProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       live.current = updated;
       const t = TEXT[next];
       if (t) notify({ icon: '🛻', title: t.title, body: t.body(opName(cur)), tone: 'primary' });
-      if (approval) notify({ icon: '💰', title: 'අවසන් මිල ඇස්තමේන්තුවට වඩා වැඩියි', body: `රු. ${final} — ඔබේ අනුමැතිය අවශ්‍යයි.`, tone: 'danger' });
+      if (approval) notify({ icon: '💰', title: 'අවසන් මිල ඇස්තමේන්තුවට වඩා වැඩියි', body: `LKR ${final} — ඔබේ අනුමැතිය අවශ්‍යයි.`, tone: 'danger' });
       schedule();
     }, (r.stage === 'enroute' || r.stage === 'transporting' ? ENROUTE_SEC : STEP_SEC) * 1000);
   }, [notify]);

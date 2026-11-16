@@ -9,19 +9,20 @@
 Starting project at C:\Users\Top Code\Desktop\topongarage\Ongarage\apps\garage
 Using src/app as the root directory for Expo Router.
 Expo Autolinking module resolution enabled
-Metro is running in CI mode, reloads are disabled. Remove CI=true to enable watch mode.
 Starting Metro Bundler
 
 Waiting on http://localhost:8092
 
+An update for expo is available: 57.0.26 → ~57.0.32
+9 other packages may need updating. Run npx expo install --check for details.
 Logs for your project will appear below.
-λ Bundled 12625ms node_modules\expo\node_modules\@expo\cli\node_modules\@expo\router-server\node\render.js (1293 modules)
+λ Bundled 94405ms node_modules\expo\node_modules\@expo\cli\node_modules\@expo\router-server\node\render.js (1311 modules)
 "shadow*" style props are deprecated. Use "boxShadow".
 Require cycle: src/context/ChatContext.tsx -> src/components/ChatJobActions.tsx -> src/context/ChatContext.tsx
 
 Require cycles are allowed, but can result in uninitialized values. Consider refactoring to remove the need for a cycle.
-Web Bundled 14279ms node_modules\expo-router\entry.js (1197 modules)
-Web Bundled 5613ms node_modules\expo-router\entry.js (1197 modules)
+Web Bundled 100223ms node_modules\expo-router\entry.js (1215 modules)
+Web Bundled 31310ms node_modules\expo-router\entry.js (1215 modules)
 Web  INFO  %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
 Web  LOG  Running application "main" with appParams:
  {"hydrate": undefined, "rootTag": "#root"} 
@@ -33,10 +34,181 @@ Web  WARN  Require cycle: src/context/ChatContext.tsx -> src/components/ChatJobA
 Require cycles are allowed, but can result in uninitialized values. Consider refactoring to remove the need for a cycle.
 Web  WARN  Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md
 Web  WARN  props.pointerEvents is deprecated. Use style.pointerEvents
-λ Bundled 124ms node_modules\expo\node_modules\@expo\cli\node_modules\@expo\router-server\node\render.js (1 module)
+λ Bundled 9556ms node_modules\expo\node_modules\@expo\cli\node_modules\@expo\router-server\node\render.js (1 module)
+Web Bundled 10756ms node_modules\expo-router\entry.js (1 module)
 "shadow*" style props are deprecated. Use "boxShadow".
 Require cycle: src/context/ChatContext.tsx -> src/components/ChatJobActions.tsx -> src/context/ChatContext.tsx
 
 Require cycles are allowed, but can result in uninitialized values. Consider refactoring to remove the need for a cycle.
-Web Bundled 1051ms node_modules\expo-router\entry.js (1 module)
-Web Bundled 104ms node_modules\expo-router\entry.js (1 module)
+λ Bundled 3769ms node_modules\expo\node_modules\@expo\cli\node_modules\@expo\router-server\node\render.js (1 module)
+"shadow*" style props are deprecated. Use "boxShadow".
+Require cycle: src/context/ChatContext.tsx -> src/components/ChatJobActions.tsx -> src/context/ChatContext.tsx
+
+Require cycles are allowed, but can result in uninitialized values. Consider refactoring to remove the need for a cycle.
+Web Bundled 4689ms node_modules\expo-router\entry.js (1 module)
+Web Bundled 166ms node_modules\expo-router\entry.js (1 module)
+Web  INFO  %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+Web  LOG  Running application "main" with appParams:
+ {"hydrate": undefined, "rootTag": "#root"} 
+Development-level warnings: ON.
+Performance optimizations: OFF.
+Web  WARN  "shadow*" style props are deprecated. Use "boxShadow".
+Web  WARN  Require cycle: src/context/ChatContext.tsx -> src/components/ChatJobActions.tsx -> src/context/ChatContext.tsx
+
+Require cycles are allowed, but can result in uninitialized values. Consider refactoring to remove the need for a cycle.
+Web  WARN  Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md
+Web  WARN  props.pointerEvents is deprecated. Use style.pointerEvents
+λ Bundled 5815ms node_modules\expo\node_modules\@expo\cli\node_modules\@expo\router-server\node\render.js (1 module)
+"shadow*" style props are deprecated. Use "boxShadow".
+Require cycle: src/context/ChatContext.tsx -> src/components/ChatJobActions.tsx -> src/context/ChatContext.tsx
+
+Require cycles are allowed, but can result in uninitialized values. Consider refactoring to remove the need for a cycle.
+Web Bundled 7511ms node_modules\expo-router\entry.js (1 module)
+Web Bundled 233ms node_modules\expo-router\entry.js (1 module)
+Web  INFO  %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+Web  LOG  Running application "main" with appParams:
+ {"hydrate": undefined, "rootTag": "#root"} 
+Development-level warnings: ON.
+Performance optimizations: OFF.
+Web  WARN  "shadow*" style props are deprecated. Use "boxShadow".
+Web  WARN  Require cycle: src/context/ChatContext.tsx -> src/components/ChatJobActions.tsx -> src/context/ChatContext.tsx
+
+Require cycles are allowed, but can result in uninitialized values. Consider refactoring to remove the need for a cycle.
+Web  WARN  Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md
+Web  WARN  props.pointerEvents is deprecated. Use style.pointerEvents
+λ Bundled 129ms node_modules\expo\node_modules\@expo\cli\node_modules\@expo\router-server\node\render.js (1 module)
+"shadow*" style props are deprecated. Use "boxShadow".
+Require cycle: src/context/ChatContext.tsx -> src/components/ChatJobActions.tsx -> src/context/ChatContext.tsx
+
+Require cycles are allowed, but can result in uninitialized values. Consider refactoring to remove the need for a cycle.
+Web Bundled 1170ms node_modules\expo-router\entry.js (1 module)
+Web Bundled 139ms node_modules\expo-router\entry.js (1 module)
+Web  INFO  %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+Web  LOG  Running application "main" with appParams:
+ {"hydrate": undefined, "rootTag": "#root"} 
+Development-level warnings: ON.
+Performance optimizations: OFF.
+Web  WARN  "shadow*" style props are deprecated. Use "boxShadow".
+Web  WARN  Require cycle: src/context/ChatContext.tsx -> src/components/ChatJobActions.tsx -> src/context/ChatContext.tsx
+
+Require cycles are allowed, but can result in uninitialized values. Consider refactoring to remove the need for a cycle.
+Web  WARN  Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md
+Web  WARN  props.pointerEvents is deprecated. Use style.pointerEvents
+Web  ERROR  [DataCloneError: Failed to execute 'measure' on 'Performance': Data cannot be cloned, out of memory.] 
+
+Code: react-dom-client.development.js
+[0m [90m 4150 |[39m               (reusableComponentOptions[33m.[39mend [33m=[39m endTime)[33m,[39m
+ [90m 4151 |[39m               [36mnull[39m [33m!=[39m selfTime
+[31m[1m>[22m[39m[90m 4152 |[39m                 [33m?[39m selfTime[33m.[39mrun(
+ [90m      |[39m                            [31m[1m^[22m[39m
+ [90m 4153 |[39m                     performance[33m.[39mmeasure[33m.[39mbind(
+ [90m 4154 |[39m                       performance[33m,[39m
+ [90m 4155 |[39m                       [32m"\u200b"[39m [33m+[39m name[33m,[39m[0m
+Call Stack
+  logComponentRender (node_modules\react-dom\cjs\react-dom-client.development.js:4152:28)
+  commitPassiveMountOnFiber (node_modules\react-dom\cjs\react-dom-client.development.js:15469:13)
+  recursivelyTraversePassiveMountEffects (node_modules\react-dom\cjs\react-dom-client.development.js:15439:11)
+  commitPassiveMountOnFiber (node_modules\react-dom\cjs\react-dom-client.development.js:15476:11)
+  recursivelyTraversePassiveMountEffects (node_modules\react-dom\cjs\react-dom-client.development.js:15439:11)
+  commitPassiveMountOnFiber (node_modules\react-dom\cjs\react-dom-client.development.js:15718:11)
+  recursivelyTraversePassiveMountEffects (node_modules\react-dom\cjs\react-dom-client.development.js:15439:11)
+  commitPassiveMountOnFiber (node_modules\react-dom\cjs\react-dom-client.development.js:15476:11)
+  recursivelyTraversePassiveMountEffects (node_modules\react-dom\cjs\react-dom-client.development.js:15439:11)
+  commitPassiveMountOnFiber (node_modules\react-dom\cjs\react-dom-client.development.js:15476:11)
+  recursivelyTraversePassiveMountEffects (node_modules\react-dom\cjs\react-dom-client.development.js:15439:11)
+  commitPassiveMountOnFiber (node_modules\react-dom\cjs\react-dom-client.development.js:15718:11)
+  recursivelyTraversePassiveMountEffects (node_modules\react-dom\cjs\react-dom-client.development.js:15439:11)
+  commitPassiveMountOnFiber (node_modules\react-dom\cjs\react-dom-client.development.js:15476:11)
+  recursivelyTraversePassiveMountEffects (node_modules\react-dom\cjs\react-dom-client.development.js:15439:11)
+  commitPassiveMountOnFiber (node_modules\react-dom\cjs\react-dom-client.development.js:15718:11)
+  recursivelyTraversePassiveMountEffects (node_modules\react-dom\cjs\react-dom-client.development.js:15439:11)
+  commitPassiveMountOnFiber (node_modules\react-dom\cjs\react-dom-client.development.js:15476:11)
+  recursivelyTraversePassiveMountEffects (node_modules\react-dom\cjs\react-dom-client.development.js:15439:11)
+  commitPassiveMountOnFiber (node_modules\react-dom\cjs\react-dom-client.development.js:15476:11)
+  recursivelyTraversePassiveMountEffects (node_modules\react-dom\cjs\react-dom-client.development.js:15439:11)
+  commitPassiveMountOnFiber (node_modules\react-dom\cjs\react-dom-client.development.js:15718:11)
+  recursivelyTraversePassiveMountEffects (node_modules\react-dom\cjs\react-dom-client.development.js:15439:11)
+  commitPassiveMountOnFiber (node_modules\react-dom\cjs\react-dom-client.development.js:15718:11)
+  recursivelyTraversePassiveMountEffects (node_modules\react-dom\cjs\react-dom-client.development.js:15439:11)
+  commitPassiveMountOnFiber (node_modules\react-dom\cjs\react-dom-client.development.js:15476:11)
+  recursivelyTraversePassiveMountEffects (node_modules\react-dom\cjs\react-dom-client.development.js:15439:11)
+  commitPassiveMountOnFiber (node_modules\react-dom\cjs\react-dom-client.development.js:15718:11)
+  recursivelyTraversePassiveMountEffects (node_modules\react-dom\cjs\react-dom-client.development.js:15439:11)
+  commitPassiveMountOnFiber (node_modules\react-dom\cjs\react-dom-client.development.js:15718:11)
+  recursivelyTraversePassiveMountEffects (node_modules\react-dom\cjs\react-dom-client.development.js:15439:11)
+  commitPassiveMountOnFiber (node_modules\react-dom\cjs\react-dom-client.development.js:15476:11)
+  recursivelyTraversePassiveMountEffects (node_modules\react-dom\cjs\react-dom-client.development.js:15439:11)
+  commitPassiveMountOnFiber (node_modules\react-dom\cjs\react-dom-client.development.js:15718:11)
+  recursivelyTraversePassiveMountEffects (node_modules\react-dom\cjs\react-dom-client.development.js:15439:11)
+λ Bundled 13092ms node_modules\expo\node_modules\@expo\cli\node_modules\@expo\router-server\node\render.js (1 module)
+"shadow*" style props are deprecated. Use "boxShadow".
+Require cycle: src/context/ChatContext.tsx -> src/components/ChatJobActions.tsx -> src/context/ChatContext.tsx
+
+Require cycles are allowed, but can result in uninitialized values. Consider refactoring to remove the need for a cycle.
+Web Bundled 14676ms node_modules\expo-router\entry.js (1 module)
+Web Bundled 6597ms node_modules\expo-router\entry.js (1 module)
+Web  INFO  %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+Web  LOG  Running application "main" with appParams:
+ {"hydrate": undefined, "rootTag": "#root"} 
+Development-level warnings: ON.
+Performance optimizations: OFF.
+Web  WARN  "shadow*" style props are deprecated. Use "boxShadow".
+Web  WARN  Require cycle: src/context/ChatContext.tsx -> src/components/ChatJobActions.tsx -> src/context/ChatContext.tsx
+
+Require cycles are allowed, but can result in uninitialized values. Consider refactoring to remove the need for a cycle.
+Web  WARN  Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md
+Web  WARN  props.pointerEvents is deprecated. Use style.pointerEvents
+λ Bundled 10668ms node_modules\expo\node_modules\@expo\cli\node_modules\@expo\router-server\node\render.js (1 module)
+Web Bundled 11067ms node_modules\expo-router\entry.js (1 module)
+"shadow*" style props are deprecated. Use "boxShadow".
+Require cycle: src/context/ChatContext.tsx -> src/components/ChatJobActions.tsx -> src/context/ChatContext.tsx
+
+Require cycles are allowed, but can result in uninitialized values. Consider refactoring to remove the need for a cycle.
+Web Bundled 4499ms node_modules\expo-router\entry.js (1 module)
+Web  INFO  %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+Web  LOG  Running application "main" with appParams:
+ {"hydrate": undefined, "rootTag": "#root"} 
+Development-level warnings: ON.
+Performance optimizations: OFF.
+Web  WARN  "shadow*" style props are deprecated. Use "boxShadow".
+Web  WARN  Require cycle: src/context/ChatContext.tsx -> src/components/ChatJobActions.tsx -> src/context/ChatContext.tsx
+
+Require cycles are allowed, but can result in uninitialized values. Consider refactoring to remove the need for a cycle.
+Web  WARN  Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md
+Web  WARN  props.pointerEvents is deprecated. Use style.pointerEvents
+λ Bundled 14607ms node_modules\expo\node_modules\@expo\cli\node_modules\@expo\router-server\node\render.js (1 module)
+Web Bundled 15451ms node_modules\expo-router\entry.js (1 module)
+"shadow*" style props are deprecated. Use "boxShadow".
+Require cycle: src/context/ChatContext.tsx -> src/components/ChatJobActions.tsx -> src/context/ChatContext.tsx
+
+Require cycles are allowed, but can result in uninitialized values. Consider refactoring to remove the need for a cycle.
+Web Bundled 3601ms node_modules\expo-router\entry.js (1 module)
+Web  INFO  %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+Web  LOG  Running application "main" with appParams:
+ {"hydrate": undefined, "rootTag": "#root"} 
+Development-level warnings: ON.
+Performance optimizations: OFF.
+Web  WARN  "shadow*" style props are deprecated. Use "boxShadow".
+Web  WARN  Require cycle: src/context/ChatContext.tsx -> src/components/ChatJobActions.tsx -> src/context/ChatContext.tsx
+
+Require cycles are allowed, but can result in uninitialized values. Consider refactoring to remove the need for a cycle.
+Web  WARN  Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md
+Web  WARN  props.pointerEvents is deprecated. Use style.pointerEvents
+λ Bundled 9480ms node_modules\expo\node_modules\@expo\cli\node_modules\@expo\router-server\node\render.js (1 module)
+"shadow*" style props are deprecated. Use "boxShadow".
+Require cycle: src/context/ChatContext.tsx -> src/components/ChatJobActions.tsx -> src/context/ChatContext.tsx
+
+Require cycles are allowed, but can result in uninitialized values. Consider refactoring to remove the need for a cycle.
+Web Bundled 14493ms node_modules\expo-router\entry.js (1 module)
+Web Bundled 102ms node_modules\expo-router\entry.js (1 module)
+Web  INFO  %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+Web  LOG  Running application "main" with appParams:
+ {"hydrate": undefined, "rootTag": "#root"} 
+Development-level warnings: ON.
+Performance optimizations: OFF.
+Web  WARN  "shadow*" style props are deprecated. Use "boxShadow".
+Web  WARN  Require cycle: src/context/ChatContext.tsx -> src/components/ChatJobActions.tsx -> src/context/ChatContext.tsx
+
+Require cycles are allowed, but can result in uninitialized values. Consider refactoring to remove the need for a cycle.
+Web  WARN  Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md
+Web  WARN  props.pointerEvents is deprecated. Use style.pointerEvents
