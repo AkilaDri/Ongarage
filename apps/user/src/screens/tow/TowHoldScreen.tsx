@@ -5,6 +5,7 @@ import { Colors, FONTS, Gradient, SCHEDULED_CANCEL_TIERS, scheduledCancelFee, th
 import { money } from '../../utils/format';
 import type { TowBidsDraft } from './TowBidsScreen';
 import type { TowRouteDraft } from './TowRouteScreen';
+import { TowButton } from './TowButton';
 
 /**
  * Screen for a scheduled tow: the truck's time is held and the owner sees what cancelling costs right now.
@@ -77,9 +78,7 @@ export const TowHoldScreen: React.FC<{
 
           {!confirmCancel ? (
             <>
-              <Pressable style={styles.action} onPress={keep} accessibilityLabel="Keep the booking">
-                <Text style={styles.actionTitle}>ඇණවුම තහවුරුයි</Text>
-              </Pressable>
+              <TowButton label="ඇණවුම තහවුරුයි" onPress={keep} accessibilityLabel="Keep the booking" />
               <Pressable style={styles.secondary} onPress={() => setConfirmCancel(true)} accessibilityLabel="Cancel the booking">
                 <Text style={styles.secondaryText}>අවලංගු කරන්න</Text>
               </Pressable>
@@ -87,9 +86,7 @@ export const TowHoldScreen: React.FC<{
           ) : (
             <View style={styles.card}>
               <Text style={styles.cardTitle}>{feeNow === 0 ? 'ඇණවුම අවලංගු කරන්නද?' : `${money(feeNow)} ගෙවා අවලංගු කරන්නද?`}</Text>
-              <Pressable style={styles.action} onPress={cancel} accessibilityLabel="Confirm cancelling">
-                <Text style={styles.actionTitle}>ඔව්, අවලංගු කරන්න</Text>
-              </Pressable>
+              <TowButton label="ඔව්, අවලංගු කරන්න" onPress={cancel} accessibilityLabel="Confirm cancelling" />
               <Pressable style={styles.secondary} onPress={() => setConfirmCancel(false)} accessibilityLabel="Keep it">
                 <Text style={styles.secondaryText}>නැහැ, තබන්න</Text>
               </Pressable>

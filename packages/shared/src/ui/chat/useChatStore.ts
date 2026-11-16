@@ -29,6 +29,8 @@ export const useChatStore = (
 
   const messages = useCallback((id: string) => threads[id] ?? [], [threads]);
   const unread = useCallback((id: string) => (threads[id] ?? []).filter((m) => m.from !== me && !m.record && m.at > (seen[id] ?? 0)).length, [threads, seen, me]);
+  // The calls the other side placed: update lines that start with 📞 (written when a call is made from the job). They are counted apart from the messages.
+  const unreadCalls = useCallback((id: string) => (threads[id] ?? []).filter((m) => m.from !== me && !m.record && !!m.update && !!m.text?.startsWith('📞') && m.at > (seen[id] ?? 0)).length, [threads, seen, me]);
   // Conversations that are new (a job just taken): marked until the first time they are opened.
   const [fresh, setFresh] = useState<Record<string, true>>({});
   const markFresh = useCallback((id: string) => setFresh((f) => (f[id] ? f : { ...f, [id]: true })), []);
@@ -114,5 +116,5 @@ export const useChatStore = (
     [add, me, peer]
   );
 
-  return { messages, send, note, postUpdate, receive, remove, edit, unread, markRead, markFresh, isFresh, seenAt };
+  return { messages, send, note, postUpdate, receive, remove, edit, unread, unreadCalls, markRead, markFresh, isFresh, seenAt };
 };

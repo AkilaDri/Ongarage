@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { ActionButton, Colors, directionsUrl, FONTS, Gradient, themedStyles, type TowOperator, type TowQuote } from '@ongarage/shared';
+import { TowButton } from './TowButton';
 import { RatingSummary, ReviewCard, Stars } from '../../components/ReviewCard';
 import { useUserLocation } from '../../context/LocationContext';
 import { money } from '../../utils/format';
@@ -57,7 +58,7 @@ export const TowOperatorSheet: React.FC<{
         );
   const footer = onChoose && quote ? (
     <View style={styles.footer}>
-      <ActionButton label={`මෙම ට්‍රක් තෝරන්න · ${money(quote.total)}`} variant="primary" onPress={onChoose} />
+      <TowButton label={`මෙම ට්‍රක් තෝරන්න · ${money(quote.total)}`} onPress={onChoose} />
     </View>
   ) : undefined;
 

@@ -2,18 +2,25 @@ import { LkPlate, VehicleIcon3D } from '@ongarage/shared';
 import { elevation1, outline, pageBg } from '../utils/material';
 import { PAGE_TITLE_H } from '../constants/layout';
 import React, { useRef, useState } from 'react';
-import { Image, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Colors, FONTS, getThemeMode, ThemeToggle, themedStyles, useTheme } from '@ongarage/shared';
+import { Image, ImageBackground, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Colors, FONTS, getThemeMode, Gradient, ThemeToggle, themedStyles, useTheme } from '@ongarage/shared';
 import { useLang } from '../context/LanguageContext';
 import { useVehicles } from '../context/VehiclesContext';
 import { useProfile } from '../context/ProfileContext';
 import { AddVehicleSheet } from '../components/AddVehicleSheet';
 import { nextServiceOf, ServiceRecordsSheet, useServiceRecords } from '../components/ServiceRecordsSheet';
+import { SERVICE_KINDS } from '@ongarage/shared';
+import { formatDate } from '../utils/format';
 import { VEHICLE_DETAIL_FIELDS, VehicleDetailsSheet, vehicleDetailsDone } from '../components/VehicleDetailsSheet';
 import { AppSettingsSheet } from '../components/AppSettingsSheet';
 import { Sheet } from '../components/Sheet';
 import { EditProfileScreen } from './EditProfileScreen';
 import { PayReliabilityCard } from '../components/PayStandingViews';
+
+const VEHICLE_SHADE = [
+  { offset: '0', color: '#020617', opacity: 0 },
+  { offset: '1', color: '#020617', opacity: 0.8 },
+];
 
 const HELP_LINE = '0112345678';
 
@@ -22,15 +29,12 @@ interface ProfileScreenProps {
   onVehicleChange: (vehicleId: string) => void;
   /** 0 at the top, 1 once scrolled: how far the sheet has risen over the top band (as on Home). */
   onHeaderProgress?: (progress: number) => void;
-  /** §5 shortcuts: spend details live on Activity, next service on Home. */
-  onOpenHome?: () => void;
-  onOpenActivity?: () => void;
 }
 
 type SheetId = 'settings' | 'help' | 'about' | null;
 
 /** The account page: who you are (tap to edit), how complete the profile is, your vehicles, then a list of rows. */
-export const ProfileScreen: React.FC<ProfileScreenProps> = ({ activeVehicle, onVehicleChange, onHeaderProgress, onOpenHome, onOpenActivity }) => {
+export const ProfileScreen: React.FC<ProfileScreenProps> = ({ activeVehicle, onVehicleChange, onHeaderProgress }) => {
   const { isDark, toggle } = useTheme();
   const { lang, setLang } = useLang();
   const { profile, fullName, initials } = useProfile();
@@ -96,12 +100,6 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ activeVehicle, onV
 
         <PayReliabilityCard />
 
-        {/* §5 shortcuts: each fact has one home, Account links to it. */}
-        <View style={styles.gCard}>
-          {row('💰', 'මුළු වියදම', () => onOpenActivity?.(), 'View spend on Activity', undefined, true)}
-          {row('🏠', 'වාහන තත්ත්වය', () => onOpenHome?.(), 'View vehicle status on Home')}
-        </View>
-
         {/* My vehicles: one card, the vehicles as chips, then the chosen one in full */}
         <View style={styles.gCard}>
           <View style={styles.gHead}>
@@ -154,22 +152,24 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ activeVehicle, onV
               );
             })}
           </View>
-          {/* Next service: a compact link to Home where the full status lives (§5: Home is the authority). */}
+          {/* When the next service is due, from the record the garage wrote at the last one; the owner is reminded before it */}
           {nextService && (
-            <Pressable style={styles.nextService} onPress={onOpenHome} accessibilityLabel="Next service on Home">
+            <View style={styles.nextService} accessibilityLabel="Next service">
               <View style={[styles.nextIcon, nextService.reminder.state !== 'ok' && styles.nextIconWarn]}>
                 <Text style={styles.menuIcon}>🔔</Text>
               </View>
               <View style={styles.flex1}>
                 <Text style={styles.menuLabel}>ඊළඟ සේවාව</Text>
+                <Text style={styles.recordsSub}>
+                  {[nextService.service.nextServiceAt ? formatDate(nextService.service.nextServiceAt) : '', nextService.service.nextServiceKm ? `${nextService.service.nextServiceKm.toLocaleString('en-US')} km` : ''].filter(Boolean).join(' · ')} · අවසන් සේවාව: {SERVICE_KINDS.find((k) => k.id === nextService.service.kind)?.label} ({nextService.service.mileageKm.toLocaleString('en-US')} km)
+                </Text>
               </View>
               <View style={[styles.nextChip, nextService.reminder.state === 'ok' ? styles.nextChipOk : nextService.reminder.state === 'soon' ? styles.nextChipSoon : styles.nextChipLate]}>
                 <Text style={styles.nextChipText}>
                   {nextService.reminder.state === 'ok' ? 'හරි' : nextService.reminder.state === 'soon' ? `දින ${nextService.reminder.daysLeft ?? '—'}` : nextService.reminder.state === 'due' ? 'අද' : 'ප්‍රමාදයි'}
                 </Text>
               </View>
-              <Text style={styles.chevron}>›</Text>
-            </Pressable>
+            </View>
           )}
           {/* The vehicle's service history: every job a garage finished on it is its own record */}
           <Pressable style={({ pressed }) => [styles.recordsRow, pressed && styles.pressed]} onPress={() => setRecordsFor(vehicle)} accessibilityLabel="Service records">
@@ -251,27 +251,27 @@ const styles = themedStyles(() =>
     // Google-account look: grey page, white 12px cards with an outline, a blue heading in each, rows split by hairlines.
     gCard: { backgroundColor: Colors.bgCard, borderRadius: 12, borderWidth: 1, borderColor: outline(), ...elevation1(), overflow: 'hidden' },
     gHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingTop: 12 },
-    addVehicleChip: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, height: 32, borderRadius: 8, backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe', borderWidth: 1, borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#d2e3fc' },
-    addVehiclePlus: { fontSize: 14, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
-    addVehicleText: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
-    gHeadingInline: { fontSize: 14, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
+    addVehicleChip: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, height: 32, borderRadius: 8, backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#eff6ff', borderWidth: 1, borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#bfdbfe' },
+    addVehiclePlus: { fontSize: 14, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1e3a8a' },
+    addVehicleText: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1e3a8a' },
+    gHeadingInline: { fontSize: 14, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1e3a8a' },
     vehicleProgress: { paddingHorizontal: 16, paddingTop: 6, paddingBottom: 8, gap: 6 },
     progressTop2: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     progressSub2: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
     progressTrack2: { height: 8, borderRadius: 4, backgroundColor: getThemeMode() === 'dark' ? Colors.subtleFill : '#e8eaed', overflow: 'hidden' },
     progressTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingTop: 14 },
-    progressPercent: { fontSize: 20, fontFamily: FONTS.titleBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
+    progressPercent: { fontSize: 20, fontFamily: FONTS.titleBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1e3a8a' },
     progressTrack: { height: 8, borderRadius: 4, marginHorizontal: 16, marginTop: 8, backgroundColor: getThemeMode() === 'dark' ? Colors.subtleFill : '#e8eaed', overflow: 'hidden' },
-    progressFill: { height: 8, borderRadius: 4, backgroundColor: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
+    progressFill: { height: 8, borderRadius: 4, backgroundColor: getThemeMode() === 'dark' ? '#8db1ff' : '#1e3a8a' },
     progressSub: { fontSize: 12, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, paddingHorizontal: 16, paddingTop: 8 },
     missingRow: { gap: 8, paddingHorizontal: 16, paddingVertical: 12 },
     missingChip: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, height: 32, borderRadius: 8, borderWidth: 1, borderColor: outline(), backgroundColor: Colors.bgCard },
-    missingPlus: { fontSize: 13, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
+    missingPlus: { fontSize: 13, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1e3a8a' },
     missingText: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
-    infoAdd: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
+    infoAdd: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1e3a8a' },
     recordsRow: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 16, paddingVertical: 12, borderTopWidth: 1, borderTopColor: getThemeMode() === 'dark' ? Colors.borderColor : '#e8eaed' },
     nextService: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 16, paddingVertical: 12, borderTopWidth: 1, borderTopColor: getThemeMode() === 'dark' ? Colors.borderColor : '#e8eaed' },
-    nextIcon: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe' },
+    nextIcon: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#eff6ff' },
     nextIconWarn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(253, 214, 99, 0.2)' : '#fef7e0' },
     nextChip: { paddingHorizontal: 10, height: 26, justifyContent: 'center', borderRadius: 8 },
     nextChipOk: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(129, 201, 149, 0.16)' : '#e6f4ea' },
@@ -279,22 +279,22 @@ const styles = themedStyles(() =>
     nextChipLate: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(242, 139, 130, 0.2)' : '#fce8e6' },
     nextChipText: { fontSize: 11.5, fontFamily: FONTS.bodyBold, color: Colors.textMain },
     recordsSub: { fontSize: 12, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 1 },
-    recordsCount: { minWidth: 22, height: 22, paddingHorizontal: 6, borderRadius: 11, alignItems: 'center', justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.34)' : '#d2e3fc' },
-    recordsCountText: { fontSize: 11.5, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
+    recordsCount: { minWidth: 16, height: 16, paddingHorizontal: 4, borderRadius: 6, alignItems: 'center', justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.34)' : '#bfdbfe' },
+    recordsCountText: { fontSize: 11.5, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1e3a8a' },
     editDetails: { marginHorizontal: 16, marginBottom: 14, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: outline() },
-    editDetailsText: { fontSize: 13.5, fontFamily: FONTS.bodySemiBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
-    gHeading: { fontSize: 14, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8', paddingHorizontal: 16, paddingTop: 14 },
+    editDetailsText: { fontSize: 13.5, fontFamily: FONTS.bodySemiBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1e3a8a' },
+    gHeading: { fontSize: 14, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1e3a8a', paddingHorizontal: 16, paddingTop: 14 },
     contactLine: { fontSize: 13.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
     manageBtn: { marginTop: 6, paddingHorizontal: 20, height: 40, borderRadius: 20, justifyContent: 'center', borderWidth: 1, borderColor: outline(), backgroundColor: Colors.bgCard },
-    manageText: { fontSize: 14, fontFamily: FONTS.bodySemiBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
+    manageText: { fontSize: 14, fontFamily: FONTS.bodySemiBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1e3a8a' },
     vehicleChips: { gap: 8, paddingHorizontal: 16, paddingVertical: 12 },
     vehicleChip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, height: 36, borderRadius: 8, borderWidth: 1, borderColor: outline(), backgroundColor: Colors.bgCard },
-    vehicleChipOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe', borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#d2e3fc' },
+    vehicleChipOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#eff6ff', borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#bfdbfe' },
     vehicleChipEmoji: { fontSize: 16 },
-    vehicleChipPlus: { fontSize: 16, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
+    vehicleChipPlus: { fontSize: 16, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1e3a8a' },
     vehicleChipText: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, maxWidth: 140 },
-    vehicleChipTextOn: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
-    menuIconTile: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe' },
+    vehicleChipTextOn: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#1e3a8a' },
+    menuIconTile: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#eff6ff' },
     menuRowLine: { borderTopWidth: 1, borderTopColor: getThemeMode() === 'dark' ? Colors.borderColor : '#e8eaed' },
     container: { flex: 1, backgroundColor: pageBg() },
     body: { paddingHorizontal: 6, paddingTop: 8, gap: 12, paddingBottom: 100 },
@@ -304,9 +304,9 @@ const styles = themedStyles(() =>
     avatarText: { fontSize: 26, fontWeight: '900', color: Colors.textMuted, letterSpacing: 1 },
     nameRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 },
     name: { fontSize: 22, lineHeight: 28, fontFamily: FONTS.titleBold, color: Colors.textMain, marginTop: 6, textAlign: 'center' },
-    nameArrow: { fontSize: 24, color: Colors.textMain, marginTop: -3 },
-    member: { paddingHorizontal: 12, height: 26, justifyContent: 'center', borderRadius: 8, backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe' },
-    memberText: { fontSize: 12, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
+    nameArrow: { fontSize: 24, color: '#facc15', marginTop: -3 },
+    member: { paddingHorizontal: 12, height: 26, justifyContent: 'center', borderRadius: 8, backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#eff6ff' },
+    memberText: { fontSize: 12, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1e3a8a' },
     // White text sits on the photo's dark shade.
     vehicleContainer: { flexDirection: 'row', gap: 12, marginBottom: 12 },
     vehicleInfoPanel: { flex: 1, gap: 12, paddingVertical: 14, paddingHorizontal: 16, backgroundColor: Colors.bgCard, borderRadius: 12, borderWidth: 1, borderColor: outline(), ...elevation1() },
@@ -333,12 +333,12 @@ const styles = themedStyles(() =>
     vehicleRightPanel: { flex: 1, gap: 8, paddingVertical: 10, paddingHorizontal: 10, backgroundColor: Colors.bgCard, borderRadius: 12, borderWidth: 1, borderColor: outline(), ...elevation1(), justifyContent: 'space-between' },
     vehicleColumnRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
     vehicleColumnItem: { width: '48%', alignItems: 'center', gap: 3, paddingVertical: 4, paddingHorizontal: 4, borderRadius: 8 },
-    vehicleColumnItemActive: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe' },
+    vehicleColumnItemActive: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#eff6ff' },
     vehicleColumnThumb: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? Colors.subtleFill : '#f1f3f4' },
-    vehicleColumnThumbActive: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#d2e3fc' },
+    vehicleColumnThumbActive: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#bfdbfe' },
     vehicleColumnEmoji: { fontSize: 24 },
     vehicleTitle: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingBottom: 6 },
-    vehicleEmojiTile: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe' },
+    vehicleEmojiTile: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#eff6ff' },
     vehicleEmoji: { fontSize: 26 },
     vehicleAddButton: { alignItems: 'center', gap: 3, paddingVertical: 6, paddingHorizontal: 4, borderRadius: 10 },
     vehicleAddIcon: { width: 44, height: 44, borderRadius: 10, borderWidth: 2, borderStyle: 'dashed', borderColor: Colors.subtleBorder, alignItems: 'center', justifyContent: 'center' },
@@ -352,7 +352,7 @@ const styles = themedStyles(() =>
     menuIcon: { fontSize: 18, textAlign: 'center' },
     langSwitch: { flexDirection: 'row', gap: 4, padding: 3, borderRadius: 16, backgroundColor: Colors.subtleFill },
   langChip: { minWidth: 38, height: 26, paddingHorizontal: 8, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
-  langChipOn: { backgroundColor: '#1a73e8' },
+  langChipOn: { backgroundColor: '#1e3a8a' },
   langText: { fontSize: 12, fontFamily: FONTS.bodyBold, color: Colors.textMuted },
   langTextOn: { color: '#ffffff' },
   menuLabel: { flex: 1, fontSize: 15, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },

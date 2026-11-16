@@ -32,7 +32,7 @@ interface GoogleMapProps {
   children?: React.ReactNode;
 }
 
-type View = { center: LatLng; zoom: number };
+type MapView = { center: LatLng; zoom: number };
 
 const distance = (a: { pageX: number; pageY: number }, b: { pageX: number; pageY: number }) => Math.hypot(a.pageX - b.pageX, a.pageY - b.pageY);
 /** How many fingers are on the map now. */
@@ -51,7 +51,7 @@ export const GoogleMap: React.FC<GoogleMapProps> = ({
   const [size, setSize] = useState({ width: 0, height: 0 });
   const [failed, setFailed] = useState(!GOOGLE_MAPS_API_KEY);
   // The view the map shows. Gestures move it at once; the owner of the map hears about it when the gesture ends.
-  const [view, setView] = useState<View>({ center, zoom });
+  const [view, setView] = useState<MapView>({ center, zoom });
   useEffect(() => {
     setView({ center, zoom });
   }, [center.latitude, center.longitude, zoom]);
@@ -69,7 +69,7 @@ export const GoogleMap: React.FC<GoogleMapProps> = ({
   sizeRef.current = size;
   const callbacks = useRef({ onPressCoordinate, onRegionChange });
   callbacks.current = { onPressCoordinate, onRegionChange };
-  const gesture = useRef({ x0: 0, y0: 0, moved: false, pinching: false, startDist: 0, startZoom: zoom, startView: { center, zoom } as View });
+  const gesture = useRef({ x0: 0, y0: 0, moved: false, pinching: false, startDist: 0, startZoom: zoom, startView: { center, zoom } as MapView });
   const lastTap = useRef<{ t: number; x: number; y: number } | null>(null);
 
   // Every map zooms with a pinch. Drag and taps are on when the map has a handler for them; a map without one still lets a single finger
@@ -161,12 +161,11 @@ export const GoogleMap: React.FC<GoogleMapProps> = ({
 
   return (
     <View style={[styles.container, style]} onLayout={(e) => setSize(e.nativeEvent.layout)} {...responder.panHandlers}>
-      {MAP_PROVIDER === 'osm' ? (
-        <OsmTiles center={view.center} zoom={view.zoom} width={size.width} height={size.height} />
-      ) : url && !failed ? (
-        <Image source={{ uri: url }} style={StyleSheet.absoluteFill} resizeMode="cover" onError={() => setFailed(true)} />
+      {MAP_PROVIDER === 'osm' || !url || failed ? (
+        // OpenStreetMap is the base map whenever the Google image is not used (no key, or Google's image failed, e.g. billing off).
+        size.width > 0 ? <OsmTiles center={view.center} zoom={view.zoom} width={size.width} height={size.height} /> : <DotGrid color={fallbackColor} spacing={28} opacity={0.22} />
       ) : (
-        <DotGrid color={fallbackColor} spacing={28} opacity={0.22} />
+        <Image source={{ uri: url }} style={StyleSheet.absoluteFill} resizeMode="cover" onError={() => setFailed(true)} />
       )}
 
       {size.width > 0 && renderOverlay?.(project)}

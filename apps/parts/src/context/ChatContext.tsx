@@ -170,7 +170,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (s.quotes.has(q.request.id)) continue;
       s.quotes.add(q.request.id);
       const id = `g:${q.request.id}`;
-      store.postUpdate(id, `💰 මිල ගණන් එවා ඇත — ${q.partType} · කොටස් රු. ${q.partsTotal.toLocaleString('en-US')}${q.deliveryFee ? ` + ඩිලිවරි රු. ${q.deliveryFee.toLocaleString('en-US')}` : ''} = රු. ${q.total.toLocaleString('en-US')} · වගකීම මාස ${q.warrantyMonths}.`, 'shop');
+      store.postUpdate(id, `💰 මිල ගණන් එවා ඇත — ${q.partType} · කොටස් LKR ${q.partsTotal.toLocaleString('en-US')}${q.deliveryFee ? ` + ඩිලිවරි LKR ${q.deliveryFee.toLocaleString('en-US')}` : ''} = LKR ${q.total.toLocaleString('en-US')} · වගකීම මාස ${q.warrantyMonths}.`, 'shop');
     }
     for (const o of orders) {
       const id = `g:${o.quote.request.id}`;

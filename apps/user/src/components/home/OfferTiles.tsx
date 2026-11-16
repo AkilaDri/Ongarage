@@ -2,12 +2,6 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { FONTS, Gradient, themedStyles } from '@ongarage/shared';
 import { DotScroll } from './DotScroll';
-
-// One accent for every offer, so the tiles read as one group and the page keeps a single colour family.
-const ACCENT_STOPS = [
-  { offset: '0', color: '#0E7C86' },
-  { offset: '1', color: '#0A5F67' },
-];
 type Tile = { id: string; title: string; subtitle: string; emoji: string; stops: { offset: string; color: string }[] };
 
 /** Colourful deal tiles in a sideways row: a short title, one line, a big emoji and an arrow. */
@@ -15,7 +9,7 @@ export const OfferTiles = <T extends Tile>({ offers, onOpen }: { offers: T[]; on
   <DotScroll contentContainerStyle={styles.row}>
     {offers.map((o) => (
       <Pressable key={o.id} style={({ pressed }) => [styles.tile, pressed && styles.pressed]} onPress={() => onOpen(o)} accessibilityLabel={`Offer ${o.title}`}>
-        <Gradient stops={ACCENT_STOPS} />
+        <Gradient stops={o.stops} />
         <Text style={styles.title}>{o.title}</Text>
         <Text style={styles.subtitle} numberOfLines={2}>
           {o.subtitle}
@@ -33,7 +27,7 @@ export const OfferTiles = <T extends Tile>({ offers, onOpen }: { offers: T[]; on
 const styles = themedStyles(() =>
   StyleSheet.create({
     row: { gap: 10, paddingRight: 8 },
-    tile: { width: 132, height: 150, borderRadius: 12, overflow: 'hidden', padding: 12, gap: 2 },
+    tile: { width: 132, height: 150, borderRadius: 16, overflow: 'hidden', padding: 12, gap: 2, shadowColor: '#0f172a', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.11, shadowRadius: 14, elevation: 4 },
     pressed: { opacity: 0.85 },
     title: { fontSize: 14, fontFamily: FONTS.titleBold, color: '#fff' },
     subtitle: { fontSize: 10.5, fontFamily: FONTS.bodyMedium, color: 'rgba(255, 255, 255, 0.9)', lineHeight: 14 },

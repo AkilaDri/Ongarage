@@ -22,7 +22,7 @@ export const cancelRequestText = (c: { reason: string; note?: string }) =>
 export const RECEIVED_PREFIX = '🚗 වාහනය ලැබුණා';
 export const isReceivedUpdate = (text?: string) => !!text && text.startsWith(RECEIVED_PREFIX);
 
-const money = (n: number) => `රු. ${Math.round(n).toLocaleString('en-US')}`;
+const money = (n: number) => `LKR ${Math.round(n).toLocaleString('en-US')}`;
 const names = (lines: DiagnosisLine[]) => lines.map((l) => (l.qty > 1 ? `${l.name} ×${l.qty}` : l.name)).join(', ');
 const total = (lines: DiagnosisLine[]) => lines.reduce((s, l) => s + l.price, 0);
 /** One line per part or job of work, with its own price. */
@@ -90,6 +90,11 @@ export const workshopUpdateTexts = (prev: WorkshopProgress | undefined, next: Wo
   for (const x of next.extras ?? []) {
     const before = (prev.extras ?? []).find((y) => y.id === x.id);
     if (!before) {
+      // A report with nothing to approve: just the findings, from the garage.
+      if (x.noteOnly) {
+        garage('📋 වාර්තාව — ' + x.reason, x.photos, { kind: 'extra', id: x.id });
+        continue;
+      }
       // Extra parts and extra work are two separate messages (each with its own total and photos), so each reads on its own;
       // the report's own photos go with the first of them.
       const parts = x.lines.filter((l) => l.kind === 'part');
@@ -117,7 +122,7 @@ export const workshopUpdateTexts = (prev: WorkshopProgress | undefined, next: Wo
   }
 
   // Cancelling in the middle of a job: the owner asks, the garage approves with its compensation, the owner accepts (or withdraws and the work goes on).
-  const lkr = (n: number) => `රු. ${Math.round(n).toLocaleString('en-US')}`;
+  const lkr = (n: number) => `LKR ${Math.round(n).toLocaleString('en-US')}`;
   if (next.cancelRequest && !prev.cancelRequest) {
     owner(cancelRequestText(next.cancelRequest));
   }
@@ -171,7 +176,7 @@ export const workshopUpdateTexts = (prev: WorkshopProgress | undefined, next: Wo
         else garage('🔍 වාහනය පරීක්ෂා කරමින් සිටී.');
         break;
       case 'repairing':
-        garage('🔧 අලුත්වැඩියාව ආරම්භ කළා.');
+        garage(next.diagnosisSkipped && !prev.diagnosisSkipped ? '🔧 පරීක්ෂා වාර්තාවක් නොමැතිව එකඟ වූ වැඩ ආරම්භ කළා.' : '🔧 අලුත්වැඩියාව ආරම්භ කළා.');
         break;
       case 'readyForHandover':
         garage(`🔑 වැඩ අවසන් — භාරදීමට සූදානම්${fitted.length ? ` · සවි කළ කොටස්: ${names(fitted)}` : ''}. ඔබගේ කේතය අවශ්‍යයි.`, next.handover?.afterPhotos, { kind: 'handover' });

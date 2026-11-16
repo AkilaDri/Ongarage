@@ -57,7 +57,7 @@ export const PaymentNote: React.FC<{ booking: Booking }> = ({ booking: b }) => {
 
       {pay.claim?.status === 'pending' && (
         <View style={styles.claim}>
-          <Text style={styles.text}>🧾 පාරිභෝගිකයා කියන්නේ රු. {pay.claim.amount.toLocaleString('en-US')} ක් ගෙවූ බවයි. ලැබුණාද?</Text>
+          <Text style={styles.text}>🧾 පාරිභෝගිකයා කියන්නේ LKR {pay.claim.amount.toLocaleString('en-US')} ක් ගෙවූ බවයි. ලැබුණාද?</Text>
           <View style={styles.row}>
             <View style={styles.flex1}>
               <ActionButton label="ලැබුණා" icon="✓" variant="success" compact onPress={() => answerPaymentClaim(b.id, true)} />

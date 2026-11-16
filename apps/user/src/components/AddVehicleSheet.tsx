@@ -9,7 +9,6 @@ import {
   Platform,
   Pressable,
   ScrollView,
-  useWindowDimensions,
   StyleSheet,
   Text,
   TextInput,
@@ -25,35 +24,13 @@ import type { Vehicle } from '@ongarage/shared';
 // Sri Lankan plates: optional province letters, 2–3 letters (or digits), dash, 4 digits.
 const PLATE_PATTERN = /^([A-Z]{2}-)?([A-Z]{2,3}|\d{2,3})-\d{4}$/;
 
-// A labelled field: the label sits above the box, so the example inside it is never mistaken for a value.
-const Field: React.FC<React.ComponentProps<typeof TextInput> & { label: string; error?: string | null; hint?: string }> = ({ label, error, hint, style, ...input }) => (
-  <>
-    <Text style={styles.label}>{label}</Text>
-    <TextInput style={[styles.input, error ? styles.inputError : null, style]} placeholderTextColor={Colors.textSoft} {...input} />
-    {!!hint && !error && <Text style={styles.hintText}>{hint}</Text>}
-    {!!error && <Text style={styles.error}>{error}</Text>}
-  </>
-);
-
 interface AddVehicleSheetProps {
   visible: boolean;
   onClose: () => void;
-  onAdded: (vehicle: Vehicle, ownerPhone?: string) => void;
-  /** False: the details are only handed back (a vehicle for one job, such as a towed friend's car) and the owner's list is not changed. */
-  keepInList?: boolean;
-  /** True hides the optional details section (the towing flow asks only for what it needs). */
-  hideDetails?: boolean;
-  /** Asks for the phone number of the vehicle's owner (a car brought in for someone else). Handed back with the vehicle. */
-  ownerPhone?: boolean;
-  /** Set: the sheet fills the screen from this distance down (it lines up with the panel behind it), instead of the usual height. */
-  topInset?: number;
-  /** The heading; the default is for the owner's own vehicles. */
-  title?: string;
+  onAdded: (vehicle: Vehicle) => void;
 }
 
-export const AddVehicleSheet: React.FC<AddVehicleSheetProps> = ({ visible, onClose, onAdded, keepInList = true, hideDetails = false, ownerPhone = false, topInset, title = 'නව වාහනයක් එක් කරන්න' }) => {
-  const { height: windowH } = useWindowDimensions();
-  const [friendPhone, setFriendPhone] = useState('');
+export const AddVehicleSheet: React.FC<AddVehicleSheetProps> = ({ visible, onClose, onAdded }) => {
   const { vehicles, addVehicle } = useVehicles();
   const [mounted, setMounted] = useState(visible);
   const [name, setName] = useState('');
@@ -67,7 +44,6 @@ export const AddVehicleSheet: React.FC<AddVehicleSheetProps> = ({ visible, onClo
   const [color, setColor] = useState('');
   const [insuranceNo, setInsuranceNo] = useState('');
   const [touched, setTouched] = useState(false);
-  const [showDetails, setShowDetails] = useState(false);
   const [saved, setSaved] = useState<Vehicle | null>(null);
   const slide = useRef(new Animated.Value(0)).current;
   const iconPop = useRef(new Animated.Value(1)).current;
@@ -87,7 +63,6 @@ export const AddVehicleSheet: React.FC<AddVehicleSheetProps> = ({ visible, onClo
       setColor('');
       setInsuranceNo('');
       setTouched(false);
-      setShowDetails(false);
       setSaved(null);
       success.setValue(0);
       Animated.spring(slide, { toValue: 1, stiffness: 200, damping: 24, mass: 1, useNativeDriver: true }).start();
@@ -117,18 +92,16 @@ export const AddVehicleSheet: React.FC<AddVehicleSheetProps> = ({ visible, onClo
         : duplicate
           ? 'මෙම අංකය සහිත වාහනයක් දැනටමත් ඇත'
           : null;
-  const phoneValid = friendPhone.replace(/\D/g, '').length >= 9;
-  const valid = !!name.trim() && PLATE_PATTERN.test(cleanPlate) && !duplicate && (!ownerPhone || phoneValid);
+  const valid = !!name.trim() && PLATE_PATTERN.test(cleanPlate) && !duplicate;
   const typeInfo = VEHICLE_TYPES.find((t) => t.id === type) ?? VEHICLE_TYPES[0];
 
   const save = () => {
     setTouched(true);
     if (!valid) return;
-    const details = { name: name.trim(), plate: cleanPlate, type, registrationNo, chassisNo, engineNo, make, model, color, insuranceNo };
-    const vehicle: Vehicle = keepInList ? addVehicle(details) : { ...details, id: `job-${Date.now()}` };
+    const vehicle = addVehicle({ name: name.trim(), plate: cleanPlate, type, registrationNo, chassisNo, engineNo, make, model, color, insuranceNo });
     setSaved(vehicle);
     Animated.spring(success, { toValue: 1, friction: 5, tension: 70, useNativeDriver: true }).start();
-    setTimeout(() => onAdded(vehicle, ownerPhone ? friendPhone.trim() : undefined), 1100);
+    setTimeout(() => onAdded(vehicle), 1100);
   };
 
   if (!mounted) return null;
@@ -141,29 +114,17 @@ export const AddVehicleSheet: React.FC<AddVehicleSheetProps> = ({ visible, onClo
 
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.anchor} pointerEvents="box-none">
         <Animated.View
-          style={[styles.sheet, topInset != null && { maxHeight: undefined, height: windowH - topInset }, { transform: [{ translateY: slide.interpolate({ inputRange: [0, 1], outputRange: [520, 0] }) }] }]}
+          style={[styles.sheet, { transform: [{ translateY: slide.interpolate({ inputRange: [0, 1], outputRange: [520, 0] }) }] }]}
         >
           <View style={styles.handle} />
           <View style={styles.headerRow}>
-            <Text style={styles.title}>{title}</Text>
+            <Text style={styles.title}>නව වාහනයක් එක් කරන්න</Text>
             <Pressable style={styles.closeBtn} onPress={onClose} hitSlop={8}>
               <Text style={styles.closeText}>✕</Text>
             </Pressable>
           </View>
 
           <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={styles.body}>
-            {/* A vehicle for someone else's tow: say so at the top, so it is never taken for the owner's own vehicle. */}
-            {!keepInList && (
-              <View style={styles.otherBanner} accessibilityLabel="This vehicle is not added to your list">
-                <View style={styles.otherIcon}>
-                  <Text style={styles.otherIconText}>i</Text>
-                </View>
-                <View style={styles.flex1}>
-                  <Text style={styles.otherTitle}>වෙනත් අයෙකුගේ වාහනයක්</Text>
-                  <Text style={styles.otherText}>ඔබේ වාහන ලැයිස්තුවට එක් නොවේ. මෙය Towing ඉල්ලීම සඳහා පමණයි.</Text>
-                </View>
-              </View>
-            )}
             <View style={styles.preview}>
               <Animated.View style={[styles.previewIcon, { transform: [{ scale: iconPop }] }]}>
                 <VehicleIcon3D type={typeInfo.id} size={50} />
@@ -184,15 +145,9 @@ export const AddVehicleSheet: React.FC<AddVehicleSheetProps> = ({ visible, onClo
                 return (
                   <Pressable key={t.id} style={styles.typeItem} onPress={() => pickType(t.id)}>
                     <View style={[styles.typeTile, active && styles.typeTileActive]}>
-                      <VehicleIcon3D type={t.id} size={52} />
-                      {/* The SOS breakdown's tick: a disc on the tile's top-right corner. */}
-                      {active && (
-                        <View style={styles.typeTick}>
-                          <Text style={styles.typeTickText}>✓</Text>
-                        </View>
-                      )}
+                      <VehicleIcon3D type={t.id} size={40} />
                     </View>
-                    <Text style={[styles.typeLabel, active && { color: '#1a73e8' }]} numberOfLines={1}>
+                    <Text style={[styles.typeLabel, active && { color: Colors.primary }]} numberOfLines={1}>
                       {t.label}
                     </Text>
                   </Pressable>
@@ -200,61 +155,42 @@ export const AddVehicleSheet: React.FC<AddVehicleSheetProps> = ({ visible, onClo
               })}
             </View>
 
-            <Field
-              label="වාහනයේ නම / මාදිලිය *"
+            <Text style={styles.label}>වාහනයේ නම / මාදිලිය</Text>
+            <TextInput
+              style={[styles.input, nameError && styles.inputError]}
               placeholder="උදා: Toyota Aqua"
+              placeholderTextColor={Colors.textMuted}
               value={name}
               onChangeText={setName}
               maxLength={32}
-              error={nameError}
             />
+            {nameError && <Text style={styles.error}>{nameError}</Text>}
 
-            <Field
-              label="අංක තහඩුව *"
+            <Text style={styles.label}>අංක තහඩුව</Text>
+            <TextInput
+              style={[styles.input, styles.plateInput, plateError && styles.inputError]}
               placeholder="උදා: CAB-1234"
+              placeholderTextColor={Colors.textMuted}
               autoCapitalize="characters"
               autoCorrect={false}
               value={plate}
-              onChangeText={(t) => setPlate(t.toUpperCase())}
+              onChangeText={setPlate}
               maxLength={14}
-              style={styles.plateInput}
-              error={plateError}
-              hint="ශ්‍රී ලංකා ආකෘතිය: CAB-1234 හෝ WP-CAB-1234"
             />
+            {plateError && <Text style={styles.error}>{plateError}</Text>}
 
-            {ownerPhone && (
-              <Field
-                label="වාහන හිමිකරුගේ දුරකථන අංකය *"
-                placeholder="07X XXX XXXX"
-                keyboardType="phone-pad"
-                value={friendPhone}
-                onChangeText={setFriendPhone}
-                maxLength={15}
-                hint="රියදුරා වාහනයේ හිමිකරුට කතා කරන්න මෙය ඕන."
-              />
-            )}
-
-            {/* The rest is optional: collapsed, so the form stays short until the owner wants more. */}
-            {!hideDetails && (
-              <Pressable style={styles.detailsToggle} onPress={() => setShowDetails((v) => !v)} accessibilityLabel="Vehicle details, optional">
-                <Text style={styles.detailsToggleText}>{showDetails ? '▾' : '▸'} වාහනයේ විස්තර (විකල්පයි)</Text>
-              </Pressable>
-            )}
-            {!hideDetails && showDetails && (
-              <>
-                <Field label="ලියාපදිංචි අංකය" placeholder="උදා: 12-3456" value={registrationNo} onChangeText={setRegistrationNo} maxLength={32} />
-                <Field label="Chassis අංකය" placeholder="උදා: MR0FR22G..." value={chassisNo} onChangeText={setChassisNo} maxLength={32} />
-                <Field label="Engine අංකය" placeholder="උදා: 1NZ-1234567" value={engineNo} onChangeText={setEngineNo} maxLength={32} />
-                <Field label="Make" placeholder="උදා: Toyota" value={make} onChangeText={setMake} maxLength={32} />
-                <Field label="Model" placeholder="උදා: Aqua" value={model} onChangeText={setModel} maxLength={32} />
-                <Field label="Color" placeholder="උදා: Pearl White" value={color} onChangeText={setColor} maxLength={32} />
-                <Field label="Insurance Number" placeholder="උදා: INS-000123" value={insuranceNo} onChangeText={setInsuranceNo} maxLength={32} />
-              </>
-            )}
+            <Text style={styles.label}>වාහනයේ විස්තරයන්</Text>
+            <TextInput style={styles.input} placeholder="ලියාපදිංචි අංකය" placeholderTextColor={Colors.textMuted} value={registrationNo} onChangeText={setRegistrationNo} maxLength={32} />
+            <TextInput style={styles.input} placeholder="Chassis අංකය" placeholderTextColor={Colors.textMuted} value={chassisNo} onChangeText={setChassisNo} maxLength={32} />
+            <TextInput style={styles.input} placeholder="Engine අංකය" placeholderTextColor={Colors.textMuted} value={engineNo} onChangeText={setEngineNo} maxLength={32} />
+            <TextInput style={styles.input} placeholder="Make" placeholderTextColor={Colors.textMuted} value={make} onChangeText={setMake} maxLength={32} />
+            <TextInput style={styles.input} placeholder="Model" placeholderTextColor={Colors.textMuted} value={model} onChangeText={setModel} maxLength={32} />
+            <TextInput style={styles.input} placeholder="Color" placeholderTextColor={Colors.textMuted} value={color} onChangeText={setColor} maxLength={32} />
+            <TextInput style={styles.input} placeholder="Insurance Number" placeholderTextColor={Colors.textMuted} value={insuranceNo} onChangeText={setInsuranceNo} maxLength={32} />
           </ScrollView>
 
           <View style={styles.footer}>
-            <ActionButton label={valid ? (keepInList ? 'වාහනය එක් කරන්න' : 'Towing ඉල්ලීමට පමණයි') : !name.trim() ? 'නම ඇතුළත් කරන්න' : 'අංක තහඩුව ඇතුළත් කරන්න'} icon="＋" variant="primary" disabled={!valid} onPress={save} />
+            <ActionButton label="වාහනය එක් කරන්න" icon="＋" variant="primary" disabled={touched && !valid} onPress={save} />
           </View>
 
           {saved && (
@@ -281,7 +217,7 @@ const styles = themedStyles(() =>
     anchor: { flex: 1, justifyContent: 'flex-end' },
     sheet: { maxHeight: '88%', backgroundColor: Colors.sheetBg, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 10, overflow: 'hidden' },
     handle: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: Colors.subtleBorder },
-    headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, paddingTop: 12, paddingBottom: 8, backgroundColor: Colors.sheetBg, zIndex: 2 },
+    headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, paddingTop: 12 },
     title: { fontSize: 20, lineHeight: 28, fontFamily: FONTS.titleBold, color: Colors.textMain },
     closeBtn: {
       width: 30,
@@ -295,11 +231,6 @@ const styles = themedStyles(() =>
     },
     closeText: { fontSize: 12, color: Colors.textMain },
     body: { paddingHorizontal: 6, paddingVertical: 18, gap: 10 },
-    otherBanner: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 14, backgroundColor: 'rgba(26, 115, 232, 0.10)', borderWidth: 1, borderColor: 'rgba(26, 115, 232, 0.35)' },
-    otherIcon: { width: 28, height: 28, borderRadius: 14, backgroundColor: '#1a73e8', alignItems: 'center', justifyContent: 'center' },
-    otherIconText: { fontSize: 15, fontFamily: FONTS.titleBold, color: '#ffffff' },
-    otherTitle: { fontSize: 13.5, fontFamily: FONTS.titleBold, color: '#1d367f' },
-    otherText: { fontSize: 12, fontFamily: FONTS.bodyRegular, color: '#1d367f', lineHeight: 17, marginTop: 2 },
     preview: { flexDirection: 'row', alignItems: 'center', gap: 16, padding: 16, backgroundColor: Colors.bgCard, borderRadius: 12, borderWidth: 1, borderColor: outline(), ...elevation1(), marginBottom: 4 },
     previewIcon: { width: 72, height: 72, borderRadius: 12, ...glassStyle(), justifyContent: 'center', alignItems: 'center' },
     previewEmoji: { fontSize: 38 },
@@ -317,14 +248,12 @@ const styles = themedStyles(() =>
     },
     plateText: { fontSize: 12, fontWeight: '800', color: Colors.primary, letterSpacing: 1 },
     label: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, letterSpacing: 0.4, marginTop: 6 },
-    types: { flexDirection: 'row', flexWrap: 'wrap', rowGap: 12 },
-    typeItem: { width: '33.33%', alignItems: 'center', gap: 6 },
-    typeTile: { width: 84, height: 80, borderRadius: 10, backgroundColor: 'rgba(143, 155, 176, 0.2)', borderWidth: 2, borderColor: 'transparent', justifyContent: 'center', alignItems: 'center' },
-    typeTick: { position: 'absolute', top: -6, right: -6, width: 22, height: 22, borderRadius: 11, backgroundColor: '#1a73e8', alignItems: 'center', justifyContent: 'center', zIndex: 2 },
-    typeTickText: { fontSize: 12, fontFamily: FONTS.bodyBold, color: '#ffffff' },
-    typeTileActive: { backgroundColor: 'rgba(26, 115, 232, 0.16)', borderColor: '#1a73e8', borderWidth: 3 },
+    types: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+    typeItem: { width: 64, alignItems: 'center', gap: 5 },
+    typeTile: { width: 56, height: 56, borderRadius: 17, ...glassStyle(), justifyContent: 'center', alignItems: 'center' },
+    typeTileActive: { backgroundColor: 'rgba(56, 189, 248, 0.2)', borderColor: Colors.primary, shadowColor: Colors.primary, shadowOpacity: 0.5 },
     typeEmoji: { fontSize: 26 },
-    typeLabel: { fontSize: 10.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain, textAlign: 'center' },
+    typeLabel: { fontSize: 10, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
     input: {
       height: 46,
       paddingHorizontal: 14,
@@ -337,9 +266,6 @@ const styles = themedStyles(() =>
       fontFamily: FONTS.bodyMedium,
     },
     plateInput: { letterSpacing: 1.5, fontWeight: '700' },
-    hintText: { fontSize: 11, fontFamily: FONTS.bodyRegular, color: Colors.textSoft },
-    detailsToggle: { paddingVertical: 12, marginTop: 6, borderTopWidth: 1, borderTopColor: Colors.borderColor },
-    detailsToggleText: { fontSize: 14, fontFamily: FONTS.bodyBold, color: '#1d4ed8' },
     inputError: { borderColor: Colors.error },
     error: { fontSize: 10.5, fontFamily: FONTS.bodyMedium, color: Colors.errorText },
     footer: { padding: 16, paddingTop: 10, borderTopWidth: 1, borderTopColor: Colors.borderColor, backgroundColor: Colors.barBg },

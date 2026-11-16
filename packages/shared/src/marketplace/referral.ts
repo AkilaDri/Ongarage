@@ -116,7 +116,7 @@ export const statementTotals = (rows: ReferralStatement[]) =>
  * per garage or shop, and the totals. `rows` pairs each statement row with the name to show.
  */
 export const statementText = (heading: string, rows: { name: string; row: ReferralStatement }[]): string => {
-  const money = (n: number) => `රු. ${Math.round(n).toLocaleString('en-US')}`;
+  const money = (n: number) => `LKR ${Math.round(n).toLocaleString('en-US')}`;
   const lines = rows.map(({ name, row }) => `• ${name}: යොමු ${row.referrals}, මිලදී ගත් ${row.purchases}${row.returned ? `, ආපසු ${row.returned}` : ''}, කොටස් ${money(row.partsValue)}, කොමිස් ${money(row.commission)}`);
   const t = statementTotals(rows.map((r) => r.row));
   return [heading, ...lines, `එකතුව: යොමු ${t.referrals}, මිලදී ගත් ${t.purchases}, කොටස් ${money(t.partsValue)}, කොමිස් ${money(t.commission)}`].join('\n');

@@ -209,7 +209,7 @@ export const PartsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const garage = { id: profile.id, name: profile.name, phone: profile.phone, address: profile.address, coords: profile.coords, rating: rating.average };
       const r: PartsRequest = { ...input, garage, id: `pr-${now}`, createdAt: now, quoteUntil: now + windowMin * MIN, status: 'open', searching: true };
       setRequests((prev) => [r, ...prev]);
-      notify({ icon: '📨', title: 'කොටස් ඉල්ලීම යැව්වා', body: `${r.radiusKm} km ඇතුළත කොටස් වෙළඳසැල් වෙත.`, tone: 'primary' });
+      notify({ icon: '📨', title: 'කොටස් ඉල්ලීම යැව්වා', body: `km ${r.radiusKm} ඇතුළත කොටස් වෙළඳසැල් වෙත.`, tone: 'primary' });
       runSearch(r, allowedTypes(r));
       return r.id;
     },
@@ -313,7 +313,7 @@ export const PartsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       patchRequest(r.id, { status: 'received' });
       const total = orderTotal(o, q);
       addPartsCost(r.bookingId, total);
-      notify({ icon: '✅', title: 'කොටස් ලැබුණා', body: `රු. ${total.toLocaleString()} — වාහන හිමිකරුගේ කොටස් බිල්පතට එක් විය.`, tone: 'success' });
+      notify({ icon: '✅', title: 'කොටස් ලැබුණා', body: `LKR ${total.toLocaleString()} — වාහන හිමිකරුගේ කොටස් බිල්පතට එක් විය.`, tone: 'success' });
     },
     [addPartsCost, notify, patchOrder, patchRequest]
   );

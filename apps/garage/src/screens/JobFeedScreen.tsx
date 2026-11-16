@@ -1,5 +1,5 @@
 import { onFly, registerFlyTarget } from '../utils/fly';
-import { JobsLineIcon, OrdersLineIcon } from '@ongarage/shared';
+import { JobsLineIcon, OrdersLineIcon, MoneyText } from '@ongarage/shared';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import { CustomerHistoryTag } from '../components/CustomerHistory';
 import { WaitingDots } from '../components/WaitingDots';
@@ -523,7 +523,7 @@ export const JobFeedScreen: React.FC<{ shift: Animated.Value; onScrollY: (y: num
     const s = STATUS[bid.status];
     return (
       <Pressable key={bid.id} style={[styles.card, bid.status === 'withdrawn' && styles.dim]} onPress={() => setDetail({ kind: 'myBid', id: bid.id })} accessibilityLabel={`${cat.name} bid details`}>
-        {cardHeader(cat.icon, cat.name, `${bid.job.vehicle.name} · ${bid.job.customer.name} · ${ago(now - bid.submittedAt)}`, <Text style={styles.price}>{money(bid.price)}</Text>)}
+        {cardHeader(cat.icon, cat.name, `${bid.job.vehicle.name} · ${bid.job.customer.name} · ${ago(now - bid.submittedAt)}`, <MoneyText style={styles.price}>{money(bid.price)}</MoneyText>)}
         <View style={styles.cardBody}>{chips([bid.warrantyMonths ? `🛡️ මාස ${bid.warrantyMonths} වගකීම` : 'වගකීමක් නැත', `⏱️ පැය ${bid.estHours}`, !!bid.travelFee && `🚗 ගමන් ගාස්තුව ඇතුළුව ${money(bid.travelFee)}`, !!bid.job.fitting && fittingLabel(bid.job.fitting)])}</View>
         {/* A bid the garage has won: the customer's record with this garage is shown now (it stays private while the job is only open for bids). */}
         {bid.status === 'won' && (
@@ -756,21 +756,22 @@ const styles = themedStyles(() =>
     // One soft track with a raised active segment, instead of separate pills and badges.
     // The bar sits on top of the list layer, which starts under it and reaches one bar-height past the bottom.
     listLayer: { position: 'absolute', left: 0, right: 0 },
-    tabBar: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 5, paddingHorizontal: 6, paddingTop: 14, paddingBottom: 2, backgroundColor: pageBg() },
+    tabBar: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 5, paddingHorizontal: 10, paddingTop: 12, paddingBottom: 2, backgroundColor: pageBg() },
     // The three views are three separate chips: each its own outlined chip, the selected one tonal blue, the count a badge in it.
-    segRow: { flexDirection: 'row', gap: 8 },
-    segChip: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, height: 44, paddingHorizontal: 6, borderRadius: 12, borderWidth: 1, borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#dadce0', backgroundColor: Colors.bgCard, shadowColor: '#3c4043', shadowOffset: { width: 0, height: 1 }, shadowOpacity: getThemeMode() === 'dark' ? 0.4 : 0.15, shadowRadius: 3, elevation: 1 },
-    segChipOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe', borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#d2e3fc' },
+    // The same tabs as every other page: one track (padding 5 keeps it clear of the shared card rule), the open one a light blue segment; the SOS tab keeps its red ring.
+    segRow: { flexDirection: 'row', backgroundColor: 'transparent', borderBottomWidth: 1, borderBottomColor: getThemeMode() === 'dark' ? Colors.borderColor : '#e5e7eb' },
+    segChip: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, height: 46, paddingHorizontal: 6, borderBottomWidth: 3, borderBottomColor: 'transparent' },
+    segChipOn: { borderBottomColor: '#2563eb' },
     swapSlot: { flex: 1 },
     segChipSos: { borderColor: '#ee675c' },
     sosRing: { ...StyleSheet.absoluteFill, borderRadius: 12, borderWidth: 2, borderColor: '#ee675c' },
     sosGlow: { ...StyleSheet.absoluteFill, borderRadius: 12, backgroundColor: '#ef4444' },
-    segChipText: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, flexShrink: 1 },
-    segChipTextOn: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
-    segCount: { position: 'absolute', top: -9, right: 6, minWidth: 20, height: 20, paddingHorizontal: 5, borderRadius: 10, borderWidth: 2, borderColor: pageBg(), alignItems: 'center', justifyContent: 'center', backgroundColor: '#1a73e8' },
-    segCountOn: { backgroundColor: '#1a73e8' },
+    segChipText: { fontSize: 12, fontFamily: FONTS.bodyMedium, color: getThemeMode() === 'dark' ? Colors.textMuted : '#64748b', flexShrink: 1 },
+    segChipTextOn: { fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? Colors.textMain : '#111827' },
+    segCount: { position: 'absolute', top: -7, right: 6, minWidth: 16, height: 16, paddingHorizontal: 3, borderRadius: 6, borderWidth: 1.5, borderColor: pageBg(), alignItems: 'center', justifyContent: 'center', backgroundColor: '#2563eb' },
+    segCountOn: { backgroundColor: '#2563eb' },
     segCountAlert: { backgroundColor: '#ef4444' },
-    segCountText: { fontSize: 10.5, fontFamily: FONTS.bodyBold, color: '#ffffff' },
+    segCountText: { fontSize: 8.5, fontFamily: FONTS.bodyBold, color: '#ffffff' },
     segCountTextOn: {},
 
     body: { paddingVertical: 16, paddingHorizontal: 6, paddingTop: 4, gap: 14, paddingBottom: 250 },

@@ -12,6 +12,8 @@ import {
   ExtraByPhoneSheet,
   FONTS,
   HandoverSheet,
+  buildBill,
+  shareBill,
   partMarketPrice,
   pendingExtra,
   PhotoStrip,
@@ -51,7 +53,7 @@ export const PARTS_LABEL: Record<TechPartsStatus, { text: string; color: () => s
  * with the owner's QR / code.
  */
 export const WorkshopJobSheet: React.FC<{ job: TechJob | null; onClose: () => void }> = ({ job, onClose }) => {
-  const { duty, acceptJob, declineJob, receiveVehicle, sendDiagnosis, requestExtraWork, approveExtraByPhone, holdExtraForOwner, deferExtraWork, markReadyForHandover, closeWorkshopJob, setNotes } = useTech();
+  const { duty, acceptJob, declineJob, receiveVehicle, sendDiagnosis, requestExtraWork, approveExtraByPhone, holdExtraForOwner, deferExtraWork, skipDiagnosis, markReadyForHandover, markBillShared, closeWorkshopJob, setNotes } = useTech();
   const [step, setStep] = useState<StepSheet>(null);
   const [shown, setShown] = useState<TechJob | null>(job);
   const [declining, setDeclining] = useState(false);
@@ -121,7 +123,7 @@ export const WorkshopJobSheet: React.FC<{ job: TechJob | null; onClose: () => vo
     switch (p.stage) {
       case 'received':
       case 'diagnosing':
-        return <ActionButton label="පරීක්ෂා වාර්තාව ලියන්න" icon="🔍" variant="primary" onPress={() => setStep('diagnosis')} />;
+        return <ActionButton label="වැඩ ආරම්භ කරන්න" icon="🔧" variant="primary" onPress={() => skipDiagnosis(j.id)} />;
       case 'repairing':
         return (
           <View style={styles.actions}>
@@ -146,7 +148,35 @@ export const WorkshopJobSheet: React.FC<{ job: TechJob | null; onClose: () => vo
           </View>
         );
       case 'readyForHandover':
-        return <ActionButton label="අයිතිකරුගේ කේතයෙන් අවසන් කරන්න" icon="🔳" variant="success" onPress={() => setStep('close')} />;
+        return (
+          <>
+            {/* The final bill as a PDF to send to the customer. */}
+            <ActionButton
+              label="බිල්පත PDF ලෙස බෙදාගන්න"
+              icon="📄"
+              variant="ghost"
+              onPress={() => {
+                if (!p?.handover) return;
+                markBillShared(j.id);
+                void shareBill(
+                  buildBill({
+                    id: j.id,
+                    issuedAt: p.handover.readyAt,
+                    garage: { name: j.garage.name },
+                    customer: { name: j.customer.name, phone: j.customer.phone },
+                    vehicle: j.vehicle.name + ' · ' + j.vehicle.plate,
+                    title: j.title,
+                    agreedPrice: w.agreedPrice,
+                    progress: p,
+                  })
+                );
+              }}
+            />
+            {!p?.billSharedAt && <Text style={styles.waiting}>📄 පළමුව බිල්පත පාරිභෝගිකයාට යවන්න. ඔවුන් එය විවෘත කළාට පසු QR කේතයෙන් රැකියාව අවසන් කරන්න.</Text>}
+            {!!p?.billSharedAt && !p.billOpenedAt && <Text style={styles.waiting}>⏳ පාරිභෝගිකයා බිල්පත විවෘත කරන තුරු රැඳී සිටින්න — එවිට කේතය සාදයි.</Text>}
+            <ActionButton label="අයිතිකරුගේ කේතයෙන් අවසන් කරන්න" icon="🔳" variant="success" disabled={!p?.billOpenedAt} onPress={() => setStep('close')} />
+          </>
+        );
       default:
         return undefined;
     }
@@ -303,6 +333,7 @@ export const WorkshopJobSheet: React.FC<{ job: TechJob | null; onClose: () => vo
 
 const styles = themedStyles(() =>
   StyleSheet.create({
+    waiting: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.warning, lineHeight: 19 },
     flex1: { flex: 1 },
     flex2: { flex: 2 },
     actions: { flexDirection: 'row', gap: 8 },

@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { approvedLines, CheckInSheet, CloseJobSheet, Colors, DiagnosisSheet, ExtraByPhoneSheet, FONTS, getThemeMode, HandoverSheet, isServiceCategory, partMarketPrice, pendingExtra, themedStyles, workshopBill } from '@ongarage/shared';
 import { useGarage } from '../context/GarageContext';
 import { useParts } from '../context/PartsContext';
+import { sendJobBill } from '../utils/jobBill';
 import { chatKey, useChat } from '../context/ChatContext';
 import { callCustomer, serviceMode } from '../utils/contact';
 import { money } from '../utils/format';
@@ -12,7 +13,7 @@ import { FitRequestNote } from './FitRequestNote';
 import { PaymentNote } from './PaymentNote';
 import { CustomerRatingNote } from './CustomerRatingNote';
 
-type SheetId = 'checkIn' | 'diagnosis' | 'extra' | 'extraPhone' | 'handover' | 'close' | null;
+type SheetId = 'checkIn' | 'diagnosis' | 'skip' | 'bill' | 'extra' | 'extraPhone' | 'handover' | 'close' | null;
 
 /**
  * What the garage can do about the job without leaving its chat, from the vehicle arriving to the job closing: confirm the vehicle was received (with its
@@ -20,7 +21,7 @@ type SheetId = 'checkIn' | 'diagnosis' | 'extra' | 'extraPhone' | 'handover' | '
  * vehicle over (report and bill), close the job with the owner's code, and rework a problem the owner reported. Each step also goes into the chat as an update line, and the customer answers from the same chat.
  */
 export const ChatJobActions: React.FC<{ id: string }> = ({ id }) => {
-  const { bookings, profile, notify, receiveVehicle, sendDiagnosis, editDiagnosis, editExtraWork, editCheckIn, requestExtraWork, approveExtraByPhone, holdExtraForOwner, deferExtraWork, markReadyForHandover, startRework, closeWorkshopJob } = useGarage();
+  const { bookings, profile, notify, receiveVehicle, sendDiagnosis, editDiagnosis, editExtraWork, editCheckIn, requestExtraWork, approveExtraByPhone, holdExtraForOwner, deferExtraWork, skipDiagnosis, markReadyForHandover, markBillShared, startRework, closeWorkshopJob } = useGarage();
   const { requestFor, requestsFor, toOrderFor, ownerPending } = useParts();
   const { logCall, editReq, clearEditReq, rewriteReport, rewriteCheckIn } = useChat();
   const [sheet, setSheet] = useState<SheetId>(null);
@@ -72,11 +73,13 @@ export const ChatJobActions: React.FC<{ id: string }> = ({ id }) => {
   if (onHold) {
     // (no steps)
   } else if (p.stage === 'booked') actions.push({ id: 'checkIn', icon: '🚗', label: mode === 'doorstep' ? 'පැමිණියා' : 'ලැබුණා', primary: true });
-  if (!onHold && (p.stage === 'received' || p.stage === 'diagnosing')) actions.push({ id: 'diagnosis', icon: '🔍', label: 'වාර්තාව', primary: true });
+  if (!onHold && (p.stage === 'received' || p.stage === 'diagnosing')) actions.push({ id: 'skip', icon: '🔧', label: 'වැඩ ආරම්භ කරන්න', primary: true });
   if (!onHold && p.stage === 'repairing' && !extraWaiting) actions.push({ id: 'extra', icon: '➕', label: 'කොටසක් / වැඩක් ඉල්ලන්න' });
   if (!onHold && p.stage === 'repairing') actions.push({ id: 'handover', icon: '✅', label: 'අවසන්', primary: !extraWaiting });
   if (!onHold && p.stage === 'repairing' && extraWaiting) actions.push({ id: 'extraPhone', icon: '📞', label: 'ඇමතුම' });
-  if (!onHold && p.stage === 'readyForHandover') actions.push({ id: 'close', icon: '🔳', label: 'කේතයෙන් අවසන්', primary: true });
+  // The bill goes to the customer first; only then can the job be closed with the owner's code.
+  if (!onHold && p.stage === 'readyForHandover' && !p.billSharedAt) actions.push({ id: 'bill', icon: '📄', label: 'බිල්පත යවන්න', primary: true });
+  if (!onHold && p.stage === 'readyForHandover' && p.billOpenedAt) actions.push({ id: 'close', icon: '🔳', label: 'කේතයෙන් අවසන්', primary: true });
 
   return (
     <View style={styles.wrap}>
@@ -102,7 +105,7 @@ export const ChatJobActions: React.FC<{ id: string }> = ({ id }) => {
       {actions.length > 0 && (
         <View style={styles.row}>
           {actions.map((a) => (
-            <Pressable key={a.id} style={[styles.btn, a.primary && styles.btnPrimary]} onPress={() => setSheet(a.id)} accessibilityLabel={a.label}>
+            <Pressable key={a.id} style={[styles.btn, a.primary && styles.btnPrimary]} onPress={() => (a.id === 'skip' ? skipDiagnosis(b.id) : a.id === 'bill' ? void sendJobBill(b, profile).then((how) => how && markBillShared(b.id)) : setSheet(a.id))} accessibilityLabel={a.label}>
               <Text style={styles.icon}>{a.icon}</Text>
               <Text style={[styles.label, a.primary && styles.labelPrimary]}>{a.label}</Text>
             </Pressable>

@@ -63,7 +63,7 @@ const styles = themedStyles(() =>
     rowClip: { flex: 1, overflow: 'hidden' },
     row: { gap: 8, paddingRight: 16 },
     chip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingLeft: 8, paddingRight: 11, height: 34, borderRadius: 17, borderWidth: 1, borderColor: outline(), backgroundColor: Colors.bgCard, ...elevation1() },
-    pressed: { opacity: 0.75, backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe' },
+    pressed: { opacity: 0.75, backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#eff6ff' },
     label: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
   })
 );

@@ -2,9 +2,9 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle, Line } from 'react-native-svg';
-import { ActionButton, Colors, distanceKm, FONTS, geocodeAddress, ModalCard, reverseGeocode, themedStyles, TOW_SITE_LIST, zoomToFit, type LatLng, type TowSite } from '@ongarage/shared';
+import { ActionButton, Colors, distanceKm, FONTS, geocodeAddress, ModalCard, reverseGeocode, themedStyles, zoomToFit, type LatLng, type TowSite } from '@ongarage/shared';
+import { TowButton } from './TowButton';
 import { useUserLocation } from '../../context/LocationContext';
-import { TOW_SITE_TEXT } from '../../constants/towSites';
 import { elevation1, outline } from '../../utils/material';
 import { AppMap } from '../../components/map/AppMap';
 
@@ -65,8 +65,6 @@ export const TowRouteScreen: React.FC<{
   const [drop, setDrop] = useState<TowPlace | null>(start?.drop ?? null);
   const [active, setActive] = useState<Role>('pickup');
   // What the pickup spot is like. Optional: the owner names what the trucks must be ready for.
-  const [sites, setSites] = useState<TowSite[]>(start?.sites ?? []);
-  const toggleSite = (s: TowSite) => setSites((cur) => (cur.includes(s) ? cur.filter((x) => x !== s) : [...cur, s]));
   const [center, setCenter] = useState<LatLng>(start ? start.pickup.coords : user.coords);
   const [zoom, setZoom] = useState(14);
   const [resolving, setResolving] = useState(false);
@@ -170,7 +168,7 @@ export const TowRouteScreen: React.FC<{
   // Sent only after the owner has seen the summary and confirmed it.
   const send = () => {
     setAskConfirm(false);
-    if (drop && !tooClose && timingReady) onNext({ pickup, drop, sites, timing });
+    if (drop && !tooClose && timingReady) onNext({ pickup, drop, timing });
   };
 
   // The overview fits both places once, when it opens.
@@ -387,23 +385,6 @@ export const TowRouteScreen: React.FC<{
           </Text>
         )}
 
-        {/* The site, named before the trucks quote: the trucks that cannot do it are left out, and the labour is priced in. */}
-        {!!drop && (
-          <View style={styles.siteBox}>
-            <Text style={styles.siteTitle}>ස්ථානයේ තත්ත්වය</Text>
-            <View style={styles.siteRow}>
-              {TOW_SITE_LIST.map((s) => {
-                const on = sites.includes(s);
-                return (
-                  <Pressable key={s} style={[styles.siteChip, on && styles.siteChipOn]} onPress={() => toggleSite(s)} accessibilityLabel={`Site ${TOW_SITE_TEXT[s]}`} accessibilityState={{ selected: on }}>
-                    <Text style={[styles.siteText, on && styles.siteTextOn]}>{TOW_SITE_TEXT[s]}</Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          </View>
-        )}
-
         {/* The time, in the overview once both places are set: now, or a day and an hour. */}
         {!editing && drop && (
           <View style={styles.timeBox}>
@@ -450,15 +431,14 @@ export const TowRouteScreen: React.FC<{
         </ScrollView>
 
         {editing ? (
-          <Pressable style={styles.action} onPress={confirmPlace} accessibilityLabel="Confirm this place">
-            <Text style={styles.actionText}>{!drop && active === 'pickup' ? 'ඊළඟ: ගෙනයන තැන' : 'මෙතැන තහවුරු කරන්න'}</Text>
-          </Pressable>
+          <TowButton label={!drop && active === 'pickup' ? 'ඊළඟ: ගෙනයන තැන' : 'මෙතැන තහවුරු කරන්න'} onPress={confirmPlace} accessibilityLabel="Confirm this place" />
         ) : (
-          <Pressable style={[styles.action, !ready && styles.actionOff]} disabled={!ready} onPress={() => setAskConfirm(true)} accessibilityLabel="Confirm the trip">
-            <Text style={[styles.actionText, !ready && styles.actionTextOff]}>
-              {tooClose ? 'ස්ථාන දෙක වෙනස් කරන්න' : !timingReady ? 'දිනය සහ වේලාව තෝරන්න' : mode === 'now' ? 'ට්‍රක් සොයන්න' : 'ඉල්ලීම යවන්න'}
-            </Text>
-          </Pressable>
+          <TowButton
+            label={tooClose ? 'ස්ථාන දෙක වෙනස් කරන්න' : !timingReady ? 'දිනය සහ වේලාව තෝරන්න' : mode === 'now' ? 'ට්‍රක් සොයන්න' : 'ඉල්ලීම යවන්න'}
+            disabled={!ready}
+            onPress={() => setAskConfirm(true)}
+            accessibilityLabel="Confirm the trip"
+          />
         )}
       </View>
 
@@ -471,12 +451,11 @@ export const TowRouteScreen: React.FC<{
           rows={[
             { label: 'ගෙනයන තැන', value: placeTitle(drop) },
             { label: 'වේලාව', value: mode === 'now' ? 'මේ මොහොතේ' : `${dayLabel(dayOffset ?? 0)} ${hour ?? HOUR_CHIPS[0]}:00` },
-            { label: 'ස්ථානයේ තත්ත්වය', value: sites.length ? sites.map((s) => TOW_SITE_TEXT[s]).join(', ') : 'සාමාන්‍ය' },
           ]}
           body={`\n${mode === 'now' ? nowRule : (scheduleRule ?? nowRule)}`}
         >
           <ActionButton label="නැහැ" variant="ghost" compact onPress={() => setAskConfirm(false)} />
-          <ActionButton label="ඉල්ලීම යවන්න" variant="primary" compact onPress={send} />
+          <TowButton label="ඉල්ලීම යවන්න" onPress={send} />
         </ModalCard>
       )}
     </SafeAreaView>
@@ -488,7 +467,7 @@ const styles = themedStyles(() =>
     screen: { flex: 1, backgroundColor: Colors.bgBody },
     flex1: { flex: 1 },
     mapArea: { flex: 1 },
-    mapCanvas: { ...StyleSheet.absoluteFillObject, justifyContent: 'center', alignItems: 'center' },
+    mapCanvas: { ...StyleSheet.absoluteFill, justifyContent: 'center', alignItems: 'center' },
 
     topBar: { position: 'absolute', top: 12, left: 16, right: 16, flexDirection: 'row', alignItems: 'center', gap: 10 },
     roundBtn: { width: 46, height: 46, borderRadius: 23, backgroundColor: Colors.bgCard, alignItems: 'center', justifyContent: 'center', elevation: 3 },
@@ -548,15 +527,9 @@ const styles = themedStyles(() =>
     scaleLine: { height: 3, borderLeftWidth: 2, borderRightWidth: 2, borderBottomWidth: 2, borderColor: Colors.textMain },
     scaleText: { fontSize: 11, lineHeight: 15, fontFamily: FONTS.bodySemiBold, color: Colors.textMain, backgroundColor: 'rgba(255,255,255,0.7)', paddingHorizontal: 3 },
     actionText: { fontSize: 15, fontFamily: FONTS.bodyBold, color: '#ffffff' },
-    siteBox: { gap: 6 },
-    siteTitle: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
-    siteRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-    siteChip: { minHeight: 44, paddingHorizontal: 12, borderRadius: 18, backgroundColor: Colors.subtleFill, alignItems: 'center', justifyContent: 'center' },
-    siteChipOn: { backgroundColor: '#1d367f' },
-    siteText: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
-    siteTextOn: { color: '#ffffff' },
     sheetBody: { gap: 10 },
     timeBox: { gap: 8, paddingTop: 4 },
+    siteTitle: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
     segment: { flexDirection: 'row', padding: 4, borderRadius: 14, backgroundColor: Colors.subtleFill, gap: 4 },
     segBtn: { flex: 1, height: 40, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
     segBtnOn: { backgroundColor: '#1d367f' },

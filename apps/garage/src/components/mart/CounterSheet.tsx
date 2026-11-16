@@ -95,7 +95,7 @@ export const CounterSheet: React.FC<{ item: MartPurchase | null; onClose: () => 
               <Text style={[styles.sub, styles.flex1]}>{c}</Text>
             </Pressable>
           ))}
-          <Text style={styles.sub}>මුදල {delivered ? 'දොරකඩදී' : 'කවුන්ටරයේදී'} වෙළඳසැලට ගෙවන්න{p.delivery?.fee ? ` (බෙදාහැරීම රු. ${p.delivery.fee.toLocaleString()} අමතරව)` : ''}. වෙළඳසැල ඔබගේ කේතය {p.purchase.code.slice(0, 3)} {p.purchase.code.slice(3)} පරීක්ෂා කර බිල්පතක් දෙයි.</Text>
+          <Text style={styles.sub}>මුදල {delivered ? 'දොරකඩදී' : 'කවුන්ටරයේදී'} වෙළඳසැලට ගෙවන්න{p.delivery?.fee ? ` (බෙදාහැරීම LKR ${p.delivery.fee.toLocaleString()} අමතරව)` : ''}. වෙළඳසැල ඔබගේ කේතය {p.purchase.code.slice(0, 3)} {p.purchase.code.slice(3)} පරීක්ෂා කර බිල්පතක් දෙයි.</Text>
         </>
       )}
     </Sheet>

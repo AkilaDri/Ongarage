@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, Modal, Animated, Easing, useWindowDimensions } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Modal, Animated, Easing, ScrollView, useWindowDimensions } from 'react-native';
 import { Colors, getThemeMode, themedStyles } from '@ongarage/shared';
 import { FONTS } from '@ongarage/shared';
 import { useProfile } from '../context/ProfileContext';
@@ -110,6 +110,7 @@ export const VehiclePicker: React.FC<VehiclePickerProps> = ({ visible, activeVeh
             </View>
           </View>
 
+          <ScrollView style={styles.list} contentContainerStyle={styles.listContent} showsVerticalScrollIndicator={false} nestedScrollEnabled>
           {vehicles.map((vehicle, i) => {
             const active = activeVehicle === vehicle.id;
             return (
@@ -121,6 +122,7 @@ export const VehiclePicker: React.FC<VehiclePickerProps> = ({ visible, activeVeh
                 }}
               >
                 <Pressable
+                  hitSlop={{ top: 4, bottom: 4 }}
                   style={({ pressed }) => [styles.row, active && styles.rowActive, pressed && !active && styles.rowPressed]}
                   onPress={() => {
                     onSelect(vehicle.id);
@@ -129,13 +131,11 @@ export const VehiclePicker: React.FC<VehiclePickerProps> = ({ visible, activeVeh
                 >
                   <View style={[styles.iconTile, active && styles.iconTileActive]}>
                     {active && <Gradient stops={GRADIENTS.issue} />}
-                    <VehicleIcon3D type={vehicle.type} size={30} />
+                    <VehicleIcon3D type={vehicle.type} size={18} />
                   </View>
                   <View style={styles.rowText}>
-                    <Text style={[styles.name, active && styles.nameActive]}>{vehicle.name}</Text>
-                    <Text style={styles.plate}>
-                      {vehicle.plate} · {vehicle.type}
-                    </Text>
+                    <Text style={[styles.name, active && styles.nameActive]} numberOfLines={1}>{vehicle.name}</Text>
+                    <Text style={styles.plate} numberOfLines={1}>{vehicle.plate}</Text>
                   </View>
                   {active ? (
                     <View style={styles.check}>
@@ -193,6 +193,7 @@ export const VehiclePicker: React.FC<VehiclePickerProps> = ({ visible, activeVeh
               </View>
             </Pressable>
           )}
+          </ScrollView>
         </Animated.View>
       )}
     </Modal>
@@ -367,19 +368,22 @@ const styles = themedStyles(() => StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    padding: 8,
-    borderRadius: 12,
+    gap: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: 'transparent',
-    marginBottom: 2,
+    marginBottom: 1,
   },
+  list: { maxHeight: 220 },
+  listContent: { paddingBottom: 2 },
   rowActive: { backgroundColor: 'rgba(56, 189, 248, 0.1)', borderColor: 'rgba(56, 189, 248, 0.35)' },
   rowPressed: { backgroundColor: Colors.bgCardHover },
   iconTile: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
+    width: 24,
+    height: 24,
+    borderRadius: 7,
     overflow: 'hidden',
     backgroundColor: Colors.bgDark,
     borderWidth: 1,
@@ -390,9 +394,9 @@ const styles = themedStyles(() => StyleSheet.create({
   iconTileActive: { borderWidth: 0 },
   iconText: { fontSize: 15 },
   rowText: { flex: 1 },
-  name: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
+  name: { fontSize: 12.5, lineHeight: 16, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
   nameActive: { color: Colors.textMain },
-  plate: { fontSize: 10, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, letterSpacing: 0.3, marginTop: 1 },
+  plate: { fontSize: 10.5, lineHeight: 13, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, letterSpacing: 0.3 },
   check: {
     width: 18,
     height: 18,

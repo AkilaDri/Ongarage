@@ -60,7 +60,7 @@ export const payStanding = (payments: (JobPayment | undefined | null)[], now = D
   const reason = limited
     ? overdueDays >= OVERDUE_LIMIT_DAYS
       ? `ඉතිරි ගෙවීමක් දින ${overdueDays}ක් ප්‍රමාදයි`
-      : `ප්‍රමාද වූ ඉතිරි මුදල් රු. ${owed.toLocaleString('en-US')}`
+      : `ප්‍රමාද වූ ඉතිරි මුදල් LKR ${owed.toLocaleString('en-US')}`
     : undefined;
   return { level, jobs: ps.length, paidInFull, paidLate, unpaid: open.length, owed, overdueDays, limited, warn, reason };
 };

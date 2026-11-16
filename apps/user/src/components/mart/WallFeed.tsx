@@ -85,7 +85,7 @@ const PostCard: React.FC<{ post: FeedPost; now: number }> = ({ post, now }) => {
     wall.sendReply(post.id, { price: amount > 0 ? amount : undefined, message: message.trim() });
     setReplying(false);
     // A direct message to the poster is a conversation: it opens in OnChat, with what was written as its first message.
-    const text = ['🙋 මෙම කොටස මා ළඟ තිබේ.', amount > 0 ? `මිල රු. ${amount.toLocaleString('en-US')}` : '', message.trim()].filter(Boolean).join(' · ');
+    const text = ['🙋 මෙම කොටස මා ළඟ තිබේ.', amount > 0 ? `මිල LKR ${amount.toLocaleString('en-US')}` : '', message.trim()].filter(Boolean).join(' · ');
     chat.openWith({ id: `feed:${post.id}`, title: post.author, subtitle: 'On Feed', profile: 'shop' }, text);
   };
 
@@ -176,8 +176,8 @@ const PostCard: React.FC<{ post: FeedPost; now: number }> = ({ post, now }) => {
         ) : (
           <Pressable style={styles.action} onPress={() => setReplying((r) => !r)} accessibilityLabel="I have this part">
             {/* The direct message to the poster is named for where it goes: OnChat, in the same type as the icons beside it. */}
-            {/* A chat icon (a speech bubble with its tail) with the word ONCHAT written inside it. */}
-            <OnChatIcon width={44} color={sent ? Colors.success : replying ? Colors.primary : Colors.textMuted} />
+            {/* A line chat icon (a speech bubble with its tail) with ON inside it. */}
+            <OnChatIcon width={32} outline short color={sent ? Colors.success : replying ? Colors.primary : Colors.textMuted} />
           </Pressable>
         )}
         {/* the bookmark: at the right end of the same line as the other icons */}
@@ -207,7 +207,7 @@ const PostCard: React.FC<{ post: FeedPost; now: number }> = ({ post, now }) => {
       {replying && !sent && (
         <View style={styles.reply}>
           <Text style={styles.replyTitle}>මෙම කොටස ඔබ ළඟ තිබේද? පෝස්ට් කළ අයට පෞද්ගලිකව දැනුම් දෙන්න.</Text>
-          <TextInput style={styles.input} value={price} onChangeText={setPrice} keyboardType="number-pad" placeholder="ඔබේ මිල (රු.) — අත්‍යවශ්‍ය නැත" placeholderTextColor={Colors.textMuted} />
+          <TextInput style={styles.input} value={price} onChangeText={setPrice} keyboardType="number-pad" placeholder="ඔබේ මිල (LKR ) — අත්‍යවශ්‍ය නැත" placeholderTextColor={Colors.textMuted} />
           <TextInput style={[styles.input, styles.inputTall]} value={message} onChangeText={setMessage} multiline placeholder="තත්වය, ස්ථානය, වෙනත් විස්තර…" placeholderTextColor={Colors.textMuted} />
           <Pressable style={styles.send} onPress={submitReply} accessibilityLabel="Send reply to poster">
             <Text style={styles.sendText}>සෘජුවම දැනුම් දෙන්න</Text>
@@ -308,19 +308,19 @@ const styles = themedStyles(() =>
   StyleSheet.create({
     flex1: { flex: 1 },
     compose: { flexDirection: 'row', alignItems: 'center' },
-    addChip: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, height: 38, borderRadius: 19, backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe', borderWidth: 1, borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#d2e3fc' },
-    addChipPlus: { fontSize: 16, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
-    addChipText: { fontSize: 13, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
+    addChip: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, height: 38, borderRadius: 19, backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#eff6ff', borderWidth: 1, borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#bfdbfe' },
+    addChipPlus: { fontSize: 16, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1e3a8a' },
+    addChipText: { fontSize: 13, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1e3a8a' },
     scope: { flexDirection: 'row', borderRadius: 8, overflow: 'hidden', backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline() },
     scopeTab: { flex: 1, height: 40, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },
-    scopeTabOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe' },
+    scopeTabOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#eff6ff' },
     scopeText: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
-    scopeTextOn: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
+    scopeTextOn: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#1e3a8a' },
     filters: { gap: 8, paddingHorizontal: 6 },
     filter: { paddingHorizontal: 14, height: 32, borderRadius: 8, justifyContent: 'center', backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline() },
-    filterOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe', borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#d2e3fc' },
+    filterOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#eff6ff', borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#bfdbfe' },
     filterText: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textSoft },
-    filterTextOn: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
+    filterTextOn: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#1e3a8a' },
     composePhoto: { fontSize: 20 },
     composeBox: { flex: 1, height: 46, borderRadius: 23, paddingLeft: 16, paddingRight: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), ...elevation1() },
     composeText: { flex: 1, fontSize: 14, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
