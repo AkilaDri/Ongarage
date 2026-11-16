@@ -45,7 +45,8 @@ import { HOME_FLOW } from './constants/homeFlow';
 import { PlaceCommunityProvider } from './context/PlaceCommunityContext';
 import { EvBookingProvider } from './context/EvBookingContext';
 import { TowProvider } from './context/TowContext';
-import { TowingScreen } from './screens/TowingScreen';
+import { TowRecordsProvider } from './context/TowRecordsContext';
+import { TowFlow, type TowStatus } from './screens/tow/TowFlow';
 import { HomeSearch } from './components/home/HomeSearch';
 import { HomeTop } from './components/home/HomeTop';
 import { GarageReviewsSheet } from './components/GarageReviewsSheet';
@@ -119,6 +120,8 @@ const BANNER_GAP = 8;
 const COMPACT_H = 56;
 
 // Soft diagonal washes over the banners' base colours (lighter at the top left, deeper at the bottom right).
+const JOB_TOP_H = 72;
+const JOB_H = HOME_FLOW === 'search' ? 120 : JOB_TOP_H;
 const SOS_GRADIENT = [
   { offset: '0', color: '#ff6a6a' },
   { offset: '0.55', color: '#e5283c' },
@@ -277,6 +280,26 @@ function AppShell() {
   const [martSeed, setMartSeed] = useState('');
   const [martShopReq, setMartShopReq] = useState<{ id: string; at: number; ask?: boolean } | null>(null);
   const [sosLocation, setSOSLocation] = useState<PickedLocation | null>(null);
+  // A tow is running (the truck has accepted): Home hides its towing button until it ends.
+  const [towStatus, setTowStatus] = useState<TowStatus>({ running: false, label: '', needsInput: false });
+  // The owner put the running tow away: the flow is hidden and a return bar shows (on Home, and over the other tabs).
+  const [towMinimised, setTowMinimised] = useState(false);
+  const closeTow = () => {
+    setTowMinimised(false);
+    setSelectedService(null);
+  };
+  // The height of the Home banners: SOS, Repair, and towing when it shows.
+  const bannersH = ROW_H + BANNER_GAP + JOB_H;
+  // SOS takes the full top row only while a tow is minimised (its return bar is then the one thing to reach).
+  const sosFull = towMinimised && towStatus.running;
+  // While an SOS job runs (its flow is open, minimised or not), the towing button takes the whole row, as the SOS button does while a tow runs.
+  const towFull = sosStage === 'flow';
+  // What the SOS job is doing, for the status line while it is put away.
+  const [sosStatus, setSosStatus] = useState({ label: '', needsAction: false });
+  // A decision (a part, a price, the QR code) brings the owner back to the job without them looking for it.
+  useEffect(() => {
+    if (sosStatus.needsAction) setSosHidden(false);
+  }, [sosStatus.needsAction]);
   const [selectedVehicle, setSelectedVehicle] = useState('premio');
   const [selectedService, setSelectedService] = useState<ServiceCategory | null>(null);
   // A suggested job from Home ("Oil Change") opens its category with that sub-service picked.
@@ -409,7 +432,7 @@ function AppShell() {
     <LocationProvider>
     <PlaceCommunityProvider>
     <EvBookingProvider>
-    <TowProvider>
+    <TowRecordsProvider><TowProvider>
     <MartProvider>
     <WallProvider>
     <BidsProvider>
@@ -481,6 +504,16 @@ function AppShell() {
           {activeTab === 'home' ? (
             <HomeScreen
               onSOSPress={() => setSOSStage('map')}
+              sosReturn={sosStage === 'flow' && sosHidden ? (
+                <Pressable style={styles.sosReturnInline} onPress={() => setSosHidden(false)} accessibilityLabel="Back to the SOS job">
+                  <Text style={styles.sosReturnText}>{sosStatus.label ? `🚨 ${sosStatus.label} ›` : '🚨 SOS රැකියාවට ආපසු ›'}</Text>
+                </Pressable>
+              ) : null}
+              towReturn={towMinimised && towStatus.running ? (
+                <Pressable style={styles.towReturnInline} onPress={() => setTowMinimised(false)} accessibilityLabel="Back to the towing job">
+                  <Text style={styles.sosReturnText}>{`🛻 ${towStatus.label} ›`}</Text>
+                </Pressable>
+              ) : null}
               onPostJob={() => openPost(null)}
               onServicePress={(c, sub) => {
                 setSelectedSubName(sub);
@@ -652,9 +685,14 @@ function AppShell() {
           <Toast topOffset={84} />
         </View>
       )}
-      {sosStage === 'flow' && sosHidden && (
+      {sosStage === 'flow' && sosHidden && activeTab !== 'home' && (
         <Pressable style={styles.sosReturn} onPress={() => setSosHidden(false)} accessibilityLabel="Back to the SOS job">
-          <Text style={styles.sosReturnText}>🚨 SOS රැකියාවට ආපසු ›</Text>
+          <Text style={styles.sosReturnText}>{sosStatus.label ? `🚨 ${sosStatus.label} ›` : '🚨 SOS රැකියාවට ආපසු ›'}</Text>
+        </Pressable>
+      )}
+      {towMinimised && towStatus.running && activeTab !== 'home' && (
+        <Pressable style={styles.towReturn} onPress={() => setTowMinimised(false)} accessibilityLabel="Back to the towing job">
+          <Text style={styles.sosReturnText}>{`🛻 ${towStatus.label} ›`}</Text>
         </Pressable>
       )}
 
@@ -679,7 +717,12 @@ function AppShell() {
       </Modal>
 
       <Modal visible={selectedService !== null} animationType="slide" statusBarTranslucent onRequestClose={() => setSelectedService(null)}>
-        {selectedService && selectedService.id === '12' && <TowingScreen vehicleId={selectedVehicle} onClose={() => setSelectedService(null)} />}
+      {/* The towing flow is not a Modal: a Modal unmounts its contents when hidden, which would lose a running tow. Minimising hides this layer and keeps the flow mounted. */}
+      {selectedService?.id === '12' && (
+        <View pointerEvents={towMinimised ? 'none' : 'auto'} style={[StyleSheet.absoluteFill, styles.towLayer, towMinimised && styles.towLayerHidden]}>
+          <TowFlow onClose={closeTow} onMinimize={() => setTowMinimised(true)} onStatus={setTowStatus} active={!towMinimised} />
+        </View>
+      )}
         {selectedService && selectedService.id !== '12' && (
           <ServiceBrowseScreen service={selectedService} initialSub={selectedSubName} vehicleId={selectedVehicle} onPostJob={HOME_FLOW === 'search' ? (categoryId) => { setSelectedService(null); openPost({ categoryId, description: '', vehicleId: selectedVehicle } as unknown as JobDraft); } : undefined} onClose={() => setSelectedService(null)} onBook={(garage, back) => openBooking({ garage, categoryId: selectedService.id, back })} />
         )}
@@ -730,7 +773,7 @@ function AppShell() {
     </BidsProvider>
     </WallProvider>
     </MartProvider>
-    </TowProvider>
+    </TowProvider></TowRecordsProvider>
     </EvBookingProvider>
     </PlaceCommunityProvider>
     </LocationProvider>
@@ -767,6 +810,11 @@ const styles = themedStyles(() => StyleSheet.create({
   sosLayer: { zIndex: 50, backgroundColor: Colors.bgBody },
   sosLayerHidden: { display: 'none' },
   sosReturn: { position: 'absolute', zIndex: 60, left: 16, right: 16, bottom: 96, alignItems: 'center', justifyContent: 'center', height: 46, borderRadius: 23, backgroundColor: '#dc2626', shadowColor: '#dc2626', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.4, shadowRadius: 12, elevation: 10 },
+  towLayer: { zIndex: 150, elevation: 150, backgroundColor: 'transparent' },
+  towLayerHidden: { display: 'none' },
+  sosReturnInline: { marginHorizontal: 16, marginTop: 4, marginBottom: 14, alignItems: 'center', justifyContent: 'center', height: 46, borderRadius: 23, backgroundColor: '#dc2626', shadowColor: '#dc2626', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 10, elevation: 6 },
+  towReturn: { position: 'absolute', zIndex: 60, left: 16, right: 16, bottom: 96, alignItems: 'center', justifyContent: 'center', height: 46, borderRadius: 23, backgroundColor: '#1d367f', shadowColor: '#1d367f', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.35, shadowRadius: 12, elevation: 10 },
+  towReturnInline: { marginHorizontal: 16, marginTop: 4, marginBottom: 14, alignItems: 'center', justifyContent: 'center', height: 46, borderRadius: 23, backgroundColor: '#1d367f', shadowColor: '#1d367f', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 10, elevation: 6 },
   sosReturnText: { fontSize: 14, fontFamily: FONTS.titleBold, color: '#ffffff' },
   sheetOverlap: { marginTop: -18, borderTopLeftRadius: 30, borderTopRightRadius: 30, overflow: 'hidden' },
   // Home: the list sits in its own rounded, shadowed sheet that slides up over the padding under the banners.

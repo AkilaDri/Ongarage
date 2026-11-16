@@ -8,6 +8,7 @@ import { VehicleIcon3D } from '@ongarage/shared';
 import { Gradient, GRADIENTS } from '@ongarage/shared';
 import Svg, { Circle, Defs, RadialGradient, Stop } from 'react-native-svg';
 import { OnGarageLogo } from './OnGarageLogo';
+import { VehiclePicker } from '../Header';
 import WeatherAnimation, { periodOf, useHour } from '../WeatherAnimation';
 import { MOCK_USER } from '../../constants/mockData';
 
@@ -17,137 +18,6 @@ export const HEADER_BAND_H = 100;
 const KEEP_EMOJI = { keepEmoji: true } as object;
 const POPOVER_WIDTH = 264;
 const EDGE_GAP = 12;
-
-interface VehiclePickerProps {
-  visible: boolean;
-  activeVehicle: string;
-  anchorRef: React.RefObject<View | null>;
-  onSelect: (vehicleId: string) => void;
-  onClose: () => void;
-}
-
-type Placement = { top: number; left: number; originX: number };
-
-export const VehiclePicker: React.FC<VehiclePickerProps> = ({ visible, activeVehicle, anchorRef, onSelect, onClose }) => {
-  const { width: screenW } = useWindowDimensions();
-  const [placement, setPlacement] = useState<Placement | null>(null);
-  const progress = useRef(new Animated.Value(0)).current;
-  const { vehicles } = useVehicles();
-  const rows = useMemo(() => vehicles.map(() => new Animated.Value(0)), [vehicles.length]);
-  const closing = useRef(false);
-
-  useEffect(() => {
-    if (!visible) {
-      setPlacement(null);
-      return;
-    }
-    closing.current = false;
-    const place = (x: number, y: number, w: number, h: number) => {
-      const anchorRight = x + w;
-      const left = Math.min(Math.max(anchorRight - POPOVER_WIDTH, EDGE_GAP), screenW - POPOVER_WIDTH - EDGE_GAP);
-      setPlacement({ top: y + h + 8, left, originX: Math.min(Math.max(anchorRight - left - 24, 24), POPOVER_WIDTH - 24) });
-    };
-    if (anchorRef.current) anchorRef.current.measureInWindow(place);
-    else place(screenW - EDGE_GAP, 56, 0, 0);
-  }, [visible, anchorRef, screenW]);
-
-  useEffect(() => {
-    if (!placement) return;
-    progress.setValue(0);
-    rows.forEach((r) => r.setValue(0));
-    Animated.parallel([
-      Animated.timing(progress, { toValue: 1, duration: 280, easing: Easing.bezier(0.16, 1, 0.3, 1), useNativeDriver: true }),
-      Animated.stagger(
-        45,
-        rows.map((r) =>
-          Animated.timing(r, { toValue: 1, duration: 240, delay: 60, easing: Easing.out(Easing.cubic), useNativeDriver: true })
-        )
-      ),
-    ]).start();
-  }, [placement, progress, rows]);
-
-  const close = () => {
-    if (closing.current) return;
-    closing.current = true;
-    Animated.timing(progress, { toValue: 0, duration: 170, easing: Easing.in(Easing.cubic), useNativeDriver: true }).start(
-      () => onClose()
-    );
-  };
-
-  return (
-    <Modal visible={visible} transparent animationType="none" statusBarTranslucent onRequestClose={close}>
-      <Animated.View style={[styles.backdrop, { opacity: progress }]}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={close} />
-      </Animated.View>
-
-      {placement && (
-        <Animated.View
-          style={[
-            styles.popover,
-            {
-              top: placement.top,
-              left: placement.left,
-              transformOrigin: `${placement.originX}px 0px`,
-              opacity: progress,
-              transform: [
-                { translateY: progress.interpolate({ inputRange: [0, 1], outputRange: [-8, 0] }) },
-                { scale: progress.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1] }) },
-              ],
-            },
-          ]}
-        >
-          <View style={[styles.caret, { left: placement.originX - 6 }]} />
-
-          <View style={styles.titleRow}>
-            <Text style={styles.title}>ඔබගේ වාහනයන්</Text>
-            <View style={styles.countPill}>
-              <Text style={styles.countText}>{vehicles.length}</Text>
-            </View>
-          </View>
-
-          {vehicles.map((vehicle, i) => {
-            const active = activeVehicle === vehicle.id;
-            return (
-              <Animated.View
-                key={vehicle.id}
-                style={{
-                  opacity: rows[i],
-                  transform: [{ translateY: rows[i].interpolate({ inputRange: [0, 1], outputRange: [6, 0] }) }],
-                }}
-              >
-                <Pressable
-                  style={({ pressed }) => [styles.row, active && styles.rowActive, pressed && !active && styles.rowPressed]}
-                  onPress={() => {
-                    onSelect(vehicle.id);
-                    close();
-                  }}
-                >
-                  <View style={[styles.iconTile, active && styles.iconTileActive]}>
-                    {active && <Gradient stops={GRADIENTS.issue} />}
-                    <VehicleIcon3D type={vehicle.type} size={30} />
-                  </View>
-                  <View style={styles.rowText}>
-                    <Text style={[styles.name, active && styles.nameActive]}>{vehicle.name}</Text>
-                    <Text style={styles.plate}>
-                      {vehicle.plate} · {vehicle.type}
-                    </Text>
-                  </View>
-                  {active ? (
-                    <View style={styles.check}>
-                      <Text style={styles.checkText}>✓</Text>
-                    </View>
-                  ) : (
-                    <View style={styles.radio} />
-                  )}
-                </Pressable>
-              </Animated.View>
-            );
-          })}
-        </Animated.View>
-      )}
-    </Modal>
-  );
-};
 
 const greetingFor = (hour: number) => {
   if (hour < 12) return 'සුභ උදෑසනක්';
@@ -197,15 +67,12 @@ export const HomeHeader: React.FC<{ vehicleId?: string; onSelectVehicle?: (id: s
 
   return (
     <View style={hh.wrap}>
-      <Gradient stops={[{ offset: '0', color: '#1e3a8a' }, { offset: '0.5', color: '#2563eb' }, { offset: '1', color: '#3b82f6' }]} />
-      <Glow size={200} color="#93c5fd" opacity={0.5} style={{ right: -60, top: -60 }} />
-      <Glow size={160} color="#facc15" opacity={0.26} style={{ left: 0, bottom: -20 }} />
       <View style={hh.topRow}>
         <View style={hh.cityPill}>
           <Text style={hh.cityPin}>📍</Text>
           <Text style={hh.cityText}>{MOCK_USER.city}</Text>
         </View>
-        <OnGarageLogo width={86} height={26} />
+        <OnGarageLogo width={104} height={34} />
       </View>
       <Text style={hh.hi} numberOfLines={1}>
         Hi {fullName},
@@ -242,7 +109,7 @@ export const HomeHeader: React.FC<{ vehicleId?: string; onSelectVehicle?: (id: s
 
 /** The Home header band, written with plain styles so it matches the design exactly. */
 const hh = StyleSheet.create({
-  wrap: { paddingHorizontal: 24, paddingTop: 20, paddingBottom: 72, borderBottomLeftRadius: 36, borderBottomRightRadius: 36, overflow: 'hidden', backgroundColor: '#2563eb' },
+  wrap: { paddingHorizontal: 24, paddingTop: 20, paddingBottom: 72, borderBottomLeftRadius: 36, borderBottomRightRadius: 36, overflow: 'hidden', backgroundColor: '#1e3a8a' },
   topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 16, marginBottom: 16 },
   cityPill: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20, backgroundColor: 'rgba(255, 255, 255, 0.15)', borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.15)' },
   cityPin: { fontSize: 13.5, color: '#facc15' },

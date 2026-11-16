@@ -49,8 +49,12 @@ export const ThreeStateSheet: React.FC<{
   onHeight?: (height: Animated.Value) => void;
   /** Holds the sheet open to the top (no map to see behind it); it goes back to its middle height when released. */
   locked?: boolean;
+  /** The sheet's own background (the owner's towing and bids screens use white or the page colour). */
+  surface?: string;
+  /** Keeps the top corners rounded when expanded (as the job-post sheet does) instead of straightening them. */
+  rounded?: boolean;
   children: (api: SheetApi) => React.ReactNode;
-}> = ({ areaHeight, peekHeight, collapsedRatio = 0.55, bottomInset = 0, expandedExtra = 0, headColor, boost, canLower, peek, onStateChange, onHeight, locked, children }) => {
+}> = ({ areaHeight, peekHeight, collapsedRatio = 0.55, bottomInset = 0, expandedExtra = 0, headColor, boost, canLower, peek, onStateChange, onHeight, locked, surface, rounded, children }) => {
   // The top height is the same before and after the bar folds: (smaller area + its extra) = (bigger area + nothing).
   const full = Math.max(areaHeight - bottomInset + expandedExtra, peekHeight + 120);
   const collapsed = Math.max(peekHeight + 60, Math.round(full * collapsedRatio));
@@ -172,7 +176,7 @@ export const ThreeStateSheet: React.FC<{
   const reveal = height.interpolate({ inputRange: [peekHeight, peekHeight + 90], outputRange: [0, 1], extrapolate: 'clamp' });
   // Open to the top the sheet runs straight on from the title bar above it: no shadow line between them.
   const lift = height.interpolate({ inputRange: [Math.max(full - 60, peekHeight + 1), Math.max(full, peekHeight + 2)], outputRange: [0.18, 0], extrapolate: 'clamp' });
-  const radius = height.interpolate({ inputRange: [Math.max(full - 60, peekHeight + 1), Math.max(full, peekHeight + 2)], outputRange: [26, 0], extrapolate: 'clamp' });
+  const radius = rounded ? 28 : height.interpolate({ inputRange: [Math.max(full - 60, peekHeight + 1), Math.max(full, peekHeight + 2)], outputRange: [26, 0], extrapolate: 'clamp' });
   // The grip strip melts away as the sheet reaches the top, so the list sits right under the top bar.
   const gripRange = [Math.max(full - 70, peekHeight + 1), Math.max(full, peekHeight + 2)];
   const gripSpace = height.interpolate({ inputRange: gripRange, outputRange: [6, 0], extrapolate: 'clamp' });
@@ -198,7 +202,7 @@ export const ThreeStateSheet: React.FC<{
   };
 
   return (
-    <Animated.View ref={sheetNode} style={[styles.sheet, NO_SELECT, { bottom: bottomInset, height: totalHeight, borderTopLeftRadius: radius, borderTopRightRadius: radius, shadowOpacity: lift, elevation: lift.interpolate({ inputRange: [0, 0.18], outputRange: [0, 14] }) }]} {...pan.panHandlers}>
+    <Animated.View ref={sheetNode} style={[styles.sheet, NO_SELECT, surface ? { backgroundColor: surface } : null, { bottom: bottomInset, height: totalHeight, borderTopLeftRadius: radius, borderTopRightRadius: radius, shadowOpacity: lift, elevation: lift.interpolate({ inputRange: [0, 0.18], outputRange: [0, 14] }) }]} {...pan.panHandlers}>
       <Animated.View style={[styles.handleArea, { paddingVertical: gripSpace }, gripFill && { backgroundColor: gripFill }]} {...handlePan.panHandlers} accessibilityLabel="Sheet handle">
         <Animated.View style={[styles.handle, { width: handleWidth, height: gripHeight, opacity: gripOpacity }]} />
       </Animated.View>

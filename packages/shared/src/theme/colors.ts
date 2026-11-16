@@ -74,7 +74,7 @@ const light: Palette = {
 
 const PALETTES: Record<ThemeMode, Palette> = { dark, light };
 
-let current: ThemeMode = 'dark';
+let current: ThemeMode = 'light';
 
 export const getThemeMode = () => current;
 

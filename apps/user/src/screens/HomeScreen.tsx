@@ -19,7 +19,8 @@ import { PinnedEdge } from '../components/PinnedEdge';
 import { HomeServices, HomePromo } from '../components/home/HomeServices';
 import { PromoCarousel } from '../components/home/PromoCarousel';
 import { OfferTiles } from '../components/home/OfferTiles';
-import { GarageRow } from '../components/home/GarageRow';
+import { GarageGridSection } from '../components/home/GarageGrid';
+import { useUsedGarages } from '../components/GarageHistory';
 import { GarageListSheet } from '../components/home/GarageListSheet';
 import { useUserLocation } from '../context/LocationContext';
 import { useNotice } from '../context/NoticeContext';
@@ -41,9 +42,11 @@ interface HomeScreenProps {
   top?: React.ReactNode;
   /** The scroll position from which the compact SOS / quotes bar sticks to the top of the screen. */
   stickyFrom?: number;
+  sosReturn?: React.ReactNode;
+  towReturn?: React.ReactNode;
 }
 
-export const HomeScreen: React.FC<HomeScreenProps> = ({ onSOSPress, onPostJob, onServicePress, onBookGarage, onScrollChange, collapsePx = 0, top, stickyFrom = 300 }) => {
+export const HomeScreen: React.FC<HomeScreenProps> = ({ onSOSPress, onPostJob, onServicePress, onBookGarage, onScrollChange, collapsePx = 0, top, sosReturn, towReturn, stickyFrom = 300 }) => {
   const user = useUserLocation();
   const { width: screenW } = useWindowDimensions();
   // Four category tiles fit the page width (20px sides, 12px gaps); the fifth peeks in at the right edge.
@@ -68,6 +71,11 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onSOSPress, onPostJob, o
   // Popular: rating weighted by how many reviews back it up.
   const popular = [...garages].sort((a, b) => b.rating * Math.log10(b.reviews + 1) - a.rating * Math.log10(a.reviews + 1));
   const nearest = [...garages].sort((a, b) => a.distance - b.distance);
+  // Garages the owner has finished a job with before, and the nearby list with its sort chips.
+  const isUsed = useUsedGarages();
+  const usedGarages = garages.filter((g) => isUsed(g));
+  const [nearbySort, setNearbySort] = useState<'near' | 'rating'>('near');
+  const nearbyList = nearbySort === 'near' ? nearest : [...garages].sort((a, b) => b.rating - a.rating);
   const protectedGarages = garages.filter((g) => g.level === 'premier');
 
   const [open, setOpen] = useState<Garage | null>(null);
@@ -93,6 +101,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onSOSPress, onPostJob, o
         {/* While the banners above fold and the sheet rises (the first `collapsePx` of scrolling) this content is held back by the same distance, so it moves with the
             finger one for one instead of also sliding up inside the rising sheet. */}
         {top}
+        {sosReturn}
+        {towReturn}
         <Animated.View style={[styles.contentInner, collapsePx > 0 && { transform: [{ translateY: scrollAnim.interpolate({ inputRange: [0, collapsePx], outputRange: [0, collapsePx], extrapolate: 'clamp' }) }] }]}>
         {/* The service grid (4 x 2) and the offer banner, as in the design. */}
         <HomeServices onSelect={onServicePress} onSeeAll={() => setAllServices(true)} />
@@ -110,10 +120,34 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onSOSPress, onPostJob, o
         </View>
 
         {/* Garage rows */}
-        <GarageRow title="විශේෂාංග · දැන්වීම්" garages={sponsored} ad onOpen={setOpen} onSaveChange={save} onSeeAll={() => setList({ title: 'විශේෂාංග · දැන්වීම්', garages: sponsored, ad: true })} />
-        <GarageRow title="අලුතින් එක් වූ" garages={newlyJoined} onOpen={setOpen} onSaveChange={save} onSeeAll={() => setList({ title: 'අලුතින් එක් වූ ගරාජ', garages: newlyJoined })} />
-        <GarageRow title="ජනප්‍රිය ගරාජ" garages={popular.slice(0, 6)} onOpen={setOpen} onSaveChange={save} onSeeAll={() => setList({ title: 'ජනප්‍රිය ගරාජ', garages: popular })} />
-        <GarageRow title="ඔබට ළඟම" garages={nearest.slice(0, 6)} onOpen={setOpen} onSaveChange={save} onSeeAll={() => setList({ title: 'ඔබට ළඟම ගරාජ', garages: nearest })} />
+        <GarageGridSection
+          title="ඔබ පෙර භාවිතා කළ ගරාජ"
+          garages={usedGarages}
+          onOpen={setOpen}
+          onSaveChange={save}
+          onSeeAll={() => setList({ title: 'ඔබ පෙර භාවිතා කළ ගරාජ', garages: usedGarages })}
+        />
+        <GarageGridSection
+          title="ඔබට ළඟම"
+          garages={nearbyList.slice(0, 4)}
+          chips={[
+            { id: 'near', label: 'ළඟම' },
+            { id: 'rating', label: 'ඉහළ ශ්‍රේණිය' },
+          ]}
+          activeChip={nearbySort}
+          onChip={(id) => setNearbySort(id as 'near' | 'rating')}
+          onOpen={setOpen}
+          onSaveChange={save}
+          onSeeAll={() => setList({ title: 'ඔබට ළඟම ගරාජ', garages: nearbyList })}
+        />
+        <GarageGridSection
+          title="විශේෂාංග · දැන්වීම්"
+          garages={sponsored}
+          ad
+          onOpen={setOpen}
+          onSaveChange={save}
+          onSeeAll={() => setList({ title: 'විශේෂාංග · දැන්වීම්', garages: sponsored, ad: true })}
+        />
         </Animated.View>
       </ScrollView>
       {/* Once the big action card has scrolled away, the two actions stay at the top of the screen as a compact bar. */}

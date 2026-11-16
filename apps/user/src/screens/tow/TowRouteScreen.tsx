@@ -467,7 +467,7 @@ const styles = themedStyles(() =>
     screen: { flex: 1, backgroundColor: Colors.bgBody },
     flex1: { flex: 1 },
     mapArea: { flex: 1 },
-    mapCanvas: { ...StyleSheet.absoluteFillObject, justifyContent: 'center', alignItems: 'center' },
+    mapCanvas: { ...StyleSheet.absoluteFill, justifyContent: 'center', alignItems: 'center' },
 
     topBar: { position: 'absolute', top: 12, left: 16, right: 16, flexDirection: 'row', alignItems: 'center', gap: 10 },
     roundBtn: { width: 46, height: 46, borderRadius: 23, backgroundColor: Colors.bgCard, alignItems: 'center', justifyContent: 'center', elevation: 3 },

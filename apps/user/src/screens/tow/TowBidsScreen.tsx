@@ -523,7 +523,7 @@ const styles = themedStyles(() =>
     pickTextGhost: { color: TOW_BLUE },
     tickDisc: { width: 30, height: 30, borderRadius: 15, backgroundColor: TOW_BLUE, alignItems: 'center', justifyContent: 'center' },
     tickText: { fontSize: 14, fontFamily: FONTS.bodyBold, color: '#ffffff' },
-    ring: { ...StyleSheet.absoluteFillObject, borderRadius: 18, borderWidth: 2, borderColor: '#60a5fa' },
+    ring: { ...StyleSheet.absoluteFill, borderRadius: 18, borderWidth: 2, borderColor: '#60a5fa' },
     nearbyToggle: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 4, paddingTop: 8 },
     nearbyText: { fontSize: 13.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
     nearbyChevron: { fontSize: 16, color: Colors.textMuted },

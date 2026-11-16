@@ -39,6 +39,14 @@ const badgeColor = (id: BidsTab) => (id === 'received' ? '#16a34a' : '#ef4444');
 
 const pad = (n: number) => String(n).padStart(2, '0');
 
+/** The time left until the bids close, in hours and minutes: it changes once a minute, not every second. */
+const remaining = (ms: number) => {
+  if (ms <= 0) return 'කල් ඉකුත් විය';
+  const h = Math.floor(ms / 3600000);
+  const m = Math.floor((ms % 3600000) / 60000);
+  return h > 0 ? `පැය ${h} ක් ${m} මිනි.` : `මිනි. ${m}`;
+};
+
 const countdown = (ms: number) => {
   if (ms <= 0) return 'කල් ඉකුත් විය';
   const h = Math.floor(ms / 3600000);
@@ -103,6 +111,8 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
   const [now, setNow] = useState(Date.now());
   // A waiting or expired job the owner is about to delete (asked first).
   const [deleting, setDeleting] = useState<RepairJob | null>(null);
+  // A bid the owner asked to remove: confirmed before it goes.
+  const [deletingBid, setDeletingBid] = useState<{ job: RepairJob; bid: Bid } | null>(null);
   const [confirming, setConfirming] = useState<{ job: RepairJob; bid: Bid } | null>(null);
   const standing = usePayStanding();
   const askAccept = (v: { job: RepairJob; bid: Bid }) => (standing.limited ? onPayFirst() : setConfirming(v));
@@ -403,7 +413,7 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
             </Text>
           </View>
           {!isAccepted && (
-            <Pressable style={styles.fbMore} onPress={() => removeBidAndPin(job.id, bid.id)} hitSlop={8} accessibilityLabel={`Delete bid from ${bid.garageName}`}>
+            <Pressable style={styles.fbMore} onPress={() => setDeletingBid({ job, bid })} hitSlop={8} accessibilityLabel={`Delete bid from ${bid.garageName}`}>
               <Icon name="trash" size={16} color={Colors.textMuted} />
             </Pressable>
           )}
@@ -580,7 +590,7 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
                 </View>
               )}
               {!job.acceptedBidId && now < biddingEndsAt(job) && (
-                <Text style={[styles.hint, { color: '#1d4ed8' }]}>⏱️ ලංසු අවසන් වීමට: {countdown(biddingEndsAt(job) - now)}</Text>
+                <Text style={[styles.hint, { color: '#1d4ed8' }]}>⏱️ ලංසු අවසන් වීමට: {remaining(biddingEndsAt(job) - now)}</Text>
               )}
               {rowsView ? <View style={styles.bidRows}>{shown.map((bid) => renderBidRow(job, bid))}</View> : shown.map((bid) => renderBidCard(job, bid))}
               {job.acceptedBidId && job.bids.length > 1 && (
@@ -928,6 +938,15 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
         }
       />
 
+      {deletingBid && (
+        <ModalCard icon="🗑️" tone="danger" title="ලංසුව ඉවත් කරන්නද?" body={`${deletingBid.bid.garageName} ගේ ලංසුව ලැයිස්තුවෙන් ඉවත් වේ.`}>
+          <ActionButton label="අවලංගු" variant="ghost" compact onPress={() => setDeletingBid(null)} />
+          <ActionButton label="ඉවත් කරන්න" variant="primary" compact onPress={() => {
+            removeBidAndPin(deletingBid.job.id, deletingBid.bid.id);
+            setDeletingBid(null);
+          }} />
+        </ModalCard>
+      )}
       {deleting && (
         <ModalCard icon="🗑️" tone="danger" title="මෙම රැකියාව මකන්නද?" body="ලංසු ඉල්ලීම ඉවත් වේ. මෙය ආපසු ගත නොහැක.">
           <ActionButton label="අවලංගු" variant="ghost" compact onPress={() => setDeleting(null)} />
