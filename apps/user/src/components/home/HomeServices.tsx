@@ -36,7 +36,7 @@ const COLUMNS = SERVICES.slice(0, HALF).map((x, i) => [x, SERVICES[HALF + i]].fi
 
 export const HomeServices: React.FC<{ onSelect: (c: ServiceCategory) => void; onSeeAll: () => void }> = ({ onSelect, onSeeAll }) => {
   const [width, setWidth] = useState(358);
-  const [chosen, setChosen] = useState('11');
+  const [chosen, setChosen] = useState<string | null>(null);
   const cell = Math.floor((width - 30 - 22) / 4); // four columns and a peek of the fifth, so it is clear the rows slide
   // The sideways hint: a round arrow at the edge that nudges the way the rows slide, so the owner can see there is more to scroll to.
   const scroller = useRef<ScrollView>(null);
