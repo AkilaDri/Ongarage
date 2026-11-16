@@ -15,13 +15,16 @@ export const MoneyIcon: React.FC<{ size?: number }> = ({ size = 20 }) => (
   </Svg>
 );
 
-/** A price with the money icon after it (the text keeps whatever style it had). */
-export const MoneyText: React.FC<{ style?: StyleProp<TextStyle>; iconSize?: number; children: React.ReactNode }> = ({ style, iconSize = 18, children }) => (
-  <View style={styles.row}>
+/** A price. The money icon after it is off by default (prices are plain text); pass `icon` to bring it back. */
+export const MoneyText: React.FC<{ style?: StyleProp<TextStyle>; iconSize?: number; icon?: boolean; children: React.ReactNode }> = ({ style, iconSize = 18, icon = false, children }) =>
+  icon ? (
+    <View style={styles.row}>
+      <Text style={style}>{children}</Text>
+      <MoneyIcon size={iconSize} />
+    </View>
+  ) : (
     <Text style={style}>{children}</Text>
-    <MoneyIcon size={iconSize} />
-  </View>
-);
+  );
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 4 },

@@ -1,5 +1,5 @@
 import { GarageHistoryTag, useUsedGarages } from '../components/GarageHistory';
-import { Gradient, LkPlate, PhotoStrip, VoiceNotePlayer, bidWork, marketPrice, MoneyText } from '@ongarage/shared';
+import { Gradient, LkPlate, PhotoStrip, VoiceNotePlayer, bidWork, marketPrice, MoneyText, MoneyIcon } from '@ongarage/shared';
 import { cardGlow, elevation1, outline, pageBg } from '../utils/material';
 import React, { useEffect, useRef, useState } from 'react';
 import Svg, { Circle, Path, Polyline, Rect } from 'react-native-svg';
@@ -438,20 +438,20 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
           {ago(now - bid.submittedAt)} · {SERVICE_CATEGORIES.find((c) => c.id === job.categoryId)?.name ?? 'Service'}{isLowest && !job.acceptedBidId ? ' · 💰 අඩුම ලංසුව' : ''}
         </Text>
         <Pressable style={styles.fbContent} onPress={() => setBidView({ job, bid })} accessibilityLabel={`${bid.garageName} bid details`}>
-          <MoneyText style={styles.fbPrice}>{bid.travelFee ? '🚗 ' : ''}{lkr(bid.price)}</MoneyText>
+          <View style={styles.sumBox} accessibilityLabel="Price with the travel fee">
+            {bid.travelFee ? (
+              <>
+                <BidSum work={bidWork(bid)} travel={bid.travelFee} total={bid.price} />
+              </>
+            ) : (
+              <MoneyText icon style={styles.fbPrice}>{lkr(bid.price)}</MoneyText>
+            )}
+          </View>
           <Text style={styles.fbText}>
-            🛡️ මාස {bid.warrantyMonths} වගකීම · ⏱️ පැය {bid.estHours}{bid.travelFee ? ` · 🚗 ගමන් ගාස්තුව ${money(bid.travelFee)} ඇතුළුව` : ''}
+            🛡️ මාස {bid.warrantyMonths} වගකීම · ⏱️ පැය {bid.estHours}
           </Text>
           <GarageHistoryTag garage={garage} part="line" />
           {!!market && <Text style={[styles.marketNote, market.cheaper ? styles.marketCheaper : styles.marketDearer]}>{market.text}</Text>}
-          {!!bid.travelFee && (
-            <View style={styles.travelNote} accessibilityLabel="Bid includes travel fee">
-              <Text style={styles.travelNoteTitle}>🚗 දුර ගමන් ගාස්තුව ඇතුළු ලංසුවකි</Text>
-              <Text style={styles.travelNoteText}>
-                ගරාජය ඔබෙන් km {bid.distanceKm} ක් ඈතයි · රැකියාව {money(bidWork(bid))} + ගමන් වන්දිය {money(bid.travelFee)}
-              </Text>
-            </View>
-          )}
         </Pressable>
         <View style={styles.fbCounts}>
           <Text style={styles.fbCountText}>📍 {bid.distanceKm} km</Text>
@@ -1047,6 +1047,43 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
 
 type BidSort = 'price' | 'rating' | 'near' | 'fast';
 /** The line icon on a sort chip: white, and yellow while the chip is chosen (as the chips on Activity). */
+/** A written sum: the repair fee, "+" and the travel fee (the "+" stands just before the first digit of the widest figure), a rule, and the total. */
+const BidSum: React.FC<{ work: number; travel: number; total: number }> = ({ work, travel, total }) => {
+  const [w1, setW1] = useState(0);
+  const [w2, setW2] = useState(0);
+  const figW = Math.max(w1, w2);
+  const n = (v: number) => Math.round(v).toLocaleString();
+  return (
+    <>
+      <View style={styles.sumRow}>
+        <View style={[styles.sumCell, styles.sumCellEnd]}>
+          <View style={[styles.sumFigBox, figW > 0 && { width: figW + 18 }]}>
+            <Text style={[styles.fbPrice, styles.sumRepair]} onLayout={(e) => setW1(e.nativeEvent.layout.width)}>{n(work)}</Text>
+          </View>
+        </View>
+        <Text style={styles.sumLabel}>(අලුත්වැඩියා ගාස්තුව)</Text>
+      </View>
+      <View style={styles.sumRow}>
+        <View style={[styles.sumCell, styles.sumCellEnd]}>
+          <View style={[styles.sumFigBox, styles.sumFigSpread, figW > 0 && { width: figW + 18 }]}>
+            <Text style={[styles.fbPrice, styles.sumRepair]}>+</Text>
+            <Text style={[styles.fbPrice, styles.sumRepair]} onLayout={(e) => setW2(e.nativeEvent.layout.width)}>{n(travel)}</Text>
+          </View>
+        </View>
+        <Text style={styles.sumLabel}>(ගමන් ගාස්තුව)</Text>
+      </View>
+      <View style={styles.sumRule} />
+      <View style={styles.sumRow}>
+        <View style={styles.sumCell}>
+          <Text style={[styles.fbPrice, styles.sumGrand]}>LKR</Text>
+          <Text style={[styles.fbPrice, styles.sumGrand]}>{n(total)}</Text>
+        </View>
+        <MoneyIcon size={18} />
+      </View>
+    </>
+  );
+};
+
 const SortChipIcon: React.FC<{ id: BidSort; on: boolean }> = ({ id, on }) => {
   const c = on ? '#facc15' : '#ffffff';
   return (
@@ -1274,6 +1311,26 @@ const styles = themedStyles(() => StyleSheet.create({
   fbSub: { fontSize: 12, lineHeight: 16, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 0 },
   fbMore: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   fbContent: { paddingLeft: 16, paddingRight: 16, paddingBottom: 10, gap: 6 },
+  sumBox: { alignSelf: 'flex-start', gap: 2, paddingVertical: 12 },
+  sumRepair: { marginVertical: 0, fontSize: 16, color: Colors.textMain },
+  sumGrand: { marginVertical: 0 },
+  sumAmount: { width: 128, textAlign: 'right' },
+  sumPlus: { width: 14 },
+  sumCellEnd: { justifyContent: 'flex-end' },
+  sumFigBox: { flexDirection: 'row', justifyContent: 'flex-end' },
+  sumFigSpread: { justifyContent: 'space-between' },
+  sumCell: { width: 120, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  sumRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  sumLabel: { fontSize: 12.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
+  sumTravel: { fontSize: 13.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
+  sumRule: { width: 120, height: 1.5, backgroundColor: Colors.textMuted, opacity: 0.5 },
+  sumTotal: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textMain },
+  fbPriceRow: { flexDirection: 'row', alignItems: 'baseline', flexWrap: 'wrap', gap: 8 },
+  fbPriceTravel: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
+  travelTag: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6 },
+  travelTotal: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, backgroundColor: 'rgba(245, 158, 11, 0.18)' },
+  travelTotalText: { fontSize: 13, fontFamily: FONTS.bodyBold, color: '#b45309' },
+  travelTagText: { fontSize: 13, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
   fbPrice: { marginVertical: 6, fontSize: 22, fontFamily: FONTS.titleBold, color: Colors.success },
   fbText: { fontSize: 15, fontFamily: FONTS.bodyRegular, color: Colors.textMain, lineHeight: 22 },
   fbRating: { fontSize: 12, lineHeight: 16, fontFamily: FONTS.bodyMedium, color: Colors.textMain, marginTop: 1 },
