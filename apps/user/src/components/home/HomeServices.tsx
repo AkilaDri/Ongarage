@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { CategoryPhoto } from './CategoryPhoto';
-import { FONTS, Gradient, SERVICE_CATEGORIES, type ServiceCategory } from '@ongarage/shared';
+import { Colors, FONTS, Gradient, SERVICE_CATEGORIES, themedStyles, type ServiceCategory } from '@ongarage/shared';
 
 /**
  * Home's service grid and the promo banner, written with plain styles (the theme does not reshape or rescale them) so they match the design exactly:
@@ -10,7 +10,7 @@ import { FONTS, Gradient, SERVICE_CATEGORIES, type ServiceCategory } from '@onga
  */
 
 const BLUE = '#1e3a8a';
-const GOLD = '#facc15';
+const GOLD = BLUE; // the chevrons sit on white, where yellow is too faint
 
 /** Every service, the design's eight first. The first half is the top row, the second half the bottom row; the two rows slide sideways together. */
 const SERVICES: { id: string; label: string }[] = [
@@ -149,9 +149,10 @@ export const HomePromo: React.FC<{ onOpen: () => void }> = ({ onOpen }) => (
   </View>
 );
 
-const st = StyleSheet.create({
+const st = themedStyles(() =>
+  StyleSheet.create({
   head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, paddingHorizontal: 4 },
-  title: { fontSize: 15, fontFamily: FONTS.bodyBold, color: '#000000' },
+  title: { fontSize: 16, fontFamily: FONTS.bodyBold, color: Colors.textMain },
   seeAll: { fontSize: 13, fontFamily: FONTS.bodyMedium, color: BLUE },
   seeAllArrow: { color: BLUE, fontSize: 18 },
   strip: { gap: 10, paddingRight: 4 },
@@ -178,4 +179,5 @@ const st = StyleSheet.create({
   promoBtn: { backgroundColor: '#ffffff', paddingHorizontal: 16, paddingVertical: 11, borderRadius: 14, shadowColor: '#000000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 2, elevation: 1 },
   promoBtnText: { fontSize: 13.5, fontFamily: FONTS.bodyBold, color: BLUE },
   promoBtnArrow: { color: GOLD, fontSize: 16 },
-});
+  })
+);

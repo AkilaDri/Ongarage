@@ -111,8 +111,8 @@ export type Offer = { id: string; title: string; subtitle: string; emoji: string
 );
 
 export const OFFERS: Offer[] = [
-  { id: 'of1', title: 'අලුත් ගරාජ', subtitle: 'පළමු සේවාවට 10% වට්ටම්', emoji: '🎉', list: 'new', stops: [{ offset: '0', color: '#0ea5e9' }, { offset: '1', color: '#22d3ee' }] },
-  { id: 'of2', title: 'ඩීටේලින් 20%', subtitle: 'වොෂ් සහ ඩීටේලින්', emoji: '🧽', categoryId: '9', stops: [{ offset: '0', color: '#8b5cf6' }, { offset: '1', color: '#d946ef' }] },
-  { id: 'of3', title: 'නොමිලේ පරීක්ෂාව', subtitle: 'බ්‍රේක් සහ සස්පෙන්ෂන්', emoji: '🛑', categoryId: '7', stops: [{ offset: '0', color: '#f97316' }, { offset: '1', color: '#f59e0b' }] },
+  { id: 'of1', title: 'අලුත් ගරාජ', subtitle: 'පළමු සේවාවට 10% වට්ටම්', emoji: '🎉', list: 'new', stops: [{ offset: '0', color: '#0e7490' }, { offset: '1', color: '#155e75' }] },
+  { id: 'of2', title: 'ඩීටේලින් 20%', subtitle: 'වොෂ් සහ ඩීටේලින්', emoji: '🧽', categoryId: '9', stops: [{ offset: '0', color: '#6d28d9' }, { offset: '1', color: '#7c3aed' }] },
+  { id: 'of3', title: 'නොමිලේ පරීක්ෂාව', subtitle: 'බ්‍රේක් සහ සස්පෙන්ෂන්', emoji: '🛑', categoryId: '7', stops: [{ offset: '0', color: '#c2410c' }, { offset: '1', color: '#b45309' }] },
   { id: 'of4', title: 'ආරක්ෂිත රැකියා', subtitle: 'OnGarage Guarantee', emoji: '🛡️', list: 'protected', stops: [{ offset: '0', color: '#10b981' }, { offset: '1', color: '#84cc16' }] },
 ];

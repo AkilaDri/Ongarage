@@ -115,7 +115,7 @@ const styles = themedStyles(() =>
     chipText: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
     chipTextOn: { color: '#ffffff' },
     row: { gap: 12, paddingRight: 8 },
-    card: { borderRadius: 18, backgroundColor: Colors.bgCard, overflow: 'hidden', borderWidth: 1, borderColor: Colors.subtleBorder },
+    card: { borderRadius: 16, backgroundColor: Colors.bgCard, overflow: 'hidden', borderWidth: 1, borderColor: Colors.subtleBorder },
     cardAd: { borderColor: '#f59e0b' },
     pressed: { opacity: 0.9 },
     cover: { width: '100%', height: 104 },

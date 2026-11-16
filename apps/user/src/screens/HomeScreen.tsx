@@ -204,7 +204,7 @@ const styles = themedStyles(() => StyleSheet.create({
   // Transparent: the rounded sheet in App.tsx supplies the background.
   container: { flex: 1 },
   scroll: { flex: 1 },
-  contentInner: { gap: 28, paddingHorizontal: 16, paddingTop: 28 },
+  contentInner: { gap: 24, paddingHorizontal: 16, paddingTop: 28 },
   // One rhythm for the whole page: 24px between sections; inside a section its title sits 10px above its own content (`section`).
   content: { paddingTop: 0, paddingHorizontal: 0, paddingBottom: 90, gap: 0 },
   section: { gap: 10 },
@@ -217,12 +217,12 @@ const styles = themedStyles(() => StyleSheet.create({
   seeAll: { fontSize: 12.5, fontFamily: FONTS.bodyBold, color: '#1e3a8a' },
   catTitle: { fontSize: 13, fontFamily: FONTS.bodyBold, color: Colors.textMuted },
   // The same size as the titles of the garage rows (GarageRow), so every section heading on the page reads alike.
-  sectionTitle: { fontSize: 14, fontFamily: FONTS.bodyBold, color: Colors.textMain, letterSpacing: 0.2 },
+  sectionTitle: { fontSize: 16, fontFamily: FONTS.bodyBold, color: Colors.textMain, letterSpacing: 0.2 },
 }));
 
 /** The compact SOS / quotes bar that sticks to the top once the big card has scrolled away (plain styles, as in the design). */
 const stickySt = StyleSheet.create({
-  bar: { position: 'absolute', left: 0, right: 0, top: 0, zIndex: 20, flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingVertical: 10, backgroundColor: '#ffffff', borderBottomWidth: 1, borderBottomColor: '#f3f4f6', shadowColor: '#1e3a8a', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.14, shadowRadius: 14, elevation: 6 },
+  bar: { position: 'absolute', left: 0, right: 0, top: 0, zIndex: 20, flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingVertical: 10, backgroundColor: '#ffffff', borderBottomWidth: 1, borderBottomColor: Colors.subtleBorder, shadowColor: '#1e3a8a', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.14, shadowRadius: 14, elevation: 6 },
   pressed: { opacity: 0.9, transform: [{ scale: 0.99 }] },
   sos: { flex: 1, height: 46, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(254, 226, 226, 0.9)', backgroundColor: 'rgba(254, 242, 242, 0.8)' },
   sosDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#ef4444' },
