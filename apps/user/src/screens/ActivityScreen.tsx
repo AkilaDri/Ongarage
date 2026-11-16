@@ -27,6 +27,7 @@ import { useMart } from '../context/MartContext';
 import { DirectBookingCard } from '../components/DirectBookingCard';
 import { chatDockOffset, chatHide } from '../utils/chatDock';
 import { ChatHeaderButton } from '../components/ChatHeaderButton';
+import { BidBookingStatus, bookingStatusText } from '../components/BidBookingStatus';
 import { VehicleBlock } from '../components/VehicleBlock';
 import { MOCK_GARAGES } from '../constants/mockData';
 import { OrdersList } from '../components/mart/OrdersList';
@@ -80,7 +81,7 @@ const SubChipIcon: React.FC<{ id: string; on: boolean }> = ({ id, on }) => {
   return <Ico active size={18} color={on ? '#facc15' : '#ffffff'} />;
 };
 
-export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b: DirectBooking) => void; onOpenMart?: () => void; onOpenCalendar?: () => void; onHeaderProgress?: (progress: number) => void }> = ({ onOpenBids, onBookAgain, onOpenMart, onOpenCalendar, onHeaderProgress }) => {
+export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b: DirectBooking) => void; onOpenMart?: () => void; onOpenCalendar?: () => void; onHeaderProgress?: (progress: number) => void; /** Opens the booking sheet (pick a time with the garage) for an accepted quote. */ onPickTime?: (jobId: string) => void }> = ({ onOpenBids, onBookAgain, onOpenMart, onOpenCalendar, onHeaderProgress, onPickTime }) => {
   const { jobs } = useBids();
   const { bookings } = useBookings();
   const { workshops } = useWorkshops();
@@ -206,7 +207,7 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
           status={
             finished(job.id) && !cancelled(job.id) ? undefined : (
             <View style={[styles.status, finished(job.id) ? styles.statusDone : styles.statusOngoing]}>
-              <Text style={[styles.statusText, { color: cancelled(job.id) ? Colors.errorText : finished(job.id) ? Colors.success : Colors.warning }]}>{cancelled(job.id) ? '✕ අවලංගු කළා' : finished(job.id) ? '✓ සම්පූර්ණයි' : '● වෙන් කළා'}</Text>
+              <Text style={[styles.statusText, { color: cancelled(job.id) ? Colors.errorText : finished(job.id) ? Colors.success : Colors.warning }]}>{cancelled(job.id) ? '✕ අවලංගු කළා' : finished(job.id) ? '✓ සම්පූර්ණයි' : `● ${bookingStatusText(job.booking) ?? 'වෙන් කළා'}`}</Text>
             </View>
             )
           }
@@ -232,7 +233,7 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
           />
         ) : (
           <>
-            <WorkshopTracker id={job.id} />
+            {job.booking && job.booking.status !== 'confirmed' ? <BidBookingStatus job={job} onPickTime={(id) => onPickTime?.(id)} /> : <WorkshopTracker id={job.id} />}
             <View style={styles.divider} />
             <GridRow
               left={

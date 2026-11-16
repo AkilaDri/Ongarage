@@ -12,7 +12,7 @@ import { HomeHeader } from './HomeHeader';
 /** Height of each action button (circle + badge row, title, line). */
 const BTN_H = 90; // each action is one row now (the two rows sit one under the other)
 
-export const HomeTop: React.FC<{ onSOS: () => void; onPost: () => void; search: React.ReactNode; /** The vehicle chosen right now: shown as a tag in the header. */ vehicleId?: string; /** Called when the owner picks another vehicle from the header. */ onSelectVehicle?: (id: string) => void; /** Tells the page where the action card starts (so it can show the sticky copy once the card has scrolled away). */ onCardY?: (y: number) => void }> = ({ onSOS, onPost, search, onCardY, vehicleId, onSelectVehicle }) => (
+export const HomeTop: React.FC<{ onSOS: () => void; onPost: () => void; search: React.ReactNode; /** A notice between the action cards and the search bar (a late payment, rarely): the search bar moves down when it shows. */ notice?: React.ReactNode; /** The vehicle chosen right now: shown as a tag in the header. */ vehicleId?: string; /** Called when the owner picks another vehicle from the header. */ onSelectVehicle?: (id: string) => void; /** Tells the page where the action card starts (so it can show the sticky copy once the card has scrolled away). */ onCardY?: (y: number) => void }> = ({ onSOS, onPost, search, notice, onCardY, vehicleId, onSelectVehicle }) => (
   <View>
     <HomeHeader vehicleId={vehicleId} onSelectVehicle={onSelectVehicle} />
     <View style={hs.below} onLayout={(e) => onCardY?.(e.nativeEvent.layout.y)}>
@@ -43,6 +43,7 @@ export const HomeTop: React.FC<{ onSOS: () => void; onPost: () => void; search: 
           </View>
         </Pressable>
       </View>
+      {notice}
       <View style={hs.search}>{search}</View>
     </View>
   </View>
@@ -61,12 +62,12 @@ const hs = StyleSheet.create({
   btnTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   sosCircle: { width: 56, height: 56, borderRadius: 28, backgroundColor: '#fee2e2', borderWidth: 1, borderColor: '#fecaca', alignItems: 'center', justifyContent: 'center' },
   sosCircleText: { fontSize: 16, fontWeight: '800', color: '#dc2626' },
-  sosPill: { flexDirection: 'row', gap: 5, backgroundColor: '#ef4444', height: 26, minWidth: 74, paddingHorizontal: 10, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
+  sosPill: { flexDirection: 'row', gap: 5, backgroundColor: '#ef4444', height: 26, minWidth: 74, paddingHorizontal: 10, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
   pillDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#ffffff' },
   sosPillText: { fontSize: 12, fontWeight: '800', color: '#ffffff' },
   jobCircle: { width: 56, height: 56, borderRadius: 28, backgroundColor: '#dbeafe', borderWidth: 1, borderColor: '#bfdbfe', alignItems: 'center', justifyContent: 'center' },
   jobCircleText: { fontSize: 26, lineHeight: 30, fontWeight: '700', color: '#2563eb' },
-  freePill: { backgroundColor: '#facc15', height: 26, minWidth: 74, paddingHorizontal: 10, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
+  freePill: { backgroundColor: '#facc15', height: 26, minWidth: 74, paddingHorizontal: 10, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
   freePillText: { fontSize: 12, fontWeight: '800', color: '#111827' },
   btnTitle: { fontSize: 15, lineHeight: 21, fontFamily: FONTS.bodyMedium, color: '#000000' },
   btnSub: { fontSize: 13.5, lineHeight: 18, marginTop: 6, fontFamily: FONTS.bodyRegular, color: '#6b7280' },

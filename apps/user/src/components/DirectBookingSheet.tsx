@@ -25,7 +25,7 @@ import {
 } from '@ongarage/shared';
 import { Sheet } from './Sheet';
 import { CategoryStrip } from './home/CategoryStrip';
-import { InlineCalendar } from './BookingCalendar';
+import { SlotPicker, slotIsPast, slotTime } from './SlotPicker';
 import { MediaAttachments } from './MediaAttachments';
 import { FormTabs } from './FormTabs';
 import { VehicleOptions } from './VehicleOptions';
@@ -34,17 +34,6 @@ import { useBookings } from '../context/BookingsContext';
 import { formatDate, formatTime, money } from '../utils/format';
 
 const HOUR = 60 * 60 * 1000;
-const SLOT_HOURS = [8, 10, 12, 14, 16, 18];
-const DAYS_AHEAD = 5;
-/** How far ahead a booking can be made: within a month from today. */
-const MAX_DAYS = 30;
-
-const dayStart = (offset: number) => {
-  const d = new Date(Date.now() + offset * 24 * HOUR);
-  d.setHours(0, 0, 0, 0);
-  return d.getTime();
-};
-const dayLabel = (offset: number, t: number) => (offset === 0 ? 'අද' : offset === 1 ? 'හෙට' : formatDate(t));
 
 /**
  * Book a garage directly (no bidding): what's wrong, when, and whether the garage comes
@@ -54,7 +43,7 @@ const dayLabel = (offset: number, t: number) => (offset === 0 ? 'අද' : offse
  * What the owner sees when the booking request has gone: not a window but a message box that pops up in the middle of the screen, over the garage's profile. It says the
  * request was sent, when the garage answers, and points to the Activity tab where the answer shows.
  */
-const BookingSentBox: React.FC<{ visible: boolean; garageName: string; when: string; onViewActivity: () => void; onClose: () => void }> = ({ visible, garageName, when, onViewActivity, onClose }) => (
+export const BookingSentBox: React.FC<{ visible: boolean; garageName: string; when: string; onViewActivity: () => void; onClose: () => void }> = ({ visible, garageName, when, onViewActivity, onClose }) => (
   !visible ? null : (
     <View style={sentStyles.backdrop}>
       <View style={sentStyles.box} accessibilityLabel="Booking sent">
@@ -160,8 +149,8 @@ export const DirectBookingSheet: React.FC<{ garage: Garage | null; categoryId?: 
   if (!shown) return null;
 
   const cat = categoryInfo(categoryId);
-  const preferredAt = dayStart(day) + hour * HOUR;
-  const slotPast = preferredAt <= Date.now() + HOUR;
+  const preferredAt = slotTime(day, hour);
+  const slotPast = slotIsPast(preferredAt);
   const fitting = categoryId === PARTS_FITTING_CATEGORY_ID;
   const valid = problemTold(description, voiceNotes, 5) && !slotPast && (!fitting || fitPart.trim().length > 0);
 
@@ -257,25 +246,7 @@ export const DirectBookingSheet: React.FC<{ garage: Garage | null; categoryId?: 
 
       {tab === 'when' && (
         <>
-          <Text style={styles.label}>දිනය</Text>
-          {/* The calendar is open on the page (this tab has the room): pick the day on it, then the time below. */}
-          <InlineCalendar selected={day} maxDays={MAX_DAYS} onPick={setDay} />
-
-          <Text style={styles.label}>වේලාව</Text>
-          <View style={styles.chips}>
-            {SLOT_HOURS.map((h) => {
-              const t = dayStart(day) + h * HOUR;
-              const past = t <= Date.now() + HOUR;
-              return <Chip key={h} label={formatTime(t)} on={hour === h} disabled={past} onPress={() => setHour(h)} small />;
-            })}
-          </View>
-          {hour >= 17 && <Text style={styles.hint}>බොහෝ ගරාජ ප.ව. 5න් පසු වසා ඇත — ගරාජය වෙනත් වේලාවක් යෝජනා කළ හැක.</Text>}
-
-          <Text style={styles.label}>සේවාවක් ලබාගන්නා ස්ථානය</Text>
-          <View style={styles.chips}>
-            <Chip label="🏠 මම වාහනය ගරාජයට ගෙනෙන්නම්" on={!doorstep} onPress={() => setDoorstep(false)} />
-            <Chip label="🚛 ගරාජය මා වෙත පැමිණිය යුතුයි" on={doorstep} onPress={() => setDoorstep(true)} />
-          </View>
+          <SlotPicker day={day} hour={hour} onDay={setDay} onHour={setHour} doorstep={doorstep} onDoorstep={setDoorstep} />
         </>
       )}
 

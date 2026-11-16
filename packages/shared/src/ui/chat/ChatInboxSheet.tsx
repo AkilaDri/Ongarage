@@ -1,4 +1,4 @@
-import { OnChatIcon } from '../OnChatIcon';
+import { OnChatLogo } from '../OnChatLogo';
 import { VehicleLabel } from '../VehicleIcon3D';
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
@@ -88,7 +88,7 @@ export function ChatInboxSheet<T extends InboxThread>({ visible, onClose, overla
   const q = query.trim().toLowerCase();
   const threads = all.filter((t) => inInboxFilter(t, filter) && (!q || t.title.toLowerCase().includes(q) || (t.last?.text ?? '').toLowerCase().includes(q)));
   return (
-    <Sheet visible={visible} title="OnChat" titleIcon={<View style={styles.mark}><OnChatIcon width={28} color="#ffffff" /></View>} onClose={onClose} overlay={overlay} fullScreen>
+    <Sheet visible={visible} title="" titleIcon={<View accessibilityRole="header" accessibilityLabel="OnChat"><OnChatLogo height={32} /></View>} onClose={onClose} overlay={overlay} fullScreen>
       <View style={styles.search}>
         <Icon name="search" size={17} color={Colors.textMuted} />
         <TextInput style={styles.searchInput} value={query} onChangeText={setQuery} placeholder="සොයන්න" placeholderTextColor={Colors.textMuted} accessibilityLabel="Search chats" />

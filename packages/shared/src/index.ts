@@ -124,3 +124,5 @@ export * from './marketplace/searchLog';
 
 export * from './ui/topBar';
 export * from './ui/TopBandLayout';
+export * from './marketplace/bookingSlots';
+export * from './ui/OnChatLogo';

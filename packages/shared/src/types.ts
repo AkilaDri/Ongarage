@@ -92,6 +92,28 @@ export type VoiceNote = { id: string; durationSec: number; uri?: string };
 /** A parts-fitting job: the part to fit, and whether the owner brings it or the garage supplies it. */
 export type PartsFitting = { partName: string; supply: 'owner' | 'garage' };
 
+export type JobBookingStatus = 'choosing' | 'requested' | 'proposed' | 'confirmed';
+
+/** The time slot of an accepted quote. `choosing`: the owner has to pick a time; `requested`: waiting for the garage; `proposed`: the garage asks for another time; `confirmed`: the workshop starts then. */
+export type JobBooking = {
+  status: JobBookingStatus;
+  /** The owner must have picked a time by then, or the acceptance lapses and the other quotes reopen. */
+  chooseBy: number;
+  /** The time the owner asked for. */
+  preferredAt?: number;
+  doorstep?: boolean;
+  note?: string;
+  requestedAt?: number;
+  /** The garage must answer by then. */
+  respondBy?: number;
+  /** The confirmed time. */
+  scheduledAt?: number;
+  /** The garage's other time, when the asked-for time did not suit. */
+  proposal?: { at: number; note?: string };
+  /** How many times a time was asked for and not agreed (declined, or the garage did not answer). */
+  attempts?: number;
+};
+
 export type RepairJob = {
   id: string;
   categoryId: string;
@@ -107,6 +129,8 @@ export type RepairJob = {
   coords: LatLng;
   bids: Bid[];
   acceptedBidId?: string;
+  /** After a quote is accepted: the owner picks a time and the garage confirms it (the same rules as a direct booking). */
+  booking?: JobBooking;
   /** Parts Fitting jobs (category 15): the part to fit and who supplies it. */
   fitting?: PartsFitting;
 };

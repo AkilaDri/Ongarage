@@ -61,11 +61,11 @@ export const PayReliabilityCard: React.FC = () => {
 };
 
 /** A calm bar above the tab bar while a balance is due or late (tap: where it is owed); louder once new work is limited. */
-export const PayStandingBanner: React.FC<{ onPress: () => void }> = ({ onPress }) => {
+export const PayStandingBanner: React.FC<{ onPress: () => void; /** Inside the Home card, between the action cards and the search bar, not floating above the tab bar. */ inline?: boolean }> = ({ onPress, inline }) => {
   const s = usePayStanding();
   if (!s.warn && !s.limited) return null;
   return (
-    <Pressable style={[styles.banner, s.limited && styles.bannerLimited]} onPress={onPress} accessibilityLabel="Payment balance reminder">
+    <Pressable style={[styles.banner, inline && styles.bannerInline, s.limited && styles.bannerLimited]} onPress={onPress} accessibilityLabel="Payment balance reminder">
       <Text style={styles.bannerText} numberOfLines={2}>
         {s.limited ? `⛔ දින ${s.overdueDays} කින් හිඟ මුදල් ගෙවීමක් ප්‍රමාදවී ඇත — අලුත් රැකියා නවතා ඇත. ගෙවීම් බලන්න ›` : `⚠️ ගෙවිය යුතු ${money(s.owed)} ${s.overdueDays ? 'ප්‍රමාදයි' : 'අද දිනයයි'} — බලන්න ›`}
       </Text>
@@ -122,6 +122,7 @@ const styles = themedStyles(() =>
     limitTitle: { fontSize: 12.5, fontFamily: FONTS.bodyBold, color: Colors.errorText },
     limitText: { fontSize: 12, fontFamily: FONTS.bodyRegular, color: Colors.textMain, lineHeight: 18 },
     banner: { marginHorizontal: 6, marginBottom: 6, paddingHorizontal: 12, paddingVertical: 9, borderRadius: 12, backgroundColor: getThemeMode() === 'dark' ? '#4a3200' : '#fef7e0', borderWidth: 1, borderColor: 'rgba(245, 158, 11, 0.5)' },
+    bannerInline: { marginHorizontal: 4, marginBottom: 0, marginTop: 6 },
     bannerLimited: { backgroundColor: getThemeMode() === 'dark' ? '#4a1512' : '#fce8e6', borderColor: 'rgba(239, 68, 68, 0.5)' },
     bannerText: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textMain, lineHeight: 17 },
   })

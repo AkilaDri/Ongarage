@@ -102,7 +102,7 @@ export const Sheet: React.FC<{
               </Pressable>
               {titleIcon}
               <View style={styles.flex1}>
-                <Text style={styles.appTitle} numberOfLines={1}>{title}</Text>
+                {!!title && <Text style={styles.appTitle} numberOfLines={1}>{title}</Text>}
                 {!!subtitle && <Text style={styles.appSub} numberOfLines={1}>{subtitle}</Text>}
               </View>
               {headerRight}

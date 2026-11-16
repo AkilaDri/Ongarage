@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 676.015 243.936">
+  <defs>
+    <style>
+      .cls-1{fill:#003089;stroke:#ffed2f;stroke-width:10;stroke-linejoin:round}
+      .cls-2{font-family:&apos;Eurostile Next W1G&apos;, sans-serif;font-size:12px;font-weight:bold;font-style:italic;fill:#ffffff}
+      .cls-3{fill:#ffed2f}
+    </style>
+  </defs>
+  <title>Onchat Logo</title>
+  <g id="Layer_1" data-name="Layer 1">
+    <g id="Workiing_logo" data-name="Workiing logo" data-vc-layer="sublayer">
+      <g id="Onchat_Logo" data-name="Onchat Logo">
+        <path d="M70.213 31.851 L605.802 31.851 C641.818 31.851 671.015 61.048 671.015 97.064 L671.015 148.198 C671.015 184.214 641.818 213.411 605.802 213.411 L70.213 213.411 C34.197 213.411 5 184.214 5 148.198 L5 97.064 C5 61.048 34.197 31.851 70.213 31.851 Z" class="cls-1"/>
+        <text transform="matrix(10.227 0 0 9.934 29.343 153.079)" x="0" y="0" xml:space="preserve" class="cls-2"><tspan x="0" y="0">on</tspan></text>
+        <text transform="matrix(10.471 0 0 10.171 340.539 153.342)" x="0" y="0" xml:space="preserve" class="cls-2"><tspan x="0" y="0">chat</tspan></text>
+        <g>
+          <path d="M121.277 85.851 C139.979 27.277 195.426 -9.574 250.737 2.183 C291.779 10.907 322.004 44.11 332.114 85.631 L296.729 85.631 C290.183 64.667 275.724 48.874 256.488 44.785 C233.438 39.886 209.822 53.127 195.133 76.436 C191.441 82.296 185.428 85.851 179.209 85.851 Z M233.445 110.396 C234.739 101.436 242.417 94.786 251.47 94.786 L281.539 94.786 L293.637 94.786 L299.017 94.786 L333.992 94.786 C336.666 110.746 336.428 127.707 332.791 144.821 C318.729 210.976 259.194 254.374 199.815 241.753 C160.253 233.344 130.742 202.189 119.61 162.765 L178.106 162.765 C183.536 162.765 188.824 165.927 192.115 171.141 C199.829 183.364 211.013 192.059 224.571 194.941 C250.705 200.496 277.568 182.731 291.32 153.411 L248.264 153.411 C237.17 153.411 228.653 143.576 230.238 132.595 Z" class="cls-3"/>
+        </g>
+      </g>
+    </g>
+  </g>
+</svg>

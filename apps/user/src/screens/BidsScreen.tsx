@@ -11,6 +11,7 @@ import { FONTS } from '@ongarage/shared';
 
 import { SERVICE_CATEGORIES } from '@ongarage/shared';
 import { useVehicles } from '../context/VehiclesContext';
+import { bookingStatusText } from '../components/BidBookingStatus';
 import { FilterChips, Icon, ClipboardLineIcon, ReceiptLineIcon, ScheduleLineIcon, SegmentTabs } from '@ongarage/shared';
 import { GoogleMap, zoomToFit } from '@ongarage/shared';
 import { ActionButton, EmptyState, GlassIcon, ModalCard, SwipeCard } from '@ongarage/shared';
@@ -81,6 +82,8 @@ interface BidsScreenProps {
   onNewBid?: () => void;
   /** Accepting a bid is paused while a long-overdue balance limits new work: the app tells the owner to pay first. */
   onPayFirst: () => void;
+  /** Opens the booking sheet (pick a time with the garage) for an accepted quote. */
+  onPickTime: (jobId: string) => void;
   onViewActivity: () => void;
   /** The top bar folds away while the sheet is fully open (and returns when it comes back down). */
   onHeaderVisibilityChange?: (visible: boolean) => void;
@@ -99,7 +102,7 @@ const ONE = new Animated.Value(1);
 /** 3,700 → "3.7k": a price short enough for a small badge. */
 const shortMoney = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(n % 1000 === 0 ? 0 : 1)}k` : String(n));
 
-export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsView, onToggleRows, onRepublish, onNewBid, onPayFirst, onViewActivity, onHeaderVisibilityChange, onHeaderCollapse, minimizeRef, mapRef, closeMapRef, onMapChange }) => {
+export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsView, onToggleRows, onRepublish, onNewBid, onPayFirst, onPickTime, onViewActivity, onHeaderVisibilityChange, onHeaderCollapse, minimizeRef, mapRef, closeMapRef, onMapChange }) => {
   // "Garages I have used": narrows the received bids to the garages the owner has finished a job with before.
   const isUsed = useUsedGarages();
   const [usedOnly, setUsedOnly] = useState(false);
@@ -147,7 +150,6 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
   // An old job the owner wants to put out again: its summary opens first (post it as it was, or edit it), not an empty form.
   const [repub, setRepub] = useState<RepairJob | null>(null);
   const [bidView, setBidView] = useState<{ job: RepairJob; bid: Bid } | null>(null);
-  const [booked, setBooked] = useState<{ job: RepairJob; bid: Bid } | null>(null);
   // The bid whose pin on the map was touched: shown as a small record card over the map.
   const [pinBid, setPinBid] = useState<{ job: RepairJob; bid: Bid } | null>(null);
   // The garage's card on the map closes as soon as the sheet is pulled up over it.
@@ -463,9 +465,15 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
             <Text style={styles.fbActionText}>🗺️ දිශාවන්</Text>
           </Pressable>
           {isAccepted ? (
-            <View style={[styles.fbAction, styles.fbActionDone]}>
-              <Text style={[styles.fbActionText, { color: '#713f12' }]}>✓ තහවුරුයි</Text>
-            </View>
+            job.booking && job.booking.status !== 'confirmed' ? (
+              <Pressable style={[styles.fbAction, styles.fbActionAccept]} onPress={() => onPickTime(job.id)} accessibilityRole="button" accessibilityLabel="Pick a time with the garage">
+                <Text style={[styles.fbActionText, styles.fbActionPrimary]}>{job.booking.status === 'choosing' ? '📅 වේලාව තෝරන්න' : job.booking.status === 'proposed' ? '🕘 යෝජිත වේලාව' : '⏳ පිළිතුර බලන්න'}</Text>
+              </Pressable>
+            ) : (
+              <View style={[styles.fbAction, styles.fbActionDone]}>
+                <Text style={[styles.fbActionText, { color: '#713f12' }]}>✓ තහවුරුයි</Text>
+              </View>
+            )
           ) : (
             <Pressable style={[styles.fbAction, styles.fbActionAccept, isLowest && styles.fbActionLowest]} onPress={() => askAccept({ job, bid })} accessibilityLabel={`Accept the bid of ${bid.garageName}`}>
               <Text style={[styles.fbActionText, styles.fbActionPrimary, isLowest && styles.fbActionLowestText]}>✓ පිළිගන්න</Text>
@@ -577,7 +585,7 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
                 job,
                 <View style={[styles.badge, job.acceptedBidId ? styles.badgeSuccess : styles.badgePrimary]}>
                   <Text style={[styles.badgeText, { color: workshops[job.id]?.progress.cancelled ? Colors.errorText : job.acceptedBidId ? Colors.success : Colors.primary }]}>
-                    {job.acceptedBidId ? (workshops[job.id]?.progress.cancelled ? 'අවලංගු කළා' : 'වෙන් කළා') : `ලංසු ${job.bids.length}`}
+                    {job.acceptedBidId ? (workshops[job.id]?.progress.cancelled ? 'අවලංගු කළා' : bookingStatusText(job.booking) ?? 'වෙන් කළා') : `ලංසු ${job.bids.length}`}
                   </Text>
                 </View>
               )}
@@ -1009,40 +1017,13 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
             compact
             onPress={() => {
               acceptBid(confirming.job.id, confirming.bid.id);
-              setBooked(confirming);
+              onPickTime(confirming.job.id);
               setConfirming(null);
             }}
           />
         </ModalCard>
       )}
 
-      {booked && (
-        <ModalCard
-          icon="✅"
-          tone="success"
-          title="වෙන් කිරීම තහවුරුයි!"
-          onClose={() => setBooked(null)}
-          body={`${booked.bid.garageName} ඔබව ඉක්මනින් සම්බන්ධ කර ගනු ඇත. එකඟ වූ මිල: ${money(booked.bid.price)}.`}
-        >
-          <ActionButton
-            label="දිශාවන්"
-            icon="🗺️"
-            variant="ghost"
-            compact
-            onPress={() => Linking.openURL(directionsUrl(booked.bid.coords, user.coords))}
-          />
-          <ActionButton
-            label="ක්‍රියාකාරකම්"
-            icon="⏱️"
-            variant="success"
-            compact
-            onPress={() => {
-              setBooked(null);
-              onViewActivity();
-            }}
-          />
-        </ModalCard>
-      )}
       {/* The filter bar is pinned under the nav bar in the top header's blue: it does not travel with the sheet. */}
       {tab === 'received' && !mapOpen && (
         <View pointerEvents="box-none" style={styles.pinnedTools}>{renderTools()}</View>

@@ -111,7 +111,7 @@ export const HomeHeader: React.FC<{ vehicleId?: string; onSelectVehicle?: (id: s
 const hh = StyleSheet.create({
   wrap: { paddingHorizontal: 24, paddingTop: 20, paddingBottom: 72, borderBottomLeftRadius: 36, borderBottomRightRadius: 36, overflow: 'hidden', backgroundColor: '#1e3a8a' },
   topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 16, marginBottom: 16 },
-  cityPill: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20, backgroundColor: 'rgba(255, 255, 255, 0.15)', borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.15)' },
+  cityPill: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 6, borderRadius: 10, backgroundColor: 'rgba(255, 255, 255, 0.15)', borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.15)' },
   cityPin: { fontSize: 13.5, color: '#facc15' },
   cityText: { fontSize: 13.5, fontFamily: FONTS.bodySemiBold, letterSpacing: 0.3, color: '#ffffff' },
   vehiclePill: { flexShrink: 1, flexDirection: 'row', alignItems: 'center', gap: 6, marginLeft: 10, paddingLeft: 12, paddingRight: 8, paddingVertical: 5, borderRadius: 20, backgroundColor: 'rgba(255, 255, 255, 0.15)', borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.2)' },

@@ -2,8 +2,9 @@ import { flyTo } from '../utils/fly';
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { DEFAULT_COORDS, MOCK_GARAGES } from '../constants/mockData';
 import { useWorkshops } from './WorkshopContext';
-import { offsetCoordinate, marketPrice, travelFeeFor } from '@ongarage/shared';
-import type { Bid, RepairJob } from '@ongarage/shared';
+import { useNotice } from './NoticeContext';
+import { categoryInfo, garageAnswerFor, GARAGE_RESPOND_WITHIN_MS, offsetCoordinate, marketPrice, pickTimeDeadline, travelFeeFor } from '@ongarage/shared';
+import type { Bid, JobBooking, RepairJob } from '@ongarage/shared';
 
 const MIN = 60 * 1000;
 const HOUR = 60 * MIN;
@@ -21,6 +22,9 @@ const BIDDING_GARAGES = [
   // Far away (beyond FAR_JOB_KM): its bid carries a travel compensation fee, and the owner sees it marked.
   { ...profile('Speed Works Garage'), distanceKm: 18.6, bearing: 220, warrantyMonths: 2, estHours: 3 },
 ];
+
+/** How long the simulated garage takes to answer a requested time: 30 seconds (the same as a direct booking). */
+const GARAGE_REPLY_SIM_MS = 30000;
 
 const PRICE_FACTORS = [1.0, 0.82, 1.18];
 const SIMULATED_BID_DELAYS_MS = [6000, 14000, 24000, 36000];
@@ -115,7 +119,14 @@ export type NewJob = Omit<RepairJob, 'id' | 'submittedAt' | 'bids' | 'acceptedBi
 type BidsState = {
   jobs: RepairJob[];
   postJob: (job: NewJob) => RepairJob;
+  /** The owner accepts a quote: the price is agreed, and the owner then has to pick a time (the workshop starts when the garage confirms it). */
   acceptBid: (jobId: string, bidId: string) => void;
+  /** The owner asks the winning garage for a time; the garage confirms it or proposes another. */
+  requestBidSlot: (jobId: string, input: { preferredAt: number; doorstep?: boolean; note?: string }) => void;
+  /** The owner takes the other time the garage proposed. */
+  acceptSlotProposal: (jobId: string) => void;
+  /** The owner turns the proposed time down and goes back to picking a time with the same garage. */
+  declineSlotProposal: (jobId: string) => void;
   /** Dismiss a received bid that has not been accepted. */
   removeBid: (jobId: string, bidId: string) => void;
   /** Deletes a posted job that has no bids to accept (waiting or expired). */
@@ -128,6 +139,7 @@ const BidsContext = createContext<BidsState | null>(null);
 
 export const BidsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { startWorkshop } = useWorkshops();
+  const { notify } = useNotice();
   const [jobs, setJobs] = useState<RepairJob[]>(() => seedJobs(Date.now()));
   const live = useRef(jobs);
   live.current = jobs;
@@ -159,17 +171,92 @@ export const BidsProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return job;
   }, []);
 
-  const acceptBid = useCallback(
-    (jobId: string, bidId: string) => {
-      setJobs((prev) => prev.map((j) => (j.id === jobId ? { ...j, acceptedBidId: bidId } : j)));
-      flyTo('booked');
-      const job = live.current.find((j) => j.id === jobId);
-      const bid = job?.bids.find((b) => b.id === bidId);
-      // The winning garage takes the vehicle in and follows the workshop steps.
-      if (job && bid) startWorkshop({ id: jobId, garageId: bid.garageId, garageName: bid.garageName, categoryId: job.categoryId, agreedPrice: bid.price, scheduledAt: Date.now(), doorstep: job.doorstep, warrantyMonths: bid.warrantyMonths, vehicleId: job.vehicleId, partType: job.sparePart, protectedJob: bid.level === 'premier' });
+  /** The garage takes the vehicle in at the agreed time and follows the workshop steps. */
+  const beginWorkshop = useCallback(
+    (job: RepairJob, bid: Bid, scheduledAt: number, doorstep: boolean) => {
+      startWorkshop({ id: job.id, garageId: bid.garageId, garageName: bid.garageName, categoryId: job.categoryId, agreedPrice: bid.price, scheduledAt, doorstep, warrantyMonths: bid.warrantyMonths, vehicleId: job.vehicleId, partType: job.sparePart, protectedJob: bid.level === 'premier' });
     },
     [startWorkshop]
   );
+  const patchBooking = useCallback((jobId: string, change: (b: JobBooking) => JobBooking) => {
+    setJobs((prev) => prev.map((j) => (j.id === jobId && j.booking ? { ...j, booking: change(j.booking) } : j)));
+  }, []);
+
+  // The owner accepted a quote: the price is agreed, but there is no time yet. The owner picks one and the garage confirms it before the workshop starts.
+  const acceptBid = useCallback((jobId: string, bidId: string) => {
+    const now = Date.now();
+    setJobs((prev) => prev.map((j) => (j.id === jobId ? { ...j, acceptedBidId: bidId, booking: { status: 'choosing', chooseBy: pickTimeDeadline(now), attempts: 0 } } : j)));
+    flyTo('booked');
+  }, []);
+
+  const requestBidSlot = useCallback(
+    (jobId: string, input: { preferredAt: number; doorstep?: boolean; note?: string }) => {
+      const now = Date.now();
+      patchBooking(jobId, (b) => ({ ...b, status: 'requested', preferredAt: input.preferredAt, doorstep: input.doorstep, note: input.note, requestedAt: now, respondBy: now + GARAGE_RESPOND_WITHIN_MS, proposal: undefined }));
+      timers.current.push(
+        setTimeout(() => {
+          const job = live.current.find((j) => j.id === jobId);
+          const bid = job?.bids.find((b) => b.id === job.acceptedBidId);
+          if (!job || !bid || job.booking?.status !== 'requested' || job.booking.preferredAt !== input.preferredAt) return;
+          const answer = garageAnswerFor(input.preferredAt);
+          if (answer.kind === 'confirm') {
+            patchBooking(jobId, (b) => ({ ...b, status: 'confirmed', scheduledAt: input.preferredAt }));
+            beginWorkshop(job, bid, input.preferredAt, input.doorstep ?? job.doorstep);
+            notify({ icon: '✅', title: `${bid.garageName} වෙන්කිරීම තහවුරු කළා`, body: (input.doorstep ?? job.doorstep) ? 'නියමිත වේලාවට ගරාජය ඔබ වෙත පැමිණේ.' : `${categoryInfo(job.categoryId).name} · ගරාජයේ ස්ථානය “ක්‍රියාකාරකම්” හි ඇත.`, tone: 'success' });
+          } else {
+            patchBooking(jobId, (b) => ({ ...b, status: 'proposed', proposal: { at: answer.at, note: 'එම වේලාවේ ගරාජය වසා ඇත.' } }));
+            notify({ icon: '🕘', title: `${bid.garageName} වෙනත් වේලාවක් යෝජනා කළා`, body: 'පිළිගන්න හෝ වෙනත් වේලාවක් තෝරන්න.', tone: 'primary' });
+          }
+        }, GARAGE_REPLY_SIM_MS)
+      );
+    },
+    [beginWorkshop, notify, patchBooking]
+  );
+
+  const acceptSlotProposal = useCallback(
+    (jobId: string) => {
+      const job = live.current.find((j) => j.id === jobId);
+      const bid = job?.bids.find((b) => b.id === job.acceptedBidId);
+      const proposal = job?.booking?.proposal;
+      if (!job || !bid || !proposal) return;
+      patchBooking(jobId, (b) => ({ ...b, status: 'confirmed', scheduledAt: proposal.at, proposal: undefined }));
+      beginWorkshop(job, bid, proposal.at, job.booking?.doorstep ?? job.doorstep);
+      notify({ icon: '✅', title: 'වෙන්කිරීම තහවුරුයි', body: `${bid.garageName} · ${categoryInfo(job.categoryId).name}`, tone: 'success' });
+    },
+    [beginWorkshop, notify, patchBooking]
+  );
+
+  // A turned-down time goes back to picking another one with the same garage; the quote and its price stay.
+  const declineSlotProposal = useCallback(
+    (jobId: string) => {
+      patchBooking(jobId, (b) => ({ ...b, status: 'choosing', proposal: undefined, preferredAt: undefined, attempts: (b.attempts ?? 0) + 1 }));
+    },
+    [patchBooking]
+  );
+
+  // Two things lapse with time: a quote whose time was never picked (the acceptance is undone and the other quotes reopen),
+  // and a requested time the garage never answered (it goes back to picking a time).
+  useEffect(() => {
+    const t = setInterval(() => {
+      const now = Date.now();
+      setJobs((prev) => {
+        const needs = prev.some((j) => j.booking && ((j.booking.status === 'choosing' && j.booking.chooseBy <= now) || (j.booking.status === 'requested' && (j.booking.respondBy ?? Infinity) <= now)));
+        if (!needs) return prev;
+        return prev.map((j) => {
+          const b = j.booking;
+          if (!b) return j;
+          if (b.status === 'choosing' && b.chooseBy <= now) {
+            const { acceptedBidId, booking, ...rest } = j;
+            return rest as RepairJob;
+          }
+          if (b.status === 'requested' && (b.respondBy ?? Infinity) <= now) return { ...j, booking: { ...b, status: 'choosing', preferredAt: undefined, attempts: (b.attempts ?? 0) + 1 } };
+          return j;
+        });
+      });
+    }, 30000);
+    return () => clearInterval(t);
+  }, []);
+
   const removeBid = useCallback((jobId: string, bidId: string) => {
     setJobs((prev) => prev.map((j) => (j.id === jobId && !j.acceptedBidId ? { ...j, bids: j.bids.filter((b) => b.id !== bidId) } : j)));
   }, []);
@@ -183,7 +270,7 @@ export const BidsProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setJobs((prev) => prev.filter((j) => j.id !== jobId || j.acceptedBidId));
   }, []);
 
-  return <BidsContext.Provider value={{ jobs, postJob, acceptBid, removeBid, removeJob, extendBidding }}>{children}</BidsContext.Provider>;
+  return <BidsContext.Provider value={{ jobs, postJob, acceptBid, requestBidSlot, acceptSlotProposal, declineSlotProposal, removeBid, removeJob, extendBidding }}>{children}</BidsContext.Provider>;
 };
 
 export const useBids = () => {

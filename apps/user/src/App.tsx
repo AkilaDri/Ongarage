@@ -53,6 +53,7 @@ import { GarageReviewsSheet } from './components/GarageReviewsSheet';
 import { MartHeader } from './components/mart/MartHeader';
 import { ChatHeaderButton } from './components/ChatHeaderButton';
 import { AppPageHeader } from './components/AppPageHeader';
+import { BidBookingSheet } from './components/BidBookingSheet';
 import { ServiceReminders } from './components/ServiceReminders';
 import { PaymentReminders } from './components/PaymentReminders';
 import { PayFirstSheet, PayStandingBanner } from './components/PayStandingViews';
@@ -308,6 +309,8 @@ function AppShell() {
   // A balance long overdue limits new work (marketplace/reliability.ts): a new job, a bid accepted, a direct booking. SOS, chat, OnMart and paying stay open.
   const standing = usePayStanding();
   const [payFirst, setPayFirst] = useState(false);
+  // The accepted quote whose time is being booked (opened from Bids and from Activity).
+  const [bookingJobId, setBookingJobId] = useState<string | null>(null);
   // The hamburger in the Bids sheet header: every received bid as one row.
   const [bidsRows, setBidsRows] = useState(false);
   // The Received sheet is open to the top: the same top header bar then drops its heading and carries Free Quote, the cards / rows switch and the close mark.
@@ -505,6 +508,15 @@ function AppShell() {
               stickyFrom={homeCardY + 190}
               top={
                 <HomeTop
+                  notice={
+                    <PayStandingBanner
+                      inline
+                      onPress={() => {
+                        focusActivity({ kind: 'done' });
+                        setActiveTab('activity');
+                      }}
+                    />
+                  }
                   onCardY={setHomeCardY}
                   vehicleId={selectedVehicle}
                   onSelectVehicle={setSelectedVehicle}
@@ -532,6 +544,7 @@ function AppShell() {
               onRepublish={(draft) => openPost(draft)}
               onNewBid={() => openPost(null)}
               onPayFirst={() => setPayFirst(true)}
+              onPickTime={setBookingJobId}
               onViewActivity={() => {
                 focusActivity({ kind: 'current', current: 'bids' });
                 setActiveTab('activity');
@@ -544,7 +557,7 @@ function AppShell() {
               onHeaderVisibilityChange={onBidsHeaderVisible}
             />
           ) : activeTab === 'activity' ? (
-            <ActivityScreen onHeaderProgress={(p) => martHeaderCollapse.setValue(p)} onOpenMart={() => setActiveTab('mart')} onOpenBids={() => setActiveTab('bids')} onBookAgain={(b) => setSelectedService(categoryInfo(b.categoryId))} />
+            <ActivityScreen onPickTime={setBookingJobId} onHeaderProgress={(p) => martHeaderCollapse.setValue(p)} onOpenMart={() => setActiveTab('mart')} onOpenBids={() => setActiveTab('bids')} onBookAgain={(b) => setSelectedService(categoryInfo(b.categoryId))} />
           ) : activeTab === 'mart' ? (
             <MartScreen
               activeVehicle={selectedVehicle}
@@ -561,12 +574,14 @@ function AppShell() {
 
         <View style={styles.bottomNavContainer}>
           {/* A balance is due or late (and new work limited when it is long late): tap to see what is owed. */}
-          <PayStandingBanner
-            onPress={() => {
-              focusActivity({ kind: 'done' });
-              setActiveTab('activity');
-            }}
-          />
+          {activeTab !== 'home' && (
+            <PayStandingBanner
+              onPress={() => {
+                focusActivity({ kind: 'done' });
+                setActiveTab('activity');
+              }}
+            />
+          )}
           {activeTab === 'mart' ? (
             <OwnerMartNav
               activeTab={martSegment}
@@ -708,6 +723,15 @@ function AppShell() {
         )}
         <Toast topOffset={84} />
       </Modal>
+      <BidBookingSheet
+        jobId={bookingJobId}
+        onClose={() => setBookingJobId(null)}
+        onViewActivity={() => {
+          setBookingJobId(null);
+          focusActivity({ kind: 'current', current: 'bids' });
+          setActiveTab('activity');
+        }}
+      />
       <PayFirstSheet visible={payFirst} onClose={() => setPayFirst(false)} onViewOwed={() => {
           focusActivity({ kind: 'done' });
           setActiveTab('activity');
