@@ -261,10 +261,14 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
   const localMin = useRef<() => void>(() => {});
   // The map opens full screen from the header's map icon; the same icon closes it again.
   const [mapOpen, setMapOpen] = useState(false);
+  const [sortOpen, setSortOpen] = useState(false);
   if (mapRef) mapRef.current = () => setMapOpen(true);
   if (closeMapRef) closeMapRef.current = () => setMapOpen(false);
   useEffect(() => {
     onMapChange?.(mapOpen);
+    // The floating chat pill would sit on the bid card's buttons: it steps aside while the map is open.
+    chatHide.setValue(mapOpen ? 1 : 0);
+    return () => chatHide.setValue(0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mapOpen]);
   const baseArea = useRef(0);
@@ -312,16 +316,15 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
         }}
         accessibilityLabel={`${cat?.name ?? 'Job'} details`}
       >
-        <CategoryPhoto categoryId={job.categoryId} size={50} />
+        <CategoryPhoto categoryId={job.categoryId} size={38} />
         <View style={styles.flex1}>
           <Text style={styles.cardTitle} numberOfLines={1}>
             {cat?.name ?? 'Service'}
           </Text>
           <Text style={styles.cardSub} numberOfLines={1}>
-            {vehicle ? vehicle.name : ''}
+            {vehicle ? `${vehicle.name} · ${vehicle.registrationNo || vehicle.plate}` : ''}
             {media ? `${vehicle ? '  ·  ' : ''}${media}` : ''}
           </Text>
-          {vehicle && <LkPlate plate={vehicle.registrationNo || vehicle.plate} stacked={vehicle.type === 'Motorbike'} small />}
         </View>
         {badge}
       </Pressable>
@@ -433,45 +436,43 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
               <Text style={styles.fbStars}>{'★'.repeat(Math.round(bid.rating))}{'☆'.repeat(5 - Math.round(bid.rating))}</Text> {bid.rating.toFixed(1)} ({bid.reviews})
             </Text>
           </View>
-          {!isAccepted && (
-            <Pressable style={styles.fbMore} onPress={() => setDeletingBid({ job, bid })} hitSlop={8} accessibilityLabel={`Delete bid from ${bid.garageName}`}>
-              <Icon name="trash" size={16} color={Colors.textMuted} />
-            </Pressable>
-          )}
         </View>
         <Text style={styles.fbSubLine} numberOfLines={1}>
           {ago(now - bid.submittedAt)} · {SERVICE_CATEGORIES.find((c) => c.id === job.categoryId)?.name ?? 'Service'}{isLowest && !job.acceptedBidId ? ' · 💰 අඩුම ලංසුව' : ''}
         </Text>
         <Pressable style={styles.fbContent} onPress={() => setBidView({ job, bid })} accessibilityLabel={`${bid.garageName} bid details`}>
-          <MoneyText style={styles.fbPrice}>{bid.travelFee ? '🚗 ' : ''}{lkr(bid.price)}</MoneyText>
+          <View style={styles.fbPriceRow}>
+            <MoneyText style={styles.fbPrice}>{lkr(bid.price)}</MoneyText>
+            {!!bid.travelFee && (
+              <View style={styles.travelTag} accessibilityLabel="Price includes the travel fee">
+                <Text style={styles.travelTagText}>🚗 ගමන් ගාස්තුව ඇතුළුව</Text>
+              </View>
+            )}
+          </View>
           <Text style={styles.fbText}>
-            🛡️ මාස {bid.warrantyMonths} වගකීම · ⏱️ පැය {bid.estHours}{bid.travelFee ? ` · 🚗 ගමන් ගාස්තුව ${money(bid.travelFee)} ඇතුළුව` : ''}
+            🛡️ මාස {bid.warrantyMonths} වගකීම · ⏱️ පැය {bid.estHours} · 📍 {bid.distanceKm} km
           </Text>
           <GarageHistoryTag garage={garage} part="line" />
           {!!market && <Text style={[styles.marketNote, market.cheaper ? styles.marketCheaper : styles.marketDearer]}>{market.text}</Text>}
           {!!bid.travelFee && (
             <View style={styles.travelNote} accessibilityLabel="Bid includes travel fee">
-              <Text style={styles.travelNoteTitle}>🚗 දුර ගමන් ගාස්තුව ඇතුළු ලංසුවකි</Text>
               <Text style={styles.travelNoteText}>
                 ගරාජය ඔබෙන් km {bid.distanceKm} ක් ඈතයි · රැකියාව {money(bidWork(bid))} + ගමන් වන්දිය {money(bid.travelFee)}
               </Text>
             </View>
           )}
         </Pressable>
-        <View style={styles.fbCounts}>
-          <Text style={styles.fbCountText}>📍 {bid.distanceKm} km</Text>
-        </View>
         <View style={styles.fbActions}>
-          <Pressable style={styles.fbAction} onPress={() => setBidView({ job, bid })} accessibilityLabel="Open bid details">
-            <Text style={styles.fbActionText}>📄 විස්තර</Text>
+          <Pressable style={styles.fbLink} onPress={() => setBidView({ job, bid })} accessibilityLabel="Open bid details">
+            <Text style={styles.fbLinkText}>විස්තර</Text>
           </Pressable>
-          <Pressable style={styles.fbAction} onPress={() => Linking.openURL(directionsUrl(bid.coords, user.coords))} accessibilityLabel="Directions to the garage">
-            <Text style={styles.fbActionText}>🗺️ දිශාවන්</Text>
+          <Pressable style={styles.fbIconBtn} onPress={() => Linking.openURL(directionsUrl(bid.coords, user.coords))} accessibilityLabel="Directions to the garage">
+            <Text style={styles.fbIconText}>🗺️</Text>
           </Pressable>
           {isAccepted ? (
             job.booking && job.booking.status !== 'confirmed' ? (
               <Pressable style={[styles.fbAction, styles.fbActionAccept]} onPress={() => onPickTime(job.id)} accessibilityRole="button" accessibilityLabel="Pick a time with the garage">
-                <Text style={[styles.fbActionText, styles.fbActionPrimary]}>{job.booking.status === 'choosing' ? '📅 වේලාව තෝරන්න' : job.booking.status === 'proposed' ? '🕘 යෝජිත වේලාව' : '⏳ පිළිතුර බලන්න'}</Text>
+                <Text style={[styles.fbActionText, styles.fbActionOnFill]}>{job.booking.status === 'choosing' ? '📅 වේලාව තෝරන්න' : job.booking.status === 'proposed' ? '🕘 යෝජිත වේලාව' : '⏳ පිළිතුර බලන්න'}</Text>
               </Pressable>
             ) : (
               <View style={[styles.fbAction, styles.fbActionDone]}>
@@ -480,7 +481,7 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
             )
           ) : (
             <Pressable style={[styles.fbAction, styles.fbActionAccept, isLowest && styles.fbActionLowest]} onPress={() => askAccept({ job, bid })} accessibilityLabel={`Accept the bid of ${bid.garageName}`}>
-              <Text style={[styles.fbActionText, styles.fbActionPrimary, isLowest && styles.fbActionLowestText]}>✓ පිළිගන්න</Text>
+              <Text style={[styles.fbActionText, styles.fbActionOnFill]}>✓ පිළිගන්න</Text>
             </Pressable>
           )}
         </View>
@@ -495,22 +496,24 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
     return (
       <Pressable key={bid.id} style={[styles.bidRow, isLowest && !job.acceptedBidId && styles.bidRowLowest, isAccepted && styles.bidRowAccepted]} onPress={() => setBidView({ job, bid })} accessibilityLabel={`${bid.garageName} bid`}>
         <View style={styles.flex1}>
-          <Text style={styles.bidRowName} numberOfLines={1}>
+          <Text style={styles.bidRowName} numberOfLines={2}>
             {bid.level ? `${LEVELS.find((l) => l.id === bid.level)?.icon} ` : ''}
             {bid.garageName}
           </Text>
           <Text style={styles.bidRowSub} numberOfLines={1}>
-            ★ {bid.rating.toFixed(1)} ({bid.reviews}) · km {bid.distanceKm} · මාස {bid.warrantyMonths}{isLowest && !job.acceptedBidId ? ' · 💰 අඩුම' : ''}{marketNote(job, bid) ? ` · ${marketNote(job, bid)!.short}` : ''}
+            ★ {bid.rating.toFixed(1)} ({bid.reviews}) · {bid.distanceKm} km{isLowest && !job.acceptedBidId ? ' · 💰 අඩුම' : ''}
           </Text>
         </View>
-        <Text style={styles.bidRowPrice}>{money(bid.price)}</Text>
-        {isAccepted ? (
-          <Text style={styles.bidRowDone}>✓</Text>
-        ) : (
-          <Pressable style={[styles.bidRowAccept, isLowest && styles.bidRowAcceptLowest]} onPress={() => askAccept({ job, bid })} hitSlop={6} accessibilityLabel={`Accept the bid of ${bid.garageName}`}>
-            <Text style={styles.bidRowAcceptText}>පිළිගන්න</Text>
-          </Pressable>
-        )}
+        <View style={styles.bidRowEnd}>
+          <Text style={styles.bidRowPrice}>{money(bid.price)}</Text>
+          {isAccepted ? (
+            <Text style={styles.bidRowDone}>✓</Text>
+          ) : (
+            <Pressable style={[styles.bidRowAccept, isLowest && styles.bidRowAcceptLowest]} onPress={() => askAccept({ job, bid })} hitSlop={6} accessibilityLabel={`Accept the bid of ${bid.garageName}`}>
+              <Text style={styles.bidRowAcceptText}>පිළිගන්න</Text>
+            </Pressable>
+          )}
+        </View>
       </Pressable>
     );
   };
@@ -594,7 +597,9 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
                 </View>
               )}
               {!job.acceptedBidId && now < biddingEndsAt(job) && (
-                <Text style={[styles.hint, { color: '#1d4ed8' }]}>⏱️ ලංසු අවසන් වීමට: {remaining(biddingEndsAt(job) - now)}</Text>
+                <View style={[styles.countChip, biddingEndsAt(job) - now < 3600000 && styles.countChipUrgent]} accessibilityLabel="Time left for bids">
+                  <Text style={[styles.countChipText, biddingEndsAt(job) - now < 3600000 && styles.countChipTextUrgent]}>⏱️ {remaining(biddingEndsAt(job) - now)} ඉතිරියි</Text>
+                </View>
               )}
               {rowsView ? <View style={styles.bidRows}>{shown.map((bid) => renderBidRow(job, bid))}</View> : shown.map((bid) => renderBidCard(job, bid))}
               {job.acceptedBidId && job.bids.length > 1 && (
@@ -722,6 +727,7 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
       <View style={styles.navBackfill} pointerEvents="none" />
 
       {/* The Bids header, the same as Activity's: the title row (with the list and map icons), the tabs and the sort chips, on one blue band. */}
+      {sortOpen && tab === 'received' && <Pressable style={styles.sortBackdrop} onPress={() => setSortOpen(false)} accessibilityLabel="Close the sort menu" />}
       {!(tab === 'received' && mapOpen) && (
       <Animated.View
         style={[styles.bidsHeader, { paddingTop: listFold.interpolate({ inputRange: [0, 1], outputRange: [46, 12] }) }]}
@@ -758,15 +764,32 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
         <View style={styles.bidsNav}>
           {renderTabs()}
         {tab === 'received' && received.some((j) => j.bids.length > 0) && (
-          <FilterChips
-            items={SORTS.map((x) => ({ id: x.id, label: x.label, tone: 'blue' as const, icon: (on: boolean) => <SortChipIcon id={x.id} on={on} /> }))}
-            plain
-            onBlue
-            scroll
-            radius={10}
-            value={bidSort}
-            onChange={(id) => id && setBidSort(id as typeof bidSort)}
-          />
+          <View style={styles.sortBar}>
+            <Pressable style={styles.sortBtn} onPress={() => setSortOpen((v) => !v)} accessibilityRole="button" accessibilityState={{ expanded: sortOpen }} accessibilityLabel="Sort the bids">
+              <Text style={styles.sortBtnText} numberOfLines={1}>⇅  {SORTS.find((x) => x.id === bidSort)?.label ?? 'Sort'}  {sortOpen ? '▴' : '▾'}</Text>
+            </Pressable>
+            {sortOpen && (
+              <View style={styles.sortMenu}>
+                {SORTS.map((x) => (
+                  <Pressable
+                    key={x.id}
+                    style={styles.sortOption}
+                    onPress={() => {
+                      setBidSort(x.id);
+                      setSortOpen(false);
+                    }}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: bidSort === x.id }}
+                    accessibilityLabel={`Sort by ${x.label}`}
+                  >
+                    <Text style={styles.sortOptionIcon}>{x.icon}</Text>
+                    <Text style={[styles.sortOptionText, bidSort === x.id && styles.sortOptionTextOn]}>{x.label}</Text>
+                    <Text style={styles.sortOptionTick}>{bidSort === x.id ? '✓' : ''}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            )}
+          </View>
         )}
         </View>
       </Animated.View>
@@ -806,9 +829,17 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
       {tab === 'received' && !mapOpen && <View pointerEvents="none" style={styles.headBlock} />}
 
 
+      {tab === 'received' && mapOpen && (
+        <View style={[styles.mapLegend, { top: insets.top + 12 + 44 + 56 }]} pointerEvents="none" accessibilityLabel="Pin colours">
+          <View style={[styles.legendDot, { backgroundColor: Colors.success }]} /><Text style={styles.legendText}>අඩුම</Text>
+          <View style={[styles.legendDot, { backgroundColor: '#1e40af' }]} /><Text style={styles.legendText}>සාමාන්‍ය</Text>
+          <View style={[styles.legendDot, { backgroundColor: '#d97706' }]} /><Text style={styles.legendText}>ඉහළ</Text>
+        </View>
+      )}
+
       {/* The map's own buttons, on the right as in the SOS map: my location, zoom in, zoom out. */}
       {tab === 'received' && mapOpen && (
-        <View style={styles.mapSideBtns} pointerEvents="box-none">
+        <View style={[styles.mapSideBtns, pinBid && { bottom: NAV_HEIGHT + 220 }]} pointerEvents="box-none">
           <Pressable style={styles.mapCloseBtn} onPress={() => { setPinBid(null); user.refresh().catch(() => {}); setMapView((v) => ({ center: user.coords, zoom: v?.zoom ?? 14 })); }} accessibilityLabel="My location">
             <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke="#1e3a8a" strokeWidth={2} strokeLinecap="round">
               <Circle cx={12} cy={12} r={3.5} fill="#1e3a8a" />
@@ -872,7 +903,7 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
           </Text>
           <View style={styles.pinCardBtns}>
             <Pressable
-              style={styles.pinCardBtn}
+              style={styles.pinCardLink}
               onPress={() => {
                 const v = pinBid;
                 setPinBid(null);
@@ -880,10 +911,10 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
               }}
               accessibilityLabel="Open bid details"
             >
-              <Text style={styles.pinCardBtnText}>සම්පූර්ණ විස්තර ›</Text>
+              <Text style={styles.pinCardLinkText}>විස්තර</Text>
             </Pressable>
-            <Pressable style={styles.pinCardBtn} onPress={() => Linking.openURL(directionsUrl(pinBid.bid.coords, user.coords))} accessibilityLabel="Directions to the garage">
-              <Text style={styles.pinCardBtnText}>🗺️ දිශාවන්</Text>
+            <Pressable style={styles.pinCardIcon} onPress={() => Linking.openURL(directionsUrl(pinBid.bid.coords, user.coords))} accessibilityLabel="Directions to the garage">
+              <Text style={styles.pinCardIconText}>🗺️</Text>
             </Pressable>
             <Pressable
               style={styles.pinCardAccept}
@@ -894,7 +925,7 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
               }}
               accessibilityLabel="Accept this bid"
             >
-              <Text style={styles.pinCardAcceptText}>පිළිගන්න</Text>
+              <Text style={styles.pinCardAcceptText}>✓ පිළිගන්න</Text>
             </Pressable>
           </View>
         </View>
@@ -1037,6 +1068,15 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
                 const v = bidView;
                 setBidView(null);
                 askAccept(v);
+              }
+            : undefined
+        }
+        onDecline={
+          bidView && !bidView.job.acceptedBidId
+            ? () => {
+                const v = bidView;
+                setBidView(null);
+                setDeletingBid(v);
               }
             : undefined
         }
@@ -1232,11 +1272,12 @@ const styles = themedStyles(() => StyleSheet.create({
   bidRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 12, borderWidth: 1, borderColor: outline(), backgroundColor: Colors.bgCard },
   bidRowLowest: { borderColor: Colors.success },
   bidRowAccepted: { borderColor: Colors.success, backgroundColor: getThemeMode() === 'dark' ? 'rgba(129, 201, 149, 0.1)' : '#e6f4ea' },
-  bidRowName: { fontSize: 13.5, fontFamily: FONTS.titleBold, color: Colors.textMain },
+  bidRowName: { fontSize: 14.5, lineHeight: 19, fontFamily: FONTS.titleBold, color: Colors.textMain },
   bidRowSub: { fontSize: 11.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 1 },
-  bidRowPrice: { fontSize: 14, fontFamily: FONTS.titleBold, color: Colors.textMain },
+  bidRowEnd: { alignItems: 'flex-end', gap: 6 },
+  bidRowPrice: { fontSize: 15, fontFamily: FONTS.titleBold, color: Colors.textMain },
   bidRowDone: { fontSize: 16, color: Colors.successText },
-  bidRowAccept: { paddingHorizontal: 12, height: 32, justifyContent: 'center', borderRadius: 16, backgroundColor: '#1e3a8a' },
+  bidRowAccept: { paddingHorizontal: 14, height: 36, justifyContent: 'center', borderRadius: 16, backgroundColor: '#1e3a8a' },
   bidRowAcceptLowest: { backgroundColor: '#188038' },
   bidRowAcceptText: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: '#ffffff' },
   bidsHeader: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 40, paddingTop: 46, paddingHorizontal: 10, paddingBottom: 6, backgroundColor: pageHeaderBlue().from },
@@ -1262,13 +1303,26 @@ const styles = themedStyles(() => StyleSheet.create({
   usedChipTextOn: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#1e3a8a' },
   tabCountText: { fontSize: 10, fontFamily: FONTS.bodyBold, color: '#111827' },
   tabCountTextActive: {},
-  body: { paddingHorizontal: 4, paddingTop: 4, gap: 12, paddingBottom: 24 },
+  body: { paddingHorizontal: 4, paddingTop: 4, gap: 12, paddingBottom: 96 },
   fullMap: { ...StyleSheet.absoluteFill },
   mapTopBar: { position: 'absolute', left: 12, right: 0, zIndex: 41 },
   mapTopRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingRight: 12 },
   mapTitlePill: { flex: 1, height: 44, borderRadius: 22, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#ffffff', shadowColor: '#0f172a', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 6 },
   mapTitleText: { fontSize: 15, fontFamily: FONTS.bodyBold, color: '#1e3a8a' },
   mapTitleCount: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: '#64748b' },
+  sortBar: { flexDirection: 'row', paddingTop: 10, paddingHorizontal: 6, zIndex: 60 },
+  sortBackdrop: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, zIndex: 39 },
+  sortMenu: { position: 'absolute', top: 50, left: 6, width: 190, paddingVertical: 4, borderRadius: 14, backgroundColor: '#ffffff', shadowColor: '#0f172a', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.22, shadowRadius: 14, elevation: 12, zIndex: 70 },
+  sortBtn: { height: 36, paddingHorizontal: 16, borderRadius: 18, justifyContent: 'center', backgroundColor: '#1e3a8a', borderWidth: 1.5, borderColor: '#ffffff' },
+  sortBtnText: { fontSize: 13.5, fontFamily: FONTS.bodyBold, color: '#ffffff' },
+  sortOption: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 40, paddingHorizontal: 12 },
+  sortOptionIcon: { fontSize: 15, width: 22, textAlign: 'center' },
+  sortOptionText: { flex: 1, fontSize: 13.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
+  sortOptionTextOn: { fontFamily: FONTS.bodyBold, color: '#1e3a8a' },
+  sortOptionTick: { width: 18, fontSize: 14, color: '#1e3a8a', textAlign: 'center' },
+  mapLegend: { position: 'absolute', left: 12, zIndex: 41, flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, height: 28, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.94)' },
+  legendDot: { width: 10, height: 10, borderRadius: 5 },
+  legendText: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: '#334155', marginRight: 6 },
   mapSideBtns: { position: 'absolute', right: 16, bottom: 110, zIndex: 41, gap: 10 },
   mapSideText: { fontSize: 22, color: '#1e3a8a', fontWeight: '700' },
   mapCloseBtn: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: '#ffffff', shadowColor: '#0f172a', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 6 },
@@ -1286,6 +1340,10 @@ const styles = themedStyles(() => StyleSheet.create({
   peekPhoto: { width: '100%', height: '100%', borderRadius: 26 },
   peekBadge: { position: 'absolute', right: -2, bottom: -2, minWidth: 26, paddingHorizontal: 5, height: 18, borderRadius: 9, backgroundColor: '#0f172a', alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: '#fff' },
   peekBadgeText: { fontSize: 9.5, fontWeight: '800', color: '#fff' },
+  countChip: { alignSelf: 'flex-start', marginLeft: 12, marginTop: 2, marginBottom: 4, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, backgroundColor: 'rgba(245, 158, 11, 0.16)' },
+  countChipUrgent: { backgroundColor: 'rgba(239, 68, 68, 0.14)' },
+  countChipText: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: '#b45309' },
+  countChipTextUrgent: { color: '#b91c1c' },
   hint: { fontSize: 11, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
   link: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
   // Soft shadow instead of an outline (an outline only on dark, where a shadow would not show), like the Home garage tiles.
@@ -1325,19 +1383,27 @@ const styles = themedStyles(() => StyleSheet.create({
   fbSub: { fontSize: 12, lineHeight: 16, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 0 },
   fbMore: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   fbContent: { paddingLeft: 16, paddingRight: 16, paddingBottom: 10, gap: 6 },
+  fbPriceRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8 },
+  travelTag: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10, backgroundColor: 'rgba(245, 158, 11, 0.16)' },
+  travelTagText: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: '#b45309' },
   fbPrice: { marginVertical: 6, fontSize: 22, fontFamily: FONTS.titleBold, color: Colors.success },
   fbText: { fontSize: 15, fontFamily: FONTS.bodyRegular, color: Colors.textMain, lineHeight: 22 },
   fbRating: { fontSize: 12, lineHeight: 16, fontFamily: FONTS.bodyMedium, color: Colors.textMain, marginTop: 1 },
   fbCounts: { flexDirection: 'row', justifyContent: 'flex-start', paddingLeft: 16, paddingRight: 16, paddingVertical: 8 },
   fbStars: { color: '#f5a623', letterSpacing: 1 },
   fbCountText: { fontSize: 13.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
-  fbActions: { flexDirection: 'row', gap: 10, marginHorizontal: 8, marginBottom: 4, paddingVertical: 2 },
-  fbAction: { flex: 1, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 8, borderWidth: 1.5, borderColor: '#facc15' },
+  fbActions: { flexDirection: 'row', alignItems: 'center', gap: 8, marginHorizontal: 12, marginBottom: 10, marginTop: 4 },
+  fbAction: { flex: 1, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 22 },
+  fbLink: { minWidth: 56, height: 44, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },
+  fbLinkText: { fontSize: 14, fontFamily: FONTS.bodySemiBold, color: '#1e3a8a' },
+  fbIconBtn: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.subtleFill },
+  fbIconText: { fontSize: 18 },
+  fbActionOnFill: { color: '#ffffff' },
   fbActionText: { fontSize: 14, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
   fbActionPrimary: { color: '#1e3a8a' },
-  fbActionAccept: { backgroundColor: '#dbeafe', borderRadius: 20 },
+  fbActionAccept: { backgroundColor: '#1e3a8a', borderRadius: 22 },
   fbActionDone: { backgroundColor: '#fde68a', borderRadius: 20 },
-  fbActionLowest: { backgroundColor: '#bbf7d0' },
+  fbActionLowest: { backgroundColor: '#15803d' },
   fbActionLowestText: { color: '#15803d' },
   repubBtns: { gap: 8 },
   repubCard: { borderRadius: 14, backgroundColor: Colors.subtleFill, padding: 12, gap: 10 },
@@ -1363,9 +1429,13 @@ const styles = themedStyles(() => StyleSheet.create({
   pricePin: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10, backgroundColor: '#1e40af', borderWidth: 1.5, borderColor: '#fff' },
   pricePinOn: { backgroundColor: '#7c3aed', transform: [{ scale: 1.15 }] },
   pricePinDear: { backgroundColor: '#d97706' },
-  pinCardBtns: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
-  pinCardAccept: { alignSelf: 'flex-start', paddingHorizontal: 14, height: 32, borderRadius: 16, justifyContent: 'center', backgroundColor: '#1e3a8a' },
-  pinCardAcceptText: { fontSize: 11.5, fontFamily: FONTS.bodyBold, color: '#ffffff' },
+  pinCardBtns: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  pinCardLink: { minWidth: 56, height: 44, alignItems: 'center', justifyContent: 'center' },
+  pinCardLinkText: { fontSize: 14, fontFamily: FONTS.bodySemiBold, color: '#1e3a8a' },
+  pinCardIcon: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.subtleFill },
+  pinCardIconText: { fontSize: 18 },
+  pinCardAccept: { flex: 1, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: '#1e3a8a' },
+  pinCardAcceptText: { fontSize: 14.5, fontFamily: FONTS.bodyBold, color: '#ffffff' },
   // On the full map the summary sits at the bottom, above the floating tab bar.
   pinCardOnMap: { top: 'auto', bottom: NAV_HEIGHT + 12 },
   pinCard: { position: 'absolute', zIndex: 20, top: 110, left: 12, right: 12, gap: 6, padding: 12, borderRadius: 18, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#d3d9e2', shadowColor: '#0f172a', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.18, shadowRadius: 18, elevation: 8 },

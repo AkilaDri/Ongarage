@@ -53,6 +53,8 @@ export const GarageReviewsSheet: React.FC<{
   /** Opened from a bid: its offer on top, and accepting it. */
   bid?: Bid;
   onAccept?: () => void;
+  /** Removes this bid from the list (a quiet link under the accept button, not a mark on the card). */
+  onDecline?: () => void;
   /** Opened from Home: call or book this garage. */
   onCall?: () => void;
   onBook?: () => void;
@@ -60,7 +62,7 @@ export const GarageReviewsSheet: React.FC<{
   onReopen?: (garage: Garage) => void;
   /** Opened from a service category: the inquiry form starts on that service. */
   inquiryCategoryId?: string;
-}> = ({ garage, onClose, bid, onAccept, onCall, onBook, onReopen, inquiryCategoryId }) => {
+}> = ({ garage, onClose, bid, onAccept, onDecline, onCall, onBook, onReopen, inquiryCategoryId }) => {
   const [shown, setShown] = useState(garage);
   useEffect(() => {
     if (garage) setShown(garage);
@@ -256,7 +258,14 @@ export const GarageReviewsSheet: React.FC<{
       noDividers
       footer={
         bid && onAccept ? (
-          <ActionButton label={`ලංසුව පිළිගන්න · ${money(bid.price)}`} icon="✓" variant="success" onPress={onAccept} />
+          <View>
+            <ActionButton label={`ලංසුව පිළිගන්න · ${money(bid.price)}`} icon="✓" variant="success" onPress={onAccept} />
+            {!!onDecline && (
+              <Pressable style={{ alignSelf: 'center', minHeight: 44, justifyContent: 'center', paddingHorizontal: 16 }} onPress={onDecline} hitSlop={6} accessibilityRole="button" accessibilityLabel="Remove this bid">
+                <Text style={{ fontSize: 13.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted }}>ලංසුව ඉවත් කරන්න</Text>
+              </Pressable>
+            )}
+          </View>
         ) : onBook ? (
           <View style={styles.actions}>
             <View style={styles.flex1}>
