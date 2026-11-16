@@ -97,3 +97,18 @@ These two pages live in `apps/garage`. They are not measured against the owner p
 The garage app's Garage page (`apps/garage/src/screens/ScheduleScreen.tsx`) is locked as the user approved it in the screenshot "44": the white "Garage" heading with the house icon on the left, the calendar icon on the right, the navy band, the three tabs (ඉදිරියට / සම්පූර්ණ / අවලංගු) as a white pill, and the chip row (SOS, Booking, ලංසු, Search) under it, with the band ending just under the chips.
 
 Do not change its spacing, sizes, icons or colours unless the user explicitly asks for that exact change. Other pages are matched to this one, not the other way round.
+
+**Values (for building the same top band elsewhere)**
+
+- Band: background `pageHeaderBlue().from` (navy); padding top 46 px (status bar), bottom 6 px, sides 10 px; square corners.
+- Title row: left icon `GarageLineIcon active={false} size={32}` white (outline); title "Garage" 19 px / line height 24, bold, white; right `CalendarGridIcon size={28}` white with `marginLeft: auto`; row padding horizontal 6, gap 8, bottom padding 14.
+- Nav pill (`SegmentTabs pills`): track white, padding 2, radius 26, margin horizontal 6, margin bottom 10; chip height 38, radius 22, min width 96, equal width; label 14 px (selected medium white, others semi-bold grey); icon 20 px.
+- Chip row (`FilterChips plain onBlue`): row gap 8, padding top 10, margin horizontal 6; chip height 36, radius 20, border 1.5 white; selected border 2.5 amber `#fbbf24`, label white; label 12 px; icons white, size 16; chips are not equal width, they scroll sideways in dark mode.
+- End of band: margin bottom 10 after the chip row, band padding bottom 6.
+- The shared `TopBandLayout` (`packages/shared/src/ui/TopBandLayout.tsx`) draws all of this with these defaults.
+
+**Scroll behaviour of the bands**
+
+- Garage (Schedule): the band is fixed. Scrolling the list passes under it; it never folds.
+- Owner Activity: the band folds with the page scroll. Progress = (scroll y - 8) / 30, clamped 0 to 1. At 1 the band is gone; the pinned strip's padding (2 → 20 → 0) and its blue fade with the same progress, so nothing is left behind. Scrolling back restores it.
+- Owner Bids: the band folds with the list scroll inside the open sheet. Progress = list offset / 180, clamped 0 to 1; the band moves 1:1 with the list and comes back as the list scrolls back to the top. The sort chips move up with the band (no fade). The sheet cannot be lowered while it is up (`canLower` false) and has no peek height (`noPeek`). With the map open full screen the sheet and the sort chips are not shown.
