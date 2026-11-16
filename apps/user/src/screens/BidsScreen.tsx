@@ -217,7 +217,8 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
     // Measured against the area with the header showing, so folding the header (which makes the area taller) does not move the target.
     const baseFull = Math.max((stableArea || baseArea.current) - NAV_HEIGHT - (tab === 'received' ? TABS_BLOCK_H : 0), PEEK_HEIGHT + 120);
     // A small drag of the sheet down (about 24 px) brings the top band back in full.
-    const collapse = Animated.multiply(sheetH.interpolate({ inputRange: [baseFull - 30, baseFull - 6], outputRange: [0, 1], extrapolate: 'clamp' }), hiddenAnim);
+    // The band folds in step with the list's own scroll (listFold), not on a switch: it comes back as the list scrolls back.
+    const collapse = listFold;
     onHeaderCollapse?.(collapse);
     setBoost(Animated.multiply(collapse, BIDS_TITLE_H));
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -229,6 +230,8 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
   const lastToggle = useRef(0);
   // 0 / 1: the list has been scrolled on, so the header is folded (while the sheet is up).
   const hiddenAnim = useRef(new Animated.Value(0)).current;
+  // 0 to 1 as the list is scrolled up inside the open sheet: the top band folds away with it, step by step.
+  const listFold = useRef(new Animated.Value(0)).current;
   const localMin = useRef<() => void>(() => {});
   // The map opens full screen from the header's map icon; the same icon closes it again.
   const [mapOpen, setMapOpen] = useState(false);
@@ -822,6 +825,7 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
                 onScroll={(e) => {
                   const y = e.nativeEvent.contentOffset.y;
                   api.onScroll(y);
+                  listFold.setValue(sheetState === 'expanded' && tab === 'received' ? Math.min(1, Math.max(0, y / 180)) : 0);
                   if (sheetState === 'expanded' && tab === 'received') {
                     // Scrolling on folds the top header bar (Free Quote, ☰, ✕) away; the least scroll back brings it straight back, and the tab bar and filter chips stay pinned.
                     const dy = y - lastListY.current;
