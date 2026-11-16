@@ -24,7 +24,8 @@ export const GarageGridSection: React.FC<{
 }> = ({ title, garages, ad, chips, activeChip, onChip, onSeeAll, onOpen, onSaveChange }) => {
   const { width: screenW } = useWindowDimensions();
   // Two cards show in full and the third peeks in at the edge, so the row reads as scrollable (as the garage rows do).
-  const cardW = Math.round((screenW - 32 - 12) / 2.15);
+  // A single garage (the owner has used only one) takes the full row; otherwise two show in full and the third peeks in.
+  const cardW = garages.length === 1 ? screenW - 32 : Math.round((screenW - 32 - 12) / 1.9);
   if (!garages.length) return null;
   return (
     <View style={styles.section}>
@@ -92,10 +93,10 @@ const GridCard: React.FC<{ garage: Garage; ad?: boolean; width: number; onOpen: 
           {g.name}
         </Text>
         <Text style={styles.meta} numberOfLines={1}>
-          ★ {g.rating.toFixed(1)} ({g.reviews}) · {g.distance} km
+          ★ {g.rating.toFixed(1)} ({g.reviews})
         </Text>
-        <Text style={styles.eta} numberOfLines={1}>
-          විනාඩි {eta}
+        <Text style={styles.meta} numberOfLines={1}>
+          {g.distance} km · විනාඩි {eta}
         </Text>
       </View>
     </Pressable>
@@ -123,8 +124,8 @@ const styles = themedStyles(() =>
     heart: { position: 'absolute', right: 8, top: 8, width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.92)' },
     heartText: { fontSize: 16, color: Colors.textMuted },
     heartOn: { color: '#e5283c' },
-    body: { padding: 10, gap: 3 },
-    name: { fontSize: 13.5, fontFamily: FONTS.bodyBold, color: Colors.textMain },
+    body: { padding: 12, gap: 4 },
+    name: { fontSize: 14.5, lineHeight: 19, fontFamily: FONTS.bodyBold, color: Colors.textMain },
     meta: { fontSize: 12, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
     eta: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
   })
