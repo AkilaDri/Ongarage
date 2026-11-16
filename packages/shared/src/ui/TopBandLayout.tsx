@@ -19,6 +19,8 @@ export type TopBandLayoutProps<T extends string> = {
   icon?: React.ReactNode;
   /** The icon at the far right of the title row (e.g. the calendar). */
   right?: React.ReactNode;
+  /** Leaves out the title row (the page's own header is drawn above, e.g. the app's title bar): only the tabs and chips show. */
+  hideTitleRow?: boolean;
   tabs: SegmentItem<T>[];
   tabValue: T;
   onTabChange: (id: T) => void;
@@ -45,9 +47,10 @@ export type TopBandLayoutProps<T extends string> = {
   titleX?: number;
 };
 
-export function TopBandLayout<T extends string>({ title, icon, right, tabs, tabValue, onTabChange, chips, chipValue = null, onChipChange, paddingTop = 46, navGap = 0, navRadius, navBottom = 10, chipLift = 0, chipRadius, chipHeight, bandX = 10, titleX = 6 }: TopBandLayoutProps<T>) {
+export function TopBandLayout<T extends string>({ title, icon, right, hideTitleRow = false, tabs, tabValue, onTabChange, chips, chipValue = null, onChipChange, paddingTop = 46, navGap = 0, navRadius, navBottom = 10, chipLift = 0, chipRadius, chipHeight, bandX = 10, titleX = 6 }: TopBandLayoutProps<T>) {
   return (
     <View style={[styles.band, { paddingTop, paddingHorizontal: bandX, backgroundColor: pageHeaderBlue().from }]}>
+      {!hideTitleRow && (
       <View style={[styles.titleRow, { paddingHorizontal: titleX }]}>
         <View style={styles.titleLeft}>
           {icon}
@@ -55,6 +58,7 @@ export function TopBandLayout<T extends string>({ title, icon, right, tabs, tabV
         </View>
         {right}
       </View>
+      )}
       <View style={[styles.navCard, { marginTop: navGap, marginBottom: navBottom }]}>
         <SegmentTabs pills items={tabs} value={tabValue} onChange={onTabChange} radius={navRadius} />
         {!!chips && chips.length > 0 && (

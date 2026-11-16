@@ -326,7 +326,8 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
         {/* The shared top of the page (the garage's Garage layout): title, calendar, the tabs, and the kind-of-record chips under them. */}
         {/* Under the tabs: the kind of record (bids, bookings, SOS), one always open, the number of each on its chip. */}
         <TopBandLayout
-          paddingTop={Platform.OS === 'web' ? 46 : 14}
+          paddingTop={4}
+          hideTitleRow
           navGap={-2}
           navRadius={12}
           navBottom={8}
