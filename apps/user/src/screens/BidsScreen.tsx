@@ -11,7 +11,7 @@ import { FONTS } from '@ongarage/shared';
 
 import { SERVICE_CATEGORIES } from '@ongarage/shared';
 import { useVehicles } from '../context/VehiclesContext';
-import { Icon, ClipboardLineIcon, ReceiptLineIcon, ScheduleLineIcon } from '@ongarage/shared';
+import { Icon, ClipboardLineIcon, ReceiptLineIcon, ScheduleLineIcon, SegmentTabs } from '@ongarage/shared';
 import { GoogleMap, zoomToFit } from '@ongarage/shared';
 import { ActionButton, EmptyState, GlassIcon, ModalCard, SwipeCard } from '@ongarage/shared';
 import { OwnerDetailView } from '../components/OwnerDetailView';
@@ -493,30 +493,16 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
   };
 
   // The three tabs (received / waiting / expired): over the map while the sheet is low, in the sheet once it is open to the top.
+  // The same tab pills as the Activity page (the shared SegmentTabs): an icon, the label and the count on each.
+  const tabIcon: Record<BidsTab, 'inbox' | 'clock' | 'x'> = { received: 'inbox', pending: 'clock', expired: 'x' };
   const renderTabs = () => (
-    <View style={styles.pillTrack}>
-          {tabs.map((t) => {
-            const active = tab === t.id;
-            return (
-              <Pressable
-                key={t.id}
-                style={[styles.segChip, active && styles.segChipOn]}
-                onPress={() => onTabChange(t.id)}
-                accessibilityRole="tab"
-                accessibilityState={{ selected: active }}
-              >
-                {/* On the blue pill the icon sits on a small white disc so it still shows. */}
-                <t.icon active={active} size={20} color={active ? '#ffffff' : undefined} />
-                <Text style={[styles.segChipText, active && styles.segChipTextOn]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
-                  {t.label}
-                </Text>
-                {t.count > 0 && (
-                  <PopCount value={t.count} style={styles.tabCount} textStyle={styles.tabCountText} ringColor="#facc15" />
-                )}
-              </Pressable>
-            );
-          })}
-    </View>
+    <SegmentTabs
+      pills
+      radius={12}
+      items={tabs.map((t) => ({ id: t.id, label: t.label, icon: tabIcon[t.id], count: t.count }))}
+      value={tab}
+      onChange={onTabChange}
+    />
   );
 
   // The cards / rows hamburger and the map icon (which lowers the sheet so the map shows in full): at the end of the sheet's top line while the map is in view, in the app's
@@ -1142,7 +1128,7 @@ const styles = themedStyles(() => StyleSheet.create({
   sortRow: { gap: 8, paddingLeft: 12, paddingRight: 16 },
   // The sort chips sit on the header's blue: blue chips with a yellow edge; the open one is a deeper blue with a thicker edge.
   // Like Activity's filter chips: the unselected one has a white edge, the selected one a yellow edge; both sit on the band's blue.
-  sortChip: { paddingHorizontal: 14, height: 36, justifyContent: 'center', borderRadius: 17, borderWidth: 1.5, borderColor: 'rgba(255, 255, 255, 0.85)', backgroundColor: '#1e3a8a' },
+  sortChip: { paddingHorizontal: 14, height: 36, justifyContent: 'center', borderRadius: 10, borderWidth: 1.5, borderColor: 'rgba(255, 255, 255, 0.85)', backgroundColor: '#1e3a8a' },
   sortChipOn: { backgroundColor: '#1e3a8a', borderColor: '#facc15', borderWidth: 2.5 },
   sortText: { fontSize: 12, fontFamily: FONTS.bodyMedium, color: '#ffffff' },
   sortTextOn: { color: '#ffffff', fontFamily: FONTS.bodyMedium },
