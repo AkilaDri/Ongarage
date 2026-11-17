@@ -37,6 +37,7 @@ import { NoticeProvider, useNotice } from './context/NoticeContext';
 import { ChatProvider } from './context/ChatContext';
 import { BookingsProvider } from './context/BookingsContext';
 import { SOSRecordsProvider } from './context/SOSRecordsContext';
+import { SavedGaragesProvider } from './context/SavedGaragesContext';
 import { PendingRepairsProvider } from './context/PendingRepairsContext';
 import { WorkshopProvider } from './context/WorkshopContext';
 import { ProfileProvider } from './context/ProfileContext';
@@ -149,7 +150,9 @@ export default function App() {
             <BookingsProvider>
               <SOSRecordsProvider>
                 <PendingRepairsProvider>
-                  <AppShell />
+                  <SavedGaragesProvider>
+                    <AppShell />
+                  </SavedGaragesProvider>
                 </PendingRepairsProvider>
               </SOSRecordsProvider>
             </BookingsProvider>

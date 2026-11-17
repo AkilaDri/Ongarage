@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect } from 'react';
 import { Image, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { DotScroll } from './DotScroll';
 import { Colors, etaMinutes, FONTS, themedStyles, type Garage } from '@ongarage/shared';
 import { GARAGE_COVERS } from '../../constants/home';
+import { useSavedGarages } from '../../context/SavedGaragesContext';
 
 export type GridChip = { id: string; label: string };
 
@@ -21,7 +22,9 @@ export const GarageGridSection: React.FC<{
   onSeeAll: () => void;
   onOpen: (g: Garage) => void;
   onSaveChange: (g: Garage, saved: boolean) => void;
-}> = ({ title, garages, ad, chips, activeChip, onChip, onSeeAll, onOpen, onSaveChange }) => {
+  /** The first card of the first garage row on Home shows the one-time hint that the heart saves a garage. */
+  hint?: boolean;
+}> = ({ title, garages, ad, chips, activeChip, onChip, onSeeAll, onOpen, onSaveChange, hint }) => {
   const { width: screenW } = useWindowDimensions();
   // Two cards show in full and the third peeks in at the edge, so the row reads as scrollable (as the garage rows do).
   // A single garage (the owner has used only one) takes the full row; otherwise two show in full and the third peeks in.
@@ -53,16 +56,24 @@ export const GarageGridSection: React.FC<{
         </View>
       )}
       <DotScroll contentContainerStyle={styles.row}>
-        {garages.map((g) => (
-          <GridCard key={g.id} garage={g} ad={ad} width={cardW} onOpen={() => onOpen(g)} onSaveChange={(s) => onSaveChange(g, s)} />
+        {garages.map((g, i) => (
+          <GridCard key={g.id} garage={g} ad={ad} width={cardW} hint={!!hint && i === 0} onOpen={() => onOpen(g)} onSaveChange={(s) => onSaveChange(g, s)} />
         ))}
       </DotScroll>
     </View>
   );
 };
 
-const GridCard: React.FC<{ garage: Garage; ad?: boolean; width: number; onOpen: () => void; onSaveChange: (saved: boolean) => void }> = ({ garage: g, ad, width, onOpen, onSaveChange }) => {
-  const [saved, setSaved] = useState(false);
+const GridCard: React.FC<{ garage: Garage; ad?: boolean; width: number; hint?: boolean; onOpen: () => void; onSaveChange: (saved: boolean) => void }> = ({ garage: g, ad, width, hint, onOpen, onSaveChange }) => {
+  const { isSaved, toggle, hintSeen, markHintSeen } = useSavedGarages();
+  const saved = isSaved(g.id);
+  const showHint = !!hint && !hintSeen;
+  // The hint stays for a few seconds, once, then never again; saving a garage ends it at once.
+  useEffect(() => {
+    if (!showHint) return;
+    const id = setTimeout(markHintSeen, 9000);
+    return () => clearTimeout(id);
+  }, [showHint, markHintSeen]);
   const eta = etaMinutes(g.distance);
   return (
     <Pressable style={({ pressed }) => [styles.card, { width }, ad && styles.cardAd, pressed && styles.pressed]} onPress={onOpen} accessibilityLabel={`Garage ${g.name}`}>
@@ -75,9 +86,7 @@ const GridCard: React.FC<{ garage: Garage; ad?: boolean; width: number; onOpen: 
         )}
         <Pressable
           onPress={() => {
-            const next = !saved;
-            setSaved(next);
-            onSaveChange(next);
+            onSaveChange(toggle(g.id));
           }}
           hitSlop={4}
           style={styles.heart}
@@ -86,6 +95,11 @@ const GridCard: React.FC<{ garage: Garage; ad?: boolean; width: number; onOpen: 
         >
           <Text style={[styles.heartText, saved && styles.heartOn]}>{saved ? '♥' : '♡'}</Text>
         </Pressable>
+        {showHint && (
+          <View style={styles.hintBubble} pointerEvents="none" accessibilityLabel="Tip: the heart saves a garage">
+            <Text style={styles.hintText}>♡ ගරාජ සුරකින්න</Text>
+          </View>
+        )}
       </View>
       <View style={styles.body}>
         <Text style={styles.name} numberOfLines={1}>
@@ -121,6 +135,8 @@ const styles = themedStyles(() =>
     adTag: { position: 'absolute', left: 8, top: 8, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10, backgroundColor: '#f59e0b' },
     adTagText: { fontSize: 11, fontFamily: FONTS.bodyBold, color: '#111827' },
     heart: { position: 'absolute', right: 8, top: 8, width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.92)' },
+    hintBubble: { position: 'absolute', right: 8, top: 58, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12, backgroundColor: '#1e3a8a' },
+    hintText: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: '#ffffff' },
     heartText: { fontSize: 18, color: Colors.textMuted },
     heartOn: { color: '#e5283c' },
     body: { padding: 12, gap: 4 },

@@ -1,3 +1,4 @@
+import { useSavedGarages } from '../context/SavedGaragesContext';
 import { EmptyState } from '@ongarage/shared';
 import { elevation1, outline } from '../utils/material';
 import React, { useEffect, useState } from 'react';
@@ -81,11 +82,10 @@ export const GarageReviewsSheet: React.FC<{
   // The cover is a row of the garage's photos and videos that scrolls sideways, one at a time.
   const [coverW, setCoverW] = useState(0);
   const [slide, setSlide] = useState(0);
-  const [saved, setSaved] = useState(false);
+  const saves = useSavedGarages();
   useEffect(() => {
     setTab('overview');
     setSlide(0);
-    setSaved(false);
   }, [garageId]);
 
   const g = garage ?? shown;
@@ -235,7 +235,7 @@ export const GarageReviewsSheet: React.FC<{
             { id: 'dir', icon: '🧭', label: 'දිශාවන්', primary: true, onPress: () => Linking.openURL(directionsUrl(g.coords, user.coords)) },
             { id: 'call', icon: '📞', label: 'අමතන්න', onPress: () => (onCall ? onCall() : g.phone ? Linking.openURL(`tel:${g.phone.replace(/\s/g, '')}`) : undefined) },
             { id: 'wa', icon: '💬', label: 'OnChat', onPress: openChat },
-            { id: 'save', icon: saved ? '♥' : '♡', label: saved ? 'සුරැකිණි' : 'සුරකින්න', on: saved, onPress: () => setSaved((v) => !v) },
+            { id: 'save', icon: saves.isSaved(g.id) ? '♥' : '♡', label: saves.isSaved(g.id) ? 'සුරැකිණි' : 'සුරකින්න', on: saves.isSaved(g.id), onPress: () => saves.toggle(g.id) },
             { id: 'share', icon: '↗', label: 'බෙදාගන්න', onPress: shareGarage },
           ].map((a) => (
             <Pressable key={a.id} style={styles.placeAction} onPress={a.onPress} accessibilityLabel={`Garage ${a.id}`}>

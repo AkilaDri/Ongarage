@@ -1,3 +1,4 @@
+import { useSavedGarages } from '../context/SavedGaragesContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { pageBg } from '../utils/material';
 import React, { useMemo, useRef, useState } from 'react';
@@ -79,6 +80,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onSOSPress, onPostJob, o
   const [nearbySort, setNearbySort] = useState<'near' | 'rating'>('near');
   const nearbyList = nearbySort === 'near' ? nearest : [...garages].sort((a, b) => b.rating - a.rating);
   const protectedGarages = garages.filter((g) => g.level === 'premier');
+  // Garages the owner saved with the heart (newest first), shown as their own row at the top of the garage sections.
+  const saves = useSavedGarages();
+  const savedGarages = saves.ids.map(byId).filter((g): g is Garage => !!g);
 
   const [open, setOpen] = useState<Garage | null>(null);
   const save = (g: Garage, saved: boolean) =>
@@ -98,9 +102,19 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onSOSPress, onPostJob, o
         <OfferTiles offers={OFFERS} onOpen={openOffer} />
       </View>
   );
+  const savedSection = (
+      <GarageGridSection
+        title="සුරැකි ගරාජ"
+        garages={savedGarages.slice(0, 6)}
+        onOpen={setOpen}
+        onSaveChange={save}
+        onSeeAll={() => setList({ title: 'සුරැකි ගරාජ', garages: savedGarages })}
+      />
+  );
   const usedSection = (
       <GarageGridSection
         title="ඔබ පෙර භාවිතා කළ ගරාජ"
+        hint
         garages={usedGarages}
         onOpen={setOpen}
         onSaveChange={save}
@@ -110,6 +124,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onSOSPress, onPostJob, o
   const nearbySection = (
       <GarageGridSection
         title="ඔබට ළඟම"
+        hint={usedGarages.length === 0}
         garages={nearbyList.slice(0, 4)}
         chips={[
           { id: 'near', label: 'ළඟම' },
@@ -158,6 +173,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onSOSPress, onPostJob, o
         />
 
         {/* The first garage row comes right after the promo; the offers follow it, so the two promotions are not back to back. (No used garages: the nearby row is the first.) */}
+        {savedGarages.length > 0 && savedSection}
         {usedGarages.length > 0 ? (
           <>
             {usedSection}

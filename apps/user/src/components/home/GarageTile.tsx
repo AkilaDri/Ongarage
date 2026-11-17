@@ -1,6 +1,7 @@
 import { outline } from '../../utils/material';
-import React, { useState } from 'react';
+import React from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useSavedGarages } from '../../context/SavedGaragesContext';
 import { Colors, FONTS, InfoChip, LEVELS, getThemeMode, marketPrice, themedStyles, type Garage } from '@ongarage/shared';
 import { garageProfileContent } from '../../constants/garageProfile';
 import { GARAGE_COVERS, GARAGE_INFO } from '../../constants/home';
@@ -29,7 +30,8 @@ export const GarageTile: React.FC<{
   onOpen: () => void;
   onSaveChange: (saved: boolean) => void;
 }> = ({ garage: g, width = 236, compact, ad, showStatus, showDetails, categoryId, priceHint, onOpen, onSaveChange }) => {
-  const [saved, setSaved] = useState(false);
+  const { isSaved, toggle } = useSavedGarages();
+  const saved = isSaved(g.id);
   const info = GARAGE_INFO[g.id];
   const level = g.level ? LEVELS.find((l) => l.id === g.level) : undefined;
   const badge = ad ? 'දැන්වීම' : info?.offer;
@@ -66,9 +68,7 @@ export const GarageTile: React.FC<{
           style={styles.heart}
           hitSlop={4}
           onPress={() => {
-            const next = !saved;
-            setSaved(next);
-            onSaveChange(next);
+            onSaveChange(toggle(g.id));
           }}
           accessibilityLabel={`Save ${g.name}`}
         >

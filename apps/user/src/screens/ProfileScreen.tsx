@@ -14,6 +14,12 @@ import { formatDate } from '../utils/format';
 import { VEHICLE_DETAIL_FIELDS, VehicleDetailsSheet, vehicleDetailsDone } from '../components/VehicleDetailsSheet';
 import { AppSettingsSheet } from '../components/AppSettingsSheet';
 import { Sheet } from '../components/Sheet';
+import { GarageListSheet } from '../components/home/GarageListSheet';
+import { GarageReviewsSheet } from '../components/GarageReviewsSheet';
+import { useSavedGarages } from '../context/SavedGaragesContext';
+import { useUserLocation } from '../context/LocationContext';
+import { MOCK_GARAGES } from '../constants/mockData';
+import { distanceKm, type Garage } from '@ongarage/shared';
 import { EditProfileScreen } from './EditProfileScreen';
 import { PayReliabilityCard } from '../components/PayStandingViews';
 
@@ -31,7 +37,7 @@ interface ProfileScreenProps {
   onHeaderProgress?: (progress: number) => void;
 }
 
-type SheetId = 'settings' | 'help' | 'about' | null;
+type SheetId = 'settings' | 'help' | 'about' | 'saved' | null;
 
 /** The account page: who you are (tap to edit), how complete the profile is, your vehicles, then a list of rows. */
 export const ProfileScreen: React.FC<ProfileScreenProps> = ({ activeVehicle, onVehicleChange, onHeaderProgress }) => {
@@ -41,6 +47,14 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ activeVehicle, onV
   const { vehicles, findVehicle } = useVehicles();
   const vehicle = findVehicle(activeVehicle);
   const [sheet, setSheet] = useState<SheetId>(null);
+  // Garages saved with the heart: a row here opens them as a list (the same row appears on Home).
+  const saves = useSavedGarages();
+  const user = useUserLocation();
+  const [openSaved, setOpenSaved] = useState<Garage | null>(null);
+  const savedGarages = saves.ids
+    .map((id) => MOCK_GARAGES.find((g) => g.id === id))
+    .filter((g): g is Garage => !!g)
+    .map((g) => ({ ...g, distance: Number(distanceKm(user.coords, g.coords).toFixed(1)) }));
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState(false);
   const [detailsFor, setDetailsFor] = useState<typeof vehicle | null>(null);
@@ -208,6 +222,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ activeVehicle, onV
               ))}
             </View>
           )}
+          {row('♥', savedGarages.length ? `සුරැකි ගරාජ · ${savedGarages.length}` : 'සුරැකි ගරාජ', () => setSheet('saved'), 'Open saved garages')}
           {row('⚙️', 'යෙදුම් සැකසුම්', () => setSheet('settings'), 'Open app settings')}
           {row('❓', 'උදව් සහ සහාය', () => setSheet('help'), 'Open help')}
           {row('ℹ️', 'OnGarage ගැන', () => setSheet('about'), 'Open about')}
@@ -219,6 +234,16 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ activeVehicle, onV
       <EditProfileScreen visible={editing} onClose={() => setEditing(false)} />
       <VehicleDetailsSheet vehicle={detailsFor} onClose={() => setDetailsFor(null)} />
       <ServiceRecordsSheet vehicle={recordsFor} onClose={() => setRecordsFor(null)} />
+      <GarageListSheet
+        list={sheet === 'saved' ? { title: 'සුරැකි ගරාජ', garages: savedGarages } : null}
+        onClose={() => setSheet(null)}
+        onOpen={(g) => {
+          setSheet(null);
+          setOpenSaved(g);
+        }}
+        onSaveChange={() => {}}
+      />
+      <GarageReviewsSheet garage={openSaved} onClose={() => setOpenSaved(null)} onReopen={setOpenSaved} onCall={openSaved ? () => Linking.openURL(`tel:${openSaved.phone.replace(/\s/g, '')}`) : undefined} />
       <AppSettingsSheet visible={sheet === 'settings'} onClose={() => setSheet(null)} />
       <Sheet visible={sheet === 'help'} title="උදව් සහ සහාය" subtitle="OnGarage කණ්ඩායම ඔබට උදව් කිරීමට සූදානම්" onClose={() => setSheet(null)}>
         <Pressable style={styles.helpRow} onPress={() => Linking.openURL(`tel:${HELP_LINE}`)} accessibilityLabel="Call support">
