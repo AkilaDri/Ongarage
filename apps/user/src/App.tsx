@@ -489,7 +489,8 @@ function AppShell() {
         >
           {activeTab === 'home' ? (
             <HomeScreen
-              onSOSPress={() => setSOSStage('map')}
+              onSOSPress={() => (sosStage === 'flow' ? setSosHidden(false) : setSOSStage('map'))}
+              sosJob={sosStage === 'flow' ? sosStatus : undefined}
               onPostJob={() => openPost(null)}
               onServicePress={(c, sub) => {
                 setSelectedSubName(sub);
@@ -503,11 +504,6 @@ function AppShell() {
                 <HomeTop
                   notice={
                     <>
-                      {sosStage === 'flow' && sosHidden ? (
-                <Pressable style={styles.sosReturnInline} onPress={() => setSosHidden(false)} accessibilityLabel="Back to the SOS job">
-                  <Text style={styles.sosReturnText}>{sosStatus.label ? `🚨 ${sosStatus.label} ›` : '🚨 SOS රැකියාවට ආපසු ›'}</Text>
-                </Pressable>
-              ) : null}
                       {towMinimised && towStatus.running ? (
                 <Pressable style={styles.towReturnInline} onPress={() => setTowMinimised(false)} accessibilityLabel="Back to the towing job">
                   <Text style={styles.sosReturnText}>{`🛻 ${towStatus.label} ›`}</Text>
@@ -525,7 +521,8 @@ function AppShell() {
                   onCardY={setHomeCardY}
                   vehicleId={selectedVehicle}
                   onSelectVehicle={setSelectedVehicle}
-                  onSOS={() => setSOSStage('map')}
+                  onSOS={() => (sosStage === 'flow' ? setSosHidden(false) : setSOSStage('map'))}
+                  sosJob={sosStage === 'flow' ? sosStatus : undefined}
                   onPost={() => openPost(null)}
                   search={
                     <HomeSearch

@@ -6,7 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, FONTS, getThemeMode, themedStyles } from '@ongarage/shared';
 import { LOCATION_SUGGESTIONS } from '../constants/mockData';
 import Svg, { Circle, Line } from 'react-native-svg';
-import { Gradient, GRADIENTS } from '@ongarage/shared';
+import { Gradient } from '@ongarage/shared';
 import { useUserLocation } from '../context/LocationContext';
 import {
   autocompletePlaces,
@@ -42,6 +42,12 @@ const offlineSuggestions = (query: string): PlaceSuggestion[] =>
     mainText: l.address,
     secondaryText: '',
   }));
+
+// The SOS red as the flat two-tone fill of the app's buttons (the same as the SOS flow's), with the thin yellow edge.
+const FLAT_SOS = [
+  { offset: '0', color: '#e11d48' },
+  { offset: '1', color: '#b91c1c' },
+];
 
 export const SOSMapPickerScreen: React.FC<SOSMapPickerScreenProps> = ({ initialLocation, onConfirm, onClose, title = 'බ්‍රේක්ඩවුන් ස්ථානය තෝරන්න', pinLabel = '🚗  මෙතැනද?', confirmLabel = 'මෙතැන තහවුරු කරන්න', accent }) => {
   const { notify } = useNotice();
@@ -256,7 +262,7 @@ export const SOSMapPickerScreen: React.FC<SOSMapPickerScreenProps> = ({ initialL
           {resolving && <ActivityIndicator size="small" color={Colors.primary} />}
         </View>
         <Pressable style={({ pressed }) => [styles.confirmBtn, pressed && { opacity: 0.92, transform: [{ scale: 0.99 }] }]} onPress={() => onConfirm({ address, coords: center })}>
-          <Gradient stops={accent?.stops ?? GRADIENTS.sos} />
+          <Gradient stops={accent?.stops ?? FLAT_SOS} />
           <Text style={styles.confirmBtnText}>📍  {confirmLabel}</Text>
         </Pressable>
       </View>
@@ -307,6 +313,6 @@ const styles = themedStyles(() => StyleSheet.create({
   locationIcon: { fontSize: 18 },
   locationName: { fontSize: 15, lineHeight: 22, fontFamily: FONTS.titleBold, color: Colors.textMain },
   locationStatus: { fontSize: 12, lineHeight: 18, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 2 },
-  confirmBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 16, borderRadius: 28, overflow: 'hidden' },
+  confirmBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 16, borderRadius: 28, overflow: 'hidden', borderWidth: 2, borderColor: '#facc15' },
   confirmBtnText: { fontSize: 15, lineHeight: 20, fontFamily: FONTS.bodyBold, color: '#fff' },
 }));

@@ -45,10 +45,12 @@ interface HomeScreenProps {
   /** The scroll position from which the compact SOS / quotes bar sticks to the top of the screen. */
   stickyFrom?: number;
   sosReturn?: React.ReactNode;
+  /** A running (minimised) SOS job: the pinned SOS button then shows its state and goes back to it. */
+  sosJob?: { label: string; needsAction: boolean };
   towReturn?: React.ReactNode;
 }
 
-export const HomeScreen: React.FC<HomeScreenProps> = ({ onSOSPress, onPostJob, onServicePress, onBookGarage, onScrollChange, collapsePx = 0, top, sosReturn, towReturn, stickyFrom = 300 }) => {
+export const HomeScreen: React.FC<HomeScreenProps> = ({ onSOSPress, onPostJob, onServicePress, onBookGarage, onScrollChange, collapsePx = 0, top, sosReturn, towReturn, sosJob, stickyFrom = 300 }) => {
   const user = useUserLocation();
   const insets = useSafeAreaInsets();
   const { width: screenW } = useWindowDimensions();
@@ -203,7 +205,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onSOSPress, onPostJob, o
         <Pressable style={({ pressed }) => [stickySt.sos, pressed && stickySt.pressed]} onPress={onSOSPress} accessibilityLabel="Open SOS">
           <View style={stickySt.sosDot} />
           <Text style={stickySt.sosText}>SOS</Text>
-          <Text style={stickySt.sosSmall}>24/7</Text>
+          <Text style={stickySt.sosSmall} numberOfLines={1}>{sosJob ? (sosJob.needsAction ? 'පිළිතුරු' : 'සජීවී') : '24/7'}</Text>
         </Pressable>
         <Pressable style={({ pressed }) => [stickySt.job, pressed && stickySt.pressed]} onPress={onPostJob} accessibilityLabel="Post a repair job">
           <Text style={stickySt.jobPlus}>+</Text>

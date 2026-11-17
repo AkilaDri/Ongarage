@@ -49,7 +49,7 @@ const GlassIcon: React.FC<{ emoji: string; small?: boolean }> = ({ emoji, small 
 );
 
 // The flow's buttons are pills (the owner app's style).
-const ActionButton: React.FC<React.ComponentProps<typeof SharedButton>> = (props) => <SharedButton pill {...props} />;
+const ActionButton: React.FC<React.ComponentProps<typeof SharedButton>> = (props) => <SharedButton pill edge {...props} />;
 
 type Step =
   | 'confirm'

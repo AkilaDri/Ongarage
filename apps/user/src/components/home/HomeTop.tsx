@@ -13,22 +13,32 @@ import { HomeHeader } from './HomeHeader';
 /** Height of each action button (circle + badge row, title, line). */
 const BTN_H = 90; // each action is one row now (the two rows sit one under the other)
 
-export const HomeTop: React.FC<{ onSOS: () => void; onPost: () => void; search: React.ReactNode; /** A notice between the action cards and the search bar (a late payment, rarely): the search bar moves down when it shows. */ notice?: React.ReactNode; /** The vehicle chosen right now: shown as a tag in the header. */ vehicleId?: string; /** Called when the owner picks another vehicle from the header. */ onSelectVehicle?: (id: string) => void; /** Tells the page where the action card starts (so it can show the sticky copy once the card has scrolled away). */ onCardY?: (y: number) => void }> = ({ onSOS, onPost, search, notice, onCardY, vehicleId, onSelectVehicle }) => (
+export const HomeTop: React.FC<{ onSOS: () => void; onPost: () => void; search: React.ReactNode; /** A notice between the action cards and the search bar (a late payment, rarely): the search bar moves down when it shows. */ notice?: React.ReactNode; /** A running (minimised) SOS job: the SOS card then shows where it is and takes the owner back to it, so a second SOS cannot be started. */ sosJob?: { label: string; needsAction: boolean }; /** The vehicle chosen right now: shown as a tag in the header. */ vehicleId?: string; /** Called when the owner picks another vehicle from the header. */ onSelectVehicle?: (id: string) => void; /** Tells the page where the action card starts (so it can show the sticky copy once the card has scrolled away). */ onCardY?: (y: number) => void }> = ({ onSOS, onPost, search, notice, onCardY, vehicleId, onSelectVehicle, sosJob }) => (
   <View>
     <HomeHeader vehicleId={vehicleId} onSelectVehicle={onSelectVehicle} />
     <View style={hs.below} onLayout={(e) => onCardY?.(e.nativeEvent.layout.y)}>
       <View style={hs.card}>
-        <Pressable style={({ pressed }) => [hs.sosBtn, pressed && hs.pressed]} onPress={onSOS} accessibilityLabel="Open SOS">
-          <View style={hs.sosCircle}>
-            <Text style={hs.sosCircleText}>SOS</Text>
+        <Pressable style={({ pressed }) => [hs.sosBtn, !!sosJob && hs.sosBtnLive, pressed && hs.pressed]} onPress={onSOS} accessibilityLabel={sosJob ? 'Back to the SOS job' : 'Open SOS'}>
+          <View style={[hs.sosCircle, !!sosJob && hs.sosCircleLive]}>
+            <Text style={[hs.sosCircleText, !!sosJob && { color: '#ffffff' }]}>SOS</Text>
           </View>
-          <View style={hs.rowText}>
-            <Text style={hs.btnTitle} numberOfLines={1}>Breakdown <Text style={hs.sinhala}>එකක්ද?</Text></Text>
-            <Text style={hs.btnSub} numberOfLines={1}>Ongarage උදව් ඉල්ලන්න</Text>
-          </View>
-          <View style={hs.sosPill}>
+          {sosJob ? (
+            <View style={hs.rowText}>
+              <Text style={[hs.btnTitle, hs.liveTitle]} numberOfLines={2} accessibilityLiveRegion="polite">{sosJob.label || 'SOS ඉල්ලීම'}</Text>
+              <Text style={[hs.btnSub, hs.liveSub]} numberOfLines={1}>
+                <Text style={sosJob.needsAction ? hs.liveAsk : undefined}>{sosJob.needsAction ? 'ඔබේ පිළිතුර අවශ්‍යයි' : 'ක්‍රියාත්මකයි'}</Text>
+                <Text style={hs.liveGo}>{sosJob.needsAction ? '  ·  ඇතුළු වන්න ›' : '  ·  බලන්න ›'}</Text>
+              </Text>
+            </View>
+          ) : (
+            <View style={hs.rowText}>
+              <Text style={hs.btnTitle} numberOfLines={1}>Breakdown <Text style={hs.sinhala}>එකක්ද?</Text></Text>
+              <Text style={hs.btnSub} numberOfLines={1}>Ongarage උදව් ඉල්ලන්න</Text>
+            </View>
+          )}
+          <View style={[hs.sosPill, !!sosJob?.needsAction && hs.sosPillAsk]}>
             <Pulse style={hs.pillDot} />
-            <Text style={hs.sosPillText}>24/7</Text>
+            <Text style={hs.sosPillText}>{sosJob ? (sosJob.needsAction ? 'පිළිතුරු' : 'සජීවී') : '24/7'}</Text>
           </View>
         </Pressable>
         <Pressable style={({ pressed }) => [hs.jobBtn, pressed && hs.pressed]} onPress={onPost} accessibilityLabel="Post a repair job">
@@ -60,6 +70,15 @@ const hs = StyleSheet.create({
   sosBtn: { height: BTN_H, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(254, 226, 226, 0.8)', backgroundColor: '#fef2f2' },
   jobBtn: { height: BTN_H, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(219, 234, 254, 0.8)', backgroundColor: '#eff6ff' },
   rowText: { flex: 1 },
+  // A running SOS job: the same card, now a stronger red edge and a solid red disc.
+  sosBtnLive: { borderColor: '#f87171', borderWidth: 1.5 },
+  sosCircleLive: { backgroundColor: '#dc2626', borderColor: '#b91c1c' },
+  // The running job's lines: a bold status, and the way back as a navy link (the benchmark's detail-link style), not grey text.
+  liveTitle: { fontFamily: FONTS.bodyBold, color: '#111827' },
+  liveSub: { marginTop: 4 },
+  liveAsk: { fontFamily: FONTS.bodyBold, color: '#b45309' },
+  liveGo: { fontFamily: FONTS.bodySemiBold, color: '#1e3a8a' },
+  sosPillAsk: { backgroundColor: '#f59e0b' },
   btnTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   sosCircle: { width: 56, height: 56, borderRadius: 28, backgroundColor: '#fee2e2', borderWidth: 1, borderColor: '#fecaca', alignItems: 'center', justifyContent: 'center' },
   sosCircleText: { fontSize: 16, fontWeight: '800', color: '#dc2626' },

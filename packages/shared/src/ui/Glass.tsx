@@ -53,6 +53,12 @@ export const GlassIcon: React.FC<{ emoji: string; small?: boolean }> = ({ emoji,
 
 const BUTTON_GRADIENTS = { sos: GRADIENTS.sos, success: GRADIENTS.brand, primary: GRADIENTS.issue, cta: GRADIENTS.cta } as const;
 
+/** The SOS red as a flat two-tone fill, the same build as the primary navy. */
+const FLAT_SOS = [
+  { offset: '0', color: '#e11d48' },
+  { offset: '1', color: '#b91c1c' },
+];
+
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 export const ActionButton: React.FC<{
@@ -65,8 +71,10 @@ export const ActionButton: React.FC<{
   pill?: boolean;
   /** The next step to take: a soft shine sweeps across the button, with a tiny shake, now and then so the eye goes to it. */
   nudge?: boolean;
+  /** The flat "app button" look of the primary one: a two-tone fill (the SOS red is a plain two-tone red, not the glossy three-tone) with the thin yellow edge, on every variant. */
+  edge?: boolean;
   onPress: () => void;
-}> = ({ label, icon, variant, disabled, compact, pill = true, nudge, onPress }) => {
+}> = ({ label, icon, variant, disabled, compact, pill = true, nudge, edge, onPress }) => {
   const sweep = useRef(new Animated.Value(0)).current;
   const shake = useRef(new Animated.Value(0)).current;
   const [btnW, setBtnW] = useState(0);
@@ -105,7 +113,7 @@ export const ActionButton: React.FC<{
         modern && !pill && styles.actionBtnBox,
         variant === 'ghost' && !modern && styles.actionBtnGhost,
         tonal && !disabled && (variant === 'success' ? styles.actionBtnTonalGreen : styles.actionBtnTonalBlue),
-        variant === 'primary' && !tonal && !disabled && { borderWidth: 2, borderColor: '#facc15' },
+        (variant === 'primary' || (edge && !tonal)) && !disabled && { borderWidth: 2, borderColor: '#facc15' },
         // The soft (tonal) buttons get the same yellow edge.
         tonal && !disabled && { borderWidth: 1.5, borderColor: '#facc15' },
         modern && !tonal && !disabled && variant !== 'sos' && styles.actionBtnLift,
@@ -115,7 +123,7 @@ export const ActionButton: React.FC<{
   ];
   const inner = (
     <>
-      {variant !== 'ghost' && !disabled && !tonal && <Gradient stops={BUTTON_GRADIENTS[variant]} />}
+      {variant !== 'ghost' && !disabled && !tonal && <Gradient stops={edge && variant === 'sos' ? FLAT_SOS : BUTTON_GRADIENTS[variant]} />}
       {!!icon && (typeof icon === 'string' ? <Text style={[textStyle, modern && styles.actionBtnIconModern]}>{icon}</Text> : icon)}
       <Text style={textStyle}>{label}</Text>
       {nudging && !!btnW && (
