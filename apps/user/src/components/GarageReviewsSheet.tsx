@@ -55,6 +55,8 @@ export const GarageReviewsSheet: React.FC<{
   onAccept?: () => void;
   /** Where the pop-up's top edge stops, measured from the top of the screen (so it can stop just under a page title). */
   topInset?: number;
+  /** A colour for the backdrop behind the pop-up (instead of the dark dim). */
+  backdropColor?: string;
   /** Removes this bid from the list (a quiet link under the accept button, not a mark on the card). */
   onDecline?: () => void;
   /** Opened from Home: call or book this garage. */
@@ -64,7 +66,7 @@ export const GarageReviewsSheet: React.FC<{
   onReopen?: (garage: Garage) => void;
   /** Opened from a service category: the inquiry form starts on that service. */
   inquiryCategoryId?: string;
-}> = ({ garage, onClose, bid, onAccept, topInset, onDecline, onCall, onBook, onReopen, inquiryCategoryId }) => {
+}> = ({ garage, onClose, bid, onAccept, topInset, backdropColor, onDecline, onCall, onBook, onReopen, inquiryCategoryId }) => {
   const [shown, setShown] = useState(garage);
   useEffect(() => {
     if (garage) setShown(garage);
@@ -256,6 +258,7 @@ export const GarageReviewsSheet: React.FC<{
       onClose={onClose}
       hero={hero}
       topInset={topInset}
+      backdropColor={backdropColor}
       compact
       roomy
       noDividers

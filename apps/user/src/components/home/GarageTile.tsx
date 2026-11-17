@@ -64,7 +64,7 @@ export const GarageTile: React.FC<{
         )}
         <Pressable
           style={styles.heart}
-          hitSlop={8}
+          hitSlop={4}
           onPress={() => {
             const next = !saved;
             setSaved(next);
@@ -132,8 +132,8 @@ const styles = themedStyles(() =>
     statusText: { fontSize: 11, fontFamily: FONTS.bodyBold },
     textOn: { color: '#137333' },
     textOff: { color: '#5f6368' },
-    heart: { position: 'absolute', bottom: 8, right: 8, width: 30, height: 30, borderRadius: 15, backgroundColor: 'rgba(255, 255, 255, 0.85)', alignItems: 'center', justifyContent: 'center' },
-    heartText: { fontSize: 16, color: '#334155', marginTop: -1 },
+    heart: { position: 'absolute', bottom: 8, right: 8, width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255, 255, 255, 0.85)', alignItems: 'center', justifyContent: 'center' },
+    heartText: { fontSize: 18, color: '#334155', marginTop: -1 },
     heartOn: { color: '#f43f5e' },
     booked: { position: 'absolute', left: 8, bottom: 8 },
     bookedHigh: { bottom: 40 },

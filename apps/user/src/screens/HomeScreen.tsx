@@ -1,3 +1,4 @@
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { pageBg } from '../utils/material';
 import React, { useMemo, useRef, useState } from 'react';
 import { Animated, View, ScrollView, Text, Pressable, StyleSheet, Linking, useWindowDimensions } from 'react-native';
@@ -48,6 +49,7 @@ interface HomeScreenProps {
 
 export const HomeScreen: React.FC<HomeScreenProps> = ({ onSOSPress, onPostJob, onServicePress, onBookGarage, onScrollChange, collapsePx = 0, top, sosReturn, towReturn, stickyFrom = 300 }) => {
   const user = useUserLocation();
+  const insets = useSafeAreaInsets();
   const { width: screenW } = useWindowDimensions();
   // Four category tiles fit the page width (20px sides, 12px gaps); the fifth peeks in at the right edge.
   const tile = Math.max(72, Math.floor((Math.min(screenW, 520) - 40 - 36) / 4));
@@ -204,6 +206,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onSOSPress, onPostJob, o
       />
       <GarageReviewsSheet
         garage={open}
+        // The profile stops at the same line as on the Bids tab (46 header padding + 42 title row - 2); the backdrop is the header blue and dissolves on close.
+        topInset={insets.top + 86}
+        backdropColor="rgba(30, 58, 138, 0.94)"
         onClose={() => setOpen(null)}
         onReopen={setOpen}
         onCall={open ? () => Linking.openURL(`tel:${open.phone.replace(/\s/g, '')}`) : undefined}

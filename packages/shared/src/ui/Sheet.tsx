@@ -37,8 +37,10 @@ export const Sheet: React.FC<{
   scrollToTopKey?: number;
   /** The space kept free at the top of the window (a page header the sheet must not cover): the sheet rises to this line and no higher. */
   topInset?: number;
+  /** The colour behind the sheet instead of the usual dark dim (it fades in with the sheet and dissolves when it closes). */
+  backdropColor?: string;
   children: React.ReactNode;
-}> = ({ visible, title, subtitle, onClose, footer, overlay, hero, compact, roomy, noDividers, fullScreen, bare, headerRight, titleIcon, scrollToTopKey, topInset, children }) => {
+}> = ({ visible, title, subtitle, onClose, footer, overlay, hero, compact, roomy, noDividers, fullScreen, bare, headerRight, titleIcon, scrollToTopKey, topInset, backdropColor, children }) => {
   const { height: windowH } = useWindowDimensions();
   const bodyRef = useRef<ScrollView>(null);
   useEffect(() => {
@@ -92,7 +94,7 @@ export const Sheet: React.FC<{
 
   return (
     <Modal visible transparent animationType="none" statusBarTranslucent onRequestClose={onClose}>
-      <Animated.View style={[styles.backdrop, { opacity: slide }]}>
+      <Animated.View style={[styles.backdrop, backdropColor ? { backgroundColor: backdropColor } : null, { opacity: slide }]}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
       </Animated.View>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.anchor} pointerEvents="box-none">

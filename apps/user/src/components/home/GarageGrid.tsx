@@ -79,7 +79,7 @@ const GridCard: React.FC<{ garage: Garage; ad?: boolean; width: number; onOpen: 
             setSaved(next);
             onSaveChange(next);
           }}
-          hitSlop={8}
+          hitSlop={4}
           style={styles.heart}
           accessibilityLabel={saved ? `Unsave ${g.name}` : `Save ${g.name}`}
           accessibilityState={{ checked: saved }}
@@ -120,8 +120,8 @@ const styles = themedStyles(() =>
     cover: { width: '100%', height: 104 },
     adTag: { position: 'absolute', left: 8, top: 8, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10, backgroundColor: '#f59e0b' },
     adTagText: { fontSize: 11, fontFamily: FONTS.bodyBold, color: '#111827' },
-    heart: { position: 'absolute', right: 8, top: 8, width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.92)' },
-    heartText: { fontSize: 16, color: Colors.textMuted },
+    heart: { position: 'absolute', right: 8, top: 8, width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.92)' },
+    heartText: { fontSize: 18, color: Colors.textMuted },
     heartOn: { color: '#e5283c' },
     body: { padding: 12, gap: 4 },
     name: { fontSize: 14.5, lineHeight: 19, fontFamily: FONTS.bodyBold, color: Colors.textMain },
