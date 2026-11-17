@@ -171,12 +171,12 @@ export const GarageReviewsSheet: React.FC<{
           ))}
         </ScrollView>
         <View style={styles.coverShade} pointerEvents="none" />
-        <View style={styles.coverCount} pointerEvents="none">
+        <View style={[styles.coverCount, styles.coverCountSlim]} pointerEvents="none">
           <Text style={styles.coverCountText}>
             {Math.min(slide, coverMedia.length - 1) + 1} / {coverMedia.length}  {coverBig ? '⤡' : '⤢'}
           </Text>
         </View>
-        <View style={styles.coverDots} pointerEvents="none">
+        <View style={[styles.coverDots, styles.coverDotsSlim]} pointerEvents="none">
           {coverMedia.map((m, i) => (
             <View key={m.id} style={[styles.coverDot, i === slide && styles.coverDotOn]} />
           ))}
@@ -764,6 +764,8 @@ const styles = themedStyles(() =>
     coverVideoTag: { position: 'absolute', left: 16, top: 64, maxWidth: '70%', paddingHorizontal: 10, height: 24, borderRadius: 12, justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.6)' },
     coverVideoTagText: { fontSize: 10.5, fontFamily: FONTS.bodyBold, color: '#ffffff' },
     coverDots: { position: 'absolute', left: 0, right: 0, bottom: 44, flexDirection: 'row', justifyContent: 'center', gap: 5 },
+    coverDotsSlim: { bottom: 12 },
+    coverCountSlim: { bottom: 8 },
     coverDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.5)' },
     coverDotOn: { width: 16, backgroundColor: '#ffffff' },
     coverShade: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(8, 16, 36, 0.22)' },

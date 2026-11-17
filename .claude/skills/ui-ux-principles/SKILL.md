@@ -1,6 +1,6 @@
 ---
 name: ui-ux-principles
-description: Use when designing, reviewing or refining any screen, panel, dialog, chip row, list, form, navigation or flow in the OnGarage apps. Applies "Universal Principles of UX" (Irene Pereyra, 100 principles, numbered 01-100) and "Universal Principles of Design" (Lidwell, Holden, Butler, numbered 001-200), including the profession lens for UI, UX, graphic, instructional and systems designers, to UI decisions: user focus, feedback, choice, learnability, forms, errors, navigation, legibility, accessibility and interruption.
+description: Use when designing, reviewing or refining any screen, panel, dialog, chip row, list, form, navigation or flow in the OnGarage apps. Applies "Universal Principles of UX" (Irene Pereyra, 100 principles, numbered 01-100) and "Universal Principles of Design" (Lidwell, Holden, Butler, numbered 001-200), including the profession lens for UI, UX, graphic, instructional and systems designers, to UI decisions: user focus, feedback, choice, learnability, forms, errors, navigation, legibility, accessibility and interruption. Also draws on a 17-book library (Norman, Krug, Saffer, Johnson, Tidwell, Hurff, Nodder and others) for the five states of a screen, true urgency cues, validation and chapter lookup. Compare every screen with the benchmark page (the owner app's Bids tab) first.
 ---
 
 # UI/UX principles for OnGarage
@@ -19,9 +19,15 @@ The owner app's **Bids tab** is the signed-off reference page (user, 2026-11-17)
 2. Recommend the benchmark's pattern for the same role (header, tabs, chips, count label, deadline chip, card, price / receipt, buttons) before inventing a new one.
 3. Keep screens consistent with each other; break the benchmark only with a stated reason, and ask first.
 
+## 0b. Reviews and recommendations (read with 0a)
+
+When the user asks for a review, an analysis or recommendations, follow [review-workflow.md](review-workflow.md): quick fix or deep review, the steps, the finding format (issue | principle with book, number and title | fix), ranking by user impact, the "likely, verify" label, and the optional coding prompt. The old separate skill `app-design-review-principles` was merged into this one; only `/ui-ux-principles` is used.
+
 ## 0. How to use this skill (read first, every refinement)
 
 The file has two layers. Work from the top layer and fall back to the lower ones only when it does not solve the case.
+
+0. **Viewport first.** Review every screen at phone size (412×915) before any other check. A desktop capture is a reference only. Label each finding with its viewport (phone or desktop), and re-check any finding taken from a desktop capture at phone size before reporting it.
 
 1. **Core set (section 1 below).** The principles that have decided most refinements to these apps. Check the screen against each one first.
 2. **Fallback (sections A–M and the checklist).** The full library. Go here only when no core principle settles the question. Name the principle you used from this layer, and say why the core set did not cover it.
@@ -60,11 +66,15 @@ Each entry: the principle, the question to ask of the screen, and the typical fi
 
 **C13. Typography hierarchy and emphasis (Typography 23, 25, 27, 31, 52).** *Does size and weight say what matters, with one meaning per style, and do selected states keep their width?* Typical fix: bold for values and titles, grey label above; use the real weight from `FONTS`; reserve the width of a chip whose weight changes.
 
-Entries C1–C13 are the current core set. Their numbers are stable; when a principle is demoted, mark it "retired" here instead of renumbering.
+**C14. All five states of a screen (Hurff, *Designing Products People Love*, "five states of every interface").** *Are the ideal, partial, empty, loading and error states all designed?* Typical fix: an empty state that names the next action; a loading state that says what is being loaded; an error that says what to do next; a partial state that shows what is already known. Check each new or changed list, tab and tracking screen for all five.
+
+**C15. Urgency and scarcity must be true (Nodder, *Evil by Design*, "scarcity, loss aversion and time pressure").** *Is every deadline, countdown or "only N left" cue backed by a real limit?* Typical fix: show the real deadline and where it comes from; remove a countdown that resets or has no consequence; never show scarcity the system does not enforce.
+
+Entries C1–C15 are the current core set. Their numbers are stable; when a principle is demoted, mark it "retired" here instead of renumbering.
 
 ## 2. Reserve (fallback when the core set does not settle a case)
 
-Use these only after C1–C13 have been checked. Name the principle you used.
+Use these only after C1–C15 have been checked. Name the principle you used.
 
 - Learnability and first use: UX 15, 22, 23, 105. See section D.
 - Forms and input: UX 35, 91. See section F.
@@ -360,6 +370,14 @@ Applying this to the OnGarage apps:
 - Test every user-entered name in Sinhala, Tamil and English for tofu, and confirm the font covers the scripts the app ships (95, 97).
 - Keep text containers flexible with respect to the user's text size; do not fix a text box to its absolute height (64, 65).
 
+## N. Validation before and after a change (Buley, Fitzpatrick, Hurff, Krug, Brown)
+
+- **Five-second test (Buley, *The User Experience Team of One*):** show the screen for five seconds, hide it, and ask what it was for. If the main action is not named, move or enlarge it before building more.
+- **Quick usability test (Buley):** watch three to five people do the key task. Note where they hesitate, fix the biggest problem, and test again.
+- **Prototype before build (Hurff, *Designing Products People Love*; Brown, *Change by Design*):** test the core idea in the cheapest form that answers the question.
+- **Ask about past behaviour (Fitzpatrick, *The Mom Test*):** ask owners what they did last time, not whether they would like a feature.
+- **Log the test (Krug, *Don't Make Me Think*, usability testing):** record the task, who tried it, what went wrong, and the change. Add the result to [usage-log.md](usage-log.md).
+
 ## Checklist for a screen review
 
 1. Who is it for, what is their goal, and where are they when they use it? (UX 01, 26)
@@ -376,9 +394,41 @@ Applying this to the OnGarage apps:
 12. Can a first-time user reach the goal without instructions? (UX 22, 15)
 13. Is every weight, italic and underline used with one meaning, with no faked styles, and do selected states keep their width? (Typography 23, 27, 31)
 14. Is body text set with enough line height and a bounded measure? (Typography 20, 21)
+15. Are all five states designed: ideal, partial, empty, loading and error? (Hurff; C14)
+16. Is every deadline, countdown and scarcity cue backed by a real limit? (Nodder; C15)
+17. Has the screen been checked at phone size (412×915), and is each finding labelled with its viewport? (section 0)
 
 ## Applying this to the apps
 
 - Use the shared components (`Colors`, `themedStyles`, `ActionButton`, `ModalCard`) so the principles apply the same way in all four apps.
 - The apps are in Sinhala. Keep Sinhala wording plain; use English only for proper nouns and category names.
 - These principles guide decisions; they are not laws. Name the trade-off when you break one.
+
+## Book reference (for chapter lookup; summarise, do not quote)
+
+The library behind this skill is at `/home/akila/Projects/01_My Support Team/Don_Design Principles expert/02_Skills/app-design-review-principles/references/` (outside this repo): `book-index.md` lists the coverage per book, and the folder holds one notes file per book (for example `norman-design-of-everyday-things.md`, `krug-dont-make-me-think.md`, `hurff-designing-products-people-love.md`). The full extracted texts are in `/home/akila/Projects/01_My Support Team/Don_Design Principles expert/01_Extracted_Text/` and the PDFs in `00_Context/`. Read the matching notes file when a core principle does not settle a case, and summarise it, do not quote it. Use the chapter names below to find the right part of a book.
+
+| Book | Use it for | Section |
+|---|---|---|
+| Universal Principles of UX (Pereyra) | UX principles 01–100 | C1–C15, A–K |
+| Universal Principles of Design (Lidwell et al.) | Named principles 001–200 (about 50 with notes) | L, K |
+| Universal Principles of Typography (Stocks) | Type, hierarchy, pairing | M, C13 |
+| The Design of Everyday Things (Norman) | Affordances, signifiers, feedback, error prevention | C1, L |
+| Don't Make Me Think (Krug) | Scanning, navigation, labels, usability testing | C3, D, N |
+| Microinteractions (Saffer) | Triggers, rules, feedback, loops, modes | B, C4 |
+| Designing with the Mind in Mind (Johnson) | Perception, memory, decision load | C, L |
+| Designing Interfaces (Tidwell et al.) | Navigation, layout, mobile and list patterns | D, benchmark |
+| Designing User Experience (Benyon) | Personas, accessibility, evaluation | A, I |
+| The Elements of User Experience (Garrett; excerpt only) | Five planes, strategy to surface | Planning only |
+| Change by Design (Brown) | Prototyping, observation | N |
+| Good Strategy / Bad Strategy (Rumelt) | Product strategy | Planning only |
+| Evil by Design (Nodder) | Dark patterns, scarcity, defaults | C9, C10, C15 |
+| The Mom Test (Fitzpatrick) | Interviews with real owners | N |
+| UX Research (Nunnally) | Choosing research methods | N |
+| Design Systems Handbook (InVision) | Tokens, components, governance | Applying this to the apps |
+| UX for Beginners (Marsh) | Basics of psychology, research, forms, copy | Background |
+| Solving Product Design Exercises (Dashinsky) | Structuring a design problem | Planning only |
+| Designing Products People Love (Hurff) | Five states, thumb zones, prototypes | C14, C6, N |
+| The User Experience Team of One (Buley) | Cheap research, five-second test | N |
+
+Books are summarised in the notes files. Garrett is an excerpt, and the Buley text is OCR, so check exact wording before quoting.

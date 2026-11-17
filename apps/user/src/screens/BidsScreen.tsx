@@ -258,6 +258,10 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
     });
     return () => listFold.removeListener(id);
   }, [listFold]);
+  // A garage's profile pops up under the "Your Bids" title: if the list has been scrolled and the title has folded away, it comes back first.
+  useEffect(() => {
+    if (bidView) Animated.timing(listFold, { toValue: 0, duration: 180, easing: Easing.out(Easing.cubic), useNativeDriver: false }).start();
+  }, [bidView, listFold]);
   const localMin = useRef<() => void>(() => {});
   // The map opens full screen from the header's map icon; the same icon closes it again.
   const [mapOpen, setMapOpen] = useState(false);
