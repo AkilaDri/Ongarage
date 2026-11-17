@@ -77,8 +77,6 @@ export const GarageReviewsSheet: React.FC<{
   // The profile is split into four tabs so it reads one topic at a time instead of as one long scroll.
   const [tab, setTab] = useState<'overview' | 'info' | 'media' | 'reviews'>('overview');
   const [allStaff, setAllStaff] = useState(false);
-  // The cover photo starts compact; a tap on it opens it to its full height, another tap folds it back.
-  const [coverBig, setCoverBig] = useState(false);
   // The cover is a row of the garage's photos and videos that scrolls sideways, one at a time.
   const [coverW, setCoverW] = useState(0);
   const [slide, setSlide] = useState(0);
@@ -142,7 +140,7 @@ export const GarageReviewsSheet: React.FC<{
 
   const hero = (
     <View>
-      <View style={[styles.coverWrap, coverBig ? styles.coverWrapBig : styles.coverWrapSlim]}>
+      <View style={styles.coverWrap}>
         <ScrollView
           horizontal
           pagingEnabled
@@ -157,7 +155,7 @@ export const GarageReviewsSheet: React.FC<{
           accessibilityLabel="Garage photos and videos"
         >
           {coverMedia.map((m) => (
-            <Pressable key={m.id} onPress={() => setCoverBig((v) => !v)} accessibilityRole="button" accessibilityLabel={coverBig ? 'Make the photo smaller' : 'Enlarge the photo'} style={[styles.coverSlide, { width: coverW || '100%' }]}>
+            <View key={m.id} style={[styles.coverSlide, { width: coverW || '100%' }]}>
               {m.source ? <Image source={m.source} style={styles.cover} resizeMode="cover" /> : <View style={[styles.cover, { backgroundColor: avatarColor(g.id) }]} />}
               {m.kind === 'video' && (
                 <>
@@ -169,13 +167,13 @@ export const GarageReviewsSheet: React.FC<{
                   </View>
                 </>
               )}
-            </Pressable>
+            </View>
           ))}
         </ScrollView>
         <View style={styles.coverShade} pointerEvents="none" />
         <View style={[styles.coverCount, styles.coverCountSlim]} pointerEvents="none">
           <Text style={styles.coverCountText}>
-            {Math.min(slide, coverMedia.length - 1) + 1} / {coverMedia.length}  {coverBig ? '⤡' : '⤢'}
+            {Math.min(slide, coverMedia.length - 1) + 1} / {coverMedia.length}
           </Text>
         </View>
         <View style={[styles.coverDots, styles.coverDotsSlim]} pointerEvents="none">
@@ -755,9 +753,7 @@ const styles = themedStyles(() =>
     mapFooter: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 12 },
     dirBtn: { paddingHorizontal: 16, height: 44, borderRadius: 22, justifyContent: 'center', backgroundColor: '#1e3a8a' },
     dirBtnText: { fontSize: 13.5, fontFamily: FONTS.bodyBold, color: '#ffffff' },
-    coverWrapSlim: { height: 130 },
-    coverWrapBig: { height: 360 },
-    coverWrap: { height: 220, overflow: 'hidden' },
+    coverWrap: { height: 250, overflow: 'hidden' },
     cover: { width: '100%', height: '100%' },
     coverSlide: { height: '100%' },
     coverPlay: { position: 'absolute', alignSelf: 'center', top: '38%', width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.55)', borderWidth: 2, borderColor: '#ffffff' },
