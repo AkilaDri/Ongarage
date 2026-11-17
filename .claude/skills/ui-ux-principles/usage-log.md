@@ -103,6 +103,11 @@ Entry format:
 - Core missing: none.
 - Outcome: implemented earlier in the session.
 
+## 2026-11-17 · Owner Bids tab · set as the benchmark page
+- Principles used: C1, C2, C5, C6, C7, C8, C10, C13 (header and tabs, count label above the list, amber countdown chip, price receipt with a green total, price-as-button rows, delete moved to the detail view).
+- Core missing: a rule for consistency across screens; added section 0a and benchmark-bids.md.
+- Outcome: signed off by the user as the reference page; later recommendations must follow it.
+
 ## Review history
 
 - 2026-11-09: core set created (C1–C13) from the refinements above. Nothing demoted yet. Next review due after 10 entries.

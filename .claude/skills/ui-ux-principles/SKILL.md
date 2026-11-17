@@ -12,6 +12,13 @@ Sources:
 
 Use the principles to check a screen. Do not add elements to satisfy a principle; remove or reorder until it holds. Where a principle conflicts with a user's stated wish, say so and ask.
 
+## 0a. Benchmark page (read before any recommendation)
+
+The owner app's **Bids tab** is the signed-off reference page (user, 2026-11-17). Its structure, sizes and colours are in [benchmark-bids.md](benchmark-bids.md). Whenever the user asks for recommendations or a refinement of any screen:
+1. Read `benchmark-bids.md` first and name which of its patterns the screen already follows and which it breaks.
+2. Recommend the benchmark's pattern for the same role (header, tabs, chips, count label, deadline chip, card, price / receipt, buttons) before inventing a new one.
+3. Keep screens consistent with each other; break the benchmark only with a stated reason, and ask first.
+
 ## 0. How to use this skill (read first, every refinement)
 
 The file has two layers. Work from the top layer and fall back to the lower ones only when it does not solve the case.

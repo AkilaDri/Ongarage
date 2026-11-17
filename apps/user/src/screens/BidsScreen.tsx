@@ -584,16 +584,21 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
             <View key={job.id} style={styles.card}>
               {jobHeader(
                 job,
-                <View style={[styles.badge, job.acceptedBidId ? styles.badgeSuccess : styles.badgePrimary]}>
-                  <Text style={[styles.badgeText, { color: workshops[job.id]?.progress.cancelled ? Colors.errorText : job.acceptedBidId ? Colors.success : Colors.primary }]}>
-                    {job.acceptedBidId ? (workshops[job.id]?.progress.cancelled ? 'අවලංගු කළා' : bookingStatusText(job.booking) ?? 'වෙන් කළා') : `ලංසු ${job.bids.length}`}
-                  </Text>
-                </View>
+                job.acceptedBidId ? (
+                  <View style={[styles.badge, styles.badgeSuccess]}>
+                    <Text style={[styles.badgeText, { color: workshops[job.id]?.progress.cancelled ? Colors.errorText : Colors.success }]}>
+                      {workshops[job.id]?.progress.cancelled ? 'අවලංගු කළා' : bookingStatusText(job.booking) ?? 'වෙන් කළා'}
+                    </Text>
+                  </View>
+                ) : null
               )}
               {!job.acceptedBidId && now < biddingEndsAt(job) && (
                 <View style={[styles.countChip, biddingEndsAt(job) - now < 3600000 && styles.countChipUrgent]} accessibilityLabel="Time left for bids">
                   <Text style={[styles.countChipText, biddingEndsAt(job) - now < 3600000 && styles.countChipTextUrgent]}>⏱️ {remaining(biddingEndsAt(job) - now)} ඉතිරියි</Text>
                 </View>
+              )}
+              {!job.acceptedBidId && job.bids.length > 0 && (
+                <Text style={styles.bidsCountLabel} accessibilityRole="header">{`ලංසු ${job.bids.length} ක් ලැබී ඇත · තෝරන්න`}</Text>
               )}
               {rowsView ? <View style={styles.bidRows}>{shown.map((bid) => renderBidRow(job, bid))}</View> : shown.map((bid) => renderBidCard(job, bid))}
               {job.acceptedBidId && job.bids.length > 1 && (
@@ -844,6 +849,7 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
       {area > 0 && (
         <ThreeStateSheet
           locked
+          surface={pageBg()}
           onHeight={setSheetH}
           areaHeight={stableArea || area}
           boost={boost ?? undefined}
@@ -1047,38 +1053,26 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
 
 type BidSort = 'price' | 'rating' | 'near' | 'fast';
 /** The line icon on a sort chip: white, and yellow while the chip is chosen (as the chips on Activity). */
-/** A written sum: the repair fee, "+" and the travel fee (the "+" stands just before the first digit of the widest figure), a rule, and the total. */
+/** A written sum, like a receipt: the label on the left, the figure on the right edge; the repair fee, "+" the travel fee, a rule across, then the total. */
 const BidSum: React.FC<{ work: number; travel: number; total: number }> = ({ work, travel, total }) => {
-  const [w1, setW1] = useState(0);
-  const [w2, setW2] = useState(0);
-  const figW = Math.max(w1, w2);
   const n = (v: number) => Math.round(v).toLocaleString();
   return (
     <>
-      <View style={styles.sumRow}>
-        <View style={[styles.sumCell, styles.sumCellEnd]}>
-          <View style={[styles.sumFigBox, figW > 0 && { width: figW + 18 }]}>
-            <Text style={[styles.fbPrice, styles.sumRepair]} onLayout={(e) => setW1(e.nativeEvent.layout.width)}>{n(work)}</Text>
-          </View>
-        </View>
-        <Text style={styles.sumLabel}>(අලුත්වැඩියා ගාස්තුව)</Text>
+      <View style={styles.sumLine}>
+        <Text style={styles.sumLabel}>අලුත්වැඩියා ගාස්තුව</Text>
+        <Text style={styles.sumFigure}>{n(work)}</Text>
       </View>
-      <View style={styles.sumRow}>
-        <View style={[styles.sumCell, styles.sumCellEnd]}>
-          <View style={[styles.sumFigBox, styles.sumFigSpread, figW > 0 && { width: figW + 18 }]}>
-            <Text style={[styles.fbPrice, styles.sumRepair]}>+</Text>
-            <Text style={[styles.fbPrice, styles.sumRepair]} onLayout={(e) => setW2(e.nativeEvent.layout.width)}>{n(travel)}</Text>
-          </View>
-        </View>
-        <Text style={styles.sumLabel}>(ගමන් ගාස්තුව)</Text>
+      <View style={styles.sumLine}>
+        <Text style={styles.sumLabel}>ගමන් ගාස්තුව</Text>
+        <Text style={styles.sumFigure}>
+          <Text style={styles.sumPlusMark}>+ </Text>
+          {n(travel)}
+        </Text>
       </View>
       <View style={styles.sumRule} />
-      <View style={styles.sumRow}>
-        <View style={styles.sumCell}>
-          <Text style={[styles.fbPrice, styles.sumGrand]}>LKR</Text>
-          <Text style={[styles.fbPrice, styles.sumGrand]}>{n(total)}</Text>
-        </View>
-        <MoneyIcon size={18} />
+      <View style={styles.sumLine}>
+        <Text style={styles.sumLabel}>මුළු ගාස්තුව</Text>
+        <Text style={[styles.fbPrice, styles.sumGrand]}>LKR {n(total)}</Text>
       </View>
     </>
   );
@@ -1252,7 +1246,7 @@ const styles = themedStyles(() => StyleSheet.create({
   usedChipTextOn: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#1e3a8a' },
   tabCountText: { fontSize: 10, fontFamily: FONTS.bodyBold, color: '#111827' },
   tabCountTextActive: {},
-  body: { paddingHorizontal: 4, paddingTop: 4, gap: 12, paddingBottom: 24 },
+  body: { paddingHorizontal: 4, paddingTop: 4, gap: 12, paddingBottom: 24, backgroundColor: pageBg() },
   fullMap: { ...StyleSheet.absoluteFill },
   mapFullLayer: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 2, elevation: 2 },
   // Fixed height, stuck to the bottom of the tab: it does not move when the tab grows upward as the band folds away.
@@ -1268,6 +1262,7 @@ const styles = themedStyles(() => StyleSheet.create({
   peekPhoto: { width: '100%', height: '100%', borderRadius: 26 },
   peekBadge: { position: 'absolute', right: -2, bottom: -2, minWidth: 26, paddingHorizontal: 5, height: 18, borderRadius: 9, backgroundColor: '#0f172a', alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: '#fff' },
   peekBadgeText: { fontSize: 9.5, fontWeight: '800', color: '#fff' },
+  bidsCountLabel: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, paddingHorizontal: 12, paddingTop: 4 },
   countChip: { alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, backgroundColor: 'rgba(245, 158, 11, 0.16)' },
   countChipUrgent: { backgroundColor: 'rgba(239, 68, 68, 0.14)' },
   countChipText: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: '#b45309' },
@@ -1311,7 +1306,10 @@ const styles = themedStyles(() => StyleSheet.create({
   fbSub: { fontSize: 12, lineHeight: 16, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 0 },
   fbMore: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   fbContent: { paddingLeft: 16, paddingRight: 16, paddingBottom: 10, gap: 6 },
-  sumBox: { alignSelf: 'flex-start', gap: 2, paddingVertical: 12 },
+  sumBox: { alignSelf: 'stretch', gap: 6, paddingVertical: 12 },
+  sumLine: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 12 },
+  sumFigure: { fontSize: 14, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
+  sumPlusMark: { fontSize: 13, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
   sumRepair: { marginVertical: 0, fontSize: 16, color: Colors.textMain },
   sumGrand: { marginVertical: 0 },
   sumAmount: { width: 128, textAlign: 'right' },
@@ -1321,9 +1319,9 @@ const styles = themedStyles(() => StyleSheet.create({
   sumFigSpread: { justifyContent: 'space-between' },
   sumCell: { width: 120, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   sumRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  sumLabel: { fontSize: 12.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
+  sumLabel: { fontSize: 13, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
   sumTravel: { fontSize: 13.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
-  sumRule: { width: 120, height: 1.5, backgroundColor: Colors.textMuted, opacity: 0.5 },
+  sumRule: { alignSelf: 'stretch', height: 1.5, backgroundColor: Colors.textMuted, opacity: 0.6 },
   sumTotal: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textMain },
   fbPriceRow: { flexDirection: 'row', alignItems: 'baseline', flexWrap: 'wrap', gap: 8 },
   fbPriceTravel: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
