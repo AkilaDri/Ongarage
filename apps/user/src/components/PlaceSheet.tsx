@@ -455,7 +455,7 @@ const soft = () => (dark() ? 'rgba(255, 255, 255, 0.06)' : '#f1f4f9');
 const styles = themedStyles(() =>
   StyleSheet.create({
     flex1: { flex: 1 },
-    coverWrap: { height: 150, overflow: 'hidden', borderTopLeftRadius: 28, borderTopRightRadius: 28, alignItems: 'center', justifyContent: 'center' },
+    coverWrap: { height: 150, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
     coverIcon: { fontSize: 64, opacity: 0.9 },
     coverShade: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(8, 16, 36, 0.18)' },
     coverGrip: { position: 'absolute', top: 8, alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.7)' },

@@ -53,8 +53,8 @@ export const SwipeCard: React.FC<{ onOpen: () => void; style: StyleProp<ViewStyl
   return (
     <View>
       <Animated.View style={[styles.reveal, { opacity: reveal }]} pointerEvents="none">
-        <Text style={styles.revealText}>📄 සම්පූර්ණ විස්තර</Text>
-        <Text style={styles.revealText}>සම්පූර්ණ විස්තර 📄</Text>
+        <Text style={styles.revealText} numberOfLines={1}>📄 විස්තර ›</Text>
+        <Text style={styles.revealText} numberOfLines={1}>‹ විස්තර 📄</Text>
       </Animated.View>
       <Animated.View {...responder.panHandlers} style={[style, NO_SELECT, { transform: [{ translateX: x }] }]}>
         <NestContext.Provider value={nest}>{children}</NestContext.Provider>
@@ -75,10 +75,10 @@ const styles = themedStyles(() =>
       alignItems: 'center',
       justifyContent: 'space-between',
       paddingHorizontal: 16,
-      backgroundColor: 'rgba(56, 189, 248, 0.14)',
+      backgroundColor: 'rgba(56, 189, 248, 0.22)',
       borderWidth: 1,
       borderColor: 'rgba(56, 189, 248, 0.4)',
     },
-    revealText: { fontSize: 11, fontFamily: FONTS.bodyBold, color: Colors.primary },
+    revealText: { fontSize: 14, fontFamily: FONTS.bodyBold, color: '#1e3a8a' },
   })
 );

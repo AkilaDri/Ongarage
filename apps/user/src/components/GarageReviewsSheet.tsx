@@ -53,6 +53,8 @@ export const GarageReviewsSheet: React.FC<{
   /** Opened from a bid: its offer on top, and accepting it. */
   bid?: Bid;
   onAccept?: () => void;
+  /** Where the pop-up's top edge stops, measured from the top of the screen (so it can stop just under a page title). */
+  topInset?: number;
   /** Removes this bid from the list (a quiet link under the accept button, not a mark on the card). */
   onDecline?: () => void;
   /** Opened from Home: call or book this garage. */
@@ -62,7 +64,7 @@ export const GarageReviewsSheet: React.FC<{
   onReopen?: (garage: Garage) => void;
   /** Opened from a service category: the inquiry form starts on that service. */
   inquiryCategoryId?: string;
-}> = ({ garage, onClose, bid, onAccept, onDecline, onCall, onBook, onReopen, inquiryCategoryId }) => {
+}> = ({ garage, onClose, bid, onAccept, topInset, onDecline, onCall, onBook, onReopen, inquiryCategoryId }) => {
   const [shown, setShown] = useState(garage);
   useEffect(() => {
     if (garage) setShown(garage);
@@ -253,6 +255,7 @@ export const GarageReviewsSheet: React.FC<{
       subtitle={`★ ${g.rating.toFixed(1)} · සමාලෝචන ${g.reviews}`}
       onClose={onClose}
       hero={hero}
+      topInset={topInset}
       compact
       roomy
       noDividers
@@ -751,7 +754,7 @@ const styles = themedStyles(() =>
     dirBtnText: { fontSize: 13.5, fontFamily: FONTS.bodyBold, color: '#ffffff' },
     coverWrapSlim: { height: 130 },
     coverWrapBig: { height: 360 },
-    coverWrap: { height: 220, overflow: 'hidden', borderTopLeftRadius: 28, borderTopRightRadius: 28 },
+    coverWrap: { height: 220, overflow: 'hidden' },
     cover: { width: '100%', height: '100%' },
     coverSlide: { height: '100%' },
     coverPlay: { position: 'absolute', alignSelf: 'center', top: '38%', width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.55)', borderWidth: 2, borderColor: '#ffffff' },

@@ -420,7 +420,7 @@ const styles = themedStyles(() =>
     metricValue: { fontSize: 12, fontFamily: FONTS.bodyBold, color: Colors.successText },
     metricTrack: { height: 8, borderRadius: 4, overflow: 'hidden', backgroundColor: Colors.subtleFill },
     metricFill: { height: '100%', borderRadius: 4, backgroundColor: Colors.success },
-    coverWrap: { height: 150, overflow: 'hidden', borderTopLeftRadius: 28, borderTopRightRadius: 28 },
+    coverWrap: { height: 150, overflow: 'hidden' },
     cover: { width: '100%', height: '100%' },
     coverShade: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(6, 12, 30, 0.36)' },
     roundBtn: { position: 'absolute', top: 14, width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.94)', shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 4 },

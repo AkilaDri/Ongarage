@@ -826,7 +826,7 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
               }}
               accessibilityLabel="Open bid details"
             >
-              <Text style={styles.pinCardBtnText}>සම්පූර්ණ විස්තර ›</Text>
+              <Text style={styles.pinCardBtnText}>📄 විස්තර</Text>
             </Pressable>
             <Pressable style={styles.pinCardBtn} onPress={() => Linking.openURL(directionsUrl(pinBid.bid.coords, user.coords))} accessibilityLabel="Directions to the garage">
               <Text style={styles.pinCardBtnText}>🗺️ දිශාවන්</Text>
@@ -977,6 +977,8 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
       <GarageReviewsSheet
         garage={bidView ? garageForBid(bidView.bid) : null}
         bid={bidView?.bid}
+        // The pop-up rises over the tab bar but stops under the "Your Bids" title (the tabs start where the title row ends).
+        topInset={insets.top + 46 + (titleH || 56) - 2}
         onClose={() => setBidView(null)}
         onAccept={
           bidView && !bidView.job.acceptedBidId
@@ -1273,7 +1275,7 @@ const styles = themedStyles(() => StyleSheet.create({
   // The same look as the Activity cards: a roomy white card, big round corners, no hard outline, a soft wide shadow.
   // Home's card look: white with a light edge and a soft blue shadow.
   card: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#f3f4f6', borderRadius: 26, paddingVertical: 16, paddingHorizontal: 2, gap: 12, shadowColor: '#1e3a8a', shadowOffset: { width: 0, height: 10 }, shadowOpacity: getThemeMode() === 'dark' ? 0.4 : 0.16, shadowRadius: 22, elevation: 6 },
-  detailsCorner: { alignSelf: 'flex-end', flexDirection: 'row', alignItems: 'center', gap: 16 },
+  detailsCorner: { alignSelf: 'flex-end', marginRight: 8, flexDirection: 'row', alignItems: 'center', gap: 16 },
   deleteLink: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.errorText },
   cardExpired: { borderColor: 'rgba(239, 68, 68, 0.4)' },
   cardTitle: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.textMain },
