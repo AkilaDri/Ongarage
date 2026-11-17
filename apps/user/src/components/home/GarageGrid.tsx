@@ -88,7 +88,7 @@ const GridCard: React.FC<{ garage: Garage; ad?: boolean; width: number; hint?: b
           onPress={() => {
             onSaveChange(toggle(g.id));
           }}
-          hitSlop={4}
+          hitSlop={7}
           style={styles.heart}
           accessibilityLabel={saved ? `Unsave ${g.name}` : `Save ${g.name}`}
           accessibilityState={{ checked: saved }}
@@ -134,7 +134,7 @@ const styles = themedStyles(() =>
     cover: { width: '100%', height: 104 },
     adTag: { position: 'absolute', left: 8, top: 8, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10, backgroundColor: '#f59e0b' },
     adTagText: { fontSize: 11, fontFamily: FONTS.bodyBold, color: '#111827' },
-    heart: { position: 'absolute', right: 8, top: 8, width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.92)' },
+    heart: { position: 'absolute', right: 8, top: 8, width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.92)' },
     hintBubble: { position: 'absolute', right: 8, top: 58, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12, backgroundColor: '#1e3a8a' },
     hintText: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: '#ffffff' },
     heartText: { fontSize: 18, color: Colors.textMuted },
