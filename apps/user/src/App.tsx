@@ -53,6 +53,7 @@ import { HomeTop } from './components/home/HomeTop';
 import { GarageReviewsSheet } from './components/GarageReviewsSheet';
 import { MartHeader } from './components/mart/MartHeader';
 import { ChatHeaderButton } from './components/ChatHeaderButton';
+import { OnGarageLogo } from './components/home/OnGarageLogo';
 import { AppPageHeader } from './components/AppPageHeader';
 import { BidBookingSheet } from './components/BidBookingSheet';
 import { ServiceReminders } from './components/ServiceReminders';
@@ -251,10 +252,25 @@ function AppShell() {
   // The current page dims in place before the next tab shows.
   const dimAnim = useRef(new Animated.Value(1)).current;
   // Switching tabs from the bottom bar or a swipe: the current page dims and slides away, then the new tab is shown and comes in.
+  // The brand veil between tabs: the screen fades to the header blue, the OnGarage logo grows in the middle, the new tab is put in place under it, and the veil lifts.
+  const veil = useRef(new Animated.Value(0)).current;
+  const logoGrow = useRef(new Animated.Value(0)).current;
+  const switching = useRef(false);
   const switchTab = (next: TabId) => {
-    if (next === activeTab) return;
-    Animated.timing(dimAnim, { toValue: 0, duration: 170, easing: Easing.in(Easing.cubic), useNativeDriver: Platform.OS !== 'web' }).start(({ finished }) => {
-      if (finished) setActiveTab(next);
+    if (next === activeTab || switching.current) return;
+    switching.current = true;
+    const native = Platform.OS !== 'web';
+    Animated.parallel([
+      Animated.timing(veil, { toValue: 1, duration: 200, easing: Easing.out(Easing.quad), useNativeDriver: native }),
+      Animated.timing(logoGrow, { toValue: 1, duration: 360, easing: Easing.out(Easing.back(1.4)), useNativeDriver: native }),
+    ]).start(() => {
+      setActiveTab(next);
+      setTimeout(() => {
+        Animated.timing(veil, { toValue: 0, duration: 280, easing: Easing.in(Easing.quad), useNativeDriver: native }).start(() => {
+          logoGrow.setValue(0);
+          switching.current = false;
+        });
+      }, 120);
     });
   };
   useEffect(() => {
@@ -767,6 +783,11 @@ function AppShell() {
         }}
       />
       <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: fadeColor, opacity: fade }]} />
+      <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.brandVeil, { opacity: veil }]}>
+        <Animated.View style={{ opacity: logoGrow.interpolate({ inputRange: [0, 0.4, 1], outputRange: [0, 1, 1] }), transform: [{ scale: logoGrow.interpolate({ inputRange: [0, 1], outputRange: [0.55, 1] }) }] }}>
+          <OnGarageLogo width={190} height={62} />
+        </Animated.View>
+      </Animated.View>
     </SafeAreaProvider>
     </ChatProvider>
     </BidsProvider>
@@ -806,6 +827,7 @@ const styles = themedStyles(() => StyleSheet.create({
   floatChat: { position: 'absolute', top: 10, right: 14, zIndex: 50, height: 44, backgroundColor: 'transparent' },
   // The tab's screen overlaps the header band with rounded top corners.
   sheet: { flex: 1, backgroundColor: pageBg() },
+  brandVeil: { zIndex: 400, elevation: 400, alignItems: 'center', justifyContent: 'center', backgroundColor: '#1e3a8a' },
   sosLayer: { zIndex: 50, backgroundColor: Colors.bgBody },
   sosLayerHidden: { display: 'none' },
   sosReturn: { position: 'absolute', zIndex: 60, left: 16, right: 16, bottom: 96, alignItems: 'center', justifyContent: 'center', height: 46, borderRadius: 23, backgroundColor: '#dc2626', shadowColor: '#dc2626', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.4, shadowRadius: 12, elevation: 10 },

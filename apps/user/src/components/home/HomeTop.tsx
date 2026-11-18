@@ -24,11 +24,8 @@ export const HomeTop: React.FC<{ onSOS: () => void; onPost: () => void; search: 
           </View>
           {sosJob ? (
             <View style={hs.rowText}>
+              <Text style={[hs.liveKicker, sosJob.needsAction && hs.liveAsk]} numberOfLines={1}>{sosJob.needsAction ? 'ඔබේ පිළිතුර අවශ්‍යයි' : 'ක්‍රියාත්මකයි'}</Text>
               <Text style={[hs.btnTitle, hs.liveTitle]} numberOfLines={2} accessibilityLiveRegion="polite">{sosJob.label || 'SOS ඉල්ලීම'}</Text>
-              <Text style={[hs.btnSub, hs.liveSub]} numberOfLines={1}>
-                <Text style={sosJob.needsAction ? hs.liveAsk : undefined}>{sosJob.needsAction ? 'ඔබේ පිළිතුර අවශ්‍යයි' : 'ක්‍රියාත්මකයි'}</Text>
-                <Text style={hs.liveGo}>{sosJob.needsAction ? '  ·  ඇතුළු වන්න ›' : '  ·  බලන්න ›'}</Text>
-              </Text>
             </View>
           ) : (
             <View style={hs.rowText}>
@@ -36,6 +33,7 @@ export const HomeTop: React.FC<{ onSOS: () => void; onPost: () => void; search: 
               <Text style={hs.btnSub} numberOfLines={1}>Ongarage උදව් ඉල්ලන්න</Text>
             </View>
           )}
+          {!!sosJob && <Text style={hs.liveChevron}>›</Text>}
           <View style={[hs.sosPill, !!sosJob?.needsAction && hs.sosPillAsk]}>
             <Pulse style={hs.pillDot} />
             <Text style={hs.sosPillText}>{sosJob ? (sosJob.needsAction ? 'පිළිතුරු' : 'සජීවී') : '24/7'}</Text>
@@ -75,9 +73,9 @@ const hs = StyleSheet.create({
   sosCircleLive: { backgroundColor: '#dc2626', borderColor: '#b91c1c' },
   // The running job's lines: a bold status, and the way back as a navy link (the benchmark's detail-link style), not grey text.
   liveTitle: { fontFamily: FONTS.bodyBold, color: '#111827' },
-  liveSub: { marginTop: 4 },
+  liveKicker: { fontSize: 13, lineHeight: 18, fontFamily: FONTS.bodySemiBold, color: '#6b7280', paddingRight: 80, marginBottom: 2 },
   liveAsk: { fontFamily: FONTS.bodyBold, color: '#b45309' },
-  liveGo: { fontFamily: FONTS.bodySemiBold, color: '#1e3a8a' },
+  liveChevron: { position: 'absolute', right: 14, bottom: 10, fontSize: 24, lineHeight: 26, color: '#b91c1c' },
   sosPillAsk: { backgroundColor: '#f59e0b' },
   btnTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   sosCircle: { width: 56, height: 56, borderRadius: 28, backgroundColor: '#fee2e2', borderWidth: 1, borderColor: '#fecaca', alignItems: 'center', justifyContent: 'center' },

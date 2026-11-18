@@ -213,6 +213,30 @@ const withLatin = (text: string) =>
   text.split(/([A-Za-z]+)/).map((piece, i) => (i % 2 ? <Text key={i} style={styles.modalLatin}>{piece}</Text> : piece));
 
 /** A pop-up in the middle of the screen: a borderless rounded card with a wide shadow, a tinted icon disc and pill buttons. */
+/** Label / value lines with the colons in one column: the label column is as wide as the widest label (measured, so a Sinhala word is never cut). */
+const ModalRows: React.FC<{ rows: { label: string; value: string }[] }> = ({ rows }) => {
+  const [labelW, setLabelW] = useState(0);
+  return (
+    <View style={styles.modalRows}>
+      {rows.map((r) => (
+        <View key={r.label} style={styles.modalRow}>
+          <Text
+            style={[styles.modalRowLabel, labelW > 0 && { minWidth: labelW }]}
+            onLayout={(e) => {
+              const w = Math.ceil(e.nativeEvent.layout.width);
+              setLabelW((cur) => (w > cur ? w : cur));
+            }}
+          >
+            {r.label}
+          </Text>
+          <Text style={styles.modalRowColon}>:</Text>
+          <Text style={styles.modalRowValue} numberOfLines={1}>{r.value}</Text>
+        </View>
+      ))}
+    </View>
+  );
+};
+
 export const ModalCard: React.FC<{
   icon: string;
   tone: ModalTone;
@@ -246,17 +270,7 @@ export const ModalCard: React.FC<{
           <Text style={[styles.modalIconText, material && styles.modalIconTextMaterial]}>{icon}</Text>
         </View>
         <Text style={[styles.modalTitle, material && styles.modalTitleMaterial]}>{title}</Text>
-        {!!rows && rows.length > 0 && (
-          <View style={styles.modalRows}>
-            {rows.map((r) => (
-              <View key={r.label} style={styles.modalRow}>
-                <Text style={[styles.modalRowLabel, { width: Math.ceil(Math.max(...rows.map((x) => x.label.length)) * 7.4) }]} numberOfLines={1}>{r.label}</Text>
-                <Text style={styles.modalRowColon}>:</Text>
-                <Text style={styles.modalRowValue} numberOfLines={1}>{r.value}</Text>
-              </View>
-            ))}
-          </View>
-        )}
+        {!!rows && rows.length > 0 && <ModalRows rows={rows} />}
         <Text style={[styles.modalBody, material && styles.modalBodyMaterial]}>
           {parts.map((part, i) => (
             <React.Fragment key={i}>
