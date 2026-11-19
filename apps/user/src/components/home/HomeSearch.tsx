@@ -162,7 +162,7 @@ export const HomeSearch: React.FC<{
 
       <Modal visible={open} animationType="none" statusBarTranslucent onRequestClose={close}>
         <SafeAreaView style={styles.page} edges={['top', 'bottom']}>
-          {/* The same top bar as the job form: a solid blue band, a round close button on the left, the search field in the band. */}
+          {/* The same top bar as the job form: a solid blue band, the search field in the band, a round close button on the right. */}
           <SearchBand value={text} onChangeText={setText} onClose={close} autoFocus />
 
           {/* The first child is the sticky heading: it stays under the search field while the results scroll beneath it. */}

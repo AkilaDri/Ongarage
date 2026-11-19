@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { shortCategoryName } from '../components/home/CategoryStrip';
 import { SearchBand } from '../components/home/SearchBand';
 import { View, Text, Pressable, StyleSheet, ScrollView, TextInput, Animated, Easing, Linking, Modal, PanResponder, Platform } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, FONTS, getThemeMode, searchServices, themedStyles } from '@ongarage/shared';
 import { DidYouMean } from '../components/home/DidYouMean';
 import { MOCK_GARAGES } from '../constants/mockData';
@@ -58,6 +58,7 @@ const SELECTED_GREEN = '#1a73e8';
 const SUB_PREVIEW = 4;
 
 export const ServiceBrowseScreen: React.FC<ServiceBrowseScreenProps> = ({ service, onClose, onBook, initialSub, onPostJob, vehicleId }) => {
+  const insets = useSafeAreaInsets();
   const [searchText, setSearchText] = useState('');
   // A garage touched on the map: it is picked (its pin lights up and its card comes first in the list) until it is touched again or cleared.
   const [pickedId, setPickedId] = useState<string | null>(null);
@@ -309,7 +310,9 @@ export const ServiceBrowseScreen: React.FC<ServiceBrowseScreenProps> = ({ servic
   const BAR_CHROME = 76;
   const LOC_ROOM = 52; // the my-location button under the bar
   const barTrackH = Math.min(150, Math.max(70, sheetTopY - 14 - LOC_ROOM - 150 - BAR_CHROME));
-  const barTop = Math.max(150, sheetTopY - 14 - LOC_ROOM - (barTrackH + BAR_CHROME)) - 108;
+  // The chips sit right under the floating search bar (8px below the status area, 52px tall, 8px gap); the range bar keeps its place on the screen.
+  const chipsTop = insets.top + 68;
+  const barTop = Math.max(150, sheetTopY - 14 - LOC_ROOM - (barTrackH + BAR_CHROME)) - 108 + (146 - chipsTop);
   const query = searchText.trim().toLowerCase();
   // A typed service ("break pad", "oil change") that is one of this category's sub-services narrows the garages to the ones that ticked it, as a chip does.
   const matchedSub = query ? searchServices(query).find((h) => h.categoryId === service.id && h.sub && service.subcategories.includes(h.sub))?.sub : undefined;
@@ -360,10 +363,10 @@ export const ServiceBrowseScreen: React.FC<ServiceBrowseScreenProps> = ({ servic
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
         {/* The same top bar as the job form and the search screen: a solid blue band, a round back button on the left, and the search pill. It fades as the sheet rises. */}
-        <Animated.View style={[styles.browseBand, { opacity: sheetHeight.interpolate({ inputRange: [collapsedHeight, collapsedHeight + 70], outputRange: [1, 0], extrapolate: 'clamp' }) }]}>
-          <SearchBand value={searchText} onChangeText={setSearchText} onClose={onClose} />
+        <Animated.View style={[styles.browseBand, { top: insets.top + 8, opacity: sheetHeight.interpolate({ inputRange: [collapsedHeight, collapsedHeight + 70], outputRange: [1, 0], extrapolate: 'clamp' }) }]}>
+          <SearchBand floating value={searchText} onChangeText={setSearchText} onClose={onClose} />
         </Animated.View>
 
       <View style={styles.mapArea} pointerEvents="box-none" onLayout={(e) => {
@@ -426,7 +429,7 @@ export const ServiceBrowseScreen: React.FC<ServiceBrowseScreenProps> = ({ servic
         {/* The sub-services of the picked service (they slide by themselves to show there are more) float over the map right under the search bar, and fade out with it. */}
         <Animated.View
           onLayout={(e) => setSubGridH(Math.round(e.nativeEvent.layout.height))}
-          style={[styles.subFloat, { opacity: sheetHeight.interpolate({ inputRange: [collapsedHeight, collapsedHeight + 70], outputRange: [1, 0], extrapolate: 'clamp' }) }]}
+          style={[styles.subFloat, { top: chipsTop, opacity: sheetHeight.interpolate({ inputRange: [collapsedHeight, collapsedHeight + 70], outputRange: [1, 0], extrapolate: 'clamp' }) }]}
           pointerEvents={sheet === 'expanded' ? 'none' : 'box-none'}
         >
           <Animated.View style={{ opacity: subIn, transform: [{ translateX: subIn.interpolate({ inputRange: [0, 1], outputRange: [60, 0] }) }] }}>
@@ -462,7 +465,7 @@ export const ServiceBrowseScreen: React.FC<ServiceBrowseScreenProps> = ({ servic
         </Animated.View>
 
         {/* Over the map: the range bar (drag it to change how far garages are searched) and the choice of where to search from. They fade out with the search bar. */}
-        <Animated.View style={[styles.mapControls, { top: 146 + subGridH + 8, opacity: sheetHeight.interpolate({ inputRange: [collapsedHeight, collapsedHeight + 70], outputRange: [1, 0], extrapolate: 'clamp' }) }]} pointerEvents="box-none">
+        <Animated.View style={[styles.mapControls, { top: chipsTop + subGridH + 8, opacity: sheetHeight.interpolate({ inputRange: [collapsedHeight, collapsedHeight + 70], outputRange: [1, 0], extrapolate: 'clamp' }) }]} pointerEvents="box-none">
           {/* Sits at the very bottom of the map, just above the peeking sheet. */}
           {/* It sits just above the peeking sheet, so it fades out as soon as the sheet starts to rise (and stops taking touches), instead of floating over the sheet. */}
           <Animated.View
@@ -725,6 +728,9 @@ export const ServiceBrowseScreen: React.FC<ServiceBrowseScreenProps> = ({ servic
       </View>
       <PlaceSheet place={detailPlace} distance={detailPlace?.distance} from={user.coords} onClose={() => setDetailPlace(null)} />
       <GarageReviewsSheet
+        // The profile stops at the same line as on Home and Bids, and the area behind it is the header blue (it dissolves on close).
+        topInset={insets.top + 86}
+        backdropColor="rgba(30, 58, 138, 0.94)"
         garage={reviewsFor}
         inquiryCategoryId={service.id}
         onClose={() => setReviewsFor(null)}
@@ -757,9 +763,9 @@ const styles = themedStyles(() => StyleSheet.create({
   },
   // Floats over the map's top edge, like Google Maps' search box.
   // Above the blue band (zIndex 4), so the rounded top shows over it.
-  mapClip: { position: 'absolute', top: 108, left: 0, right: 0, bottom: 0, backgroundColor: Colors.mapBg, borderTopLeftRadius: 28, borderTopRightRadius: 28, overflow: 'hidden' },
+  mapClip: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: Colors.mapBg, overflow: 'hidden' },
   // The band itself (padding, colour, search) comes from the shared SearchBand; this only places it over the top.
-  browseBand: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 4 },
+  browseBand: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 12, elevation: 12 },
   roundBack: { width: 46, height: 46, borderRadius: 23, backgroundColor: Colors.bgCard, justifyContent: 'center', alignItems: 'center' },
   roundBackText: { fontSize: 16, fontWeight: '700', color: Colors.textMain },
   searchPill: { flex: 1, height: 52, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, borderRadius: 26, borderWidth: 2, borderColor: 'transparent', backgroundColor: Colors.bgCard },
@@ -943,7 +949,7 @@ const styles = themedStyles(() => StyleSheet.create({
   sheetClosePressed: { transform: [{ scale: 0.9 }] },
   // The sub-service chips float over the map right under the search bar; the spot chip and the controls below start a little lower to make room.
   // Full width, so the chips slide edge to edge of the screen (the row's side margins are padding inside the scroller, not a clipping edge).
-  subFloat: { position: 'absolute', top: 146, left: 0, right: 0, zIndex: 4 },
+  subFloat: { position: 'absolute', top: 146, left: 0, right: 0, zIndex: 12, elevation: 12 },
   subChipTextMap: { color: '#0f2a3d' },
   subGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, paddingHorizontal: 14, paddingVertical: 4 },
   // One line that scrolls by touch: the chips never move on their own.

@@ -30,6 +30,7 @@ import { usePendingRepairs } from '../context/PendingRepairsContext';
 import { useChat } from '../context/ChatContext';
 import { jobRecordText } from '@ongarage/shared';
 import { TxnTag } from '../components/TxnTag';
+import { PartShopSheet, type PartOrder } from '../components/PartShopSheet';
 import { txnId } from '../utils/txn';
 import { BREAKDOWN_TYPES, breakdownInfo, getThemeMode } from '@ongarage/shared';
 import { VehiclePicker } from '../components/Header';
@@ -236,6 +237,7 @@ const SOS_TERM_GROUPS: { title: string; items: { key: string; text: string }[] }
 ];
 
 // The spare part a technician typically needs for each kind of breakdown (simulated request mid-repair).
+const PART_MINUTE_MS = 3000;
 const PART_FOR_BREAKDOWN: Record<string, string> = {
   mechanical: 'Spark plug set',
   battery: 'Car battery',
@@ -355,6 +357,13 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
   const { addRepair } = usePendingRepairs();
   // When the technician's OnMart order went through (for the order record).
   const [partOrderedAt, setPartOrderedAt] = useState(0);
+  // Buying the part without leaving the job: the shop sheet, and what was ordered from it.
+  const [shopSheet, setShopSheet] = useState(false);
+  const [partOrder, setPartOrder] = useState<PartOrder | null>(null);
+  // The owner asked shops (or the wall) for the part instead of ordering from one at once.
+  const [partAsked, setPartAsked] = useState(false);
+  // Minutes still to go for the ordered part. In this prototype one minute passes every PART_MINUTE_MS so the arrival can be watched.
+  const [partLeft, setPartLeft] = useState(0);
   const partBlocked = useRef(false);
   partBlocked.current = partState === 'requested' || partState === 'ownerBuying' || partState === 'techOrdering';
   const { notify } = useNotice();
@@ -594,6 +603,23 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [partState]);
 
+  // The ordered part counts down to its arrival; when it is there the job card says so.
+  useEffect(() => {
+    if (partState !== 'ordered' || !partOrder) return;
+    const tick = () => {
+      const left = Math.max(0, partOrder.etaMin - Math.floor((Date.now() - partOrderedAt) / PART_MINUTE_MS));
+      setPartLeft(left);
+      if (left === 0) {
+        setPartState('got');
+        notify({ icon: '📦', title: 'කොටස ලැබුණා', body: `${partName} කාර්මිකයා වෙත ලැබුණා.`, tone: 'success' });
+      }
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [partState, partOrder, partOrderedAt]);
+
   useEffect(() => {
     if (step !== 'repairing') return;
     setRepairP(0);
@@ -673,9 +699,9 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
 
   const partName = (breakdown && PART_FOR_BREAKDOWN[breakdown]) || DEFAULT_PART;
   const partPrice = partMarketPrice(partName, 'OEM');
-  const orderShop = martShop('ps1');
-  const partBill = { invoice: txnId('ORD', `part-${closeCode}`), shop: orderShop?.name ?? 'Galle Auto Parts', qty: 1, unit: partPrice, total: partPrice };
-  const partCharge = partState === 'ordered' ? partBill.total : 0;
+  const orderShop = martShop(partOrder?.shopId ?? 'ps1');
+  const partBill = { invoice: txnId('ORD', `part-${closeCode}`), shop: orderShop?.name ?? 'Galle Auto Parts', qty: 1, unit: partOrder ? partOrder.total : partPrice, total: partOrder ? partOrder.total : partPrice };
+  const partCharge = partState === 'ordered' || (partState === 'got' && !!partOrder) ? partBill.total : 0;
 
   const spin = spinAnim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
   const job = selected ?? workshops[0];
@@ -699,7 +725,9 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
   const cancelFee = cancelStage ? cancelFeeFor(cancelStage, surcharge) : 0;
   // The status line outside the flow: a decision (part, price, QR) brings the owner back to the job on its own.
   const sosStatusLabel =
-    baseStep === 'nearby'
+    baseStep === 'repairing' && partState === 'ordered' && partOrder
+      ? `කොටස එමින් සිටී · මිනි. ${partLeft}`
+      : baseStep === 'nearby'
       ? 'ගරාජයක් තෝරන්න'
       : baseStep === 'searching'
       ? 'ළඟම ගරාජ සොයමින්...'
@@ -1173,7 +1201,14 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
   const chooseOwnerBuys = () => {
     setPartPopup(false);
     setPartState('ownerBuying');
-    onOpenMart?.(partName);
+    setShopSheet(true);
+  };
+  const placePartOrder = (o: PartOrder) => {
+    setPartOrder(o);
+    setShopSheet(false);
+    setPartState('ordered');
+    setPartOrderedAt(Date.now());
+    notify({ icon: '🛍️', title: 'කොටස ඇණවුම් කළා', body: `${o.shopName} · ආපසු මිනිත්තු ${o.etaMin} කින්`, tone: 'success' });
   };
   const chooseTechnicianOrders = () => {
     setPartPopup(false);
@@ -1262,11 +1297,11 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
           <View style={styles.rowCenter}>
             <GlassIcon emoji="🛍️" />
             <View style={styles.flex1}>
-              <Text style={styles.cardTitle}>OnMart හි කොටස ගන්න</Text>
-              <Text style={styles.cardSub}>{partName} · තවම ඇණවුම් කර නැහැ.</Text>
+              <Text style={styles.cardTitle}>කොටස ඇණවුම් කරන්න</Text>
+              <Text style={styles.cardSub}>{partAsked ? `${partName} · ඉල්ලීම යැව්වා, පිළිතුරු බලාපොරොත්තුවෙන්` : `${partName} · තවම ඇණවුම් කර නැහැ.`}</Text>
             </View>
           </View>
-          <ActionButton label="OnMart වෙත යන්න" icon="🛍️" variant="primary" onPress={() => onOpenMart?.(partName)} />
+          <ActionButton label="වෙළඳසැල් බලන්න" icon="🛍️" variant="primary" onPress={() => setShopSheet(true)} />
           <Pressable style={styles.otherWayRow} onPress={() => setPartState('requested')} accessibilityLabel="Choose another way">
             <Text style={styles.linkText}>වෙනත් ක්‍රමයක්</Text>
           </Pressable>
@@ -1289,11 +1324,16 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
         <View style={styles.rowCenter}>
           <GlassIcon emoji="✅" />
           <View style={styles.flex1}>
-            <Text style={styles.cardTitle}>{partState === 'ordered' ? 'කොටස OnMart හරහා ඇණවුම් කළා' : 'කොටස ලැබුණා'}</Text>
-            <Text style={styles.cardSub}>{partState === 'ordered' ? 'කොටස ලැබුණු විට අලුත්වැඩියාව නැවත ආරම්භ වෙයි.' : 'අලුත්වැඩියාව නැවත ආරම්භ විය.'}</Text>
+            <Text style={styles.cardTitle}>{partState === 'ordered' ? (partOrder ? `කොටස එමින් සිටී · මිනි. ${partLeft}` : 'කොටස OnMart හරහා ඇණවුම් කළා') : 'කොටස ලැබුණා'}</Text>
+            <Text style={styles.cardSub}>{partState === 'ordered' ? (partOrder ? `${partOrder.mode === 'delivery' ? 'ගෙන එයි' : 'ඔබ ගෙන එන්න'} · මිනිත්තු ${partOrder.etaMin} ක් පමණ. ලැබුණු විට අලුත්වැඩියාව නැවත ආරම්භ වෙයි.` : 'කොටස ලැබුණු විට අලුත්වැඩියාව නැවත ආරම්භ වෙයි.') : 'අලුත්වැඩියාව නැවත ආරම්භ විය.'}</Text>
           </View>
         </View>
-        {partState === 'ordered' && (
+        {partState === 'ordered' && !!partOrder && (
+          <View style={styles.partTrack} accessibilityLabel={`Part arriving in ${partLeft} minutes`}>
+            <View style={[styles.partTrackFill, { width: `${Math.round((1 - partLeft / Math.max(1, partOrder.etaMin)) * 100)}%` }]} />
+          </View>
+        )}
+        {(partState === 'ordered' || (partState === 'got' && !!partOrder)) && (
           <>
             <View style={styles.divider} />
             <Text style={styles.label}>🧾 OnMart බිල්පත · {partBill.invoice}</Text>
@@ -1848,6 +1888,7 @@ export const SOSFlowScreen: React.FC<SOSFlowScreenProps> = ({
         </ModalCard>
       )}
 
+      <PartShopSheet visible={shopSheet} partName={partName} coords={location.coords} vehicle={vehicle} onAsked={() => setPartAsked(true)} onClose={() => setShopSheet(false)} onOrder={placePartOrder} onAsk={() => { setShopSheet(false); onOpenMart?.(partName); }} />
       <VehiclePicker
         visible={showVehiclePicker}
         activeVehicle={vehicleId}
@@ -2106,6 +2147,8 @@ const styles = themedStyles(() => StyleSheet.create({
   // The Sinhala minutes draw larger than the Latin km at the same size, so they get a smaller size to look the same.
   etaValueSinhala: { fontSize: 14, fontFamily: FONTS.titleBold, color: Colors.textMain },
   // The three part decisions share one size; only the recommended one is filled.
+  partTrack: { height: 6, borderRadius: 3, overflow: 'hidden', backgroundColor: 'rgba(30, 58, 138, 0.12)', marginTop: 4 },
+  partTrackFill: { height: 6, borderRadius: 3, backgroundColor: '#1e3a8a' },
   partOption: { width: '100%', minHeight: 58, paddingVertical: 10, paddingHorizontal: 16, borderRadius: 22, alignItems: 'center', justifyContent: 'center', gap: 2 },
   deferStack: { width: '100%', gap: 8 },
   acceptedRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 4 },
