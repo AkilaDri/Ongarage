@@ -342,7 +342,17 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
                 { id: 'ended' as const, label: 'අවලංගු', icon: 'x' as const },
               ]}
               value={tab}
-              onChange={setKind}
+              onChange={(k) => {
+                setKind(k);
+                // Opening a tab lands on the chip that has something in it (the one with the notification), not an empty one.
+                const counts = k === 'current' ? [ongoing.length, liveBookings.length, 0] : k === 'done' ? [doneJobs.length, doneBookings.length, sosRecords.length] : null;
+                if (!counts) return;
+                const ids = ['bids', 'direct', 'sos'] as const;
+                const cur = k === 'current' ? currentKind : doneKind;
+                if (counts[ids.indexOf(cur)] > 0) return;
+                const first = ids.find((_, i) => counts[i] > 0);
+                if (first) (k === 'current' ? setCurrentKind : setDoneKind)(first);
+              }}
             />
             <FilterChips
               plain
