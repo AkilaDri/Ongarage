@@ -37,10 +37,14 @@ export const Sheet: React.FC<{
   scrollToTopKey?: number;
   /** The space kept free at the top of the window (a page header the sheet must not cover): the sheet rises to this line and no higher. */
   topInset?: number;
+  /** A block that follows the hero and then stays pinned at the top of the pop-up while the rest scrolls under it (a name, its actions and the tabs). */
+  heroSticky?: React.ReactNode;
+  /** Scrolls the body to this offset each time `key` changes (a link inside the content that jumps to a part further down). */
+  scrollTarget?: { y: number; key: number };
   /** The colour behind the sheet instead of the usual dark dim (it fades in with the sheet and dissolves when it closes). */
   backdropColor?: string;
   children: React.ReactNode;
-}> = ({ visible, title, subtitle, onClose, footer, overlay, hero, compact, roomy, noDividers, fullScreen, bare, headerRight, titleIcon, scrollToTopKey, topInset, backdropColor, children }) => {
+}> = ({ visible, title, subtitle, onClose, footer, overlay, hero, compact, roomy, noDividers, fullScreen, bare, headerRight, titleIcon, scrollToTopKey, topInset, heroSticky, scrollTarget, backdropColor, children }) => {
   const { height: windowH } = useWindowDimensions();
   const bodyRef = useRef<ScrollView>(null);
   useEffect(() => {
@@ -53,6 +57,10 @@ export const Sheet: React.FC<{
   // Swipe down to dismiss: a downward drag that starts while the body is scrolled to its top pulls the sheet down; letting go far or fast enough closes it.
   const dragY = useRef(new Animated.Value(0)).current;
   const scrollY = useRef(0);
+  useEffect(() => {
+    if (scrollTarget?.key) bodyRef.current?.scrollTo({ y: Math.max(0, scrollTarget.y), animated: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scrollTarget?.key]);
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
   const pan = useRef(
@@ -130,8 +138,9 @@ export const Sheet: React.FC<{
           <ScrollView ref={bodyRef} style={[fullScreen ? styles.flex1 : null, webNoBounce]} scrollEventThrottle={16} onScroll={(e) => {
             scrollY.current = e.nativeEvent.contentOffset.y;
             if (hero) setFull(e.nativeEvent.contentOffset.y > 24);
-          }} keyboardShouldPersistTaps="handled" contentContainerStyle={hero ? styles.bodyHero : styles.body} showsVerticalScrollIndicator={false} stickyHeaderIndices={undefined}>
+          }} keyboardShouldPersistTaps="handled" contentContainerStyle={hero ? styles.bodyHero : styles.body} showsVerticalScrollIndicator={false} stickyHeaderIndices={hero && heroSticky ? [1] : undefined}>
             {hero}
+            {hero && heroSticky ? heroSticky : null}
             {hero ? <View style={[styles.heroBody, compact && styles.heroBodyCompact, compact && roomy && styles.heroBodyRoomy]}>{divided(children)}</View> : fullScreen ? children : divided(children)}
           </ScrollView>
           )}

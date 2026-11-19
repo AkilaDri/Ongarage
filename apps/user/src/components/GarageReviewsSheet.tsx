@@ -1,7 +1,8 @@
+import { useNotice } from '../context/NoticeContext';
 import { useSavedGarages } from '../context/SavedGaragesContext';
 import { EmptyState } from '@ongarage/shared';
 import { elevation1, outline } from '../utils/material';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Image, Linking, Pressable, ScrollView, StyleSheet, Share, Text, View, type ImageSourcePropType } from 'react-native';
 import { ActionButton, Colors, directionsUrl, FONTS, getThemeMode, GoogleMap, LevelBadge, LEVELS, RATING_DIMENSIONS, SERVICE_CATEGORIES, themedStyles, type Bid, type Garage } from '@ongarage/shared';
 import { MakeLogoStrip } from './MakeLogo';
@@ -56,6 +57,8 @@ export const GarageReviewsSheet: React.FC<{
   onAccept?: () => void;
   /** Where the pop-up's top edge stops, measured from the top of the screen (so it can stop just under a page title). */
   topInset?: number;
+  /** This bid is the lowest one: its accept button is the soft green of the Bids cards (otherwise the soft blue). */
+  lowestBid?: boolean;
   /** A colour for the backdrop behind the pop-up (instead of the dark dim). */
   backdropColor?: string;
   /** Removes this bid from the list (a quiet link under the accept button, not a mark on the card). */
@@ -67,7 +70,7 @@ export const GarageReviewsSheet: React.FC<{
   onReopen?: (garage: Garage) => void;
   /** Opened from a service category: the inquiry form starts on that service. */
   inquiryCategoryId?: string;
-}> = ({ garage, onClose, bid, onAccept, topInset, backdropColor, onDecline, onCall, onBook, onReopen, inquiryCategoryId }) => {
+}> = ({ garage, onClose, bid, onAccept, topInset, lowestBid, backdropColor, onDecline, onCall, onBook, onReopen, inquiryCategoryId }) => {
   const [shown, setShown] = useState(garage);
   useEffect(() => {
     if (garage) setShown(garage);
@@ -81,6 +84,16 @@ export const GarageReviewsSheet: React.FC<{
   const [coverW, setCoverW] = useState(0);
   const [slide, setSlide] = useState(0);
   const saves = useSavedGarages();
+  // Tapping the address in the details scrolls down to the small map; tapping that map opens the full one.
+  const { notify } = useNotice();
+  // Opens something outside the app (the phone's own mail or dialler); says so when the device cannot.
+  const openOutside = (url: string, fail: string) => {
+    Linking.openURL(url).catch(() => notify({ icon: '⚠️', title: fail, body: '', tone: 'danger' }));
+  };
+  const mapY = useRef(0);
+  // The hours row opens the Information tab and scrolls to its opening hours (once that tab has drawn them).
+  const wantHours = useRef(false);
+  const [scrollTarget, setScrollTarget] = useState({ y: 0, key: 0 });
   useEffect(() => {
     setTab('overview');
     setSlide(0);
@@ -197,6 +210,12 @@ export const GarageReviewsSheet: React.FC<{
           </View>
         )}
       </View>
+    </View>
+  );
+
+  // The name, the actions and the tabs stay pinned at the top once the photo has scrolled away; the rest scrolls under them.
+  const heroSticky = (
+    <View style={styles.stickyHero}>
       <View style={styles.place}>
         <View style={styles.placeTop}>
           <View style={[styles.placeLogo, { backgroundColor: avatarColor(g.id) }]}>
@@ -245,6 +264,25 @@ export const GarageReviewsSheet: React.FC<{
           ))}
         </ScrollView>
       </View>
+      <View style={styles.tabs}>
+        {(
+          [
+            { id: 'overview', label: 'දළ විස්තරය' },
+            { id: 'info', label: 'තොරතුරු' },
+            { id: 'media', label: 'මාධ්‍ය' },
+            { id: 'reviews', label: 'සමාලෝචන' },
+          ] as { id: typeof tab; label: string }[]
+        ).map((t) => {
+          const on = tab === t.id;
+          return (
+            <Pressable key={t.id} style={[styles.tabBtn, on && styles.tabBtnOn]} onPress={() => setTab(t.id)} accessibilityLabel={`Profile ${t.id}`}>
+              <Text style={[styles.tabText, on && styles.tabTextOn]} numberOfLines={1}>
+                {t.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
     </View>
   );
 
@@ -255,6 +293,8 @@ export const GarageReviewsSheet: React.FC<{
       subtitle={`★ ${g.rating.toFixed(1)} · සමාලෝචන ${g.reviews}`}
       onClose={onClose}
       hero={hero}
+      heroSticky={heroSticky}
+      scrollTarget={scrollTarget}
       topInset={topInset}
       backdropColor={backdropColor}
       compact
@@ -263,7 +303,10 @@ export const GarageReviewsSheet: React.FC<{
       footer={
         bid && onAccept ? (
           <View>
-            <ActionButton label={`ලංසුව පිළිගන්න · ${money(bid.price)}`} icon="✓" variant="success" onPress={onAccept} />
+            {/* The same accept button as on the Bids cards: a soft fill with the thin yellow edge. */}
+            <Pressable style={[styles.acceptBtn, lowestBid && styles.acceptBtnLowest]} onPress={onAccept} accessibilityRole="button" accessibilityLabel="Accept this bid">
+              <Text style={[styles.acceptBtnText, lowestBid && styles.acceptBtnTextLowest]}>✓ පිළිගන්න · {money(bid.price)}</Text>
+            </Pressable>
             {!!onDecline && (
               <Pressable style={{ alignSelf: 'center', minHeight: 44, justifyContent: 'center', paddingHorizontal: 16 }} onPress={onDecline} hitSlop={6} accessibilityRole="button" accessibilityLabel="Remove this bid">
                 <Text style={{ fontSize: 13.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted }}>ලංසුව ඉවත් කරන්න</Text>
@@ -311,47 +354,37 @@ export const GarageReviewsSheet: React.FC<{
           </View>
         </View>
       )}
-      <View style={styles.tabs}>
-        {(
-          [
-            { id: 'overview', label: 'දළ විස්තරය' },
-            { id: 'info', label: 'තොරතුරු' },
-            { id: 'media', label: 'මාධ්‍ය' },
-            { id: 'reviews', label: 'සමාලෝචන' },
-          ] as { id: typeof tab; label: string }[]
-        ).map((t) => {
-          const on = tab === t.id;
-          return (
-            <Pressable key={t.id} style={[styles.tabBtn, on && styles.tabBtnOn]} onPress={() => setTab(t.id)} accessibilityLabel={`Profile ${t.id}`}>
-              <Text style={[styles.tabText, on && styles.tabTextOn]} numberOfLines={1}>
-                {t.label}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
       {tab === 'overview' && (
         <>
       <View style={styles.gmList}>
-          <Pressable style={styles.gmRow} onPress={() => Linking.openURL(directionsUrl(g.coords, user.coords))} accessibilityLabel="Address">
+          {/* ⌄ = a jump further down this page; › = more detail in another tab; the outlined verb = leaves the app (the phone's own mail app). */}
+          <Pressable style={styles.gmRow} onPress={() => setScrollTarget((t) => ({ y: 250 + 4 + mapY.current - 12, key: t.key + 1 }))} accessibilityLabel="Address: show on the map below">
             <Text style={styles.gmIcon}>📍</Text>
             <View style={styles.flex1}><Text style={styles.gmText}>{g.address || g.name}</Text></View>
-            <Text style={styles.gmChevron}>›</Text>
+            <Text style={styles.gmChevron}>⌄</Text>
           </Pressable>
-          <Pressable style={styles.gmRow} onPress={() => setTab('info')} accessibilityLabel="Hours">
+          <Pressable style={styles.gmRow} onPress={() => { wantHours.current = true; setTab('info'); }} accessibilityLabel="Hours: see all opening hours">
             <Text style={styles.gmIcon}>🕗</Text>
-            <View style={styles.flex1}><Text style={styles.gmText}>{todayHours ? <Text><Text style={open ? styles.placeOpen : styles.placeClosed}>අද · </Text>{todayHours}</Text> : 'අද වසා ඇත'}</Text></View>
+            <View style={styles.flex1}>
+              <Text style={styles.gmText}>
+                {todayHours ? (
+                  <>
+                    <Text style={open ? styles.placeOpen : styles.placeClosed}>{open ? 'දැන් විවෘතයි' : 'දැන් වසා ඇත'}</Text>
+                    {open && closesAt ? ` · ${closesAt} දක්වා` : ` · අද ${todayHours}`}
+                  </>
+                ) : (
+                  'අද වසා ඇත'
+                )}
+              </Text>
+            </View>
             <Text style={styles.gmChevron}>›</Text>
           </Pressable>
-          <Pressable style={styles.gmRow} onPress={() => (g.phone ? Linking.openURL(`tel:${g.phone.replace(/\s/g, '')}`) : undefined)} accessibilityLabel="Phone">
-            <Text style={styles.gmIcon}>📞</Text>
-            <View style={styles.flex1}><Text style={styles.gmText}>{g.phone || content.contact.hotline}</Text></View>
-            <Text style={styles.gmChevron}>›</Text>
-          </Pressable>
-          <Pressable style={styles.gmRow} onPress={() => Linking.openURL(`mailto:${content.contact.email}`)} accessibilityLabel="Email">
+          <Pressable style={styles.gmRow} onPress={() => openOutside(`mailto:${content.contact.email}`, 'ඊමේල් යෙදුමක් විවෘත කළ නොහැක')} accessibilityLabel="Write an email">
             <Text style={styles.gmIcon}>✉️</Text>
-            <View style={styles.flex1}><Text style={styles.gmText}>{content.contact.email}</Text></View>
-            <Text style={styles.gmChevron}>›</Text>
+            <View style={styles.flex1}><Text style={styles.gmText} numberOfLines={1}>{content.contact.email}</Text></View>
+            <View style={styles.gmPill}>
+              <Text style={styles.gmPillText}>ලියන්න</Text>
+            </View>
           </Pressable>
       </View>
       <Text style={styles.sectionTitle}>🎁 දැනට ඇති දීමනා</Text>
@@ -451,7 +484,7 @@ export const GarageReviewsSheet: React.FC<{
       )}
 
       <Text style={styles.sectionTitle}>📍 ගරාජය ඇති ස්ථානය</Text>
-      <View style={styles.mapCard}>
+      <View style={styles.mapCard} onLayout={(e) => { mapY.current = e.nativeEvent.layout.y; }}>
         <View style={styles.mapBox}>
           <GoogleMap
             style={StyleSheet.absoluteFill}
@@ -466,6 +499,8 @@ export const GarageReviewsSheet: React.FC<{
               ) : null;
             }}
           />
+          {/* A touch on the small map opens the real map with the way there. */}
+          <Pressable style={StyleSheet.absoluteFill} onPress={() => Linking.openURL(directionsUrl(g.coords, user.coords))} accessibilityRole="button" accessibilityLabel="Open the map" />
         </View>
         <View style={styles.mapFooter}>
           <View style={styles.flex1}>
@@ -519,7 +554,16 @@ export const GarageReviewsSheet: React.FC<{
             </View>
           </View>
 
-          <Text style={styles.sectionTitle}>🕗 සේවා කාලය</Text>
+          <Text
+            style={styles.sectionTitle}
+            onLayout={(e) => {
+              if (!wantHours.current) return;
+              wantHours.current = false;
+              setScrollTarget((t) => ({ y: 250 + 4 + e.nativeEvent.layout.y - 12, key: t.key + 1 }));
+            }}
+          >
+            🕗 සේවා කාලය
+          </Text>
           <View style={styles.box}>
             {(() => {
               const todayIdx = (new Date().getDay() + 6) % 7;
@@ -823,6 +867,12 @@ const styles = themedStyles(() =>
     bidHeroChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
     bidHeroChip: { paddingHorizontal: 11, height: 28, borderRadius: 8, justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.7)' },
     bidHeroChipText: { fontSize: 11.5, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#bfdbfe' : '#1e3f86' },
+    // A soft shadow under the pinned part, so its lower edge is seen against the content that scrolls beneath it.
+    acceptBtn: { height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center', backgroundColor: '#dbeafe', borderWidth: 1.5, borderColor: '#facc15' },
+    acceptBtnLowest: { backgroundColor: '#bbf7d0' },
+    acceptBtnText: { fontSize: 15, fontFamily: FONTS.bodySemiBold, color: '#1e3a8a' },
+    acceptBtnTextLowest: { color: '#15803d' },
+    stickyHero: { backgroundColor: Colors.sheetBg, borderBottomWidth: 1, borderBottomColor: Colors.subtleBorder, shadowColor: '#0f172a', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.16, shadowRadius: 10, elevation: 6, zIndex: 2 },
     place: { paddingHorizontal: 12, paddingTop: 16, paddingBottom: 4, gap: 6 },
     placeTop: { flexDirection: 'row', alignItems: 'center', gap: 16},
     placeLogo: { width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center' },
@@ -846,6 +896,8 @@ const styles = themedStyles(() =>
     gmList: { marginHorizontal: 4 },
     gmRow: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44, paddingVertical: 6, paddingHorizontal: 4 },
     gmIcon: { width: 26, fontSize: 18, textAlign: 'center' },
+    gmPill: { minHeight: 36, paddingHorizontal: 14, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: '#e8edf8', borderWidth: 1.5, borderColor: '#facc15' },
+    gmPillText: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: '#1e3a8a' },
     gmChevron: { fontSize: 20, color: Colors.textMuted, paddingRight: 4 },
     gmText: { fontSize: 14, fontFamily: FONTS.bodyRegular, color: Colors.textMain, lineHeight: 18 },
     infoLine: { flexDirection: 'row', alignItems: 'center', gap: 10 },

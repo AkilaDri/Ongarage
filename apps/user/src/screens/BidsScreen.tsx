@@ -981,6 +981,7 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
       <GarageReviewsSheet
         garage={bidView ? garageForBid(bidView.bid) : null}
         bid={bidView?.bid}
+        lowestBid={!!bidView && bidView.bid.id === lowestBidId(bidView.job.bids)}
         // The pop-up rises over the tab bar but stops under the "Your Bids" title (the tabs start where the title row ends).
         topInset={insets.top + 46 + (titleH || 56) - 2}
         onClose={() => setBidView(null)}
