@@ -1,7 +1,7 @@
 import { FlyLayer } from './components/FlyLayer';
 import { pageBg } from './utils/material';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Animated, Easing, PanResponder, Platform, View, StyleSheet, Modal, Text, Pressable } from 'react-native';
+import { Animated, Easing, PanResponder, Platform, View, StyleSheet, Modal, Text, Pressable, useWindowDimensions } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
@@ -168,7 +168,10 @@ export default function App() {
 
 // Reading the theme here re-renders the whole tree on a switch, so every screen
 // picks up the new palette without remounting (and without losing its state).
+const TAGLINE = "Sri Lanka's Largest Online Garage";
+
 function AppShell() {
+  const { width: winW } = useWindowDimensions();
   const { isDark } = useTheme();
   const fade = useRef(new Animated.Value(0)).current;
   const [fadeColor, setFadeColor] = useState(Colors.bgBody);
@@ -261,16 +264,16 @@ function AppShell() {
     switching.current = true;
     const native = Platform.OS !== 'web';
     Animated.parallel([
-      Animated.timing(veil, { toValue: 1, duration: 200, easing: Easing.out(Easing.quad), useNativeDriver: native }),
-      Animated.timing(logoGrow, { toValue: 1, duration: 360, easing: Easing.out(Easing.back(1.4)), useNativeDriver: native }),
+      Animated.timing(veil, { toValue: 1, duration: 140, easing: Easing.out(Easing.quad), useNativeDriver: native }),
+      Animated.timing(logoGrow, { toValue: 1, duration: 230, easing: Easing.out(Easing.back(1.4)), useNativeDriver: native }),
     ]).start(() => {
       setActiveTab(next);
       setTimeout(() => {
-        Animated.timing(veil, { toValue: 0, duration: 280, easing: Easing.in(Easing.quad), useNativeDriver: native }).start(() => {
+        Animated.timing(veil, { toValue: 0, duration: 200, easing: Easing.in(Easing.quad), useNativeDriver: native }).start(() => {
           logoGrow.setValue(0);
           switching.current = false;
         });
-      }, 120);
+      }, 40);
     });
   };
   useEffect(() => {
@@ -784,9 +787,15 @@ function AppShell() {
       />
       <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: fadeColor, opacity: fade }]} />
       <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.brandVeil, { opacity: veil }]}>
-        <Animated.View style={{ opacity: logoGrow.interpolate({ inputRange: [0, 0.4, 1], outputRange: [0, 1, 1] }), transform: [{ scale: logoGrow.interpolate({ inputRange: [0, 1], outputRange: [0.55, 1] }) }] }}>
+        <Animated.View style={{ alignItems: 'center', opacity: logoGrow.interpolate({ inputRange: [0, 0.4, 1], outputRange: [0, 1, 1] }), transform: [{ scale: logoGrow.interpolate({ inputRange: [0, 1], outputRange: [0.55, 1] }) }] }}>
           <OnGarageLogo width={190} height={62} />
-          <Text style={styles.tagline}>Sri Lanka's Largest Online Garage</Text>
+          {/* The line under the logo stays on one line on every screen: its size follows the width (about 0.6 of its size per letter). */}
+          <Text style={[styles.tagline, { fontSize: Math.min(20, Math.max(12, Math.floor((winW - 44) / (TAGLINE.length * 0.62)))) }]} numberOfLines={1}>{TAGLINE}</Text>
+          <View style={styles.taglineRule}>
+            <View style={styles.taglineLine} />
+            <Text style={styles.taglineDiamond}>◆</Text>
+            <View style={styles.taglineLine} />
+          </View>
         </Animated.View>
       </Animated.View>
     </SafeAreaProvider>
@@ -829,7 +838,10 @@ const styles = themedStyles(() => StyleSheet.create({
   // The tab's screen overlaps the header band with rounded top corners.
   sheet: { flex: 1, backgroundColor: pageBg() },
   // The line under the logo while tabs change.
-  tagline: { marginTop: 10, fontSize: 13, letterSpacing: 0.3, color: 'rgba(255,255,255,0.85)', textAlign: 'center', fontFamily: FONTS.bodySemiBold },
+  tagline: { marginTop: 14, letterSpacing: 0.6, color: '#facc15', textAlign: 'center', fontFamily: FONTS.titleBold },
+  taglineRule: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 10 },
+  taglineLine: { width: 34, height: 1.5, borderRadius: 1, backgroundColor: 'rgba(250, 204, 21, 0.6)' },
+  taglineDiamond: { fontSize: 9, color: '#facc15' },
   brandVeil: { zIndex: 400, elevation: 400, alignItems: 'center', justifyContent: 'center', backgroundColor: '#1e3a8a' },
   sosLayer: { zIndex: 50, backgroundColor: Colors.bgBody },
   sosLayerHidden: { display: 'none' },
