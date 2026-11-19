@@ -786,6 +786,7 @@ function AppShell() {
       <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.brandVeil, { opacity: veil }]}>
         <Animated.View style={{ opacity: logoGrow.interpolate({ inputRange: [0, 0.4, 1], outputRange: [0, 1, 1] }), transform: [{ scale: logoGrow.interpolate({ inputRange: [0, 1], outputRange: [0.55, 1] }) }] }}>
           <OnGarageLogo width={190} height={62} />
+          <Text style={styles.tagline}>Sri Lanka's Largest Online Garage</Text>
         </Animated.View>
       </Animated.View>
     </SafeAreaProvider>
@@ -827,6 +828,8 @@ const styles = themedStyles(() => StyleSheet.create({
   floatChat: { position: 'absolute', top: 10, right: 14, zIndex: 50, height: 44, backgroundColor: 'transparent' },
   // The tab's screen overlaps the header band with rounded top corners.
   sheet: { flex: 1, backgroundColor: pageBg() },
+  // The line under the logo while tabs change.
+  tagline: { marginTop: 10, fontSize: 13, letterSpacing: 0.3, color: 'rgba(255,255,255,0.85)', textAlign: 'center', fontFamily: FONTS.bodySemiBold },
   brandVeil: { zIndex: 400, elevation: 400, alignItems: 'center', justifyContent: 'center', backgroundColor: '#1e3a8a' },
   sosLayer: { zIndex: 50, backgroundColor: Colors.bgBody },
   sosLayerHidden: { display: 'none' },
