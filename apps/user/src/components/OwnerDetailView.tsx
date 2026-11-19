@@ -198,7 +198,7 @@ export const OwnerDetailView: React.FC<{
         <View style={styles.timing}>
           <Cell label={b.scheduledAt ? 'වෙන් කළ වේලාව' : b.proposal ? 'යෝජිත වේලාව' : 'ඉල්ලූ වේලාව'} value={`${formatDate(when)} · ${formatTime(when)}`} />
           <View style={styles.divider} />
-          <Cell label="ඇස්තමේන්තුව" value={b.estimate || b.proposal ? money((b.estimate ?? b.proposal?.estimate)!) : '—'} color={Colors.primary} />
+          <Cell label="ඇස්තමේන්තුව" value={b.estimate || b.proposal ? money((b.estimate ?? b.proposal?.estimate)! - (b.discount ?? 0)) : '—'} color={Colors.primary} />
           <View style={styles.divider} />
           <Cell label="තත්ත්වය" value={b.status === 'requested' ? countdown(b.respondBy - now) : st.label} color={st.color()} />
         </View>

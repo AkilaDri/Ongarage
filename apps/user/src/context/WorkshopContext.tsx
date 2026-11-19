@@ -132,6 +132,8 @@ export type OwnerWorkshop = {
   review?: GarageReview;
   /** Parts the garage asked the owner to buy (OnMart), by line id, once a shop verified the purchase. */
   partsBought?: Record<string, { shopName: string; amount: number; at: number }>;
+  /** The offer the job was booked with and what it took off the garage's estimate (agreedPrice is already the lower price). */
+  offer?: { title: string; icon: string; amount: number };
 };
 
 export type WorkshopStart = Omit<OwnerWorkshop, 'progress' | 'warrantyMonths' | 'acknowledged' | 'receiptConfirmed' | 'receiptNo' | 'review' | 'technician'> & {

@@ -8,11 +8,12 @@ import { ActionButton, Colors, directionsUrl, FONTS, getThemeMode, GoogleMap, Le
 import { MakeLogoStrip } from './MakeLogo';
 import { MOCK_GARAGES } from '../constants/mockData';
 import { GARAGE_COVERS, GARAGE_INFO } from '../constants/home';
-import { garageProfileContent } from '../constants/garageProfile';
+import { garageProfileContent, type GarageOffer } from '../constants/garageProfile';
 import { useUserLocation } from '../context/LocationContext';
 import { useChat } from '../context/ChatContext';
 import { ago, money } from '../utils/format';
 import { Sheet } from './Sheet';
+import { useUsedGarages } from './GarageHistory';
 import { RatingSummary, ReviewCard, ReviewsSection } from './ReviewCard';
 import { BookedTag } from './BookedTag';
 
@@ -49,6 +50,8 @@ const initialsOf = (name: string) =>
 /** A review card in the overview's sideways rail (like the place cards on a map): about 80% of the screen so the next one peeks in. */
 const REVIEW_CARD_W = 290;
 
+const offerEnds = (days: number) => (days <= 1 ? 'අද දක්වා' : `තව දින ${days}ක් ඉතිරියි`);
+
 export const GarageReviewsSheet: React.FC<{
   garage: Garage | null;
   onClose: () => void;
@@ -65,7 +68,8 @@ export const GarageReviewsSheet: React.FC<{
   onDecline?: () => void;
   /** Opened from Home: call or book this garage. */
   onCall?: () => void;
-  onBook?: () => void;
+  /** The offer the owner chose in its detail sheet comes with the booking. */
+  onBook?: (offer?: GarageOffer) => void;
   /** Brings this profile back when a form opened from it (the inquiry) is cancelled. */
   onReopen?: (garage: Garage) => void;
   /** Opened from a service category: the inquiry form starts on that service. */
@@ -80,6 +84,8 @@ export const GarageReviewsSheet: React.FC<{
   // The profile is split into four tabs so it reads one topic at a time instead of as one long scroll.
   const [tab, setTab] = useState<'overview' | 'info' | 'media' | 'reviews'>('overview');
   const [allStaff, setAllStaff] = useState(false);
+  const [offerOpen, setOfferOpen] = useState<GarageOffer | null>(null);
+  const usedGarage = useUsedGarages();
   // The cover is a row of the garage's photos and videos that scrolls sideways, one at a time.
   const [coverW, setCoverW] = useState(0);
   const [slide, setSlide] = useState(0);
@@ -120,6 +126,8 @@ export const GarageReviewsSheet: React.FC<{
   const level = g.level ? LEVELS.find((l) => l.id === g.level) : undefined;
   const info = GARAGE_INFO[g.id];
   const content = garageProfileContent(g);
+  // The offer worth most to the owner: the biggest percent off, else the first one.
+  const bestOfferId = [...content.offers].sort((a, b) => (b.percent ?? 0) - (a.percent ?? 0))[0]?.id;
   const totalJobs = content.services.reduce((n, sv) => n + sv.jobs, 0);
   // Opened from a service category (the garages list): the services shown are that category's own sub-services (Tyres: wheel alignment, balancing, tyre
   // replacement ...), with the category's picture; opened from anywhere else, the garage's own mix of services.
@@ -287,6 +295,7 @@ export const GarageReviewsSheet: React.FC<{
   );
 
   return (
+    <>
     <Sheet
       visible={!!garage}
       title={g.name}
@@ -387,20 +396,26 @@ export const GarageReviewsSheet: React.FC<{
             </View>
           </Pressable>
       </View>
-      <Text style={styles.sectionTitle}>🎁 දැනට ඇති දීමනා</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.hRow}>
+      {content.offers.length > 0 && <Text style={styles.sectionTitle}>🎁 දැනට ඇති දීමනා</Text>}
+      {content.offers.length > 0 && <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.hRow}>
         {content.offers.map((o) => (
-          <View key={o.id} style={styles.offerCard}>
+          <Pressable key={o.id} style={styles.offerCard} onPress={() => setOfferOpen(o)} accessibilityRole="button" accessibilityLabel={`Offer ${o.title}`}>
             <Text style={styles.offerCardIcon}>{o.icon}</Text>
             <Text style={styles.offerCardTitle} numberOfLines={2}>
               {o.title}
             </Text>
             <Text style={styles.offerCardDetail} numberOfLines={2}>
-              {o.detail}
+              {o.daysLeft !== null ? offerEnds(o.daysLeft) : o.detail}
             </Text>
-          </View>
+            <Text style={styles.offerCardMore}>විස්තර ›</Text>
+            {content.offers.length > 1 && o.id === bestOfferId && (
+              <View style={styles.offerBest}>
+                <Text style={styles.offerBestText}>හොඳම</Text>
+              </View>
+            )}
+          </Pressable>
         ))}
-      </ScrollView>
+      </ScrollView>}
 
       <View style={styles.sectionHead}>
         <Text style={styles.sectionTitleBare}>🛠️ ලබාදෙන සේවා{focusCat ? ` · ${focusCat.name}` : ''}</Text>
@@ -727,6 +742,38 @@ export const GarageReviewsSheet: React.FC<{
         </>
       )}
     </Sheet>
+    <Sheet
+      visible={!!offerOpen}
+      title="දීමනාව"
+      onClose={() => setOfferOpen(null)}
+      compact
+      noDividers
+      footer={
+        offerOpen && onBook && !(offerOpen.firstVisitOnly && usedGarage(g)) ? (
+          <ActionButton label="මෙම දීමනාව සමඟ වෙන් කරන්න" icon="📅" variant="primary" onPress={() => { const o = offerOpen; setOfferOpen(null); onBook(o); }} />
+        ) : undefined
+      }
+    >
+      {offerOpen && (
+        <View style={styles.offerSheet}>
+          <View style={[styles.offerSheetHead, { backgroundColor: offerOpen.tone }]}>
+            <Text style={styles.offerCardIcon}>{offerOpen.icon}</Text>
+            <Text style={styles.offerSheetTitle}>{offerOpen.title}</Text>
+            <Text style={styles.offerCardDetail}>{offerOpen.daysLeft !== null ? offerEnds(offerOpen.daysLeft) : 'අවසන් දිනයක් නැත'}</Text>
+          </View>
+          <Text style={styles.offerSheetLabel}>කොන්දේසි</Text>
+          {offerOpen.terms.map((t) => (
+            <View key={t} style={styles.offerSheetRow}>
+              <Text style={styles.offerSheetTick}>✓</Text>
+              <Text style={styles.offerSheetTerm}>{t}</Text>
+            </View>
+          ))}
+          {offerOpen.firstVisitOnly && usedGarage(g) && <Text style={styles.offerSheetNote}>ඔබ මෙම ගරාජයෙන් දැනටමත් සේවාවක් ලබා ඇති නිසා මෙම දීමනාව ඔබට අදාළ නොවේ.</Text>}
+          {!onBook && <Text style={styles.offerSheetNote}>මෙම දීමනාව ලබාගැනීමට ගරාජය වෙන් කිරීමේදී එය තෝරන්න.</Text>}
+        </View>
+      )}
+    </Sheet>
+    </>
   );
 };
 
@@ -741,9 +788,20 @@ const styles = themedStyles(() =>
     // The profile's sections breathe: 22px above every section heading and 4px more under it, and the cards / chips of a row sit 10px apart.
     sectionTitle: { fontSize: 15, fontFamily: FONTS.bodyBold, color: Colors.primary, letterSpacing: 0.2, marginTop: 24, marginBottom: 10 },
     hRow: { gap: 10, paddingRight: 10 },
+    offerBest: { position: 'absolute', top: 8, right: 8, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, backgroundColor: '#facc15' },
+    offerBestText: { fontSize: 11, fontFamily: FONTS.bodyBold, color: '#1e3a8a' },
+    offerSheet: { gap: 10 },
+    offerSheetHead: { padding: 16, borderRadius: 18, gap: 6 },
+    offerSheetTitle: { fontSize: 18, lineHeight: 26, fontFamily: FONTS.titleBold, color: '#ffffff' },
+    offerSheetLabel: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, marginTop: 6 },
+    offerSheetRow: { flexDirection: 'row', gap: 10, alignItems: 'flex-start' },
+    offerSheetTick: { fontSize: 15, lineHeight: 22, fontFamily: FONTS.bodyBold, color: '#10b981' },
+    offerSheetTerm: { flex: 1, fontSize: 14.5, lineHeight: 22, fontFamily: FONTS.bodyRegular, color: Colors.textMain },
+    offerSheetNote: { fontSize: 13, lineHeight: 19, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 4 },
     offerCard: { width: 168, minHeight: 116, padding: 12, borderRadius: 14, gap: 4, backgroundColor: '#1e3a8a' },
     offerCardIcon: { fontSize: 22 },
     offerCardTitle: { fontSize: 14, fontFamily: FONTS.titleBold, color: '#ffffff', lineHeight: 17 },
+    offerCardMore: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: '#ffffff', marginTop: 'auto' },
     offerCardDetail: { fontSize: 12, lineHeight: 17, fontFamily: FONTS.bodyMedium, color: 'rgba(255,255,255,0.9)' },
     sectionHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 24, marginBottom: 10 },
     reviewRail: { gap: 10, paddingRight: 16 },

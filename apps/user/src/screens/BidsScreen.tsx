@@ -1,4 +1,5 @@
 import { GarageHistoryTag, useUsedGarages } from '../components/GarageHistory';
+import { garageProfileContent } from '../constants/garageProfile';
 import { Gradient, LkPlate, PhotoStrip, VoiceNotePlayer, bidWork, marketPrice, MoneyText, MoneyIcon } from '@ongarage/shared';
 import { cardGlow, elevation1, outline, pageBg } from '../utils/material';
 import React, { useEffect, useRef, useState } from 'react';
@@ -439,7 +440,7 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
           </View>
         </View>
         <Text style={styles.fbSubLine} numberOfLines={1}>
-          {ago(now - bid.submittedAt)} · {SERVICE_CATEGORIES.find((c) => c.id === job.categoryId)?.name ?? 'Service'}{isLowest && !job.acceptedBidId ? ' · 💰 අඩුම ලංසුව' : ''}
+          {ago(now - bid.submittedAt)} · {SERVICE_CATEGORIES.find((c) => c.id === job.categoryId)?.name ?? 'Service'}{isLowest && !job.acceptedBidId ? ' · 💰 අඩුම ලංසුව' : ''}{garageProfileContent(garage).offers.length ? ' · 🎁 දීමනා' : ''}
         </Text>
         <Pressable style={styles.fbContent} onPress={() => setBidView({ job, bid })} accessibilityLabel={`${bid.garageName} bid details`}>
           <View style={styles.sumBox} accessibilityLabel="Price with the travel fee">

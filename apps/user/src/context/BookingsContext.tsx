@@ -1,10 +1,23 @@
 import { flyTo } from '../utils/fly';
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { categoryInfo, marketPrice } from '@ongarage/shared';
+import { categoryInfo, DEFAULT_WARRANTY_MONTHS, marketPrice } from '@ongarage/shared';
 import { useNotice } from './NoticeContext';
 import { SEED_WORKSHOP_ID, useWorkshops } from './WorkshopContext';
 import { SPEED_WORKS } from '../constants/mockData';
 import type { DirectBooking, DirectBookingInput } from '../types';
+
+/** What a booking's offer takes off the garage's estimate, and the work's start details with it applied. */
+const withOffer = (b: DirectBooking, gross: number) => {
+  const discount = b.offer?.percent ? Math.round((gross * b.offer.percent) / 100) : 0;
+  return {
+    discount,
+    start: {
+      agreedPrice: gross - discount,
+      warrantyMonths: DEFAULT_WARRANTY_MONTHS + (b.offer?.warrantyMonths ?? 0),
+      offer: b.offer && (discount || b.offer.warrantyMonths) ? { title: b.offer.title, icon: b.offer.icon, amount: discount } : undefined,
+    },
+  };
+};
 
 const MIN = 60 * 1000;
 const HOUR = 60 * MIN;
@@ -82,8 +95,9 @@ export const BookingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           const estimate = marketPrice(b.categoryId);
           const hour = new Date(b.preferredAt).getHours();
           if (hour >= OPEN_HOUR && hour < CLOSE_HOUR) {
-            patch(b.id, { status: 'confirmed', scheduledAt: b.preferredAt, estimate, garageNote: b.doorstep ? undefined : 'පැමිණීමට පෙර අමතන්න.' });
-            startWorkshop({ id: b.id, garageId: b.garage.id, garageName: b.garage.name, categoryId: b.categoryId, agreedPrice: estimate, scheduledAt: b.preferredAt, doorstep: b.doorstep, vehicleId: b.vehicleId, subService: b.service, protectedJob: b.garage.level === 'premier' });
+            const priced = withOffer(b, estimate);
+            patch(b.id, { status: 'confirmed', scheduledAt: b.preferredAt, estimate, discount: priced.discount || undefined, garageNote: b.doorstep ? undefined : 'පැමිණීමට පෙර අමතන්න.' });
+            startWorkshop({ id: b.id, garageId: b.garage.id, garageName: b.garage.name, categoryId: b.categoryId, ...priced.start, scheduledAt: b.preferredAt, doorstep: b.doorstep, vehicleId: b.vehicleId, subService: b.service, protectedJob: b.garage.level === 'premier' });
             notify({
               icon: '✅',
               title: `${b.garage.name} වෙන්කිරීම තහවුරු කළා`,
@@ -106,8 +120,9 @@ export const BookingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     (id: string) => {
       const b = live.current.find((x) => x.id === id);
       if (!b?.proposal) return;
-      patch(id, { status: 'confirmed', scheduledAt: b.proposal.at, estimate: b.proposal.estimate });
-      startWorkshop({ id, garageId: b.garage.id, garageName: b.garage.name, categoryId: b.categoryId, agreedPrice: b.proposal.estimate, scheduledAt: b.proposal.at, doorstep: b.doorstep, vehicleId: b.vehicleId, subService: b.service, protectedJob: b.garage.level === 'premier' });
+      const priced = withOffer(b, b.proposal.estimate);
+      patch(id, { status: 'confirmed', scheduledAt: b.proposal.at, estimate: b.proposal.estimate, discount: priced.discount || undefined });
+      startWorkshop({ id, garageId: b.garage.id, garageName: b.garage.name, categoryId: b.categoryId, ...priced.start, scheduledAt: b.proposal.at, doorstep: b.doorstep, vehicleId: b.vehicleId, subService: b.service, protectedJob: b.garage.level === 'premier' });
       notify({ icon: '✅', title: 'වෙන්කිරීම තහවුරුයි', body: `${b.garage.name} · ${categoryInfo(b.categoryId).name}`, tone: 'success' });
     },
     [notify, patch, startWorkshop]

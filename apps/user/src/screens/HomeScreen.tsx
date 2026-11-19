@@ -27,6 +27,7 @@ import { GarageListSheet } from '../components/home/GarageListSheet';
 import { useUserLocation } from '../context/LocationContext';
 import { useNotice } from '../context/NoticeContext';
 import { GarageReviewsSheet } from '../components/GarageReviewsSheet';
+import type { GarageOffer } from '../constants/garageProfile';
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -36,7 +37,7 @@ interface HomeScreenProps {
   onPostJob: () => void;
   /** `sub`: a suggested job (an oil change, a wheel alignment ...) already picked in that category. */
   onServicePress: (service: ServiceCategory, sub?: string) => void;
-  onBookGarage: (garage: Garage, back?: () => void) => void;
+  onBookGarage: (garage: Garage, back?: () => void, offer?: GarageOffer) => void;
   onScrollChange?: (scrollY: number) => void;
   /** How far the page scrolls while the banners above fold and the sheet rises (the page holds its content back by this much, so all of it moves with the finger). */
   collapsePx?: number;
@@ -232,10 +233,10 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onSOSPress, onPostJob, o
         onCall={open ? () => Linking.openURL(`tel:${open.phone.replace(/\s/g, '')}`) : undefined}
         onBook={
           open
-            ? () => {
+            ? (offer) => {
                 const g = open;
                 setOpen(null);
-                onBookGarage(g, () => setOpen(g));
+                onBookGarage(g, () => setOpen(g), offer);
               }
             : undefined
         }

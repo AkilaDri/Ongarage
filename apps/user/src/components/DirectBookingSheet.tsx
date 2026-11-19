@@ -24,6 +24,7 @@ import {
   type VoiceNote,
 } from '@ongarage/shared';
 import { Sheet } from './Sheet';
+import type { AppliedOffer } from '../types';
 import { CategoryStrip } from './home/CategoryStrip';
 import { SlotPicker, slotIsPast, slotTime } from './SlotPicker';
 import { MediaAttachments } from './MediaAttachments';
@@ -82,10 +83,11 @@ const sentStyles = themedStyles(() =>
   })
 );
 
-export const DirectBookingSheet: React.FC<{ garage: Garage | null; categoryId?: string; defaultVehicleId: string; /** What the owner already told this garage (an inquiry), to start the form from. */ initial?: { description?: string; vehicleId?: string; service?: string }; onClose: () => void; onBooked?: () => void; /** The last step's button that goes to the Activity tab, where the booking's answer shows. */ onViewActivity?: () => void }> = ({
+export const DirectBookingSheet: React.FC<{ garage: Garage | null; categoryId?: string; defaultVehicleId: string; /** What the owner already told this garage (an inquiry), to start the form from. */ initial?: { description?: string; vehicleId?: string; service?: string }; /** An offer the owner chose on the garage's profile: shown as a note at the top of the form. */ offer?: AppliedOffer; onClose: () => void; onBooked?: () => void; /** The last step's button that goes to the Activity tab, where the booking's answer shows. */ onViewActivity?: () => void }> = ({
   garage,
   categoryId: initialCategory,
   initial,
+  offer,
   defaultVehicleId,
   onClose,
   onBooked,
@@ -164,7 +166,7 @@ export const DirectBookingSheet: React.FC<{ garage: Garage | null; categoryId?: 
 
   const submit = () => {
     const fittingInfo: PartsFitting | undefined = fitting ? { partName: fitPart.trim(), supply: fitSupply } : undefined;
-    requestBooking({ garage: shown, categoryId, service, vehicleId, preferredAt, description: fittingInfo ? `${jobDescription(description)}\n🔩 සවි කළ යුතු කොටස: ${fittingInfo.partName} (${FITTING_SUPPLY.find((x) => x.id === fittingInfo.supply)?.short})` : jobDescription(description), doorstep, photos, voiceNotes, fitting: fittingInfo });
+    requestBooking({ garage: shown, categoryId, service, vehicleId, preferredAt, description: fittingInfo ? `${jobDescription(description)}\n🔩 සවි කළ යුතු කොටස: ${fittingInfo.partName} (${FITTING_SUPPLY.find((x) => x.id === fittingInfo.supply)?.short})` : jobDescription(description), doorstep, photos, voiceNotes, fitting: fittingInfo, offer });
     onBooked?.();
     setSent(true);
   };
@@ -202,6 +204,12 @@ export const DirectBookingSheet: React.FC<{ garage: Garage | null; categoryId?: 
           </Text>
         </View>
       </View>
+      {!!offer && (
+        <View style={styles.offerNote} accessibilityLabel="Chosen offer">
+          <Text style={styles.offerNoteText}>{offer.icon} {offer.title}</Text>
+          <Text style={styles.offerNoteSub}>{offer.percent ? 'ගරාජය මිල තහවුරු කළ විට වට්ටම බිල්පතෙන් අඩු වේ.' : offer.warrantyMonths ? `වගකීම මාස ${offer.warrantyMonths}කින් දිගු වේ.` : 'ගරාජයට මෙම දීමනාව දැනුම් දෙනු ලැබේ.'}</Text>
+        </View>
+      )}
       {/* The line about the last job done by this garage for the owner, if there was one. */}
       <GarageHistoryTag garage={shown} part="line" />
 
@@ -327,6 +335,9 @@ const styles = themedStyles(() =>
     title: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.textMain },
     sub: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 1 },
     label: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, letterSpacing: 0.4, marginTop: 6 },
+    offerNote: { paddingVertical: 10, paddingHorizontal: 14, borderRadius: 14, backgroundColor: '#e8edf8' },
+    offerNoteSub: { fontSize: 12.5, lineHeight: 18, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 2 },
+    offerNoteText: { fontSize: 13.5, lineHeight: 20, fontFamily: FONTS.bodySemiBold, color: '#1e3a8a' },
     hint: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 16 },
     chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
     dateRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },

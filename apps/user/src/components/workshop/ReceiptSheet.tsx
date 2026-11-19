@@ -44,6 +44,8 @@ export const ReceiptSheet: React.FC<{ workshop: OwnerWorkshop | null; onClose: (
         <View style={styles.rule} />
 
         <Text style={styles.section}>🔧 වැඩ ගාස්තුව</Text>
+        {!!w.offer?.amount && <Row label="මුල් මිල" value={money(w.agreedPrice + w.offer.amount)} />}
+        {!!w.offer?.amount && <Row label={`${w.offer.icon} ${w.offer.title}`} value={`−${money(w.offer.amount)}`} />}
         <Row label="එකඟ වූ මිල" value={money(w.agreedPrice)} />
         {labourLines.map((l) => (
           <Row key={l.id} label={l.name} value={money(l.price)} />

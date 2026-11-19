@@ -42,7 +42,7 @@ export const DirectBookingCard: React.FC<{ booking: DirectBooking; onBookAgain: 
   const started = (workshops[b.id]?.progress.stage ?? 'booked') !== 'booked';
   // A finished job shows just its card: the step-by-step tracker is for running work (the details view has it all).
   const w = workshops[b.id];
-  const priceText = b.estimate ? money(b.estimate) : b.proposal ? money(b.proposal.estimate) : '—';
+  const priceText = b.estimate ? money(b.estimate - (b.discount ?? 0)) : b.proposal ? money(b.proposal.estimate) : '—';
   const finishedJob = w?.progress.stage === 'declined' || (w?.progress.stage === 'closed' && !!w.acknowledged);
   // A running job (step bar) or a finished one shows its price on a line of its own; the other states keep it on the vehicle line.
   const doneOk = finishedJob && !cancelledJob;
@@ -125,8 +125,9 @@ export const DirectBookingCard: React.FC<{ booking: DirectBooking; onBookAgain: 
             <Text style={[styles.state, { color: Colors.successText }]}>
               ✓ තහවුරුයි · {formatDate(b.scheduledAt)} · {formatTime(b.scheduledAt)}
             </Text>
-            {!!b.estimate && <MoneyText style={styles.price}>~{money(b.estimate)}</MoneyText>}
+            {!!b.estimate && <MoneyText style={styles.price}>~{money(b.estimate - (b.discount ?? 0))}</MoneyText>}
           </View>
+          {!!b.discount && !!b.offer && <Text style={styles.sub}>{b.offer.icon} {b.offer.title} · −{money(b.discount)}</Text>}
           <View style={styles.divider} />
           <View style={styles.box}>
             <Text style={styles.boxTitle}>{b.doorstep ? '🚛 ගරාජය ඔබ වෙත පැමිණේ' : `🏠 ${b.garage.address}`}</Text>

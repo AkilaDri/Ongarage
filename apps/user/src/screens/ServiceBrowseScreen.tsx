@@ -14,6 +14,7 @@ import { Icon, Gradient } from '@ongarage/shared';
 import { useUserLocation } from '../context/LocationContext';
 import { useNotice } from '../context/NoticeContext';
 import { GarageReviewsSheet } from '../components/GarageReviewsSheet';
+import type { GarageOffer } from '../constants/garageProfile';
 import { AMENITIES, canBid, directionsUrl, distanceKm, FUEL_NAMES, filterDefaultsFor, filterPlaces, PLUG_TYPES, serviceModeOf, type Amenity, type Place, type PlaceFilter } from '@ongarage/shared';
 import { PlaceTile } from '../components/home/PlaceTile';
 import { PlaceSheet } from '../components/PlaceSheet';
@@ -42,7 +43,7 @@ interface ServiceBrowseScreenProps {
   service: ServiceCategory;
   onClose: () => void;
   /** Book this garage directly for this service. */
-  onBook: (garage: Garage, back?: () => void) => void;
+  onBook: (garage: Garage, back?: () => void, offer?: GarageOffer) => void;
   /** Ask every nearby garage for bids on this service (shown only in the search-first Home). */
   onPostJob?: (categoryId: string) => void;
   /** The owner's active vehicle: stations and chargers start with filters that suit it (its fuel, or an electric one's plug). */
@@ -738,10 +739,10 @@ export const ServiceBrowseScreen: React.FC<ServiceBrowseScreenProps> = ({ servic
         onCall={reviewsFor ? () => Linking.openURL(`tel:${reviewsFor.phone.replace(/s/g, '')}`) : undefined}
         onBook={
           reviewsFor
-            ? () => {
+            ? (offer) => {
                 const g = reviewsFor;
                 setReviewsFor(null);
-                onBook(g, () => setReviewsFor(g));
+                onBook(g, () => setReviewsFor(g), offer);
               }
             : undefined
         }

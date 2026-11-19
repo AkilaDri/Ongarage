@@ -6,7 +6,8 @@ import { GARAGE_COVERS, GARAGE_INFO } from './home';
 // short video reels. Until garages publish these themselves they are put together from what the app already knows
 // (the garage's own offer, the service catalogue, the garage photos).
 
-export type GarageOffer = { id: string; icon: string; title: string; detail: string; tone: string };
+/** An offer a garage runs. `daysLeft` is how long it still holds (null = no end date); `terms` are the lines shown in its detail sheet. */
+export type GarageOffer = { id: string; icon: string; title: string; detail: string; tone: string; daysLeft: number | null; terms: string[]; /** The offer holds for an owner's first service with the garage only. */ firstVisitOnly?: boolean; /** Percent off the work, when the offer is a discount. */ percent?: number; /** Extra warranty months, when the offer is a warranty. */ warrantyMonths?: number };
 export type GarageService = { id: string; icon: string; name: string; price: number; isNew: boolean; color: string; jobs: number };
 /** A gig: a ready-made service package the garage publishes at a fixed price. */
 export type GarageGig = { id: string; title: string; detail: string; hours: number; price: number; orders: number; rating: number; image: ImageSourcePropType; color: string };
@@ -50,9 +51,9 @@ export const garageProfileContent = (g: Garage): GarageProfileContent => {
 
   const offer = GARAGE_INFO[g.id]?.offer;
   const offers: GarageOffer[] = [
-    ...(offer ? [{ id: 'o-info', icon: '🎁', title: offer, detail: 'මෙම සතිය තුළ පමණි', tone: '#f59e0b' }] : []),
-    { id: 'o-first', icon: '🏷️', title: 'පළමු සේවාවට 10% වට්ටම', detail: 'OnGarage හරහා වෙන් කරන්න', tone: '#1e3a8a' },
-    { id: 'o-warranty', icon: '🛡️', title: 'අමතර මාස 3 වගකීම', detail: 'ඕනෑම අලුත්වැඩියාවකට', tone: '#10b981' },
+    ...(offer ? [{ id: 'o-info', icon: '🎁', title: offer, detail: 'මෙම සතිය තුළ පමණි', tone: '#f59e0b', daysLeft: 3, terms: ['OnGarage හරහා වෙන් කළ වැඩවලට පමණි', 'දීමනාව බිල්පතේ වෙනම පේළියක් ලෙස පෙනේ'] }] : []),
+    { id: 'o-first', icon: '🏷️', title: 'පළමු සේවාවට 10% වට්ටම', detail: 'OnGarage හරහා වෙන් කරන්න', tone: '#1e3a8a', daysLeft: 12, percent: 10, firstVisitOnly: true, terms: ['මෙම ගරාජයේ ඔබගේ පළමු සේවාවට පමණි', 'OnGarage හරහා වෙන් කළ විට පමණි', 'වට්ටම බිල්පතේ සේවා ගාස්තුවෙන් අඩු වේ'] },
+    { id: 'o-warranty', icon: '🛡️', title: 'අමතර මාස 3 වගකීම', detail: 'ඕනෑම අලුත්වැඩියාවකට', tone: '#10b981', daysLeft: null, warrantyMonths: 3, terms: ['ගරාජයේ සාමාන්‍ය වගකීමට අමතරව මාස 3ක්', 'වැඩ අවසන් කළ කේතය සමඟ වගකීම වාර්තාවේ සටහන් වේ'] },
   ];
 
   const services: GarageService[] = Array.from({ length: 6 }, (_, i) => {

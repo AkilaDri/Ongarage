@@ -60,6 +60,7 @@ import { ServiceReminders } from './components/ServiceReminders';
 import { PaymentReminders } from './components/PaymentReminders';
 import { PayFirstSheet, PayStandingBanner } from './components/PayStandingViews';
 import { setBookingOpener } from './utils/bookingBridge';
+import type { AppliedOffer } from './types';
 import { MOCK_GARAGES } from './constants/mockData';
 import { usePayStanding } from './context/PayStanding';
 import { chatDockDrop, chatDockOffset, chatHide } from './utils/chatDock';
@@ -354,7 +355,7 @@ function AppShell() {
     if (activeTab !== 'bids') setBidsUp(false);
   }, [activeTab]);
   const openPost = (draft: JobDraft | null) => (standing.limited ? setPayFirst(true) : setPostJob({ draft }));
-  const openBooking = (b: { garage: Garage; categoryId?: string; initial?: { description?: string; vehicleId?: string; service?: string }; back?: () => void }) => (standing.limited ? setPayFirst(true) : setBooking(b));
+  const openBooking = (b: { garage: Garage; categoryId?: string; initial?: { description?: string; vehicleId?: string; service?: string }; offer?: AppliedOffer; back?: () => void }) => (standing.limited ? setPayFirst(true) : setBooking(b));
   // A chat can send the owner to OnMart with a part searched (a part the garage asks for or the owner must buy).
   useEffect(() => {
     setMartOpener((part) => {
@@ -382,7 +383,7 @@ function AppShell() {
   const [bidsTab, setBidsTab] = useState<BidsTab>('received');
   // Booking a garage directly (from Home, a service list, or "book again").
   // `back` brings the garage's profile back when the form is closed without booking (the profile was open when "book" was tapped).
-  const [booking, setBooking] = useState<{ garage: Garage; categoryId?: string; initial?: { description?: string; vehicleId?: string; service?: string }; back?: () => void } | null>(null);
+  const [booking, setBooking] = useState<{ garage: Garage; categoryId?: string; initial?: { description?: string; vehicleId?: string; service?: string }; offer?: AppliedOffer; back?: () => void } | null>(null);
   const { notify } = useNotice();
   // The garage a booking request has just gone to: the "sent" message (BookedPrompt) shows while this is set.
   const [bookedGarage, setBookedGarage] = useState<string | null>(null);
@@ -515,7 +516,7 @@ function AppShell() {
                 setSelectedSubName(sub);
                 setSelectedService(c);
               }}
-              onBookGarage={(garage, back) => openBooking({ garage, back })}
+              onBookGarage={(garage, back, offer) => openBooking({ garage, back, offer })}
               onScrollChange={handleHomeScroll}
               collapsePx={0}
               stickyFrom={homeCardY + 190}
@@ -733,7 +734,7 @@ function AppShell() {
         </View>
       )}
         {selectedService && selectedService.id !== '12' && (
-          <ServiceBrowseScreen service={selectedService} initialSub={selectedSubName} vehicleId={selectedVehicle} onPostJob={HOME_FLOW === 'search' ? (categoryId) => { setSelectedService(null); openPost({ categoryId, description: '', vehicleId: selectedVehicle } as unknown as JobDraft); } : undefined} onClose={() => setSelectedService(null)} onBook={(garage, back) => openBooking({ garage, categoryId: selectedService.id, back })} />
+          <ServiceBrowseScreen service={selectedService} initialSub={selectedSubName} vehicleId={selectedVehicle} onPostJob={HOME_FLOW === 'search' ? (categoryId) => { setSelectedService(null); openPost({ categoryId, description: '', vehicleId: selectedVehicle } as unknown as JobDraft); } : undefined} onClose={() => setSelectedService(null)} onBook={(garage, back, offer) => openBooking({ garage, categoryId: selectedService.id, back, offer })} />
         )}
         <Toast topOffset={84} />
       </Modal>
@@ -754,12 +755,13 @@ function AppShell() {
         garage={searchGarage}
         onClose={() => setSearchGarage(null)}
         onReopen={setSearchGarage}
-        onBook={searchGarage ? () => { const g = searchGarage; setSearchGarage(null); openBooking({ garage: g, back: () => setSearchGarage(g) }); } : undefined}
+        onBook={searchGarage ? (offer) => { const g = searchGarage; setSearchGarage(null); openBooking({ garage: g, back: () => setSearchGarage(g), offer }); } : undefined}
       />
       <DirectBookingSheet
         garage={booking?.garage ?? null}
         categoryId={booking?.categoryId}
         initial={booking?.initial}
+        offer={booking?.offer}
         defaultVehicleId={selectedVehicle}
         onClose={() => {
           // The form closes, booked or not, and the garage's profile it was opened from comes back: the owner stays where they were.
