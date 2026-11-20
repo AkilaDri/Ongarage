@@ -328,7 +328,7 @@ export const GarageReviewsSheet: React.FC<{
               <ActionButton label="විමසීම" icon="❓" variant="ghost" compact onPress={askInquiry} />
             </View>
             <View style={styles.flex2}>
-              <ActionButton label="වෙන් කරන්න" icon="📅" variant="primary" compact onPress={onBook} />
+              <ActionButton label="වෙන් කරන්න" icon="📅" variant="primary" compact onPress={() => onBook()} />
             </View>
           </View>
         ) : undefined

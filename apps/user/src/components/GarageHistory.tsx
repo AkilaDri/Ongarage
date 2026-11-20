@@ -47,6 +47,25 @@ export const GarageHistoryTag: React.FC<{ garage: GarageRef; /** Without the lin
   );
 };
 
+/** The foot of a garage card: a divider and "last time: what, when", only when the owner has used this garage before (nothing, and no space, otherwise). */
+export const GarageLastLine: React.FC<{ garage: GarageRef }> = ({ garage }) => {
+  const { done } = useGarageHistory(garage);
+  const last = done[0]?.progress.closedAt;
+  const lastJob = done[0] ? (done[0].title ?? categoryInfo(done[0].categoryId).name) : undefined;
+  if (!lastJob || !last) return null;
+  return (
+    <View style={styles.footLine}>
+      <View style={styles.footText}>
+        <Text style={styles.footLabel}>ඔබ අවසන් වරට ලබාගත් සේවාව</Text>
+        <Text style={styles.footJob}>{lastJob}</Text>
+      </View>
+      <View style={styles.footDate}>
+        <Text style={styles.footDateText}>🗓 {formatDate(last)}</Text>
+      </View>
+    </View>
+  );
+};
+
 /** Which garages the owner has used before (finished a job with): for the "garages I have used" filter on the bids. */
 export const useUsedGarages = () => {
   const { workshops } = useWorkshops();
@@ -125,6 +144,12 @@ const styles = themedStyles(() =>
   StyleSheet.create({
     flex1: { flex: 1 },
     levelRow: { flexDirection: 'row' },
+    footLine: { flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 16, marginBottom: 12, paddingTop: 10, borderTopWidth: 1, borderTopColor: Colors.borderColor },
+    footText: { flex: 1 },
+    footLabel: { fontSize: 12, lineHeight: 16, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
+    footJob: { fontSize: 14, lineHeight: 20, fontFamily: FONTS.bodySemiBold, color: Colors.textMain, marginTop: 1 },
+    footDate: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#dbeafe' },
+    footDateText: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1e3a8a' },
     lastLine: { fontSize: 12, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 4 },
     help: { fontSize: 12, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 19 },
     tag: { alignSelf: 'flex-start', paddingHorizontal: 6, height: 18, justifyContent: 'center', borderRadius: 9, borderWidth: 1, maxWidth: '100%' },

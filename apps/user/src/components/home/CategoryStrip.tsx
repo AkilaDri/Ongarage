@@ -89,7 +89,7 @@ export const CategoryStrip: React.FC<{
     return (
       <Pressable key={x.id} style={({ pressed }) => [styles.item, brand && styles.brandItem, grid && [styles.gridItem, { width: `${100 / columns}%` }], pressed && styles.pressed, brand && pressed && styles.brandPressed]} onPress={() => onSelect(c)} accessibilityLabel={`Service ${c.name}`}>
                 <View style={[styles.box, grid && styles.gridBox, brand ? { backgroundColor: 'transparent', borderColor: 'transparent' } : { backgroundColor: x.tint + (grid && selectedId === x.id ? '55' : grid ? '33' : '26'), borderColor: 'transparent' }, selectedId === x.id && (grid ? styles.gridBoxOn : styles.boxOn), suggestedId === x.id && styles.boxSuggested]}>
-                  <CategoryPhoto categoryId={c.id} size={grid ? 60 : 62} />
+                  <CategoryPhoto categoryId={c.id} size={grid ? 56 : 62} />
                   {/* The grid's chosen category gets the SOS breakdown's tick: a disc on the tile's top-right corner. */}
                   {grid && selectedId === x.id && (
                     <View style={styles.gridTick}>
@@ -178,8 +178,8 @@ const styles = themedStyles(() =>
     hintLeft: { left: 2 },
     hintArrow: { fontSize: 40, lineHeight: 40, color: '#ffffff', fontFamily: FONTS.bodyRegular, fontWeight: '200', textShadowColor: 'rgba(0, 0, 0, 0.65)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 6 },
     column: { gap: 12 },
-    gridWrap: { flexDirection: 'row', flexWrap: 'wrap', rowGap: 16 },
-    gridItem: { paddingHorizontal: 4 },
+    gridWrap: { flexDirection: 'row', flexWrap: 'wrap', rowGap: 24 },
+    gridItem: { paddingHorizontal: 7, gap: 8 },
     gridBox: { width: '100%', height: 74, borderRadius: 12, overflow: 'visible' },
     gridBoxOn: { borderWidth: 3, borderColor: '#1a73e8' },
     gridTick: { position: 'absolute', top: -6, right: -6, width: 22, height: 22, borderRadius: 11, backgroundColor: '#1a73e8', alignItems: 'center', justifyContent: 'center', zIndex: 3 },

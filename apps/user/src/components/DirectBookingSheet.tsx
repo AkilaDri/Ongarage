@@ -1,15 +1,13 @@
-import { GarageHistoryTag } from './GarageHistory';
+import { GarageHistoryTag, GarageLastLine } from './GarageHistory';
 import { jobDescription, problemTold } from '../utils/jobText';
 import React, { useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import {
-  ActionButton,
   categoryInfo,
   Colors,
   FONTS,
   getAi,
   getThemeMode,
-  GlassIcon,
   Icon,
   marketPrice,
   SERVICE_CATEGORIES,
@@ -23,12 +21,17 @@ import {
   type PartsFitting,
   type VoiceNote,
 } from '@ongarage/shared';
-import { Sheet } from './Sheet';
+import { elevation1, outline } from '../utils/material';
+import { BookingShell } from './BookingShell';
+import { FlowButton } from './FlowButton';
+import { FlowField } from './FlowField';
+import { DayStep, TimeStep } from './BidBookingSteps';
+import { GARAGE_COVERS } from '../constants/home';
+import { garageCategoryIds, garageTickedSubs } from '../constants/garageSubServices';
 import type { AppliedOffer } from '../types';
 import { CategoryStrip } from './home/CategoryStrip';
-import { SlotPicker, slotIsPast, slotTime } from './SlotPicker';
+import { slotIsPast, slotTime } from './SlotPicker';
 import { MediaAttachments } from './MediaAttachments';
-import { FormTabs } from './FormTabs';
 import { VehicleOptions } from './VehicleOptions';
 import { useVehicles } from '../context/VehiclesContext';
 import { useBookings } from '../context/BookingsContext';
@@ -98,11 +101,15 @@ export const DirectBookingSheet: React.FC<{ garage: Garage | null; categoryId?: 
   const [shown, setShown] = useState<Garage | null>(garage);
   const [categoryId, setCategoryId] = useState(initialCategory ?? '1');
   const [service, setService] = useState<string | undefined>();
+  const [catsExpanded, setCatsExpanded] = useState(false);
+  // The service counts as chosen once the owner picks a tile (or arrives with one already chosen): only then does the step show its tick.
+  const [picked, setPicked] = useState(!!initialCategory);
   const [vehicleId, setVehicleId] = useState(defaultVehicleId);
-  const [day, setDay] = useState(1);
-  // The form is four tabs, filled in this order: the service, the details, the vehicle, then when and where.
-  const [tab, setTab] = useState<'service' | 'details' | 'vehicle' | 'when'>('service');
-  const [hour, setHour] = useState(10);
+  // Nothing is preselected: the owner picks the day, then the time.
+  const [day, setDay] = useState<number | null>(null);
+  // The form is five steps, filled in this order: the service, the details, the vehicle, the day, then the time and where.
+  const [tab, setTab] = useState<'service' | 'details' | 'vehicle' | 'day' | 'time'>('service');
+  const [hour, setHour] = useState<number | null>(null);
   const [doorstep, setDoorstep] = useState(false);
   const [description, setDescription] = useState('');
   // Parts Fitting: the part to fit and who supplies it.
@@ -120,10 +127,11 @@ export const DirectBookingSheet: React.FC<{ garage: Garage | null; categoryId?: 
     setShown(garage);
     setCategoryId(initialCategory ?? '1');
     setService(initial?.service);
+    setPicked(!!initialCategory);
     setVehicleId(initial?.vehicleId ?? defaultVehicleId);
     setTab('service');
-    setDay(1);
-    setHour(10);
+    setDay(null);
+    setHour(null);
     setDoorstep(false);
     setDescription(initial?.description ?? '');
     setPhotos([]);
@@ -151,18 +159,30 @@ export const DirectBookingSheet: React.FC<{ garage: Garage | null; categoryId?: 
   if (!shown) return null;
 
   const cat = categoryInfo(categoryId);
-  const preferredAt = slotTime(day, hour);
-  const slotPast = slotIsPast(preferredAt);
+  // Only what this garage offers: the categories it ticked, and in each one the sub-services it ticked.
+  const offered = garageCategoryIds(shown);
+  const offers = (id: string) => garageSubServices(id).length > 0 && (offered === null || offered.includes(id));
+  const ticked = garageTickedSubs(shown, categoryId);
+  const subList = garageSubServices(categoryId).filter((x) => ticked === null || ticked.includes(x));
+  const preferredAt = slotTime(day ?? 1, hour ?? 10);
+  const slotPast = day === null || hour === null || slotIsPast(preferredAt);
   const fitting = categoryId === PARTS_FITTING_CATEGORY_ID;
-  const valid = problemTold(description, voiceNotes, 5) && !slotPast && (!fitting || fitPart.trim().length > 0);
+  const detailsOk = problemTold(description, voiceNotes, 5) && (!fitting || fitPart.trim().length > 0);
+  const valid = detailsOk && !slotPast;
 
-  const ORDER = ['service', 'details', 'vehicle', 'when'] as const;
+  const ORDER = ['service', 'details', 'vehicle', 'day', 'time'] as const;
+  const STEP_NAMES = ['සේවාව', 'විස්තර', 'වාහනය', 'දිනය', 'වේලාව'] as const;
   const tabIndex = ORDER.indexOf(tab);
   const lastTab = tabIndex === ORDER.length - 1;
-  const tabDone = { service: true, vehicle: !!vehicleId, when: !slotPast, details: problemTold(description, voiceNotes, 5) && (!fitting || fitPart.trim().length > 0) };
-  // A tab's own requirement for moving on (the details are checked by the last button).
-  const tabOk = tab === 'details' ? tabDone.details : tab === 'vehicle' ? !!vehicleId : tab === 'when' ? !slotPast : true;
+  // A step's own requirement for moving on.
+  const tabOk = tab === 'service' ? picked : tab === 'details' ? detailsOk : tab === 'vehicle' ? !!vehicleId : tab === 'day' ? day !== null : tab === 'time' ? !slotPast : true;
+  // What a disabled button says is missing, so it never just looks broken.
+  const missingLabel = tab === 'service' ? 'සේවා අංශයක් තෝරන්න' : tab === 'details' ? (fitting && fitPart.trim().length === 0 ? 'කොටස ලියන්න' : 'ගැටලුව විස්තර කරන්න') : tab === 'day' ? 'දිනයක් තෝරන්න' : 'වේලාවක් තෝරන්න';
   const next = () => setTab(ORDER[Math.min(ORDER.length - 1, tabIndex + 1)]);
+  const pickDay = (d: number) => {
+    setDay(d);
+    if (hour !== null && slotIsPast(slotTime(d, hour))) setHour(null);
+  };
 
   const submit = () => {
     const fittingInfo: PartsFitting | undefined = fitting ? { partName: fitPart.trim(), supply: fitSupply } : undefined;
@@ -172,98 +192,107 @@ export const DirectBookingSheet: React.FC<{ garage: Garage | null; categoryId?: 
   };
 
   return (
-    <>
-    <Sheet
+    <BookingShell
       visible={!!garage}
-      fullScreen
-      noDividers
-      title="ගරාජය වෙන් කරන්න"
-      overlayExtra={<BookingSentBox visible={sent} garageName={shown.name} when={`${formatDate(preferredAt)} ${formatTime(preferredAt)}`} onViewActivity={() => { setSent(false); onViewActivity?.(); }} onClose={() => { setSent(false); onClose(); }} />}
+      title="Ongarage වෙන්කිරීම"
+      icon="🛠️"
+      steps={STEP_NAMES}
+      step={tabIndex}
+      onStep={(i) => setTab(ORDER[i])}
       onClose={onClose}
       footer={
         lastTab ? (
-          <ActionButton label={`වෙන්කිරීම ඉල්ලන්න · ${formatDate(preferredAt)} ${formatTime(preferredAt)}`} icon="📅" variant="primary" disabled={!valid} onPress={submit} />
+          <FlowButton label={slotPast ? 'වේලාවක් තෝරන්න' : 'වෙන්කිරීම ඉල්ලන්න'} icon={slotPast ? undefined : '📅'} variant="primary" disabled={!valid} onPress={submit} />
         ) : (
-          <ActionButton label="ඊළඟ ›" variant="primary" disabled={!tabOk} onPress={next} />
+          <FlowButton label={tabOk ? 'ඊළඟ ›' : missingLabel} variant="primary" disabled={!tabOk} onPress={next} />
         )
       }
+      overlay={<BookingSentBox visible={sent} garageName={shown.name} when={`${formatDate(preferredAt)} ${formatTime(preferredAt)}`} onViewActivity={() => { setSent(false); onViewActivity?.(); }} onClose={() => { setSent(false); onClose(); }} />}
     >
-      {/* The garage stays at the top whichever tab is open. */}
+      {/* The garage stays at the top whichever step is open: the same card as the bid the owner accepted. */}
       <View style={styles.garage}>
-        <GlassIcon emoji="🛠️" small />
-        <View style={styles.flex1}>
-          {/* The "New" / record tag stands right after the garage's name. */}
-          <View style={styles.nameRow}>
-            <Text style={[styles.title, styles.shrink]} numberOfLines={1}>
-              {shown.name}
+        <View style={styles.garageTop}>
+          {GARAGE_COVERS[shown.id] ? <Image source={GARAGE_COVERS[shown.id]} style={styles.avatar} accessibilityLabel={`${shown.name} photo`} /> : <View style={styles.avatar} />}
+          <View style={styles.flex1}>
+            <View style={styles.nameRow}>
+              <Text style={[styles.title, styles.shrink]}>{shown.name}</Text>
+              <GarageHistoryTag garage={shown} part="tag" />
+            </View>
+            <Text style={styles.rating} numberOfLines={1}>
+              <Text style={styles.stars}>{'★'.repeat(Math.round(shown.rating))}{'☆'.repeat(5 - Math.round(shown.rating))}</Text> {shown.rating.toFixed(1)} ({shown.reviews}) · km {shown.distance}
             </Text>
-            <GarageHistoryTag garage={shown} part="tag" />
           </View>
-          <Text style={styles.sub}>
-            ★ {shown.rating} ({shown.reviews}) · km {shown.distance} · {shown.address}
-          </Text>
         </View>
+        <GarageLastLine garage={shown} />
       </View>
-      {!!offer && (
-        <View style={styles.offerNote} accessibilityLabel="Chosen offer">
-          <Text style={styles.offerNoteText}>{offer.icon} {offer.title}</Text>
-          <Text style={styles.offerNoteSub}>{offer.percent ? 'ගරාජය මිල තහවුරු කළ විට වට්ටම බිල්පතෙන් අඩු වේ.' : offer.warrantyMonths ? `වගකීම මාස ${offer.warrantyMonths}කින් දිගු වේ.` : 'ගරාජයට මෙම දීමනාව දැනුම් දෙනු ලැබේ.'}</Text>
+      {!!offer?.title && (
+        <View style={styles.offerChip} accessibilityLabel="Chosen offer">
+          <Text style={styles.offerChipText} numberOfLines={2}>{offer.icon} {offer.title} · {offer.percent ? 'වට්ටම බිල්පතෙන් අඩු වේ' : offer.warrantyMonths ? `වගකීම මාස ${offer.warrantyMonths}කින් දිගු වේ` : 'ගරාජයට දැනුම් දෙනු ලැබේ'}</Text>
         </View>
       )}
-      {/* The line about the last job done by this garage for the owner, if there was one. */}
-      <GarageHistoryTag garage={shown} part="line" />
-
-      <FormTabs
-        active={tab}
-        onChange={(id) => setTab(id as typeof tab)}
-        tabs={[
-          { id: 'service', label: 'සේවාව', done: tabDone.service },
-          { id: 'details', label: 'විස්තර', done: tabDone.details },
-          { id: 'vehicle', label: 'වාහනය', done: tabDone.vehicle },
-          { id: 'when', label: 'වේලාව', done: tabDone.when },
-        ]}
-      />
 
       {tab === 'service' && (
-        <>
-          <Text style={styles.label}>සේවාව</Text>
-          {/* The same main-category tiles as Home (two rows that slide sideways, the category's own picture on each), the chosen one ringed in blue. */}
+        <View style={styles.stepCard}>
+          {/* The same card as the quote request's service step: a tick, the title with its count, then the tiles in four columns with "+N more". */}
+          <View style={styles.stepHead}>
+            {picked && (
+              <View style={styles.stepBadge}>
+                <Text style={styles.stepBadgeText}>✓</Text>
+              </View>
+            )}
+            <Text style={[styles.stepTitle, styles.flex1]}>{`සේවා අංශය · ${SERVICE_CATEGORIES.filter((c) => offers(c.id)).length}`}</Text>
+            {!picked && (
+              <View style={styles.requiredPill} accessibilityLabel="Required">
+                <Text style={styles.requiredText}>පහළින් තෝරන්න</Text>
+              </View>
+            )}
+          </View>
+          {catsExpanded && (
+            <Pressable style={styles.lessLink} onPress={() => setCatsExpanded(false)} accessibilityLabel="Show fewer categories">
+              <Text style={styles.lessLinkText}>අඩුවෙන් පෙන්වන්න</Text>
+            </Pressable>
+          )}
           <CategoryStrip
-            include={(id) => garageSubServices(id).length > 0}
-            selectedId={categoryId}
+            layout="grid"
+            columns={4}
+            collapsedCount={7}
+            expanded={catsExpanded}
+            onExpandedChange={setCatsExpanded}
+            include={offers}
+            selectedId={picked ? categoryId : null}
             onSelect={(c) => {
               setCategoryId(c.id);
               setService(undefined);
+              setPicked(true);
             }}
           />
-          <Text style={styles.label}>උප සේවාව (විකල්ප)</Text>
+          {picked && (
+            <>
+          <Text style={styles.eyebrow}>{`${cat.name} හි උප සේවා (විකල්ප තේරීමකි):`}</Text>
           <View style={styles.chips}>
-            {garageSubServices(categoryId).map((s) => (
+            {subList.map((s) => (
               <Chip key={s} label={s} on={service === s} onPress={() => setService(service === s ? undefined : s)} small color={cat.color} />
             ))}
           </View>
-        </>
-      )}
-
-      {tab === 'vehicle' && (
-        <>
-          <Text style={styles.label}>වාහනය</Text>
-          <VehicleOptions value={vehicleId} onChange={setVehicleId} />
-        </>
-      )}
-
-      {tab === 'when' && (
-        <>
-          <SlotPicker day={day} hour={hour} onDay={setDay} onHour={setHour} doorstep={doorstep} onDoorstep={setDoorstep} />
-        </>
+            </>
+          )}
+        </View>
       )}
 
       {tab === 'details' && (
         <>
+        <View style={styles.stepCard}>
           {fitting && (
             <>
-              <Text style={styles.label}>සවි කළ යුතු කොටස</Text>
-              <TextInput style={styles.input} value={fitPart} onChangeText={setFitPart} placeholder="උදා: ඉදිරිපස බ්‍රේක් පෑඩ් සෙට් එක" placeholderTextColor={Colors.textMuted} accessibilityLabel="Part to fit" />
+              <View style={[styles.headRow]}>
+                <Text style={styles.question}>සවි කළ යුතු කොටස</Text>
+                {fitPart.trim().length === 0 && (
+                  <View style={styles.requiredPill} accessibilityLabel="Required">
+                    <Text style={styles.requiredText}>අත්‍යවශ්‍යයි</Text>
+                  </View>
+                )}
+              </View>
+              <FlowField style={styles.fieldShort} value={fitPart} onChangeText={setFitPart} placeholder="උදා: ඉදිරිපස බ්‍රේක් පෑඩ් සෙට් එක" accessibilityLabel="Part to fit" />
               <Text style={styles.label}>කොටස සපයන්නේ කවුද?</Text>
               <View style={styles.chips}>
                 {FITTING_SUPPLY.map((s) => (
@@ -273,13 +302,18 @@ export const DirectBookingSheet: React.FC<{ garage: Garage | null; categoryId?: 
             </>
           )}
 
-          <Text style={styles.label}>ගැටලුව විස්තර කරන්න</Text>
-          <TextInput
-            style={styles.input}
+          <View style={[styles.headRow]}>
+            <Text style={styles.question}>ගැටලුව විස්තර කරන්න</Text>
+            {!problemTold(description, voiceNotes, 5) && (
+              <View style={styles.requiredPill} accessibilityLabel="Required">
+                <Text style={styles.requiredText}>අත්‍යවශ්‍යයි</Text>
+              </View>
+            )}
+          </View>
+          <FlowField
             value={description}
             onChangeText={setDescription}
             placeholder="උදා: බ්‍රේක් තද කරන විට ශබ්දයක් එනවා"
-            placeholderTextColor={Colors.textMuted}
             multiline
             maxLength={400}
             accessibilityLabel="Booking description"
@@ -292,16 +326,47 @@ export const DirectBookingSheet: React.FC<{ garage: Garage | null; categoryId?: 
             </Pressable>
           )}
 
-          <Text style={styles.label}>ඡායාරූප සහ හඬ සටහන් (ඡායාරූප විකල්ප — විස්තරයක් නැත්නම් හඬ සටහනක් ප්‍රමාණවත්)</Text>
+          <Text style={styles.label}>හෝ ඡායාරූප / හඬ සටහනක් එක් කරන්න</Text>
           <MediaAttachments photos={photos} voiceNotes={voiceNotes} onPhotos={setPhotos} onVoiceNotes={setVoiceNotes} />
+        </View>
 
-          <Text style={styles.hint}>
-            සාමාන්‍ය මිල: {money(marketPrice(categoryId))} පමණ. අවසන් මිල ගරාජය වාහනය පරීක්ෂා කළ පසු ඔබගේ අනුමැතියෙන් පමණක් තීරණය වේ.
-          </Text>
         </>
       )}
-    </Sheet>
-    </>
+
+      {tab === 'vehicle' && (
+        <>
+          <Text style={[styles.question, styles.headTop]}>ඔබේ වාහනය</Text>
+          <VehicleOptions value={vehicleId} onChange={setVehicleId} />
+        </>
+      )}
+
+      {tab === 'day' && (
+        <DayStep
+          day={day}
+          onDay={pickDay}
+          onSoonest={(d, h) => {
+            setDay(d);
+            setHour(h);
+            setTab('time');
+          }}
+        />
+      )}
+
+      {tab === 'time' && day !== null && (
+        <>
+          <TimeStep day={day} hour={hour} onHour={setHour} onChangeDay={() => setTab('day')} />
+          <Text style={[styles.question, styles.headTop]}>සේවාව ලබාගන්නේ කොහේ ද?</Text>
+          <View style={styles.placeRow}>
+            <Pressable style={[styles.place, !doorstep && styles.placeOn]} onPress={() => setDoorstep(false)} accessibilityRole="radio" accessibilityState={{ selected: !doorstep }}>
+              <Text style={[styles.placeText, !doorstep && styles.placeTextOn]}>🏠 මම වාහනය ගරාජයට ගෙන යමි</Text>
+            </Pressable>
+            <Pressable style={[styles.place, doorstep && styles.placeOn]} onPress={() => setDoorstep(true)} accessibilityRole="radio" accessibilityState={{ selected: doorstep }}>
+              <Text style={[styles.placeText, doorstep && styles.placeTextOn]}>🚛 ගරාජය මා වෙත පැමිණේ</Text>
+            </Pressable>
+          </View>
+        </>
+      )}
+    </BookingShell>
   );
 };
 
@@ -320,7 +385,28 @@ const styles = themedStyles(() =>
   StyleSheet.create({
     flex1: { flex: 1 },
     shrink: { flexShrink: 1 },
-    garage: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: 16, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.borderColor },
+    garage: { borderRadius: 26, borderWidth: 1, borderColor: 'rgba(16, 185, 129, 0.55)', backgroundColor: getThemeMode() === 'dark' ? Colors.bgCard : '#ffffff', shadowColor: '#1e3a8a', shadowOffset: { width: 0, height: 10 }, shadowOpacity: getThemeMode() === 'dark' ? 0.6 : 0.16, shadowRadius: 22, elevation: 6 },
+    garageTop: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingVertical: 12 },
+    avatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: Colors.subtleFill },
+    rating: { fontSize: 12, lineHeight: 16, fontFamily: FONTS.bodyMedium, color: Colors.textMain, marginTop: 1 },
+    stars: { color: '#f5a623', letterSpacing: 1 },
+    stepCard: { backgroundColor: Colors.bgCard, borderRadius: 12, borderWidth: 1, borderColor: outline(), ...elevation1(), padding: 16, gap: 12 },
+    stepHead: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    stepBadge: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: '#1a73e8' },
+    stepBadgeText: { fontSize: 18, fontFamily: FONTS.titleBold, color: '#ffffff' },
+    stepTitle: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textMain },
+    requiredPill: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, backgroundColor: 'rgba(245, 158, 11, 0.16)' },
+    requiredText: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: '#b45309' },
+    lessLink: { alignSelf: 'flex-end', paddingVertical: 2 },
+    lessLinkText: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
+    eyebrow: { fontSize: 12.5, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? Colors.textMuted : '#475569', letterSpacing: 0.2 },
+    question: { fontSize: 16, fontFamily: FONTS.bodyBold, color: Colors.textMain },
+    headTop: { marginTop: 12, marginBottom: 2 },
+    placeRow: { gap: 8 },
+    place: { minHeight: 48, justifyContent: 'center', paddingHorizontal: 16, borderRadius: 24, backgroundColor: Colors.bgCard, borderWidth: 1.5, borderColor: Colors.borderColor },
+    placeOn: { backgroundColor: '#1e3a8a', borderColor: '#facc15' },
+    placeText: { fontSize: 14, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
+    placeTextOn: { color: '#ffffff' },
     nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
     // The last step, after the request has gone.
     sent: { alignItems: 'center', gap: 12, paddingTop: 36, paddingHorizontal: 8 },
@@ -332,35 +418,40 @@ const styles = themedStyles(() =>
     sentNoteText: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a56c9', lineHeight: 20, textAlign: 'center' },
     sentActions: { flexDirection: 'row', gap: 10 },
     sentMain: { flex: 2 },
-    title: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.textMain },
+    title: { fontSize: 15, lineHeight: 19, fontFamily: FONTS.titleBold, color: Colors.textMain },
     sub: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 1 },
-    label: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, letterSpacing: 0.4, marginTop: 6 },
+    label: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
+    offerChip: { alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14, backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#dbeafe' },
+    offerChipText: { fontSize: 12.5, lineHeight: 18, fontFamily: FONTS.bodySemiBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1e3a8a' },
     offerNote: { paddingVertical: 10, paddingHorizontal: 14, borderRadius: 14, backgroundColor: '#e8edf8' },
     offerNoteSub: { fontSize: 12.5, lineHeight: 18, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 2 },
     offerNoteText: { fontSize: 13.5, lineHeight: 20, fontFamily: FONTS.bodySemiBold, color: '#1e3a8a' },
-    hint: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 16 },
+    hint: { fontSize: 12.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 18 },
     chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
     dateRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
     calBtn: { width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.borderColor },
     calBtnOn: { backgroundColor: Colors.primary, borderColor: Colors.primary },
-    chip: { paddingHorizontal: 11, paddingVertical: 7, borderRadius: 12, borderWidth: 1, borderColor: Colors.borderColor, backgroundColor: Colors.bgCard },
-    chipSmall: { paddingHorizontal: 9, paddingVertical: 5 },
+    chip: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 16, borderWidth: 1, borderColor: Colors.borderColor, backgroundColor: Colors.bgCard },
+    chipSmall: { paddingHorizontal: 10, paddingVertical: 6 },
     chipOn: { backgroundColor: Colors.primary, borderColor: Colors.primary },
     chipOff: { opacity: 0.35 },
-    chipText: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
+    chipText: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
     chipTextOn: { color: '#fff' },
     input: {
-      minHeight: 80,
-      padding: 12,
-      borderRadius: 14,
-      backgroundColor: Colors.bgCard,
+      minHeight: 96,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      borderRadius: 22,
+      backgroundColor: getThemeMode() === 'dark' ? Colors.bgCard : '#ffffff',
       borderWidth: 1,
-      borderColor: Colors.borderColor,
+      borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#f3f4f6',
       color: Colors.textMain,
-      fontSize: 13,
+      fontSize: 14,
       fontFamily: FONTS.bodyRegular,
       textAlignVertical: 'top',
     },
+    headRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+    fieldShort: { minHeight: 52 },
     suggest: { padding: 10, borderRadius: 12, backgroundColor: 'rgba(56, 189, 248, 0.1)', borderWidth: 1, borderColor: 'rgba(56, 189, 248, 0.4)' },
     suggestText: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
   })

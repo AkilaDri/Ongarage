@@ -790,7 +790,7 @@ function AppShell() {
       <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: fadeColor, opacity: fade }]} />
       <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.brandVeil, { opacity: veil }]}>
         <Animated.View style={{ alignItems: 'center', opacity: logoGrow.interpolate({ inputRange: [0, 0.4, 1], outputRange: [0, 1, 1] }), transform: [{ scale: logoGrow.interpolate({ inputRange: [0, 1], outputRange: [0.55, 1] }) }] }}>
-          <OnGarageLogo width={190} height={62} />
+          <OnGarageLogo width={190} height={62} optical />
           {/* The line under the logo stays on one line on every screen: its size follows the width (about 0.6 of its size per letter). */}
           <Text style={[styles.tagline, { fontSize: Math.min(20, Math.max(12, Math.floor((winW - 44) / (TAGLINE.length * 0.62)))) }]} numberOfLines={1}>{TAGLINE}</Text>
           <View style={styles.taglineRule}>

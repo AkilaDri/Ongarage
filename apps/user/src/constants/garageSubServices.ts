@@ -13,3 +13,19 @@ export const GARAGE_SUB_SERVICES: Record<string, Record<string, string[]>> = {
   '8': { '9': ['Full Body Wash', 'Interior Detailing', 'Waxing', 'Engine Bay Wash', 'Ceramic / PPF Coating'], '8': ['Scratch Repair', 'Dent Removal'] },
   '9': { '6': ['Wheel Alignment', 'Wheel Balancing', 'Tyre Replacement'], '7': ['Brake Pads', 'Shock Absorbers', 'Wheel Bearings'] },
 };
+
+/**
+ * The service categories a garage offers, from what it ticked at registration, or null when nothing is known about it (then every category is shown, so a
+ * garage without seeded data is not left with an empty list). The booking form lists only these.
+ */
+export const garageCategoryIds = (g: { id: string; subServices?: Record<string, string[]> }): string[] | null => {
+  const ticked = g.subServices ?? GARAGE_SUB_SERVICES[g.id];
+  if (!ticked) return null;
+  return Object.keys(ticked).filter((id) => (ticked[id]?.length ?? 0) > 0);
+};
+
+/** The sub-services this garage ticked for a category (null when nothing is known about it: then all of the category's are shown). */
+export const garageTickedSubs = (g: { id: string; subServices?: Record<string, string[]> }, categoryId: string): string[] | null => {
+  const ticked = g.subServices ?? GARAGE_SUB_SERVICES[g.id];
+  return ticked ? ticked[categoryId] ?? [] : null;
+};

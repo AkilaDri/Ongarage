@@ -1,6 +1,7 @@
 import { CategoryStrip, shortCategoryName } from '../components/home/CategoryStrip';
 import { VehicleLine } from '@ongarage/shared';
 import { elevation1, outline, pageBg } from '../utils/material';
+import { FlowButton } from '../components/FlowButton';
 import { jobDescription, problemTold } from '../utils/jobText';
 import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Animated, Easing, Modal, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, TextStyle, View } from 'react-native';
@@ -178,13 +179,15 @@ const StepCard: React.FC<{ step: number; title: string; done: boolean; hint?: st
         </View>
       )}
       <View style={styles.flex1}>
-        <Text style={styles.stepTitle}>{title}</Text>
+        <View style={styles.stepTitleRow}>
+          <Text style={[styles.stepTitle, styles.flex1]}>{title}</Text>
+          {!optional && !done && (
+            <View style={styles.requiredPill} accessibilityLabel="Required">
+              <Text style={styles.requiredText}>{requiredNote ?? '* අත්‍යවශ්‍යයි'}</Text>
+            </View>
+          )}
+        </View>
         {!!hint && <Text style={styles.cardSub}>{hint}</Text>}
-        {!optional && !done && (
-          <View style={styles.requiredPill} accessibilityLabel={done ? 'Required, done' : 'Required'}>
-            <Text style={[styles.requiredText, done && styles.requiredTextDone]}>{done ? (requiredNote ? '✓ තෝරා ඇත' : '✓ අත්‍යවශ්‍ය') : requiredNote ?? '* අත්‍යවශ්‍යයි'}</Text>
-          </View>
-        )}
       </View>
     </View>
     {children}
@@ -372,17 +375,20 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, defaultVehi
     if (buddy === 'idle') {
       return (
         <Pressable style={styles.buddyBanner} onPress={() => setBuddy('input')}>
-          <Gradient stops={GRADIENTS.issue} />
           <View style={styles.rowCenter}>
-            <Animated.Text style={[styles.buddyEmoji, { transform: [{ translateY: buddyFloat.interpolate({ inputRange: [0, 1], outputRange: [-2, 2] }) }] }]}>
-              🤖
-            </Animated.Text>
+            <View style={styles.buddyDisc}>
+              <Animated.Text style={[styles.buddyEmoji, { transform: [{ translateY: buddyFloat.interpolate({ inputRange: [0, 1], outputRange: [-2, 2] }) }] }]}>
+                🤖
+              </Animated.Text>
+            </View>
             <Text style={styles.buddyTitle}>OnBuddy සේවාව ලබාගන්න</Text>
           </View>
           <Text style={styles.buddySub}>
             ඔබගේ අලුත්වැඩියාව අයත්වන සේවා අංශය නොදනී නම්, OnBuddy ගේ සහයෙන් ඔබගේ සේවා අංශය සොයා ගන්න.
           </Text>
-          <Text style={styles.buddyCta}>විස්තරය ලියන්න ›</Text>
+          <View style={styles.buddyCta}>
+            <Text style={styles.buddyCtaText}>විස්තරය ලියන්න ›</Text>
+          </View>
         </Pressable>
       );
     }
@@ -615,14 +621,15 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, defaultVehi
         {tab === 'service' && (
           <>
         {/* The vehicle comes first, as in the SOS and towing confirmations: the car is chosen before the service is. */}
-        <View style={styles.stepCard}>
+        <View style={[styles.stepCard, styles.vehCard]}>
         <Pressable ref={vehicleRef} style={styles.vehRow} onPress={() => setShowVehiclePicker(true)} accessibilityLabel="Change job vehicle">
-          <SoftIcon emoji="🚗" />
           <View style={styles.flex1}>
             <Text style={styles.vehLabel}>වාහනය</Text>
             {vehicle && <VehicleLine vehicle={vehicle} textStyle={styles.vehTitle} />}
           </View>
-          <Text style={styles.vehLink}>වෙනස් කරන්න</Text>
+          <View style={styles.vehBtn}>
+            <Text style={styles.vehLink}>වෙනස් කරන්න</Text>
+          </View>
         </Pressable>
         </View>
         {renderBuddy()}
@@ -678,11 +685,11 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, defaultVehi
         )}
         {tab === 'details' && (
           <>
-        <StepCard step={2} title="ගැටලුව / සේවාව විස්තර කරන්න" done={problemTold(description, voiceNotes)}>
+        <StepCard step={2} title="ගැටලුව විස්තර කරන්න" done={problemTold(description, voiceNotes)}>
           <TextInput
             style={[styles.textArea, { height: descriptionH }]}
             multiline
-            placeholder="ඔබට අවශ්‍ය සේවාව හෝ ගැටලුව විස්තර කරන්න... (විස්තරයක් නැතිනම් හඬ සටහනක් ප්‍රමාණවත්ය)"
+            placeholder="උදා: බ්‍රේක් තද කරන විට ශබ්දයක් එනවා"
             placeholderTextColor={Colors.textMuted}
             value={description}
             onChangeText={setDescription}
@@ -704,7 +711,7 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, defaultVehi
               </View>
             </View>
           )}
-          <Text style={styles.eyebrow}>ඡායාරූප සහ හඬ සටහන්</Text>
+          <Text style={styles.eyebrow}>හෝ ඡායාරූප / හඬ සටහනක් එක් කරන්න</Text>
           <MediaAttachments photos={photos} voiceNotes={voiceNotes} onPhotos={setPhotos} onVoiceNotes={setVoiceNotes} />
         </StepCard>
 
@@ -795,18 +802,17 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, defaultVehi
 
       <View style={styles.footer}>
         {buddy === 'result' && profile && recommended ? (
-          <ActionButton label="මෙම සේවාව භාවිතා කරන්න" variant="primary" onPress={applyRecommendation} />
+          <FlowButton label="මෙම සේවාව භාවිතා කරන්න" variant="primary" onPress={applyRecommendation} />
         ) : lastTab ? (
-          <ActionButton
+          <FlowButton
             label={isComplete ? 'ඊළඟ: රැකියාව ගරාජ වෙත යොමු කරන්න →' : 'ඉතිරි තොරතුරු සම්පූර්ණ කරන්න ›'}
             variant="primary"
             // Always pressable: with something missing it takes the owner to the first part that still needs filling in.
             onPress={() => (isComplete ? submit() : firstMissing && setTab(firstMissing))}
-            />
+          />
         ) : (
-          <ActionButton
+          <FlowButton
             label={tabDone[tab] ? 'ඊළඟ ›' : tab === 'service' ? 'සේවා අංශයක් තෝරන්න' : 'අවශ්‍ය තොරතුරු පුරවන්න'}
-            icon={tabDone[tab] ? '🔧' : undefined}
             variant="primary"
             disabled={!tabDone[tab]}
             onPress={next}
@@ -858,7 +864,10 @@ const styles = themedStyles(() => StyleSheet.create({
   vehRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   vehLabel: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, letterSpacing: 0.4 },
   vehTitle: { fontSize: 15, fontFamily: FONTS.titleBold, color: Colors.textMain },
-  vehLink: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
+  // The same card as the garage in the booking flows (green edge, soft blue shadow) and the Bids tab's button for the change action.
+  vehCard: { borderRadius: 26, borderColor: 'rgba(16, 185, 129, 0.55)', backgroundColor: getThemeMode() === 'dark' ? Colors.bgCard : '#ffffff', shadowColor: '#1e3a8a', shadowOffset: { width: 0, height: 10 }, shadowOpacity: getThemeMode() === 'dark' ? 0.6 : 0.16, shadowRadius: 22, elevation: 6, paddingHorizontal: 16, paddingVertical: 12 },
+  vehBtn: { height: 40, minWidth: 96, paddingHorizontal: 14, alignItems: 'center', justifyContent: 'center', borderRadius: 20, borderWidth: 1.5, borderColor: '#facc15', backgroundColor: '#dbeafe' },
+  vehLink: { fontSize: 14, fontFamily: FONTS.bodySemiBold, color: '#1e3a8a' },
   container: { flex: 1, backgroundColor: pageBg() },
   postSheet: { flex: 1, marginTop: -24, backgroundColor: pageBg(), borderTopLeftRadius: 28, borderTopRightRadius: 28, overflow: 'hidden', shadowColor: '#3c4043', shadowOffset: { width: 0, height: -2 }, shadowOpacity: 0.14, shadowRadius: 8, elevation: 8 },
   handle: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: Colors.subtleBorder, marginTop: 10 },
@@ -912,13 +921,14 @@ const styles = themedStyles(() => StyleSheet.create({
   changePillText: { fontSize: 12, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
   lessLink: { alignSelf: 'flex-end', paddingVertical: 2 },
   lessLinkText: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
-  stepCard: { backgroundColor: Colors.bgCard, borderRadius: 12, borderWidth: 1, borderColor: outline(), ...elevation1(), padding: 16, gap: 12 },
+  // The Bids tab's card: 26px corners, a light edge and the soft blue shadow.
+  stepCard: { borderRadius: 26, borderWidth: 1, borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#f3f4f6', backgroundColor: getThemeMode() === 'dark' ? Colors.bgCard : '#ffffff', shadowColor: '#1e3a8a', shadowOffset: { width: 0, height: 10 }, shadowOpacity: getThemeMode() === 'dark' ? 0.6 : 0.16, shadowRadius: 22, elevation: 6, paddingHorizontal: 16, paddingVertical: 14, gap: 12 },
   stepHead: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   stepBadge: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.primary },
   stepBadgeDone: { backgroundColor: '#1a73e8' },
   stepBadgeText: { fontSize: 17, fontFamily: FONTS.titleBold, color: '#ffffff' },
   stepBadgeTextDone: { color: '#ffffff', fontSize: 18 },
-  stepTitle: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textMain },
+  stepTitle: { fontSize: 16, fontFamily: FONTS.bodyBold, color: Colors.textMain },
   timerHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
   timerBig: { fontSize: 22, fontFamily: FONTS.titleBold, color: Colors.textMain },
   timerPrompt: { fontSize: 18, color: Colors.textSoft },
@@ -940,10 +950,10 @@ const styles = themedStyles(() => StyleSheet.create({
   // Same heading style as the Home screen's sections.
   sectionLabel: { fontSize: 14, fontFamily: FONTS.bodyBold, color: Colors.primary, letterSpacing: 0.2, marginTop: 6 },
   // A mandatory field: a tinted pill with an asterisk, which turns into a green tick once the step is filled in.
-  requiredPill: { alignSelf: 'flex-start', paddingHorizontal: 9, paddingVertical: 3, borderRadius: 10, backgroundColor: getThemeMode() === 'dark' ? 'rgba(245, 158, 11, 0.16)' : '#fef3c7', borderWidth: 1, borderColor: getThemeMode() === 'dark' ? 'rgba(245, 158, 11, 0.4)' : '#f59e0b' },
-  requiredPillDone: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(59, 130, 246, 0.18)' : '#dbeafe', borderColor: '#1a73e8' },
-  requiredText: { fontSize: 12, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? Colors.warning : '#92400e' },
-  requiredTextDone: { color: getThemeMode() === 'dark' ? '#93c5fd' : '#1d4ed8' },
+  stepTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  // The same amber chip as the booking flow's countdown.
+  requiredPill: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, backgroundColor: 'rgba(245, 158, 11, 0.16)' },
+  requiredText: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: '#b45309' },
   hint: { fontSize: 12, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 18 },
   card: { backgroundColor: Colors.bgCard, borderRadius: 12, borderWidth: 1, borderColor: outline(), ...elevation1(), padding: 16, gap: 12 },
   cardActive: { borderWidth: 1, borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#d2e3fc', backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe' },
@@ -951,12 +961,16 @@ const styles = themedStyles(() => StyleSheet.create({
   cardSub: { fontSize: 12.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 2 },
   link: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
 
-  buddyBanner: { borderRadius: 12, padding: 16, gap: 8, overflow: 'hidden', backgroundColor: '#0369a1' },
-  buddyOpen: { borderColor: 'rgba(56, 189, 248, 0.5)', backgroundColor: 'rgba(14, 165, 233, 0.08)' },
-  buddyEmoji: { fontSize: 22 },
-  buddyTitle: { fontSize: 14, fontFamily: FONTS.bodyBold, color: '#fff', letterSpacing: 0.3 },
-  buddyCta: { alignSelf: 'flex-start', marginTop: 4, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14, overflow: 'hidden', backgroundColor: 'rgba(255, 255, 255, 0.2)', fontSize: 13, fontFamily: FONTS.bodyBold, color: '#fff' },
-  buddySub: { fontSize: 12.5, fontFamily: FONTS.bodyRegular, color: '#ffffff', lineHeight: 19 },
+  // The Bids tab's card: white, 26px corners, a light edge and the soft blue shadow.
+  buddyBanner: { borderRadius: 26, paddingHorizontal: 16, paddingVertical: 14, gap: 10, borderWidth: 1, borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#f3f4f6', backgroundColor: getThemeMode() === 'dark' ? Colors.bgCard : '#ffffff', shadowColor: '#1e3a8a', shadowOffset: { width: 0, height: 10 }, shadowOpacity: getThemeMode() === 'dark' ? 0.6 : 0.16, shadowRadius: 22, elevation: 6 },
+  buddyOpen: { borderRadius: 26, paddingHorizontal: 16, borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#f3f4f6', backgroundColor: getThemeMode() === 'dark' ? Colors.bgCard : '#ffffff', shadowColor: '#1e3a8a', shadowOffset: { width: 0, height: 10 }, shadowOpacity: getThemeMode() === 'dark' ? 0.6 : 0.16, shadowRadius: 22, elevation: 6 },
+  buddyDisc: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? 'rgba(59, 130, 246, 0.18)' : '#dbeafe' },
+  buddyEmoji: { fontSize: 20 },
+  buddyTitle: { fontSize: 15, lineHeight: 19, fontFamily: FONTS.titleBold, color: Colors.textMain },
+  // The same button as the flows' footers: 40px pill, yellow edge, soft blue fill.
+  buddyCta: { alignSelf: 'flex-start', height: 40, paddingHorizontal: 18, alignItems: 'center', justifyContent: 'center', borderRadius: 20, borderWidth: 1.5, borderColor: '#facc15', backgroundColor: '#dbeafe' },
+  buddyCtaText: { fontSize: 14, fontFamily: FONTS.bodySemiBold, color: '#1e3a8a' },
+  buddySub: { fontSize: 13, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 20 },
   pill: { paddingHorizontal: 12, height: 28, justifyContent: 'center', borderRadius: 8, backgroundColor: Colors.subtleFill },
   pillText: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
   buddyField: { position: 'relative', borderWidth: 1.5, borderColor: '#bfdbfe', borderRadius: 14, padding: 10, minHeight: 120, backgroundColor: Colors.bgCard },
@@ -1036,7 +1050,7 @@ const styles = themedStyles(() => StyleSheet.create({
   tileLabel: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain, textAlign: 'center', lineHeight: 16, minHeight: 32 },
   tileLabelActive: { color: Colors.primary, fontFamily: FONTS.bodyBold },
 
-  textArea: { minHeight: 88, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), borderRadius: 8, padding: 16, color: Colors.textMain, fontSize: 14, fontFamily: FONTS.bodyRegular, textAlignVertical: 'top' },
+  textArea: { minHeight: 96, backgroundColor: getThemeMode() === 'dark' ? Colors.bgCard : '#ffffff', borderWidth: 1, borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#f3f4f6', borderRadius: 22, paddingHorizontal: 16, paddingVertical: 12, color: Colors.textMain, fontSize: 14, fontFamily: FONTS.bodyRegular, textAlignVertical: 'top' },
   choiceGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   choice: { width: '48.5%', flexGrow: 1, height: 44, justifyContent: 'center', borderRadius: 8, borderWidth: 1, borderColor: outline(), backgroundColor: Colors.bgCard, alignItems: 'center' },
   choiceActive: { borderWidth: 1, borderColor: '#1d4ed8', backgroundColor: '#1d4ed8' },
@@ -1081,5 +1095,5 @@ const styles = themedStyles(() => StyleSheet.create({
   checkMark: { fontSize: 12, fontWeight: '900', color: Colors.bgDark },
   timerValue: { paddingHorizontal: 12, height: 26, justifyContent: 'center', borderRadius: 8, backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8f0fe' },
   timerValueText: { fontSize: 13, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1a73e8' },
-  footer: { padding: 16, paddingTop: 12, backgroundColor: Colors.bgCard, borderTopWidth: 1, borderTopColor: outline(), shadowColor: '#3c4043', shadowOffset: { width: 0, height: -1 }, shadowOpacity: getThemeMode() === 'dark' ? 0.4 : 0.12, shadowRadius: 3, elevation: 4 },
+  footer: { paddingHorizontal: 8, paddingBottom: 12, paddingTop: 10, backgroundColor: Colors.bgCard, borderTopWidth: 1, borderTopColor: outline(), shadowColor: '#3c4043', shadowOffset: { width: 0, height: -1 }, shadowOpacity: getThemeMode() === 'dark' ? 0.4 : 0.12, shadowRadius: 3, elevation: 4 },
 }));

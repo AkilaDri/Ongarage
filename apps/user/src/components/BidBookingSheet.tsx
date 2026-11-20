@@ -7,6 +7,7 @@ import { BookingSentBox } from './DirectBookingSheet';
 import { slotIsPast, slotTime } from './SlotPicker';
 import { DayStep, TimeStep, dayLabel } from './BidBookingSteps';
 import { GarageHistoryTag } from './GarageHistory';
+import { FlowButton } from './FlowButton';
 import { garageForBid } from './GarageReviewsSheet';
 import { GARAGE_COVERS } from '../constants/home';
 import { useBids } from '../context/BidsContext';
@@ -283,21 +284,6 @@ const ReviewRow: React.FC<{ label: string; value: string; sub?: string; onChange
   </View>
 );
 
-/** The Bids card's button: yellow edge, soft fill, 14px semi-bold label. */
-function FlowButton({ label, icon, variant, disabled, onPress }: { label: string; icon?: string; variant: 'primary' | 'success' | 'ghost'; disabled?: boolean; onPress: () => void }) {
-  return (
-    <Pressable
-      style={[styles.flowBtn, variant === 'success' && styles.flowBtnSuccess, variant === 'ghost' && styles.flowBtnGhost, disabled && styles.flowBtnOff]}
-      disabled={disabled}
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={label}
-    >
-      {!!icon && <Text style={styles.flowBtnText}>{icon}</Text>}
-      <Text style={[styles.flowBtnText, variant === 'success' && styles.flowBtnTextSuccess, variant === 'ghost' && styles.flowBtnTextGhost, disabled && styles.flowBtnTextOff]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>{label}</Text>
-    </Pressable>
-  );
-}
 
 /** The same wording as the Bids card's countdown: hours and minutes left. */
 const leftLabel = (ms: number) => {
@@ -366,14 +352,6 @@ const styles = themedStyles(() =>
     card: { marginTop: 12, padding: 14, borderRadius: 16, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.borderColor, gap: 6 },
     cardTitle: { fontSize: 14, fontFamily: FONTS.titleBold, color: Colors.textMain },
     cardLine: { fontSize: 14, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
-    flowBtn: { height: 40, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6, paddingHorizontal: 10, borderRadius: 20, borderWidth: 1.5, borderColor: '#facc15', backgroundColor: '#dbeafe' },
-    flowBtnSuccess: { backgroundColor: '#bbf7d0' },
-    flowBtnGhost: { backgroundColor: 'transparent' },
-    flowBtnOff: { backgroundColor: '#e5e7eb', borderColor: '#e5e7eb' },
-    flowBtnTextOff: { color: '#6b7280' },
-    flowBtnText: { fontSize: 14, fontFamily: FONTS.bodySemiBold, color: '#1e3a8a' },
-    flowBtnTextSuccess: { color: '#15803d' },
-    flowBtnTextGhost: { color: Colors.textMuted },
     footerRow: { flexDirection: 'row', gap: 10 },
   })
 );

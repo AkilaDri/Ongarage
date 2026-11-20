@@ -23,3 +23,9 @@ See the root `CLAUDE.md` for monorepo commands and repo-wide rules (shared packa
 ## Tab-bar icons
 
 The four tab icons are the designer's artwork in `assets/updated_icons/*.svg`. `scripts/build-nav-icons.cjs` converts them to `src/components/NavIcons.tsx` (generated — don't hand-edit): navy → `ink`, sky blue → `accent`, so they follow the theme and the active/idle state. To change an icon, replace the SVG and run `node apps/user/scripts/build-nav-icons.cjs` from the repo root. `BottomNav` takes an optional `icon` component per item; both colours come from the shared `navIconTones`. The garage app's tab icons (`apps/garage/src/components/NavIcons.tsx`) are hand-drawn in the same two-tone style; the parts and technician apps still pass a `path`.
+
+## Booking and request flows (shared look)
+
+- **Frame:** `components/BookingShell` (blue band with a round ✕ and a pill showing title, step counter and step name; the rounded sheet overlapping it with progress segments; a body with 8px side padding and a 12px rhythm; a footer with 8px side padding). The direct booking form uses it; the bid booking sheet and the quote request keep the same measurements.
+- **Footer buttons:** always `components/FlowButton` (40px pill, yellow `#facc15` edge, soft blue fill, 14px semi-bold navy label; `success` is soft green, `ghost` is clear, disabled is solid grey). "ඊළඟ ›" is the label for the next step, with no icon. Do not use `ActionButton` for a flow's footer.
+- **Headings:** 16px bold, 24px of space above and 14px below, with the amber deadline or "required" chip at the right end of the row.

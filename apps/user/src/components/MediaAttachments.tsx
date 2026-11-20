@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { pickPhotos } from '@ongarage/shared';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { FlowButton } from './FlowButton';
 import { Colors, FONTS, PhotoStrip, themedStyles, VoiceNotePlayer, type VoiceNote } from '@ongarage/shared';
 
 const MAX_PHOTOS = 6;
@@ -16,7 +17,9 @@ export const MediaAttachments: React.FC<{
   voiceNotes: VoiceNote[];
   onPhotos: (p: string[]) => void;
   onVoiceNotes: (v: VoiceNote[]) => void;
-}> = ({ photos, voiceNotes, onPhotos, onVoiceNotes }) => {
+  /** The one-line note under the buttons (on by default; a form that explains it elsewhere turns it off). */
+  hint?: boolean;
+}> = ({ photos, voiceNotes, onPhotos, onVoiceNotes, hint = true }) => {
   const [recording, setRecording] = useState(false);
   const [seconds, setSeconds] = useState(0);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -45,12 +48,29 @@ export const MediaAttachments: React.FC<{
 
   return (
     <View style={styles.wrap}>
-      <PhotoStrip
-        photos={photos}
-        height={84}
-        onAdd={photos.length < MAX_PHOTOS ? () => void pickPhotos(MAX_PHOTOS - photos.length).then((ph) => ph.length && onPhotos([...photos, ...ph])) : undefined}
-        addLabel="ඡායාරූපයක්"
-      />
+      {/* Two equal buttons, the same as the flows' footers: a photo or a voice note (either one is enough to describe the problem). */}
+      <View style={styles.btnRow}>
+        <View style={styles.flex1}>
+          <FlowButton
+            label="ඡායාරූපයක්"
+            icon="📷"
+            variant="primary"
+            disabled={photos.length >= MAX_PHOTOS}
+            onPress={() => void pickPhotos(MAX_PHOTOS - photos.length).then((ph) => ph.length && onPhotos([...photos, ...ph]))}
+          />
+        </View>
+        <View style={styles.flex1}>
+          <FlowButton
+            label={recording ? `⏹ 0:${String(seconds).padStart(2, '0')} / 0:${MAX_VOICE_SEC}` : 'හඬ සටහනක්'}
+            icon={recording ? undefined : '🎙️'}
+            variant={recording ? 'record' : 'primary'}
+            onPress={() => (recording ? stop(seconds) : start())}
+          />
+        </View>
+      </View>
+      {hint && <Text style={styles.hint}>{`ඡායාරූප විකල්පයි · හඬ සටහන තත්පර ${MAX_VOICE_SEC} දක්වා`}</Text>}
+
+      <PhotoStrip photos={photos} height={72} />
       {photos.length > 0 && (
         <Pressable onPress={() => onPhotos(photos.slice(0, -1))} hitSlop={6}>
           <Text style={styles.remove}>අවසන් ඡායාරූපය ඉවත් කරන්න</Text>
@@ -67,15 +87,6 @@ export const MediaAttachments: React.FC<{
           </Pressable>
         </View>
       ))}
-      <Pressable
-        style={({ pressed }) => [styles.record, recording && styles.recording, pressed && { opacity: 0.8 }]}
-        onPress={() => (recording ? stop(seconds) : start())}
-        accessibilityLabel={recording ? 'Stop recording' : 'Record voice note'}
-      >
-        <Text style={[styles.recordText, recording && { color: '#fff' }]}>
-          {recording ? `⏹ නවත්වන්න · 0:${String(seconds).padStart(2, '0')} / 0:${MAX_VOICE_SEC}` : `🎙️ හඬ සටහනක් පටිගත කරන්න (තත්. ${MAX_VOICE_SEC} දක්වා)`}
-        </Text>
-      </Pressable>
     </View>
   );
 };
@@ -83,13 +94,12 @@ export const MediaAttachments: React.FC<{
 const styles = themedStyles(() =>
   StyleSheet.create({
     flex1: { flex: 1 },
-    wrap: { gap: 8 },
-    remove: { fontSize: 10.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
+    wrap: { gap: 10 },
+    remove: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
     voiceRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     removeBtn: { width: 30, height: 30, borderRadius: 15, backgroundColor: Colors.subtleFill, borderWidth: 1, borderColor: Colors.borderColor, justifyContent: 'center', alignItems: 'center' },
     removeText: { fontSize: 11, color: Colors.textMuted },
-    record: { paddingVertical: 12, paddingHorizontal: 14, borderRadius: 14, borderWidth: 1, borderColor: 'rgba(239, 68, 68, 0.45)', backgroundColor: 'rgba(239, 68, 68, 0.08)', alignItems: 'center' },
-    recording: { backgroundColor: '#ef4444', borderColor: '#ef4444' },
-    recordText: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.errorText },
+    btnRow: { flexDirection: 'row', gap: 10 },
+    hint: { fontSize: 12.5, lineHeight: 18, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
   })
 );

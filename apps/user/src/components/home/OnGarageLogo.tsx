@@ -1,4 +1,5 @@
 import React from 'react';
+import { View } from 'react-native';
 import { SvgXml } from 'react-native-svg';
 
 // The OnGarage logo (Ongarage_logo.svg), drawn as SVG so it stays sharp at any size.
@@ -29,5 +30,13 @@ const LOGO_XML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 744 243.9
   </g>
 </svg>`;
 
-/** The OnGarage logo, sized by the caller (the viewBox keeps its proportions). */
-export const OnGarageLogo: React.FC<{ width: number; height: number }> = ({ width, height }) => <SvgXml xml={LOGO_XML} width={width} height={height} accessibilityLabel="OnGarage" />;
+/**
+ * The OnGarage logo, sized by the caller (the viewBox keeps its proportions). With `optical`, it is nudged right so the logo's visual weight, not its box, sits on the
+ * centre line: the big yellow G and the white "on" are heavy on the left, so measured by its ink (against the blue splash) the centre of mass is 35 of 744 units
+ * left of the middle of the box. Use it where the logo is centred on the screen; a logo that sits at one side keeps its box.
+ */
+export const OnGarageLogo: React.FC<{ width: number; height: number; optical?: boolean }> = ({ width, height, optical }) => (
+  <View style={optical ? { transform: [{ translateX: width * 0.047 }] } : undefined}>
+    <SvgXml xml={LOGO_XML} width={width} height={height} accessibilityLabel="OnGarage" />
+  </View>
+);
