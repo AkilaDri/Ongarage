@@ -121,7 +121,12 @@ export const Sheet: React.FC<{
               {headerRight}
             </View>
           )}
-          {hero || fullScreen ? null : (
+          {!hero && !fullScreen && !title && !subtitle && (
+            <Pressable style={[styles.closeBtn, { position: 'absolute', top: 8, right: 14, zIndex: 2 }]} onPress={onClose} hitSlop={8} accessibilityLabel="Close sheet">
+              <Text style={styles.closeText}>✕</Text>
+            </Pressable>
+          )}
+          {hero || fullScreen || (!title && !subtitle) ? null : (
             <View style={[styles.headerRow, webNoPan]}>
               <View style={styles.flex1}>
                 <Text style={styles.title}>{title}</Text>

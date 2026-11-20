@@ -5,6 +5,8 @@ import { Colors, FONTS, getThemeMode, themedStyles } from '@ongarage/shared';
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const WEEK = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+const MONTHS_SI = ['ජනවාරි', 'පෙබරවාරි', 'මාර්තු', 'අප්‍රේල්', 'මැයි', 'ජූනි', 'ජූලි', 'අගෝස්තු', 'සැප්තැම්බර්', 'ඔක්තෝබර්', 'නොවැම්බර්', 'දෙසැම්බර්'];
+const WEEK_SI = ['ඉ', 'ස', 'අ', 'බ', 'බ්‍ර', 'සි', 'සෙ'];
 const DAY_MS = 24 * 60 * 60 * 1000;
 const midnight = (t: number | Date) => {
   const d = new Date(t);
@@ -17,7 +19,7 @@ type Pick = { selected: number; maxDays: number; onPick: (offset: number) => voi
  * The month grid itself: round month arrows, the weekday letters and the days, today with a dot under it and the chosen day on a soft round marker. Today up to
  * `maxDays` ahead can be picked; earlier and later days are faded. The day comes back as the number of days from today (0 = today), the way the booking form keeps it.
  */
-export const CalendarBody: React.FC<Pick & { visible?: boolean; compact?: boolean }> = ({ selected, maxDays, onPick, visible = true, compact }) => {
+export const CalendarBody: React.FC<Pick & { visible?: boolean; compact?: boolean; /** Sinhala names, 44px targets, no panel: the booking flow's sheet. */ plain?: boolean }> = ({ selected, maxDays, onPick, visible = true, compact, plain }) => {
   const today = midnight(Date.now());
   const dayAt = (offset: number) => new Date(today + offset * DAY_MS);
   const monthOf = (offset: number) => {
@@ -52,22 +54,22 @@ export const CalendarBody: React.FC<Pick & { visible?: boolean; compact?: boolea
 
   return (
     <View>
-      <View style={styles.monthRow}>
+      <View style={[styles.monthRow, plain && styles.monthRowPlain]}>
         <Text style={styles.month}>
-          {MONTHS[month.getMonth()]} <Text style={styles.year}>{month.getFullYear()}</Text>
+          {(plain ? MONTHS_SI : MONTHS)[month.getMonth()]} <Text style={styles.year}>{month.getFullYear()}</Text>
         </Text>
         <View style={styles.arrows}>
-          <Pressable style={[styles.arrow, !canBack && styles.arrowOff]} disabled={!canBack} onPress={() => setMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1))} accessibilityLabel="Previous month">
+          <Pressable style={[styles.arrow, plain && styles.arrowBig, !canBack && styles.arrowOff]} disabled={!canBack} onPress={() => setMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1))} accessibilityLabel="Previous month">
             <Text style={styles.arrowText}>‹</Text>
           </Pressable>
-          <Pressable style={[styles.arrow, !canNext && styles.arrowOff]} disabled={!canNext} onPress={() => setMonth(new Date(month.getFullYear(), month.getMonth() + 1, 1))} accessibilityLabel="Next month">
+          <Pressable style={[styles.arrow, plain && styles.arrowBig, !canNext && styles.arrowOff]} disabled={!canNext} onPress={() => setMonth(new Date(month.getFullYear(), month.getMonth() + 1, 1))} accessibilityLabel="Next month">
             <Text style={styles.arrowText}>›</Text>
           </Pressable>
         </View>
       </View>
 
       <View style={styles.week}>
-        {WEEK.map((w, i) => (
+        {(plain ? WEEK_SI : WEEK).map((w, i) => (
           <Text key={i} style={styles.weekText}>
             {w}
           </Text>
@@ -75,15 +77,15 @@ export const CalendarBody: React.FC<Pick & { visible?: boolean; compact?: boolea
       </View>
       <View style={styles.grid}>
         {cells.map((d, i) => {
-          if (!d) return <View key={i} style={[styles.cell, compact && styles.cellSmall]} />;
+          if (!d) return <View key={i} style={[styles.cell, compact && !plain && styles.cellSmall]} />;
           const offset = Math.round((midnight(d) - today) / DAY_MS);
           const ok = offset >= 0 && offset <= maxDays;
           const on = offset === selected;
           const isToday = offset === 0;
           return (
-            <Pressable key={i} style={[styles.cell, compact && styles.cellSmall]} disabled={!ok} onPress={() => onPick(offset)} accessibilityLabel={`Pick ${d.toDateString()}`} accessibilityState={{ selected: on, disabled: !ok }}>
-              <View style={[styles.day, compact && styles.daySmall, on && styles.dayOn]}>
-                <Text style={[styles.dayText, compact && styles.dayTextSmall, !ok && styles.dayTextOff, isToday && !on && styles.dayTextToday, on && styles.dayTextOn]}>{d.getDate()}</Text>
+            <Pressable key={i} style={[styles.cell, compact && !plain && styles.cellSmall]} disabled={!ok} onPress={() => onPick(offset)} accessibilityLabel={`Pick ${d.toDateString()}`} accessibilityState={{ selected: on, disabled: !ok }}>
+              <View style={[styles.day, compact && !plain && styles.daySmall, on && styles.dayOn]}>
+                <Text style={[styles.dayText, compact && !plain && styles.dayTextSmall, !ok && styles.dayTextOff, isToday && !on && styles.dayTextToday, on && styles.dayTextOn]}>{d.getDate()}</Text>
                 {isToday && <View style={[styles.todayDot, on && styles.todayDotOn]} />}
               </View>
             </Pressable>
@@ -104,7 +106,13 @@ export const chosenDayText = (selected: number, maxDays: number) => {
  * The calendar open on the page itself (the booking form's "when" tab has the room): the chosen day in big letters, quick pills for today / tomorrow / next
  * week, and the month grid under them. Picking a day just changes it; nothing closes.
  */
-export const InlineCalendar: React.FC<Pick> = ({ selected, maxDays, onPick }) => (
+export const InlineCalendar: React.FC<Pick & { plain?: boolean }> = ({ selected, maxDays, onPick, plain }) =>
+  plain ? (
+    <View style={styles.plainWrap} accessibilityLabel="Calendar">
+      <CalendarBody compact plain selected={selected} maxDays={maxDays} onPick={onPick} />
+      <Text style={styles.limit}>දින {maxDays} ක් ඉදිරියට වෙන් කළ හැක</Text>
+    </View>
+  ) : (
   <View style={styles.inline} accessibilityLabel="Calendar">
     <Text style={styles.chosenInline}>{chosenDayText(selected, maxDays)}</Text>
     <View style={styles.quickInline}>
@@ -171,6 +179,10 @@ const styles = themedStyles(() =>
     year: { fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
     arrows: { flexDirection: 'row', gap: 8 },
     arrow: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.subtleFill },
+    monthRowPlain: { paddingRight: 52, marginTop: 4, marginBottom: 8 },
+    arrowBig: { width: 44, height: 44, borderRadius: 22 },
+    limit: { textAlign: 'center', fontSize: 12, lineHeight: 18, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 8 },
+    plainWrap: { paddingHorizontal: 4, paddingBottom: 8 },
     arrowOff: { opacity: 0.3 },
     arrowText: { fontSize: 22, color: Colors.textMain, marginTop: -3 },
     week: { flexDirection: 'row', marginBottom: 2 },

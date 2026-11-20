@@ -1,19 +1,22 @@
 import React, { useEffect, useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ActionButton, categoryInfo, Colors, FONTS, GlassIcon, getThemeMode, themedStyles } from '@ongarage/shared';
+import { categoryInfo, Colors, FONTS, getThemeMode, LEVELS, MoneyText, themedStyles } from '@ongarage/shared';
 import { outline, pageBg } from '../utils/material';
 import { BookingSentBox } from './DirectBookingSheet';
 import { slotIsPast, slotTime } from './SlotPicker';
-import { DayStep, TimeStep, WhereStep, dayLabel } from './BidBookingSteps';
+import { DayStep, TimeStep, dayLabel } from './BidBookingSteps';
+import { GarageHistoryTag } from './GarageHistory';
+import { garageForBid } from './GarageReviewsSheet';
+import { GARAGE_COVERS } from '../constants/home';
 import { useBids } from '../context/BidsContext';
 import { formatDate, formatTime, money } from '../utils/format';
 
 const HOUR = 60 * 60 * 1000;
-// Picking a time is three questions and a check, one per step (counted like the quote request's 1/4 … 4/4); after it is sent the sheet only shows where the booking stands.
-const PICK_STEPS = ['දිනය', 'වේලාව', 'ස්ථානය', 'පරීක්ෂා කර යවන්න'] as const;
-type Phase = 'day' | 'time' | 'where' | 'review';
-const PHASES: Phase[] = ['day', 'time', 'where', 'review'];
+// Picking a time is two questions and a check, one per step (counted like the quote request's 1/3 … 3/3); where the work is done was already decided when the job was posted, so it is not asked again. After it is sent the sheet only shows where the booking stands.
+const PICK_STEPS = ['දිනය', 'වේලාව', 'පරීක්ෂා කර යවන්න'] as const;
+type Phase = 'day' | 'time' | 'review';
+const PHASES: Phase[] = ['day', 'time', 'review'];
 
 /**
  * After the owner accepts a quote: book a time with that garage. The price is agreed, so the owner only picks a day and a time; the garage
@@ -54,6 +57,7 @@ export const BidBookingSheet: React.FC<{ jobId: string | null; onClose: () => vo
   }, [bookingStatus, bookingAttempts]);
 
   const ready = !!job && !!bid && !!booking;
+  const leftMs = booking ? booking.chooseBy - Date.now() : 0;
   const preferredAt = slotTime(day ?? 1, hour ?? 10);
   const past = day === null || hour === null || slotIsPast(preferredAt);
   const when = (t: number) => `${formatDate(t)} ${formatTime(t)}`;
@@ -67,18 +71,25 @@ export const BidBookingSheet: React.FC<{ jobId: string | null; onClose: () => vo
     if (hour !== null && slotIsPast(slotTime(d, hour))) setHour(null);
   };
 
+  const deadlineChip = (
+    <View style={[styles.deadline, leftMs < HOUR && styles.deadlineRed]} accessibilityLabel="Time left to choose">
+                    <Text style={[styles.deadlineText, leftMs < HOUR && styles.deadlineTextRed]}>{leftMs <= 0 ? '⏱ කාලය ඉක්මවා ඇත' : `⏱️ ${leftLabel(leftMs)} ඉතිරියි`}</Text>
+                  </View>
+  );
+
   let footer: React.ReactNode = null;
   if (ready && booking) {
     if (booking.status === 'choosing') {
       if (phase === 'day')
-        footer = <ActionButton label={day === null ? 'දිනයක් තෝරන්න' : 'ඊළඟ ›'} variant="primary" disabled={day === null} onPress={() => setPhase('time')} />;
+        footer = (
+          <FlowButton label={day === null ? 'දිනයක් තෝරන්න' : 'ඊළඟ ›'} variant="primary" disabled={day === null} onPress={() => setPhase('time')} />
+        );
       else if (phase === 'time')
-        footer = <ActionButton label={hour === null ? 'වේලාවක් තෝරන්න' : 'ඊළඟ ›'} variant="primary" disabled={hour === null || past} onPress={() => setPhase('where')} />;
-      else if (phase === 'where') footer = <ActionButton label="ඊළඟ ›" variant="primary" onPress={() => setPhase('review')} />;
+        footer = <FlowButton label={hour === null ? 'වේලාවක් තෝරන්න' : 'ඊළඟ ›'} variant="primary" disabled={hour === null || past} onPress={() => setPhase('review')} />;
       else
         footer = (
           <View style={styles.sendBox}>
-            <ActionButton
+            <FlowButton
               label="වේලාව ඉල්ලන්න"
               icon="📅"
               variant="primary"
@@ -95,10 +106,10 @@ export const BidBookingSheet: React.FC<{ jobId: string | null; onClose: () => vo
       footer = (
         <View style={styles.footerRow}>
           <View style={styles.flex1}>
-            <ActionButton label="වෙනත් වේලාවක්" variant="ghost" onPress={() => declineSlotProposal(job.id)} />
+            <FlowButton label="වෙනත් වේලාවක්" variant="ghost" onPress={() => declineSlotProposal(job.id)} />
           </View>
           <View style={styles.flex1}>
-            <ActionButton
+            <FlowButton
               label="පිළිගන්න"
               icon="✓"
               variant="success"
@@ -110,9 +121,9 @@ export const BidBookingSheet: React.FC<{ jobId: string | null; onClose: () => vo
         </View>
       );
     } else if (booking.status === 'confirmed') {
-      footer = <ActionButton label="ක්‍රියාකාරකම් බලන්න" icon="⏱️" variant="success" onPress={onViewActivity} />;
+      footer = <FlowButton label="ක්‍රියාකාරකම් බලන්න" icon="⏱️" variant="success" onPress={onViewActivity} />;
     } else {
-      footer = <ActionButton label="වසන්න" variant="ghost" onPress={onClose} />;
+      footer = <FlowButton label="වසන්න" variant="ghost" onPress={onClose} />;
     }
   }
 
@@ -156,32 +167,53 @@ export const BidBookingSheet: React.FC<{ jobId: string | null; onClose: () => vo
               <>
                 {/* The garage and the agreed price: nothing to ask again, the owner only picks a time. */}
                 <View style={styles.garage}>
-                  <GlassIcon emoji="🛠️" small />
-                  <View style={styles.flex1}>
-                    <Text style={styles.name} numberOfLines={1}>{bid.garageName}</Text>
-                    <Text style={styles.sub} numberOfLines={1}>{categoryInfo(job.categoryId).name} · එකඟ වූ මිල {money(bid.price)}</Text>
+                  <View style={styles.garageTop}>
+                    <Image source={GARAGE_COVERS[garageForBid(bid).id]} style={styles.avatar} accessibilityLabel={`${bid.garageName} photo`} />
+                    <View style={styles.flex1}>
+                      <View style={styles.nameRow}>
+                        <Text style={[styles.name, styles.nameText]}>
+                          {bid.garageName}
+                          {bid.level ? <Text>{` ${LEVELS.find((l) => l.id === bid.level)?.icon}`}</Text> : null}
+                        </Text>
+                        <GarageHistoryTag garage={garageForBid(bid)} part="tag" />
+                      </View>
+                      <Text style={styles.rating} numberOfLines={1}>
+                        <Text style={styles.stars}>{'★'.repeat(Math.round(bid.rating))}{'☆'.repeat(5 - Math.round(bid.rating))}</Text> {bid.rating.toFixed(1)} ({bid.reviews}) · {categoryInfo(job.categoryId).name}
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={styles.priceRow}>
+                    <Text style={styles.priceLabel}>එකඟ වූ මිල</Text>
+                    <MoneyText icon style={styles.priceValue}>{money(bid.price)}</MoneyText>
                   </View>
                 </View>
-
+                {/* The real limit, up front: the bid reopens if no time is chosen by then (amber, red under an hour). */}
                 {booking.status === 'choosing' && (
                   <>
                     {!!booking.attempts && <Text style={styles.warn}>පෙර වේලාව ගැළපුණේ නැත. වෙනත් වේලාවක් තෝරන්න.</Text>}
                     {phase === 'day' && (
                       <>
-                        <DayStep day={day} onDay={pickDay} />
-                        <Text style={styles.hint}>මිල තහවුරුයි. පැය {Math.max(1, Math.ceil((booking.chooseBy - Date.now()) / HOUR))} ඇතුළත වේලාවක් තෝරන්න; නැතිනම් ලංසුව නැවත විවෘත වේ.</Text>
+                        <DayStep
+                          day={day}
+                          onDay={pickDay}
+                          headerRight={booking.status === 'choosing' ? deadlineChip : undefined}
+                          onSoonest={(d, h) => {
+                            setDay(d);
+                            setHour(h);
+                            setPhase('review');
+                          }}
+                        />
                       </>
                     )}
-                    {phase === 'time' && day !== null && <TimeStep day={day} hour={hour} onHour={setHour} />}
-                    {phase === 'where' && <WhereStep doorstep={doorstep} onDoorstep={setDoorstep} />}
+                    {phase === 'time' && day !== null && <TimeStep day={day} hour={hour} onHour={setHour} onChangeDay={() => setPhase('day')} headerRight={deadlineChip} />}
                     {phase === 'review' && day !== null && hour !== null && (
                       <>
-                        <Text style={styles.question}>පරීක්ෂා කර යවන්න</Text>
+                        <Text style={[styles.question, styles.headTop]}>පරීක්ෂා කර යවන්න</Text>
                         {past && <Text style={styles.warn}>මෙම වේලාව ඉක්මවා ඇත. දිනය හෝ වේලාව වෙනස් කරන්න.</Text>}
                         <View style={styles.review}>
                           <ReviewRow label="ගරාජය" value={bid.garageName} sub={`එකඟ වූ මිල ${money(bid.price)}`} />
                           <ReviewRow label="දිනය සහ වේලාව" value={`${dayLabel(day)} · ${formatTime(preferredAt)}`} onChange={() => setPhase('day')} />
-                          <ReviewRow label="ස්ථානය" value={doorstep ? 'ගරාජය මා වෙත පැමිණේ' : 'මම වාහනය ගරාජයට ගෙන යමි'} onChange={() => setPhase('where')} last />
+                          <ReviewRow label="ස්ථානය" value={doorstep ? 'ගරාජය මා වෙත පැමිණේ' : 'මම වාහනය ගරාජයට ගෙන යමි'} last />
                         </View>
                       </>
                     )}
@@ -251,13 +283,49 @@ const ReviewRow: React.FC<{ label: string; value: string; sub?: string; onChange
   </View>
 );
 
+/** The Bids card's button: yellow edge, soft fill, 14px semi-bold label. */
+function FlowButton({ label, icon, variant, disabled, onPress }: { label: string; icon?: string; variant: 'primary' | 'success' | 'ghost'; disabled?: boolean; onPress: () => void }) {
+  return (
+    <Pressable
+      style={[styles.flowBtn, variant === 'success' && styles.flowBtnSuccess, variant === 'ghost' && styles.flowBtnGhost, disabled && styles.flowBtnOff]}
+      disabled={disabled}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+    >
+      {!!icon && <Text style={styles.flowBtnText}>{icon}</Text>}
+      <Text style={[styles.flowBtnText, variant === 'success' && styles.flowBtnTextSuccess, variant === 'ghost' && styles.flowBtnTextGhost, disabled && styles.flowBtnTextOff]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>{label}</Text>
+    </Pressable>
+  );
+}
+
+/** The same wording as the Bids card's countdown: hours and minutes left. */
+const leftLabel = (ms: number) => {
+  const h = Math.floor(ms / HOUR);
+  const m = Math.floor((ms % HOUR) / 60000);
+  return h > 0 ? `පැය ${h} ක් ${m} මිනි.` : `මිනි. ${m}`;
+};
+
 const doorstepText = (doorstep: boolean) => (doorstep ? 'නියමිත වේලාවට ගරාජය ඔබ වෙත පැමිණේ.' : 'නියමිත වේලාවට වාහනය ගරාජයට ගෙන යන්න.');
 
 const styles = themedStyles(() =>
   StyleSheet.create({
     flex1: { flex: 1 },
-    garage: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: 16, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.borderColor },
-    name: { fontSize: 14.5, fontFamily: FONTS.titleBold, color: Colors.textMain },
+    garage: { borderRadius: 26, borderWidth: 1, borderColor: 'rgba(16, 185, 129, 0.55)', backgroundColor: getThemeMode() === 'dark' ? Colors.bgCard : '#ffffff', shadowColor: '#1e3a8a', shadowOffset: { width: 0, height: 10 }, shadowOpacity: getThemeMode() === 'dark' ? 0.6 : 0.16, shadowRadius: 22, elevation: 6 },
+    name: { fontSize: 15, lineHeight: 19, fontFamily: FONTS.titleBold, color: Colors.textMain },
+    avatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: Colors.subtleFill },
+    nameRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6 },
+    nameText: { flexShrink: 1 },
+    rating: { fontSize: 12, lineHeight: 16, fontFamily: FONTS.bodyMedium, color: Colors.textMain, marginTop: 1 },
+    stars: { color: '#f5a623', letterSpacing: 1 },
+    garageTop: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 8 },
+    priceRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginHorizontal: 16, marginBottom: 6, paddingVertical: 8, borderTopWidth: 1, borderTopColor: Colors.borderColor },
+    priceLabel: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
+    priceValue: { fontSize: 22, lineHeight: 28, fontFamily: FONTS.titleBold, color: Colors.success },
+    deadline: { alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, backgroundColor: 'rgba(245,158,11,0.16)' },
+    deadlineRed: { backgroundColor: 'rgba(239,68,68,0.14)' },
+    deadlineText: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: '#b45309' },
+    deadlineTextRed: { color: '#b91c1c' },
     sub: { fontSize: 12, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 2 },
     container: { flex: 1, backgroundColor: pageBg() },
     header: { flexDirection: 'column', alignItems: 'stretch', gap: 10, paddingHorizontal: 16, paddingVertical: 9, overflow: 'hidden', paddingTop: 12, paddingBottom: 68, backgroundColor: '#1d367f' },
@@ -273,15 +341,17 @@ const styles = themedStyles(() =>
     topPillCount: { fontSize: 10.5, fontFamily: FONTS.bodyBold, color: '#1d4ed8', paddingHorizontal: 7, paddingVertical: 1, borderRadius: 8, overflow: 'hidden', backgroundColor: '#dbeafe' },
     topPillSub: { flexShrink: 1, fontSize: 12, fontFamily: FONTS.bodyRegular, color: Colors.textSoft },
     postSheet: { flex: 1, marginTop: -24, backgroundColor: pageBg(), borderTopLeftRadius: 28, borderTopRightRadius: 28, overflow: 'hidden', shadowColor: '#3c4043', shadowOffset: { width: 0, height: -2 }, shadowOpacity: 0.14, shadowRadius: 8, elevation: 8 },
-    progressWrap: { gap: 6, paddingHorizontal: 4, marginTop: 14, marginBottom: 8 },
+    progressWrap: { gap: 6, paddingHorizontal: 8, marginTop: 14, marginBottom: 8 },
     progressRow: { flexDirection: 'row', gap: 6 },
     progressSeg: { flex: 1, paddingVertical: 6 },
     progressBar: { height: 6, borderRadius: 3, backgroundColor: Colors.subtleBorder },
     progressBarOn: { backgroundColor: '#1a73e8' },
-    body: { paddingHorizontal: 6, paddingTop: 10, gap: 14, paddingBottom: 20 },
-    footer: { padding: 16, paddingTop: 12, backgroundColor: Colors.bgCard, borderTopWidth: 1, borderTopColor: outline(), shadowColor: '#3c4043', shadowOffset: { width: 0, height: -1 }, shadowOpacity: getThemeMode() === 'dark' ? 0.4 : 0.12, shadowRadius: 3, elevation: 4 },
-    question: { fontSize: 18, lineHeight: 26, fontFamily: FONTS.titleBold, color: Colors.textMain, marginTop: 6 },
-    review: { borderRadius: 22, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: '#f3f4f6', paddingHorizontal: 16 },
+    body: { paddingHorizontal: 8, paddingTop: 10, gap: 12, paddingBottom: 24 },
+    footer: { paddingHorizontal: 8, paddingBottom: 12, paddingTop: 10, backgroundColor: Colors.bgCard, borderTopWidth: 1, borderTopColor: outline(), shadowColor: '#3c4043', shadowOffset: { width: 0, height: -1 }, shadowOpacity: getThemeMode() === 'dark' ? 0.4 : 0.12, shadowRadius: 3, elevation: 4 },
+    question: { fontSize: 16, fontFamily: FONTS.bodyBold, color: Colors.textMain },
+    headRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+    headTop: { marginTop: 12, marginBottom: 2 },
+    review: { borderRadius: 26, borderWidth: 1, borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#f3f4f6', backgroundColor: getThemeMode() === 'dark' ? Colors.bgCard : '#ffffff', paddingHorizontal: 16, shadowColor: '#1e3a8a', shadowOffset: { width: 0, height: 10 }, shadowOpacity: getThemeMode() === 'dark' ? 0.6 : 0.16, shadowRadius: 22, elevation: 6 },
     reviewRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14 },
     reviewRowLine: { borderBottomWidth: 1, borderBottomColor: Colors.subtleBorder },
     reviewLabel: { fontSize: 12.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
@@ -296,6 +366,14 @@ const styles = themedStyles(() =>
     card: { marginTop: 12, padding: 14, borderRadius: 16, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.borderColor, gap: 6 },
     cardTitle: { fontSize: 14, fontFamily: FONTS.titleBold, color: Colors.textMain },
     cardLine: { fontSize: 14, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
+    flowBtn: { height: 40, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6, paddingHorizontal: 10, borderRadius: 20, borderWidth: 1.5, borderColor: '#facc15', backgroundColor: '#dbeafe' },
+    flowBtnSuccess: { backgroundColor: '#bbf7d0' },
+    flowBtnGhost: { backgroundColor: 'transparent' },
+    flowBtnOff: { backgroundColor: '#e5e7eb', borderColor: '#e5e7eb' },
+    flowBtnTextOff: { color: '#6b7280' },
+    flowBtnText: { fontSize: 14, fontFamily: FONTS.bodySemiBold, color: '#1e3a8a' },
+    flowBtnTextSuccess: { color: '#15803d' },
+    flowBtnTextGhost: { color: Colors.textMuted },
     footerRow: { flexDirection: 'row', gap: 10 },
   })
 );

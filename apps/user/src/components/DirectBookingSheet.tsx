@@ -78,8 +78,8 @@ const sentStyles = themedStyles(() =>
     actions: { flexDirection: 'row', gap: 10, marginTop: 8, width: '100%' },
     close: { position: 'absolute', top: 12, right: 12, width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? 'rgba(255, 255, 255, 0.1)' : '#eef1f5' },
     closeText: { fontSize: 13, color: Colors.textMain, fontFamily: FONTS.bodyBold },
-    main: { flex: 1, alignItems: 'center', paddingVertical: 12, borderRadius: 22, backgroundColor: '#1e3a8a' },
-    mainText: { fontSize: 13.5, fontFamily: FONTS.bodyBold, color: '#ffffff' },
+    main: { flex: 1, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 20, borderWidth: 1.5, borderColor: '#facc15', backgroundColor: '#dbeafe' },
+    mainText: { fontSize: 14, fontFamily: FONTS.bodySemiBold, color: '#1e3a8a' },
   })
 );
 

@@ -470,8 +470,8 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
           </Pressable>
           {isAccepted ? (
             job.booking && job.booking.status !== 'confirmed' ? (
-              <Pressable style={[styles.fbAction, styles.fbActionAccept]} onPress={() => onPickTime(job.id)} accessibilityRole="button" accessibilityLabel="Pick a time with the garage">
-                <Text style={[styles.fbActionText, styles.fbActionPrimary]}>{job.booking.status === 'choosing' ? '📅 වේලාව තෝරන්න' : job.booking.status === 'proposed' ? '🕘 යෝජිත වේලාව' : '⏳ පිළිතුර බලන්න'}</Text>
+              <Pressable style={[styles.fbAction, styles.fbActionAccept, styles.fbActionWide]} onPress={() => onPickTime(job.id)} accessibilityRole="button" accessibilityLabel="Pick a time with the garage">
+                <Text style={[styles.fbActionText, styles.fbActionPrimary]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>{job.booking.status === 'choosing' ? '📅 වේලාව තෝරන්න' : job.booking.status === 'proposed' ? '🕘 යෝජිත වේලාව' : '⏳ පිළිතුර බලන්න'}</Text>
               </Pressable>
             ) : (
               <View style={[styles.fbAction, styles.fbActionDone]}>
@@ -1347,6 +1347,8 @@ const styles = themedStyles(() => StyleSheet.create({
   fbAction: { flex: 1, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 8, borderWidth: 1.5, borderColor: '#facc15' },
   fbActionText: { fontSize: 14, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
   fbActionPrimary: { color: '#1e3a8a' },
+  // The booking button's label is longer than the other two ("වේලාව තෝරන්න"): it takes more of the row, the other two stay as wide as before, and the label stays on one line.
+  fbActionWide: { flex: 1.5, paddingHorizontal: 6 },
   fbActionAccept: { backgroundColor: '#dbeafe', borderRadius: 20 },
   fbActionDone: { backgroundColor: '#fde68a', borderRadius: 20 },
   fbActionLowest: { backgroundColor: '#bbf7d0' },
