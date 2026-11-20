@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { pickPhotos } from '@ongarage/shared';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { FlowButton } from './FlowButton';
-import { Colors, FONTS, PhotoStrip, themedStyles, VoiceNotePlayer, type VoiceNote } from '@ongarage/shared';
+import { Colors, FONTS, themedStyles, VoiceNotePlayer, type VoiceNote } from '@ongarage/shared';
 
 const MAX_PHOTOS = 6;
 const MAX_VOICE_SEC = 30;
@@ -21,6 +21,7 @@ export const MediaAttachments: React.FC<{
   hint?: boolean;
 }> = ({ photos, voiceNotes, onPhotos, onVoiceNotes, hint = true }) => {
   const [recording, setRecording] = useState(false);
+  const [open, setOpen] = useState<number | null>(null);
   const [seconds, setSeconds] = useState(0);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -70,12 +71,26 @@ export const MediaAttachments: React.FC<{
       </View>
       {hint && <Text style={styles.hint}>{`ඡායාරූප විකල්පයි · හඬ සටහන තත්පර ${MAX_VOICE_SEC} දක්වා`}</Text>}
 
-      <PhotoStrip photos={photos} height={72} />
+      {/* Each photo carries its own ✕ (remove that one), and tapping the photo opens it larger. */}
       {photos.length > 0 && (
-        <Pressable onPress={() => onPhotos(photos.slice(0, -1))} hitSlop={6}>
-          <Text style={styles.remove}>අවසන් ඡායාරූපය ඉවත් කරන්න</Text>
-        </Pressable>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.thumbs}>
+          {photos.map((uri, i) => (
+            <View key={uri + i} style={styles.thumbWrap}>
+              <Pressable onPress={() => setOpen(i)} accessibilityLabel={`Photo ${i + 1}, open`}>
+                <Image source={{ uri }} style={styles.thumb} resizeMode="cover" />
+              </Pressable>
+              <Pressable style={styles.thumbX} onPress={() => onPhotos(photos.filter((_, k) => k !== i))} hitSlop={8} accessibilityLabel={`Remove photo ${i + 1}`}>
+                <Text style={styles.thumbXText}>✕</Text>
+              </Pressable>
+            </View>
+          ))}
+        </ScrollView>
       )}
+      <Modal visible={open !== null} transparent animationType="fade" onRequestClose={() => setOpen(null)}>
+        <Pressable style={styles.lightbox} onPress={() => setOpen(null)} accessibilityLabel="Close photo">
+          {open !== null && !!photos[open] && <Image source={{ uri: photos[open] }} style={styles.full} resizeMode="contain" />}
+        </Pressable>
+      </Modal>
 
       {voiceNotes.map((n, i) => (
         <View key={n.id} style={styles.voiceRow}>
@@ -95,7 +110,13 @@ const styles = themedStyles(() =>
   StyleSheet.create({
     flex1: { flex: 1 },
     wrap: { gap: 10 },
-    remove: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
+    thumbs: { gap: 10, paddingTop: 8, paddingRight: 8 },
+    thumbWrap: { width: 88, height: 72 },
+    thumb: { width: 88, height: 72, borderRadius: 14, backgroundColor: Colors.subtleFill },
+    thumbX: { position: 'absolute', top: -8, right: -8, width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: '#1e3a8a', borderWidth: 2, borderColor: '#ffffff' },
+    thumbXText: { fontSize: 11, lineHeight: 14, fontFamily: FONTS.bodyBold, color: '#ffffff' },
+    lightbox: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0, 0, 0, 0.9)' },
+    full: { width: '100%', height: '80%' },
     voiceRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     removeBtn: { width: 30, height: 30, borderRadius: 15, backgroundColor: Colors.subtleFill, borderWidth: 1, borderColor: Colors.borderColor, justifyContent: 'center', alignItems: 'center' },
     removeText: { fontSize: 11, color: Colors.textMuted },

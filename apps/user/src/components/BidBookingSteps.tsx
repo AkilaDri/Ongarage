@@ -42,7 +42,14 @@ export const DayStep: React.FC<{ day: number | null; onDay: (day: number) => voi
   return (
     <>
       <View style={[styles.headRow, styles.headTop]}>
-        <Text style={styles.question}>කවදා ද?</Text>
+        <View style={styles.titleWithTick}>
+          {day !== null && (
+            <View style={styles.stepBadge}>
+              <Text style={styles.stepBadgeText}>✓</Text>
+            </View>
+          )}
+          <Text style={styles.question}>කවදා ද?</Text>
+        </View>
         {headerRight}
       </View>
       {!!first && !!onSoonest && (
@@ -96,7 +103,14 @@ const DayCard: React.FC<{ offset: number; on: boolean; onPress: () => void }> = 
 export const TimeStep: React.FC<{ day: number; hour: number | null; onHour: (hour: number) => void; onChangeDay?: () => void; /** Sits at the right of the heading (the deadline). */ headerRight?: React.ReactNode }> = ({ day, hour, onHour, onChangeDay, headerRight }) => (
   <>
     <View style={[styles.headRow, styles.headTop]}>
-      <Text style={styles.question}>කීයට ද?</Text>
+      <View style={styles.titleWithTick}>
+        {hour !== null && (
+          <View style={styles.stepBadge}>
+            <Text style={styles.stepBadgeText}>✓</Text>
+          </View>
+        )}
+        <Text style={styles.question}>කීයට ද?</Text>
+      </View>
       {headerRight}
     </View>
     <View style={styles.headRow}>
@@ -165,6 +179,9 @@ const styles = themedStyles(() =>
     dayNum: { fontSize: 24, lineHeight: 30, fontFamily: FONTS.titleBold, color: Colors.textMain },
     dayMonth: { fontSize: 12, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
     headRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+    titleWithTick: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 },
+    stepBadge: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: '#1a73e8' },
+    stepBadgeText: { fontSize: 18, fontFamily: FONTS.titleBold, color: '#ffffff' },
     headTop: { marginTop: 12, marginBottom: 2 },
     calLink: { minHeight: 32, justifyContent: 'center' },
     calLinkText: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: '#1e3a8a' },

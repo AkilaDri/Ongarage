@@ -2,6 +2,7 @@ import { CategoryStrip, shortCategoryName } from '../components/home/CategoryStr
 import { VehicleLine } from '@ongarage/shared';
 import { elevation1, outline, pageBg } from '../utils/material';
 import { FlowButton } from '../components/FlowButton';
+import { FlowSummary } from '../components/FlowSummary';
 import { jobDescription, problemTold } from '../utils/jobText';
 import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Animated, Easing, Modal, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, TextStyle, View } from 'react-native';
@@ -788,13 +789,15 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, defaultVehi
         </StepCard>
 
         {/* The whole job at a glance before it is posted: the owner checks it once. */}
-        <View style={styles.reviewCard}>
-          <Text style={styles.reviewTitle}>ඔබේ රැකියාව</Text>
-          <ReviewRow label="සේවාව" value={(categoryId && shortCategoryName(categoryId)) || '—'} />
-          <ReviewRow label="වාහනය" value={vehicle ? `${vehicle.name} · ${vehicle.registrationNo || vehicle.plate}` : '—'} />
-          <ReviewRow label="කොටස" value={sparePart ? SPARE_PARTS.find((p) => p.id === sparePart)?.label ?? '—' : fitting ? 'සවි කිරීම' : '—'} />
-          <ReviewRow label="ලංසු කාලය" value={biddingHours === null ? '—' : `පැය ${biddingHours}`} />
-        </View>
+        <FlowSummary
+          title="ඔබේ රැකියාව"
+          rows={[
+            { label: 'සේවාව', value: (categoryId && shortCategoryName(categoryId)) || '—' },
+            { label: 'වාහනය', value: vehicle ? `${vehicle.name} · ${vehicle.registrationNo || vehicle.plate}` : '—' },
+            { label: 'කොටස', value: sparePart ? SPARE_PARTS.find((p) => p.id === sparePart)?.label ?? '—' : fitting ? 'සවි කිරීම' : '—' },
+            { label: 'ලංසු කාලය', value: biddingHours === null ? '—' : `පැය ${biddingHours}` },
+          ]}
+        />
           </>
         )}
       </ScrollView>

@@ -25,6 +25,8 @@ import { elevation1, outline } from '../utils/material';
 import { BookingShell } from './BookingShell';
 import { FlowButton } from './FlowButton';
 import { FlowField } from './FlowField';
+import { FlowVehicleCard } from './FlowVehicleCard';
+import { FlowSummary } from './FlowSummary';
 import { DayStep, TimeStep } from './BidBookingSteps';
 import { GARAGE_COVERS } from '../constants/home';
 import { garageCategoryIds, garageTickedSubs } from '../constants/garageSubServices';
@@ -107,8 +109,8 @@ export const DirectBookingSheet: React.FC<{ garage: Garage | null; categoryId?: 
   const [vehicleId, setVehicleId] = useState(defaultVehicleId);
   // Nothing is preselected: the owner picks the day, then the time.
   const [day, setDay] = useState<number | null>(null);
-  // The form is five steps, filled in this order: the service, the details, the vehicle, the day, then the time and where.
-  const [tab, setTab] = useState<'service' | 'details' | 'vehicle' | 'day' | 'time'>('service');
+  // The form is five steps, filled in this order: the vehicle (an owner with several says first which one it is for), the service, the details, the day, then the time and where.
+  const [tab, setTab] = useState<'service' | 'details' | 'day' | 'time'>('service');
   const [hour, setHour] = useState<number | null>(null);
   const [doorstep, setDoorstep] = useState(false);
   const [description, setDescription] = useState('');
@@ -170,12 +172,12 @@ export const DirectBookingSheet: React.FC<{ garage: Garage | null; categoryId?: 
   const detailsOk = problemTold(description, voiceNotes, 5) && (!fitting || fitPart.trim().length > 0);
   const valid = detailsOk && !slotPast;
 
-  const ORDER = ['service', 'details', 'vehicle', 'day', 'time'] as const;
-  const STEP_NAMES = ['සේවාව', 'විස්තර', 'වාහනය', 'දිනය', 'වේලාව'] as const;
+  const ORDER = ['service', 'details', 'day', 'time'] as const;
+  const STEP_NAMES = ['සේවාව සහ වාහනය', 'විස්තර', 'දිනය', 'වේලාව'] as const;
   const tabIndex = ORDER.indexOf(tab);
   const lastTab = tabIndex === ORDER.length - 1;
   // A step's own requirement for moving on.
-  const tabOk = tab === 'service' ? picked : tab === 'details' ? detailsOk : tab === 'vehicle' ? !!vehicleId : tab === 'day' ? day !== null : tab === 'time' ? !slotPast : true;
+  const tabOk = tab === 'service' ? picked : tab === 'details' ? detailsOk : tab === 'day' ? day !== null : tab === 'time' ? !slotPast : true;
   // What a disabled button says is missing, so it never just looks broken.
   const missingLabel = tab === 'service' ? 'සේවා අංශයක් තෝරන්න' : tab === 'details' ? (fitting && fitPart.trim().length === 0 ? 'කොටස ලියන්න' : 'ගැටලුව විස්තර කරන්න') : tab === 'day' ? 'දිනයක් තෝරන්න' : 'වේලාවක් තෝරන්න';
   const next = () => setTab(ORDER[Math.min(ORDER.length - 1, tabIndex + 1)]);
@@ -232,6 +234,9 @@ export const DirectBookingSheet: React.FC<{ garage: Garage | null; categoryId?: 
       )}
 
       {tab === 'service' && (
+        <>
+        {/* The vehicle comes first (an owner with several says which one it is for), then the service. */}
+        <FlowVehicleCard vehicleId={vehicleId} onChange={setVehicleId} />
         <View style={styles.stepCard}>
           {/* The same card as the quote request's service step: a tick, the title with its count, then the tiles in four columns with "+N more". */}
           <View style={styles.stepHead}>
@@ -277,6 +282,7 @@ export const DirectBookingSheet: React.FC<{ garage: Garage | null; categoryId?: 
             </>
           )}
         </View>
+        </>
       )}
 
       {tab === 'details' && (
@@ -303,7 +309,14 @@ export const DirectBookingSheet: React.FC<{ garage: Garage | null; categoryId?: 
           )}
 
           <View style={[styles.headRow]}>
-            <Text style={styles.question}>ගැටලුව විස්තර කරන්න</Text>
+            <View style={styles.titleWithTick}>
+              {problemTold(description, voiceNotes, 5) && (
+                <View style={styles.stepBadge}>
+                  <Text style={styles.stepBadgeText}>✓</Text>
+                </View>
+              )}
+              <Text style={styles.question}>ගැටලුව විස්තර කරන්න</Text>
+            </View>
             {!problemTold(description, voiceNotes, 5) && (
               <View style={styles.requiredPill} accessibilityLabel="Required">
                 <Text style={styles.requiredText}>අත්‍යවශ්‍යයි</Text>
@@ -333,13 +346,6 @@ export const DirectBookingSheet: React.FC<{ garage: Garage | null; categoryId?: 
         </>
       )}
 
-      {tab === 'vehicle' && (
-        <>
-          <Text style={[styles.question, styles.headTop]}>ඔබේ වාහනය</Text>
-          <VehicleOptions value={vehicleId} onChange={setVehicleId} />
-        </>
-      )}
-
       {tab === 'day' && (
         <DayStep
           day={day}
@@ -364,6 +370,18 @@ export const DirectBookingSheet: React.FC<{ garage: Garage | null; categoryId?: 
               <Text style={[styles.placeText, doorstep && styles.placeTextOn]}>🚛 ගරාජය මා වෙත පැමිණේ</Text>
             </Pressable>
           </View>
+
+          {/* The whole request at a glance before it is sent: the owner checks it once. */}
+          <FlowSummary
+            title="ඔබේ වෙන්කිරීම"
+            rows={[
+              { label: 'ගරාජය', value: shown.name },
+              { label: 'සේවාව', value: service ? `${cat.name} · ${service}` : cat.name },
+              { label: 'වාහනය', value: vehicles.find((v) => v.id === vehicleId)?.name ?? '—' },
+              { label: 'දිනය සහ වේලාව', value: hour === null ? '—' : `${formatDate(preferredAt)} · ${formatTime(preferredAt)}` },
+              { label: 'ස්ථානය', value: doorstep ? 'ගරාජය මා වෙත පැමිණේ' : 'මම වාහනය ගරාජයට ගෙන යමි' },
+            ]}
+          />
         </>
       )}
     </BookingShell>
@@ -450,6 +468,7 @@ const styles = themedStyles(() =>
       fontFamily: FONTS.bodyRegular,
       textAlignVertical: 'top',
     },
+    titleWithTick: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 },
     headRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
     fieldShort: { minHeight: 52 },
     suggest: { padding: 10, borderRadius: 12, backgroundColor: 'rgba(56, 189, 248, 0.1)', borderWidth: 1, borderColor: 'rgba(56, 189, 248, 0.4)' },
