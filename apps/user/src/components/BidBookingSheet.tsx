@@ -1,9 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { categoryInfo, Colors, FONTS, getThemeMode, LEVELS, MoneyText, themedStyles } from '@ongarage/shared';
+import { categoryInfo, Colors, FONTS, getThemeMode, LEVELS, MoneyText, themedStyles, type PickedLocation } from '@ongarage/shared';
+import { useVehicles } from '../context/VehiclesContext';
 import { outline, pageBg } from '../utils/material';
 import { BookingSentBox } from './DirectBookingSheet';
+import { BookingShell } from './BookingShell';
+import { FlowSummary } from './FlowSummary';
+import { SOSMapPickerScreen } from '../screens/SOSMapPickerScreen';
 import { slotIsPast, slotTime } from './SlotPicker';
 import { DayStep, TimeStep, dayLabel } from './BidBookingSteps';
 import { GarageHistoryTag } from './GarageHistory';
@@ -26,6 +30,7 @@ const PHASES: Phase[] = ['day', 'time', 'review'];
  */
 export const BidBookingSheet: React.FC<{ jobId: string | null; onClose: () => void; onViewActivity: () => void }> = ({ jobId, onClose, onViewActivity }) => {
   const { jobs, requestBidSlot, acceptSlotProposal, declineSlotProposal } = useBids();
+  const { findVehicle } = useVehicles();
   const job = jobs.find((j) => j.id === jobId);
   const bid = job?.bids.find((b) => b.id === job.acceptedBidId);
   const booking = job?.booking;
@@ -34,6 +39,9 @@ export const BidBookingSheet: React.FC<{ jobId: string | null; onClose: () => vo
   const [hour, setHour] = useState<number | null>(null);
   const [phase, setPhase] = useState<Phase>('day');
   const [doorstep, setDoorstep] = useState(false);
+  // Where the car is, when the garage comes to the owner (picked on a map).
+  const [homeLoc, setHomeLoc] = useState<PickedLocation | null>(null);
+  const [mapOpen, setMapOpen] = useState(false);
   const [sent, setSent] = useState(false);
 
   // A new job starts the picker again.
@@ -129,44 +137,35 @@ export const BidBookingSheet: React.FC<{ jobId: string | null; onClose: () => vo
   }
 
   return (
-    <Modal visible={ready} animationType="slide" onRequestClose={onClose}>
-      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-        {/* The same top bar as the quote request: a round close button and a pill with the title, the step counter and the step's name. */}
-        <View style={styles.header}>
-          <View style={styles.topRow}>
-            <Pressable style={styles.topRoundBtn} onPress={onClose} accessibilityLabel="Close">
-              <Text style={styles.topRoundText}>✕</Text>
-            </Pressable>
-            <View style={styles.topPill}>
-              <View style={styles.topPillIcon}>
-                <Text style={styles.topPillEmoji}>📅</Text>
-              </View>
-              <View style={styles.flex1}>
-                <Text style={styles.topPillTitle} numberOfLines={1}>Ongarage වෙන්කිරීම</Text>
-                <View style={styles.topPillRow}>
-                  <Text style={styles.topPillCount}>{choosing ? `${step}/${PHASES.length}` : '✓'}</Text>
-                  <Text style={styles.topPillSub} numberOfLines={1}>{choosing ? PICK_STEPS[phaseIndex] : statusLabel}</Text>
-                </View>
-              </View>
-            </View>
-            <View style={styles.topSlot} />
-          </View>
-        </View>
-
-        <View style={styles.postSheet}>
-          <View style={styles.progressWrap}>
-            <View style={styles.progressRow} accessibilityLabel={choosing ? `Step ${step} of ${PHASES.length}` : statusLabel}>
-              {PHASES.map((ph, i) => (
-                <Pressable key={ph} style={styles.progressSeg} disabled={!choosing || i >= phaseIndex} onPress={() => setPhase(ph)} accessibilityLabel={PICK_STEPS[i]}>
-                  <View style={[styles.progressBar, (!choosing || i <= phaseIndex) && styles.progressBarOn]} />
-                </Pressable>
-              ))}
-            </View>
-          </View>
-          <ScrollView style={styles.flex1} contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+    <BookingShell
+      visible={ready}
+      title="Ongarage වෙන්කිරීම"
+      icon="📅"
+      steps={PICK_STEPS}
+      step={choosing ? phaseIndex : PICK_STEPS.length - 1}
+      onStep={choosing ? (i) => setPhase(PHASES[i]) : undefined}
+      onClose={onClose}
+      footer={footer}
+      overlay={
+        <BookingSentBox
+          visible={sent}
+          garageName={bid?.garageName ?? ''}
+          when={when(preferredAt)}
+          onViewActivity={() => {
+            setSent(false);
+            onViewActivity();
+          }}
+          onClose={() => {
+            setSent(false);
+            onClose();
+          }}
+        />
+      }
+    >
+          <View style={styles.body}>
             {ready && job && bid && booking && (
               <>
-                {/* The garage and the agreed price: nothing to ask again, the owner only picks a time. */}
+                {/* The garage and the agreed price: nothing to ask again, the owner only picks a time (not on the summary step). */}
                 <View style={styles.garage}>
                   <View style={styles.garageTop}>
                     <Image source={GARAGE_COVERS[garageForBid(bid).id]} style={styles.avatar} accessibilityLabel={`${bid.garageName} photo`} />
@@ -207,15 +206,27 @@ export const BidBookingSheet: React.FC<{ jobId: string | null; onClose: () => vo
                       </>
                     )}
                     {phase === 'time' && day !== null && <TimeStep day={day} hour={hour} onHour={setHour} onChangeDay={() => setPhase('day')} headerRight={deadlineChip} />}
+                    {phase === 'time' && doorstep && (
+                      <Pressable onPress={() => setMapOpen(true)} accessibilityLabel="Pick my location on the map" style={{ marginTop: 10, paddingHorizontal: 14, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: '#1e3a8a', backgroundColor: '#eff6ff' }}>
+                        <Text style={{ fontFamily: FONTS.bodyBold, color: '#1e3a8a', fontSize: 14 }}>📍 {homeLoc ? homeLoc.address : 'ඔබේ ස්ථානය map එකෙන් තෝරන්න'}</Text>
+                      </Pressable>
+                    )}
                     {phase === 'review' && day !== null && hour !== null && (
                       <>
-                        <Text style={[styles.question, styles.headTop]}>පරීක්ෂා කර යවන්න</Text>
                         {past && <Text style={styles.warn}>මෙම වේලාව ඉක්මවා ඇත. දිනය හෝ වේලාව වෙනස් කරන්න.</Text>}
-                        <View style={styles.review}>
-                          <ReviewRow label="ගරාජය" value={bid.garageName} sub={`එකඟ වූ මිල ${money(bid.price)}`} />
-                          <ReviewRow label="දිනය සහ වේලාව" value={`${dayLabel(day)} · ${formatTime(preferredAt)}`} onChange={() => setPhase('day')} />
-                          <ReviewRow label="ස්ථානය" value={doorstep ? 'ගරාජය මා වෙත පැමිණේ' : 'මම වාහනය ගරාජයට ගෙන යමි'} last />
-                        </View>
+                        <FlowSummary
+                          title="ඔබේ වෙන්කිරීම"
+                          rows={[
+                            { label: 'ගරාජයේ ලිපිනය', value: `📍 ${garageForBid(bid).address}` },
+                            { label: 'සේවාව', value: categoryInfo(job.categoryId).name, half: true },
+                            { label: 'වාහනය', value: findVehicle(job.vehicleId).name, half: true },
+                            { label: 'දිනය සහ වේලාව', value: `${dayLabel(day)} · ${formatTime(preferredAt)}` },
+                            { label: 'ගැටලුව / විස්තරය', value: `${job.description?.trim() || '—'}\n📷 ඡායාරූප ${job.photos?.length ?? 0} · 🎙 හඬ සටහන් ${job.voiceNotes?.length ?? 0}`, lines: 3 },
+                            ...(job.fitting ? [{ label: 'සවි කළ යුතු කොටස', value: job.fitting.partName || '—' }] : []),
+                            { label: 'ස්ථානය', value: doorstep ? 'ගරාජය මා වෙත පැමිණේ' : 'මම වාහනය ගරාජයට ගෙන යමි' },
+                            ...(doorstep ? [{ label: 'ඔබේ ස්ථානය', value: homeLoc ? `📍 ${homeLoc.address}` : 'තවම තෝරා නැත' }] : []),
+                          ]}
+                        />
                       </>
                     )}
                   </>
@@ -246,26 +257,21 @@ export const BidBookingSheet: React.FC<{ jobId: string | null; onClose: () => vo
                 )}
               </>
             )}
-          </ScrollView>
-        </View>
-
-        <View style={styles.footer}>{footer}</View>
-
-        <BookingSentBox
-          visible={sent}
-          garageName={bid?.garageName ?? ''}
-          when={when(preferredAt)}
-          onViewActivity={() => {
-            setSent(false);
-            onViewActivity();
-          }}
-          onClose={() => {
-            setSent(false);
-            onClose();
-          }}
-        />
-      </SafeAreaView>
-    </Modal>
+          </View>
+      <Modal visible={mapOpen} animationType="fade" statusBarTranslucent onRequestClose={() => setMapOpen(false)}>
+        {mapOpen && (
+          <SOSMapPickerScreen
+            initialLocation={homeLoc}
+            title="ඔබ සිටින ස්ථානය"
+            pinLabel="මෙතන"
+            confirmLabel="ස්ථානය තහවුරු කරන්න"
+            accent={{ color: '#1e3a8a', stops: [{ offset: '0', color: '#2748a8' }, { offset: '1', color: '#1e3a8a' }] }}
+            onConfirm={(loc) => { setHomeLoc(loc); setMapOpen(false); }}
+            onClose={() => setMapOpen(false)}
+          />
+        )}
+      </Modal>
+    </BookingShell>
   );
 };
 
@@ -319,7 +325,7 @@ const styles = themedStyles(() =>
     topRoundBtn: { width: 46, height: 46, borderRadius: 23, backgroundColor: Colors.bgCard, justifyContent: 'center', alignItems: 'center' },
     topRoundText: { fontSize: 16, fontWeight: '700', color: Colors.textMain },
     topSlot: { width: 46 },
-    topPill: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, height: 52, paddingLeft: 6, paddingRight: 16, borderRadius: 26, backgroundColor: Colors.bgCard },
+    topPill: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, height: 52, marginLeft: 4, paddingLeft: 6, paddingRight: 16, borderRadius: 26, backgroundColor: Colors.bgCard },
     topPillIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: getThemeMode() === 'dark' ? 'rgba(59, 130, 246, 0.18)' : '#dbeafe', justifyContent: 'center', alignItems: 'center' },
     topPillEmoji: { fontSize: 18 },
     topPillTitle: { fontSize: 13.5, fontFamily: FONTS.titleBold, color: Colors.textMain },
@@ -337,7 +343,7 @@ const styles = themedStyles(() =>
     question: { fontSize: 16, fontFamily: FONTS.bodyBold, color: Colors.textMain },
     headRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
     headTop: { marginTop: 12, marginBottom: 2 },
-    review: { borderRadius: 26, borderWidth: 1, borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#f3f4f6', backgroundColor: getThemeMode() === 'dark' ? Colors.bgCard : '#ffffff', paddingHorizontal: 16, shadowColor: '#1e3a8a', shadowOffset: { width: 0, height: 10 }, shadowOpacity: getThemeMode() === 'dark' ? 0.6 : 0.16, shadowRadius: 22, elevation: 6 },
+    review: { borderRadius: 26, borderWidth: 1, borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#f3f4f6', backgroundColor: getThemeMode() === 'dark' ? Colors.bgCard : '#f1f3f4', paddingHorizontal: 16, shadowColor: '#1e3a8a', shadowOffset: { width: 0, height: 10 }, shadowOpacity: getThemeMode() === 'dark' ? 0.6 : 0.16, shadowRadius: 22, elevation: 6 },
     reviewRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14 },
     reviewRowLine: { borderBottomWidth: 1, borderBottomColor: Colors.subtleBorder },
     reviewLabel: { fontSize: 12.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },

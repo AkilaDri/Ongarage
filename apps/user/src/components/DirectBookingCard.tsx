@@ -50,7 +50,7 @@ export const DirectBookingCard: React.FC<{ booking: DirectBooking; onBookAgain: 
   const media = [b.photos.length && `📷 ${b.photos.length}`, b.voiceNotes.length && `🎙️ ${b.voiceNotes.length}`].filter(Boolean).join('  ');
 
   return (
-    <View style={[styles.card, { borderWidth: 1, borderColor: '#10b981' }, b.status === 'confirmed' && styles.confirmed, b.status === 'proposed' && styles.proposed, (ended || cancelledJob) && styles.ended, finishedJob && !cancelledJob && styles.done]}>
+    <View style={[styles.card, { borderWidth: 1, borderColor: '#dbeafe' }, b.status === 'confirmed' && styles.confirmed, b.status === 'proposed' && styles.proposed, (ended || cancelledJob) && styles.ended, finishedJob && !cancelledJob && styles.done]}>
       {/* Laid out like a Facebook post (the same as the garage app's cards): the picture, the garage and its tag, the date, the price with three dots; the vehicle line and the subject under. */}
       <PostHead
         bleed={13}
@@ -190,8 +190,8 @@ const styles = themedStyles(() =>
     actions: { flexDirection: 'row', gap: 8 },
     card: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), borderRadius: 12, padding: 16, gap: 12, ...elevation1() },
     // A state that needs the owner's eye keeps a coloured outline in either theme.
-    confirmed: { borderWidth: 1, borderColor: 'rgba(16, 185, 129, 0.5)' },
-    proposed: { borderWidth: 1, borderColor: 'rgba(245, 158, 11, 0.55)' },
+    confirmed: { borderWidth: 1, borderColor: '#dbeafe' },
+    proposed: { borderWidth: 1, borderColor: '#dbeafe' },
     ended: { opacity: 0.7 },
     // A finished job: a tighter card.
     done: { padding: 16, gap: 12 },

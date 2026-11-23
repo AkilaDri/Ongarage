@@ -1,7 +1,8 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { FONTS, getThemeMode, themedStyles } from '@ongarage/shared';
+import { FONTS, getThemeMode, LkPlate, themedStyles } from '@ongarage/shared';
 import { useUserLocation } from '../../context/LocationContext';
+import { useVehicles } from '../../context/VehiclesContext';
 import { HEADER_BAND_H } from '../Header';
 import WeatherAnimation, { periodOf, skyInk, useHour } from '../WeatherAnimation';
 
@@ -11,6 +12,7 @@ import WeatherAnimation, { periodOf, skyInk, useHour } from '../WeatherAnimation
  */
 export const MartHeader: React.FC = () => {
   const { locality } = useUserLocation();
+  const { activeVehicle } = useVehicles();
 
   const hour = useHour();
   const ink = skyInk(periodOf(hour));
@@ -29,6 +31,8 @@ export const MartHeader: React.FC = () => {
           <Text style={[styles.sub, { color: '#e8e2d0' }]} numberOfLines={1}>
             📍 {locality}
           </Text>
+          {!!activeVehicle?.plate && <View style={{ alignSelf: 'flex-start', marginTop: 4 }}><LkPlate plate={activeVehicle.plate} small fontSize={11} /></View>}
+          {!!activeVehicle?.plate && <View style={{ alignSelf: 'flex-start', marginTop: 4 }}><LkPlate plate={activeVehicle.plate} small fontSize={11} /></View>}
         </View>
       </View>
 

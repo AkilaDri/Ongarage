@@ -10,7 +10,7 @@ const when = (t: number) => `${formatDate(t)} ${formatTime(t)}`;
 export const bookingStatusText = (booking?: JobBooking): string | undefined => {
   if (!booking || booking.status === 'confirmed') return undefined;
   if (booking.status === 'choosing') return 'වේලාවක් තෝරන්න';
-  if (booking.status === 'requested') return 'ගරාජයේ පිළිතුර බලාපොරොත්තුවෙන්';
+  if (booking.status === 'requested') return 'බලාපොරොත්තුවෙන්';
   return 'වේලාවක් යෝජනා කළා';
 };
 

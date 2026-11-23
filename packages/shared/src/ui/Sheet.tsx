@@ -19,6 +19,10 @@ export const Sheet: React.FC<{
   overlay?: React.ReactNode;
   /** A header that takes the place of the handle and the title row (a cover photo and its close button, say). */
   hero?: React.ReactNode;
+  /** A hero sheet that is always full height (the garage profile), instead of growing to it only when the body scrolls. */
+  heroFull?: boolean;
+  /** Tells the caller when a hero sheet's body has been scrolled down (true) or is back at the top (false). */
+  onHeroScrolled?: (scrolledDown: boolean) => void;
   /** Tighter spacing between the blocks under the hero. */
   compact?: boolean;
   /** With `compact`: more room between the blocks of the body (a long profile that should not look packed). */
@@ -44,7 +48,7 @@ export const Sheet: React.FC<{
   /** The colour behind the sheet instead of the usual dark dim (it fades in with the sheet and dissolves when it closes). */
   backdropColor?: string;
   children: React.ReactNode;
-}> = ({ visible, title, subtitle, onClose, footer, overlay, hero, compact, roomy, noDividers, fullScreen, bare, headerRight, titleIcon, scrollToTopKey, topInset, heroSticky, scrollTarget, backdropColor, children }) => {
+}> = ({ visible, title, subtitle, onClose, footer, overlay, hero, compact, roomy, noDividers, fullScreen, bare, headerRight, titleIcon, scrollToTopKey, topInset, heroSticky, scrollTarget, backdropColor, heroFull, onHeroScrolled, children }) => {
   const { height: windowH } = useWindowDimensions();
   const bodyRef = useRef<ScrollView>(null);
   useEffect(() => {
@@ -106,7 +110,7 @@ export const Sheet: React.FC<{
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
       </Animated.View>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.anchor} pointerEvents="box-none">
-        <Animated.View style={[styles.sheet, topInset && !fullScreen ? { maxHeight: Math.max(240, windowH - topInset) } : null, hero ? styles.sheetHero : null, hero && full ? [styles.sheetFull, { maxHeight: windowH - (topInset ?? 76), height: windowH - (topInset ?? 76) }] : null, fullScreen ? styles.sheetScreen : null, { transform: [{ translateY: slide.interpolate({ inputRange: [0, 1], outputRange: [700, 0] }) }, { translateY: dragY }] }]} {...(fullScreen ? {} : pan.panHandlers)}>
+        <Animated.View style={[styles.sheet, topInset && !fullScreen ? { maxHeight: Math.max(240, windowH - topInset) } : null, hero ? styles.sheetHero : null, hero && (full || heroFull) ? [styles.sheetFull, { maxHeight: windowH - (topInset ?? 76), height: windowH - (topInset ?? 76) }] : null, fullScreen ? styles.sheetScreen : null, { transform: [{ translateY: slide.interpolate({ inputRange: [0, 1], outputRange: [700, 0] }) }, { translateY: dragY }] }]} {...(fullScreen ? {} : pan.panHandlers)}>
           {hero || fullScreen ? null : <View style={[styles.handle, webNoPan]} />}
           {fullScreen && (
             <View style={styles.appBar}>
@@ -142,7 +146,11 @@ export const Sheet: React.FC<{
           ) : (
           <ScrollView ref={bodyRef} style={[fullScreen ? styles.flex1 : null, webNoBounce]} scrollEventThrottle={16} onScroll={(e) => {
             scrollY.current = e.nativeEvent.contentOffset.y;
-            if (hero) setFull(e.nativeEvent.contentOffset.y > 24);
+            if (hero) {
+              const scrolledDown = e.nativeEvent.contentOffset.y > 24;
+              setFull(scrolledDown);
+              onHeroScrolled?.(scrolledDown);
+            }
           }} keyboardShouldPersistTaps="handled" contentContainerStyle={hero ? styles.bodyHero : styles.body} showsVerticalScrollIndicator={false} stickyHeaderIndices={hero && heroSticky ? [1] : undefined}>
             {hero}
             {hero && heroSticky ? heroSticky : null}

@@ -4,7 +4,7 @@ import { Colors, getThemeMode, themedStyles } from '@ongarage/shared';
 import { FONTS } from '@ongarage/shared';
 import { useProfile } from '../context/ProfileContext';
 import { useVehicles } from '../context/VehiclesContext';
-import { VehicleIcon3D } from '@ongarage/shared';
+import { LkPlate, VehicleIcon3D } from '@ongarage/shared';
 import { Gradient, GRADIENTS } from '@ongarage/shared';
 import WeatherAnimation, { periodOf, skyInk, useHour } from './WeatherAnimation';
 import { MOCK_USER } from '../constants/mockData';
@@ -237,6 +237,7 @@ export const TitleBand: React.FC<{ title: string; action?: { label: string; onPr
 /** Home's header band. `children` sits under the greeting (the active-vehicle chip). */
 export const Header: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
   const { firstName } = useProfile();
+  const { activeVehicle } = useVehicles();
 
   const hour = useHour();
   const period = periodOf(hour);
@@ -254,6 +255,12 @@ export const Header: React.FC<{ children?: React.ReactNode }> = ({ children }) =
             <Text style={[styles.greeting, night ? styles.greetingNight : evening ? styles.greetingEvening : styles.greetingDay]}>{greetingFor(hour)}</Text>
           </Text>
           {children && <View style={styles.headerChild}>{children}</View>}
+          {/* The active vehicle's registration number, as a plate tag under the greeting. */}
+          {!!activeVehicle?.plate && (
+            <View style={styles.plateTag} accessibilityLabel={`Active vehicle ${activeVehicle.plate}`}>
+              <LkPlate plate={activeVehicle.plate} small fontSize={12} />
+            </View>
+          )}
         </View>
       </View>
 
@@ -296,6 +303,7 @@ const styles = themedStyles(() => StyleSheet.create({
   titleBand: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, paddingHorizontal: 18, paddingTop: 14, paddingBottom: 34, minHeight: HEADER_BAND_H, overflow: 'hidden', backgroundColor: getThemeMode() === 'dark' ? '#0e2a3f' : '#bfe4fa' },
   titleBandText: { fontSize: 20, fontFamily: FONTS.titleBold, color: getThemeMode() === 'dark' ? '#d6eefc' : '#0f2a3d' },
   city: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: getThemeMode() === 'dark' ? '#8fc3e3' : '#2b4a63', marginBottom: 2 },
+  plateTag: { alignSelf: 'flex-start', marginTop: 6 },
   // Above the sky: the sun, clouds and birds drift behind the greeting, never over it.
   greetingRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 6, position: 'relative' },
   greetingText: { gap: 1, flex: 1 },

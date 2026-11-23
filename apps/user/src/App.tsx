@@ -24,7 +24,7 @@ setCardCorner(22);
 setAppTone({ header: { bg: '#1e3a8a', title: '#ffffff', sub: '#dbe4f5' }, navInk: '#1e3a8a', navAccent: '#facc15' });
 // The owner app's page is white and its cards are the light grey (the other apps keep grey pages with white cards).
 setAppPalette({ light: { bgBody: '#f8fafc', sheetBg: '#f8fafc', bgCard: '#ffffff', primary: '#1e3a8a', primaryLight: '#60a5fa' } });
-import { VehiclesProvider } from './context/VehiclesContext';
+import { VehiclesProvider, useVehicles } from './context/VehiclesContext';
 import { OwnerMartNav, OwnerNav } from './components/OwnerNav';
 import { setMartOpener, setShopOpener } from './utils/martBridge';
 import { setFittingOpener } from './utils/fittingBridge';
@@ -324,7 +324,8 @@ function AppShell() {
   useEffect(() => {
     if (sosStatus.needsAction) setSosHidden(false);
   }, [sosStatus.needsAction]);
-  const [selectedVehicle, setSelectedVehicle] = useState('premio');
+  // The active vehicle is the shared one (the Home header, Bids, Activity and the quick booking all follow it).
+  const { activeVehicleId: selectedVehicle, setActiveVehicleId: setSelectedVehicle } = useVehicles();
   const [selectedService, setSelectedService] = useState<ServiceCategory | null>(null);
   // A suggested job from Home ("Oil Change") opens its category with that sub-service picked.
   const [selectedSubName, setSelectedSubName] = useState<string | undefined>(undefined);

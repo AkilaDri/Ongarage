@@ -12,6 +12,7 @@ import { FONTS } from '@ongarage/shared';
 
 import { SERVICE_CATEGORIES } from '@ongarage/shared';
 import { useVehicles } from '../context/VehiclesContext';
+import { VehicleChip } from '../components/VehicleChip';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { bookingStatusText } from '../components/BidBookingStatus';
 import { FilterChips, Icon, ClipboardLineIcon, ReceiptLineIcon, ScheduleLineIcon, SegmentTabs } from '@ongarage/shared';
@@ -111,7 +112,7 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
   const [bidSort, setBidSort] = useState<BidSort>('price');
   const { jobs, acceptBid, removeBid, removeJob, postJob } = useBids();
   const { workshops } = useWorkshops();
-  const { findVehicle } = useVehicles();
+  const { findVehicle, activeVehicle } = useVehicles();
   const user = useUserLocation();
   const [now, setNow] = useState(Date.now());
   // A waiting or expired job the owner is about to delete (asked first).
@@ -449,7 +450,10 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
                 <BidSum work={bidWork(bid)} travel={bid.travelFee} total={bid.price} />
               </>
             ) : (
-              <MoneyText icon style={styles.fbPrice}>{lkr(bid.price)}</MoneyText>
+              <View style={styles.priceRow}>
+                <Text style={styles.priceLabel}>මුළු ගාස්තුව</Text>
+                <MoneyText icon style={styles.fbPrice}>{lkr(bid.price)}</MoneyText>
+              </View>
             )}
           </View>
           <Text style={styles.fbText}>
@@ -583,10 +587,10 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
       {received.length === 0 ? (
         <EmptyState icon="📥" title="තවම ලංසු ලැබී නැත" text="ගරාජ ඔබගේ රැකියාවලට ලංසු තැබූ විට ඒවා මෙහි පෙන්වනු ඇත." />
       ) : (
-        received.map((job) => {
+        received.map((job, jIdx) => {
           const shown = (job.acceptedBidId ? job.bids.filter((b) => b.id === job.acceptedBidId) : sortBids(job.bids, bidSort)).filter((b) => !usedOnly || isUsed(garageForBid(b)));
           return (
-            <View key={job.id} style={styles.card}>
+            <View key={job.id} style={[styles.card, styles.jobBox, jIdx > 0 && styles.jobSep]}>
               {jobHeader(
                 job,
                 job.acceptedBidId ? (
@@ -733,6 +737,7 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
         <Animated.View style={{ overflow: 'hidden', opacity: listFold.interpolate({ inputRange: [0, 0.6], outputRange: [1, 0], extrapolate: 'clamp' }), height: titleH ? listFold.interpolate({ inputRange: [0, 1], outputRange: [titleH, 0] }) : undefined }}>
         <View style={styles.bidsTitleRow} onLayout={(e) => setTitleH(Math.round(e.nativeEvent.layout.height))}>
           <Text style={styles.bidsTitle} numberOfLines={1} accessibilityRole="header">Your Bids</Text>
+          <VehicleChip onBlue />
           <View style={styles.bidsIcons}>
             {/* The cards / rows switch does nothing while the map is open (the map shows every bid as a pin), so it is hidden then. */}
             {!mapOpen && tab === 'received' && (
@@ -1241,8 +1246,8 @@ const styles = themedStyles(() => StyleSheet.create({
   sortRow: { gap: 8, paddingLeft: 12, paddingRight: 16 },
   // The sort chips sit on the header's blue: blue chips with a yellow edge; the open one is a deeper blue with a thicker edge.
   // Like Activity's filter chips: the unselected one has a white edge, the selected one a yellow edge; both sit on the band's blue.
-  sortChip: { paddingHorizontal: 14, height: 36, justifyContent: 'center', borderRadius: 10, borderWidth: 1.5, borderColor: 'rgba(255, 255, 255, 0.85)', backgroundColor: '#1e3a8a' },
-  sortChipOn: { backgroundColor: '#1e3a8a', borderColor: '#facc15', borderWidth: 2.5 },
+  sortChip: { paddingHorizontal: 14, height: 36, justifyContent: 'center', borderRadius: 10, borderWidth: 0.5, borderColor: 'rgba(255, 255, 255, 0.85)', backgroundColor: '#1e3a8a' },
+  sortChipOn: { backgroundColor: '#1e3a8a', borderColor: '#facc15', borderWidth: 1 },
   sortText: { fontSize: 12, fontFamily: FONTS.bodyMedium, color: '#ffffff' },
   sortTextOn: { color: '#ffffff', fontFamily: FONTS.bodyMedium },
   marketNote: { fontSize: 12, fontFamily: FONTS.bodySemiBold },
@@ -1254,7 +1259,7 @@ const styles = themedStyles(() => StyleSheet.create({
   usedChipTextOn: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#1e3a8a' },
   tabCountText: { fontSize: 10, fontFamily: FONTS.bodyBold, color: '#111827' },
   tabCountTextActive: {},
-  body: { paddingHorizontal: 4, paddingTop: 4, gap: 12, paddingBottom: 24, backgroundColor: pageBg() },
+  body: { paddingHorizontal: 4, paddingTop: 4, gap: 18, paddingBottom: 24, backgroundColor: pageBg() },
   fullMap: { ...StyleSheet.absoluteFill },
   mapFullLayer: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 2, elevation: 2 },
   // Fixed height, stuck to the bottom of the tab: it does not move when the tab grows upward as the band folds away.
@@ -1300,8 +1305,11 @@ const styles = themedStyles(() => StyleSheet.create({
   badgeDanger: { backgroundColor: 'rgba(239, 68, 68, 0.12)', borderColor: 'rgba(239, 68, 68, 0.45)' },
   badgeText: { fontSize: 10, fontFamily: FONTS.bodySemiBold },
   // Photo tile: the garage's cover with the price on it, then name and one line of details.
-  bidCard: { borderRadius: 26, borderWidth: 1, borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#f3f4f6', backgroundColor: getThemeMode() === 'dark' ? Colors.bgCard : '#ffffff', shadowColor: '#1e3a8a', shadowOffset: { width: 0, height: 10 }, shadowOpacity: getThemeMode() === 'dark' ? 0.6 : 0.16, shadowRadius: 22, elevation: 6 },
-  bidCardLowest: { borderColor: 'rgba(16, 185, 129, 0.55)' },
+  jobBox: { borderWidth: 0, borderRadius: 0, paddingHorizontal: 10, shadowOpacity: 0, shadowRadius: 0, shadowOffset: { width: 0, height: 0 }, elevation: 0 },
+  // Like a post on a feed: no box, a thick grey band between one job and the next.
+  jobSep: { borderTopWidth: 6, borderTopColor: getThemeMode() === 'dark' ? '#0b1220' : '#e5e7eb', marginTop: -18, marginHorizontal: -4 },
+  bidCard: { borderRadius: 26, borderWidth: 1, borderColor: getThemeMode() === 'dark' ? '#2a3b5c' : '#dbeafe', backgroundColor: getThemeMode() === 'dark' ? Colors.bgCard : '#ffffff', shadowColor: '#1e3a8a', shadowOffset: { width: 0, height: 14 }, shadowOpacity: getThemeMode() === 'dark' ? 0.8 : 0.4, shadowRadius: 32, elevation: 14 },
+  bidCardLowest: { borderColor: getThemeMode() === 'dark' ? 'rgba(16, 185, 129, 0.4)' : '#a7f3d0', backgroundColor: getThemeMode() === 'dark' ? 'rgba(16, 185, 129, 0.08)' : '#f4fcf8' },
   bidCardAccepted: { borderColor: Colors.success },
   bidCover: { width: '100%', height: 48 },
   bidBody: { padding: 12, gap: 6 },
@@ -1314,8 +1322,9 @@ const styles = themedStyles(() => StyleSheet.create({
   fbSub: { fontSize: 12, lineHeight: 16, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 0 },
   fbMore: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   fbContent: { paddingLeft: 16, paddingRight: 16, paddingBottom: 10, gap: 6 },
-  sumBox: { alignSelf: 'stretch', gap: 6, paddingVertical: 12 },
-  sumLine: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 12 },
+  sumBox: { alignSelf: 'stretch', gap: 6, paddingVertical: 12, paddingHorizontal: 12, marginTop: 4, marginBottom: 4, borderRadius: 12, backgroundColor: Colors.subtleFill },
+  priceRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', alignSelf: 'stretch' },
+  priceLabel: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },  sumLine: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 12 },
   sumFigure: { fontSize: 14, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
   sumPlusMark: { fontSize: 13, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
   sumRepair: { marginVertical: 0, fontSize: 16, color: Colors.textMain },
@@ -1343,13 +1352,13 @@ const styles = themedStyles(() => StyleSheet.create({
   fbCounts: { flexDirection: 'row', justifyContent: 'flex-start', paddingLeft: 16, paddingRight: 16, paddingVertical: 8 },
   fbStars: { color: '#f5a623', letterSpacing: 1 },
   fbCountText: { fontSize: 13.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
-  fbActions: { flexDirection: 'row', gap: 10, marginHorizontal: 8, marginBottom: 4, paddingVertical: 2 },
-  fbAction: { flex: 1, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 8, borderWidth: 1.5, borderColor: '#facc15' },
+  fbActions: { flexDirection: 'row', gap: 10, marginHorizontal: 8, marginBottom: 12, paddingVertical: 2 },
+  fbAction: { flex: 1, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 8, backgroundColor: getThemeMode() === 'dark' ? '#18233a' : '#f1f6fe' },
   fbActionText: { fontSize: 14, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
   fbActionPrimary: { color: '#1e3a8a' },
   // The booking button's label is longer than the other two ("වේලාව තෝරන්න"): it takes more of the row, the other two stay as wide as before, and the label stays on one line.
   fbActionWide: { flex: 1.5, paddingHorizontal: 6 },
-  fbActionAccept: { backgroundColor: '#dbeafe', borderRadius: 20 },
+  fbActionAccept: { backgroundColor: '#bfdbfe', borderRadius: 20 },
   fbActionDone: { backgroundColor: '#fde68a', borderRadius: 20 },
   fbActionLowest: { backgroundColor: '#bbf7d0' },
   fbActionLowestText: { color: '#15803d' },

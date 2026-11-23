@@ -21,6 +21,8 @@ import { PinnedEdge } from '../components/PinnedEdge';
 import { HomeServices, HomePromo } from '../components/home/HomeServices';
 import { PromoCarousel } from '../components/home/PromoCarousel';
 import { OfferTiles } from '../components/home/OfferTiles';
+import { offerFitsVehicle } from '../utils/vehicleOffers';
+import { useVehicles } from '../context/VehiclesContext';
 import { GarageGridSection } from '../components/home/GarageGrid';
 import { useUsedGarages } from '../components/GarageHistory';
 import { GarageListSheet } from '../components/home/GarageListSheet';
@@ -53,6 +55,7 @@ interface HomeScreenProps {
 
 export const HomeScreen: React.FC<HomeScreenProps> = ({ onSOSPress, onPostJob, onServicePress, onBookGarage, onScrollChange, collapsePx = 0, top, sosReturn, towReturn, sosJob, stickyFrom = 300 }) => {
   const user = useUserLocation();
+  const { activeVehicle } = useVehicles();
   const insets = useSafeAreaInsets();
   const { width: screenW } = useWindowDimensions();
   // Four category tiles fit the page width (20px sides, 12px gaps); the fifth peeks in at the right edge.
@@ -102,7 +105,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onSOSPress, onPostJob, o
   const dealsSection = (
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>ගනුදෙනු සහ දීමනා</Text>
-        <OfferTiles offers={OFFERS} onOpen={openOffer} />
+        <OfferTiles offers={OFFERS.filter((o) => offerFitsVehicle(o, activeVehicle.type))} onOpen={openOffer} />
       </View>
   );
   const savedSection = (

@@ -31,7 +31,7 @@ interface AddVehicleSheetProps {
 }
 
 export const AddVehicleSheet: React.FC<AddVehicleSheetProps> = ({ visible, onClose, onAdded }) => {
-  const { vehicles, addVehicle } = useVehicles();
+  const { vehicles, addVehicle, setActiveVehicleId } = useVehicles();
   const [mounted, setMounted] = useState(visible);
   const [name, setName] = useState('');
   const [plate, setPlate] = useState('');
@@ -100,6 +100,8 @@ export const AddVehicleSheet: React.FC<AddVehicleSheetProps> = ({ visible, onClo
     if (!valid) return;
     const vehicle = addVehicle({ name: name.trim(), plate: cleanPlate, type, registrationNo, chassisNo, engineNo, make, model, color, insuranceNo });
     setSaved(vehicle);
+    // The new vehicle becomes the active one, so the quick booking follows its type straight away.
+    setActiveVehicleId(vehicle.id);
     Animated.spring(success, { toValue: 1, friction: 5, tension: 70, useNativeDriver: true }).start();
     setTimeout(() => onAdded(vehicle), 1100);
   };

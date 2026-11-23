@@ -2,7 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { CategoryPhoto } from './CategoryPhoto';
-import { Colors, FONTS, Gradient, SERVICE_CATEGORIES, themedStyles, type ServiceCategory } from '@ongarage/shared';
+import { categoriesForVehicle, Colors, FONTS, Gradient, SERVICE_CATEGORIES, themedStyles, type ServiceCategory } from '@ongarage/shared';
+import { useVehicles } from '../../context/VehiclesContext';
 
 /**
  * Home's service grid and the promo banner, written with plain styles (the theme does not reshape or rescale them) so they match the design exactly:
@@ -13,7 +14,7 @@ const BLUE = '#1e3a8a';
 const GOLD = BLUE; // the chevrons sit on white, where yellow is too faint
 
 /** Every service, the design's eight first. The first half is the top row, the second half the bottom row; the two rows slide sideways together. */
-const SERVICES: { id: string; label: string }[] = [
+const ALL_SERVICES: { id: string; label: string }[] = [
   { id: '14', label: 'සේවාව' },
   { id: '6', label: 'ටයර්' },
   { id: '7', label: 'බ්‍රේක්' },
@@ -30,11 +31,43 @@ const SERVICES: { id: string; label: string }[] = [
   { id: '13', label: 'EV' },
   { id: '15', label: 'සවි කිරීම' },
   { id: '16', label: 'Fuel Station' },
+  { id: 'b1', label: 'යාන්ත්‍රික' },
+  { id: 'b2', label: 'ස්කූටර්' },
+  { id: 'b3', label: 'එන්ජින්' },
+  { id: 'b4', label: 'කූලින්' },
+  { id: 'b5', label: 'EFI' },
+  { id: 'b6', label: 'EV' },
+  { id: 'b7', label: 'විදුලි' },
+  { id: 'b8', label: 'මීටර්' },
+  { id: 'b9', label: 'සස්පෙන්ෂන්' },
+  { id: 'b10', label: 'රිම් ටයර්' },
+  { id: 'b11', label: 'පේන්ට්' },
+  { id: 'b12', label: 'යතුරු' },
+  { id: 'b13', label: 'සයිලන්සර්' },
+  { id: 'b14', label: 'සර්විස්' },
+  { id: 't1', label: 'ත්‍රීවීල්' },
+  { id: 't2', label: 'එන්ජින්' },
+  { id: 't3', label: 'LPG' },
+  { id: 't4', label: 'ටින්කරින්' },
+  { id: 't5', label: 'පේන්ට්' },
+  { id: 't6', label: 'හුඩ්' },
+  { id: 't7', label: 'සස්පෙන්ෂන්' },
+  { id: 't8', label: 'විදුලි' },
+  { id: 't9', label: 'ටැක්සි මීටර්' },
+  { id: 't10', label: 'ඕඩියෝ' },
+  { id: 't11', label: 'රිම්' },
+  { id: 't12', label: 'වීදුරු' },
+  { id: 't13', label: 'සර්විස්' },
+  { id: 't14', label: 'Dealer' },
+  { id: 't15', label: 'Custom' },
 ];
-const HALF = Math.ceil(SERVICES.length / 2);
-const COLUMNS = SERVICES.slice(0, HALF).map((x, i) => [x, SERVICES[HALF + i]].filter(Boolean) as typeof SERVICES);
-
 export const HomeServices: React.FC<{ onSelect: (c: ServiceCategory) => void; onSeeAll: () => void }> = ({ onSelect, onSeeAll }) => {
+  // The services follow the active vehicle: a motorbike or three-wheeler, a bus or a lorry each get their own list.
+  const { activeVehicle } = useVehicles();
+  const allowed = categoriesForVehicle(activeVehicle.type);
+  const SERVICES = ALL_SERVICES.filter((s) => allowed.includes(s.id));
+  const HALF = Math.ceil(SERVICES.length / 2);
+  const COLUMNS = SERVICES.slice(0, HALF).map((x, i) => [x, SERVICES[HALF + i]].filter(Boolean) as typeof SERVICES);
   const [width, setWidth] = useState(358);
   const [chosen, setChosen] = useState<string | null>(null);
   const cell = Math.floor((width - 30 - 22) / 4); // four columns and a peek of the fifth, so it is clear the rows slide

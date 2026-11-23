@@ -218,12 +218,7 @@ export const GarageReviewsSheet: React.FC<{
           </View>
         )}
       </View>
-    </View>
-  );
-
-  // The name, the actions and the tabs stay pinned at the top once the photo has scrolled away; the rest scrolls under them.
-  const heroSticky = (
-    <View style={styles.stickyHero}>
+      {/* The name, rating and brand logos: they scroll up with the photo. */}
       <View style={styles.place}>
         <View style={styles.placeTop}>
           <View style={[styles.placeLogo, { backgroundColor: avatarColor(g.id) }]}>
@@ -255,7 +250,14 @@ export const GarageReviewsSheet: React.FC<{
         <BookedTag garageId={g.id} />
         {/* The makes this garage works on, as one row of logos right under the opening hours (above the action buttons). */}
         {tab === 'overview' && <MakeLogoStrip makes={content.brands} />}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.placeActions}>
+      </View>
+    </View>
+  );
+
+  // The name, the actions and the tabs stay pinned at the top once the photo has scrolled away; the rest scrolls under them.
+  const heroSticky = (
+    <View style={styles.stickyHero}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.placeActions}>
           {[
             { id: 'dir', icon: '🧭', label: 'දිශාවන්', primary: true, onPress: () => Linking.openURL(directionsUrl(g.coords, user.coords)) },
             { id: 'call', icon: '📞', label: 'අමතන්න', onPress: () => (onCall ? onCall() : g.phone ? Linking.openURL(`tel:${g.phone.replace(/\s/g, '')}`) : undefined) },
@@ -270,8 +272,7 @@ export const GarageReviewsSheet: React.FC<{
               <Text style={[styles.placeActionLabel, a.primary && { color: '#1e3a8a' }]}>{a.label}</Text>
             </Pressable>
           ))}
-        </ScrollView>
-      </View>
+      </ScrollView>
       <View style={styles.tabs}>
         {(
           [
@@ -304,7 +305,8 @@ export const GarageReviewsSheet: React.FC<{
       hero={hero}
       heroSticky={heroSticky}
       scrollTarget={scrollTarget}
-      topInset={topInset}
+      topInset={0}
+      heroFull
       backdropColor={backdropColor}
       compact
       roomy
@@ -334,6 +336,7 @@ export const GarageReviewsSheet: React.FC<{
         ) : undefined
       }
     >
+      <View style={{ paddingHorizontal: 5 }}>
       {bid && (
         <View style={styles.bidHero} accessibilityLabel="Bid summary">
           <View style={styles.bidHeroTop}>
@@ -741,6 +744,7 @@ export const GarageReviewsSheet: React.FC<{
       {!g.recentReviews?.length && <EmptyState icon="⭐" title="තවම සමාලෝචන නැත" text="පාරිභෝගිකයන් සමාලෝචන ලියූ විට ඒවා මෙහි පෙන්වයි." />}
         </>
       )}
+      </View>
     </Sheet>
     <Sheet
       visible={!!offerOpen}
@@ -780,7 +784,7 @@ export const GarageReviewsSheet: React.FC<{
 const styles = themedStyles(() =>
   StyleSheet.create({
     // No thin divider lines in the profile (under the tabs, between the contact rows, between service rows): the sections are told apart by their spacing.
-    tabs: { flexDirection: 'row', marginTop: 8 },
+    tabs: { flexDirection: 'row', marginTop: 12 },
     tabBtn: { flex: 1, height: 42, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4, borderBottomWidth: 3, borderBottomColor: 'transparent' },
     tabBtnOn: { borderBottomColor: '#1e3a8a' },
     tabText: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
@@ -819,7 +823,7 @@ const styles = themedStyles(() =>
     serviceTagText: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
     moreBtn: { alignSelf: 'center', paddingHorizontal: 16, height: 36, borderRadius: 8, justifyContent: 'center', backgroundColor: 'rgba(36, 87, 230, 0.1)' },
     moreBtnText: { fontSize: 12, fontFamily: FONTS.bodyBold, color: '#1e3a8a' },
-    gig: { width: 210, borderRadius: 12, overflow: 'hidden', backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), ...elevation1() },
+    gig: { width: 210, borderRadius: 12, overflow: 'hidden', backgroundColor: Colors.bgCard, borderWidth: 1.5, borderColor: '#f59e0b', ...elevation1() },
     gigImg: { width: '100%', height: 104, backgroundColor: Colors.subtleFill },
     gigTag: { position: 'absolute', top: 8, left: 8, paddingHorizontal: 10, height: 24, borderRadius: 12, justifyContent: 'center' },
     gigTagText: { fontSize: 11.5, fontFamily: FONTS.bodyBold, color: '#ffffff' },
@@ -871,8 +875,8 @@ const styles = themedStyles(() =>
     coverDotOn: { width: 16, backgroundColor: '#ffffff' },
     coverShade: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(8, 16, 36, 0.22)' },
     coverGrip: { position: 'absolute', top: 8, alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.7)' },
-    coverClose: { position: 'absolute', top: 16, right: 16, width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.45)' },
-    coverCloseText: { fontSize: 13, fontWeight: '700', color: '#ffffff' },
+    coverClose: { position: 'absolute', top: 16, right: 16, width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: '#ffffff' },
+    coverCloseText: { fontSize: 13, fontWeight: '700', color: '#1f2937' },
     statusPill: { position: 'absolute', left: 16, top: 16, paddingHorizontal: 10, height: 26, borderRadius: 13, justifyContent: 'center' },
     statusOpen: { backgroundColor: 'rgba(16, 185, 129, 0.92)' },
     statusClosed: { backgroundColor: 'rgba(100, 116, 139, 0.92)' },
@@ -930,7 +934,7 @@ const styles = themedStyles(() =>
     acceptBtnLowest: { backgroundColor: '#bbf7d0' },
     acceptBtnText: { fontSize: 15, fontFamily: FONTS.bodySemiBold, color: '#1e3a8a' },
     acceptBtnTextLowest: { color: '#15803d' },
-    stickyHero: { backgroundColor: Colors.sheetBg, borderBottomWidth: 1, borderBottomColor: Colors.subtleBorder, shadowColor: '#0f172a', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.16, shadowRadius: 10, elevation: 6, zIndex: 2 },
+    stickyHero: { paddingBottom: 8, backgroundColor: Colors.sheetBg, borderBottomWidth: 1, borderBottomColor: Colors.subtleBorder, shadowColor: '#0f172a', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.16, shadowRadius: 10, elevation: 6, zIndex: 2 },
     place: { paddingHorizontal: 12, paddingTop: 16, paddingBottom: 4, gap: 6 },
     placeTop: { flexDirection: 'row', alignItems: 'center', gap: 16},
     placeLogo: { width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center' },
@@ -944,7 +948,7 @@ const styles = themedStyles(() =>
     placeStatus: { fontSize: 13, fontFamily: FONTS.bodyRegular },
     placeOpen: { fontFamily: FONTS.bodyBold, color: '#188038' },
     placeClosed: { fontFamily: FONTS.bodyBold, color: '#d93025' },
-    placeActions: { gap: 16, paddingTop: 6, paddingBottom: 4, paddingRight: 6 },
+    placeActions: { gap: 16, paddingTop: 6, paddingBottom: 0, paddingLeft: 6, paddingRight: 6 },
     placeAction: { alignItems: 'center', gap: 8, minWidth: 64},
     placeActionCircle: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? Colors.subtleFill : '#ffffff', borderWidth: 1, borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#dadce0' },
     placeActionPrimary: { backgroundColor: '#1e3a8a', borderColor: '#1e3a8a' },

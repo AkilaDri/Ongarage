@@ -1,7 +1,8 @@
 import { GarageHistoryTag, GarageLastLine } from './GarageHistory';
 import { jobDescription, problemTold } from '../utils/jobText';
 import React, { useEffect, useRef, useState } from 'react';
-import { Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Image, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { SOSMapPickerScreen } from '../screens/SOSMapPickerScreen';
 import {
   categoryInfo,
   Colors,
@@ -19,6 +20,7 @@ import {
   PARTS_FITTING_CATEGORY_ID,
   type Garage,
   type PartsFitting,
+  type PickedLocation,
   type VoiceNote,
 } from '@ongarage/shared';
 import { elevation1, outline } from '../utils/material';
@@ -110,9 +112,12 @@ export const DirectBookingSheet: React.FC<{ garage: Garage | null; categoryId?: 
   // Nothing is preselected: the owner picks the day, then the time.
   const [day, setDay] = useState<number | null>(null);
   // The form is five steps, filled in this order: the vehicle (an owner with several says first which one it is for), the service, the details, the day, then the time and where.
-  const [tab, setTab] = useState<'service' | 'details' | 'day' | 'time'>('service');
+  const [tab, setTab] = useState<'service' | 'details' | 'day' | 'time' | 'summary'>('service');
   const [hour, setHour] = useState<number | null>(null);
   const [doorstep, setDoorstep] = useState(false);
+  // The owner picks where the car is (for the garage to come to) on a map.
+  const [homeLoc, setHomeLoc] = useState<PickedLocation | null>(null);
+  const [mapOpen, setMapOpen] = useState(false);
   const [description, setDescription] = useState('');
   // Parts Fitting: the part to fit and who supplies it.
   const [fitPart, setFitPart] = useState('');
@@ -172,8 +177,8 @@ export const DirectBookingSheet: React.FC<{ garage: Garage | null; categoryId?: 
   const detailsOk = problemTold(description, voiceNotes, 5) && (!fitting || fitPart.trim().length > 0);
   const valid = detailsOk && !slotPast;
 
-  const ORDER = ['service', 'details', 'day', 'time'] as const;
-  const STEP_NAMES = ['සේවාව සහ වාහනය', 'විස්තර', 'දිනය', 'වේලාව'] as const;
+  const ORDER = ['service', 'details', 'day', 'time', 'summary'] as const;
+  const STEP_NAMES = ['සේවාව සහ වාහනය', 'විස්තර', 'දිනය', 'වේලාව', 'සාරාංශය'] as const;
   const tabIndex = ORDER.indexOf(tab);
   const lastTab = tabIndex === ORDER.length - 1;
   // A step's own requirement for moving on.
@@ -211,7 +216,7 @@ export const DirectBookingSheet: React.FC<{ garage: Garage | null; categoryId?: 
       }
       overlay={<BookingSentBox visible={sent} garageName={shown.name} when={`${formatDate(preferredAt)} ${formatTime(preferredAt)}`} onViewActivity={() => { setSent(false); onViewActivity?.(); }} onClose={() => { setSent(false); onClose(); }} />}
     >
-      {/* The garage stays at the top whichever step is open: the same card as the bid the owner accepted. */}
+      {/* The garage stays at the top whichever step is open (not on the summary step): the same card as the bid the owner accepted. */}
       <View style={styles.garage}>
         <View style={styles.garageTop}>
           {GARAGE_COVERS[shown.id] ? <Image source={GARAGE_COVERS[shown.id]} style={styles.avatar} accessibilityLabel={`${shown.name} photo`} /> : <View style={styles.avatar} />}
@@ -370,20 +375,44 @@ export const DirectBookingSheet: React.FC<{ garage: Garage | null; categoryId?: 
               <Text style={[styles.placeText, doorstep && styles.placeTextOn]}>🚛 ගරාජය මා වෙත පැමිණේ</Text>
             </Pressable>
           </View>
-
-          {/* The whole request at a glance before it is sent: the owner checks it once. */}
+          {doorstep && (
+            <Pressable onPress={() => setMapOpen(true)} accessibilityLabel="Pick my location on the map" style={{ marginTop: 10, paddingHorizontal: 14, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: '#1e3a8a', backgroundColor: '#eff6ff' }}>
+              <Text style={{ fontFamily: FONTS.bodyBold, color: '#1e3a8a', fontSize: 14 }}>📍 {homeLoc ? homeLoc.address : 'ඔබේ ස්ථානය map එකෙන් තෝරන්න'}</Text>
+            </Pressable>
+          )}
+        </>
+      )}
+      {tab === 'summary' && day !== null && (
+        <>
+          {/* The whole request at a glance before it is sent: the owner checks it once, then confirms below. */}
           <FlowSummary
             title="ඔබේ වෙන්කිරීම"
             rows={[
-              { label: 'ගරාජය', value: shown.name },
-              { label: 'සේවාව', value: service ? `${cat.name} · ${service}` : cat.name },
-              { label: 'වාහනය', value: vehicles.find((v) => v.id === vehicleId)?.name ?? '—' },
+              { label: 'ගරාජයේ ලිපිනය', value: shown.address ? '📍 ' + shown.address : '—' },
+              { label: 'සේවාව', value: service ? `${cat.name} · ${service}` : cat.name, half: true },
+              { label: 'වාහනය', value: vehicles.find((v) => v.id === vehicleId)?.name ?? '—', half: true },
               { label: 'දිනය සහ වේලාව', value: hour === null ? '—' : `${formatDate(preferredAt)} · ${formatTime(preferredAt)}` },
-              { label: 'ස්ථානය', value: doorstep ? 'ගරාජය මා වෙත පැමිණේ' : 'මම වාහනය ගරාජයට ගෙන යමි' },
+              { label: 'ගැටලුව / විස්තරය', value: description.trim() || '—', lines: 2 },
+              ...(fitting ? [{ label: 'සවි කළ යුතු කොටස', value: fitPart.trim() || '—' }] : []),
+              { label: 'ඡායාරූප සහ හඬ සටහන්', value: `${photos.length} ඡායාරූප · ${voiceNotes.length} හඬ සටහන්` },
+              { label: 'ස්ථානය', value: doorstep ? (homeLoc ? `ගරාජය මා වෙත පැමිණේ · ${homeLoc.address}` : 'ගරාජය මා වෙත පැමිණේ') : 'මම වාහනය ගරාජයට ගෙන යමි' },
             ]}
           />
         </>
       )}
+      <Modal visible={mapOpen} animationType="fade" statusBarTranslucent onRequestClose={() => setMapOpen(false)}>
+        {mapOpen && (
+          <SOSMapPickerScreen
+            initialLocation={homeLoc}
+            title="ඔබ සිටින ස්ථානය"
+            pinLabel="මෙතන"
+            confirmLabel="ස්ථානය තහවුරු කරන්න"
+            accent={{ color: '#1e3a8a', stops: [{ offset: '0', color: '#2748a8' }, { offset: '1', color: '#1e3a8a' }] }}
+            onConfirm={(loc) => { setHomeLoc(loc); setMapOpen(false); }}
+            onClose={() => setMapOpen(false)}
+          />
+        )}
+      </Modal>
     </BookingShell>
   );
 };

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Colors, FONTS, marketPrice, SERVICE_CATEGORIES, themedStyles, type ServiceCategory } from '@ongarage/shared';
+import { categoriesForVehicle, Colors, FONTS, marketPrice, SERVICE_CATEGORIES, themedStyles, type ServiceCategory } from '@ongarage/shared';
+import { useVehicles } from '../context/VehiclesContext';
 import { Sheet } from './Sheet';
 import { CategoryPhoto } from './home/CategoryPhoto';
 import { money } from '../utils/format';
@@ -9,7 +10,9 @@ import { useRankedCategories } from '../utils/rankedCategories';
 /** Every service with what it covers and a typical price; picking one opens its garages. */
 export const AllServicesSheet: React.FC<{ visible: boolean; onClose: () => void; onSelect: (s: ServiceCategory) => void }> = ({ visible, onClose, onSelect }) => {
   // Same order as the Home strip: the common services first.
-  const ranked = useRankedCategories();
+  const { activeVehicle } = useVehicles();
+  const allowed = categoriesForVehicle(activeVehicle.type);
+  const ranked = useRankedCategories().filter((c) => allowed.includes(c.id));
   return (
   <Sheet visible={visible} noDividers title="සියලු සේවා" subtitle="සේවාවක් තෝරා ළඟම ගරාජ බලන්න" onClose={onClose}>
     {/* Room under the title and subtitle, and at the end of the list. */}

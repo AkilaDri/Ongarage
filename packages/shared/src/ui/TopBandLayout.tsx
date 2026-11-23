@@ -4,6 +4,7 @@ import { pageHeaderBlue } from './PageHeader';
 import { FONTS } from '../theme/fonts';
 import { FilterChips, type FilterItem } from './FilterChips';
 import { SegmentTabs, type SegmentItem } from './SegmentTabs';
+import { LkPlate } from './LkPlate';
 
 /**
  * The top of a page in the garage app's Garage (Schedule) layout, made shared so every app can use it:
@@ -45,9 +46,11 @@ export type TopBandLayoutProps<T extends string> = {
   /** Side space of the band (default 10) and of the title row inside it (default 6), the locked garage layout. */
   bandX?: number;
   titleX?: number;
+  /** The active vehicle's registration number, shown as a plate beside the title. */
+  plate?: string;
 };
 
-export function TopBandLayout<T extends string>({ title, icon, right, hideTitleRow = false, tabs, tabValue, onTabChange, chips, chipValue = null, onChipChange, paddingTop = 46, navGap = 0, navRadius, navBottom = 10, chipLift = 0, chipRadius, chipHeight, bandX = 10, titleX = 6 }: TopBandLayoutProps<T>) {
+export function TopBandLayout<T extends string>({ title, icon, right, hideTitleRow = false, tabs, tabValue, onTabChange, chips, chipValue = null, onChipChange, paddingTop = 46, navGap = 0, navRadius, plate, navBottom = 10, chipLift = 0, chipRadius, chipHeight, bandX = 10, titleX = 6 }: TopBandLayoutProps<T>) {
   return (
     <View style={[styles.band, { paddingTop, paddingHorizontal: bandX, backgroundColor: pageHeaderBlue().from }]}>
       {!hideTitleRow && (
@@ -55,6 +58,7 @@ export function TopBandLayout<T extends string>({ title, icon, right, hideTitleR
         <View style={styles.titleLeft}>
           {icon}
           <Text style={styles.title} numberOfLines={1} accessibilityRole="header">{title}</Text>
+          {!!plate && <LkPlate plate={plate} small fontSize={11} />}
         </View>
         {right}
       </View>

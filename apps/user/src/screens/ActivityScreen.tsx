@@ -1,3 +1,5 @@
+import { LkPlate } from '@ongarage/shared';
+import { VehicleChip } from '../components/VehicleChip';
 import { DoneTag, PostBody, PostHead, PriceText } from '../components/PostCard';
 import { WorkTimer } from '../components/WorkTimer';
 import { onActivityFocus, takeActivityFocus, type ActivityFocus } from '../utils/activityFocus';
@@ -119,7 +121,7 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
       <DirectBookingCard booking={b} onBookAgain={onBookAgain} onOpen={() => setDetail({ kind: 'booking', id: b.id })} />
     </SwipeCard>
   );
-  const { findVehicle, vehicles } = useVehicles();
+  const { findVehicle, vehicles, activeVehicle } = useVehicles();
   // 0 to 1 as the summary tiles pin at the top; fades the edge shadow in.
   const edge = useRef(new Animated.Value(0)).current;
   // The chat icon in the pinned filter card is always the short one; the floating icon hides while the page is scrolled.
@@ -327,6 +329,7 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
           <Animated.View style={{ overflow: 'hidden', opacity: edge.interpolate({ inputRange: [0, 0.6], outputRange: [1, 0], extrapolate: 'clamp' }), height: titleH ? edge.interpolate({ inputRange: [0, 1], outputRange: [titleH, 0] }) : undefined }}>
           <View style={styles.bandTitleRow} onLayout={(e) => setTitleH(Math.round(e.nativeEvent.layout.height))}>
             <Text style={styles.bandTitle} numberOfLines={1} accessibilityRole="header">Activity</Text>
+            <VehicleChip onBlue />
             <Pressable onPress={onOpenCalendar} hitSlop={8} accessibilityRole="button" accessibilityLabel="Open calendar">
               <CalendarGridIcon size={28} color="#ffffff" />
             </Pressable>
@@ -358,6 +361,8 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
               plain
               onBlue
               radius={10}
+              borderWidth={1}
+              selectedBorderWidth={1}
               items={
                 tab === 'current' ? withMart(kindItems([ongoing.length, liveBookings.length, 0]))
                   : tab === 'done' ? withMart(kindItems([doneJobs.length, doneBookings.length, sosRecords.length]))
@@ -538,13 +543,13 @@ const styles = themedStyles(() => StyleSheet.create({
   selfCenter: { alignSelf: 'center' },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
-  body: { paddingHorizontal: 6, paddingTop: 0, gap: 20, paddingBottom: 100 },
+  body: { paddingHorizontal: 12, paddingTop: 0, gap: 12, paddingBottom: 100 },
   // Opaque and full width (the negative margin cancels the body padding), so the lists scroll underneath it.
   bandHead: { paddingTop: 46, paddingHorizontal: 10, paddingBottom: 6, backgroundColor: pageHeaderBlue().from },
   bandTitleRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 6, gap: 8, paddingBottom: 14 },
   bandTitle: { flex: 1, fontSize: 19, lineHeight: 24, fontFamily: FONTS.titleBold, color: '#ffffff' },
   bandNav: { marginBottom: 10 },
-  statsPinned: { marginHorizontal: -6, paddingHorizontal: 6, paddingTop: 2, paddingBottom: 4, backgroundColor: pageBg() },
+  statsPinned: { marginHorizontal: -12, paddingHorizontal: 12, paddingTop: 2, paddingBottom: 4, backgroundColor: pageBg() },
   pinnedBand: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: pageHeaderBlue().from },
   // The short OnChat icon inside the filter card, on its right side.
   pinnedChat: { position: 'absolute', right: 8, bottom: -12 },
@@ -571,11 +576,11 @@ const styles = themedStyles(() => StyleSheet.create({
   // Soft shadow instead of an outline (an outline only on dark, where a shadow would not show), like Home and Bids.
   // PickMe look: a roomy white card with big round corners, no hard outline and a soft wide shadow.
   // Home's card look: white with a light edge and a soft blue shadow.
-  card: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#f3f4f6', borderRadius: 26, paddingVertical: 16, paddingHorizontal: 8, gap: 12, shadowColor: '#1e3a8a', shadowOffset: { width: 0, height: 10 }, shadowOpacity: getThemeMode() === 'dark' ? 0.4 : 0.16, shadowRadius: 22, elevation: 6 },
+  card: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: getThemeMode() === 'dark' ? '#1f2c44' : '#eff6ff', borderRadius: 26, paddingVertical: 16, paddingHorizontal: 8, gap: 12, shadowColor: '#1e3a8a', shadowOffset: { width: 0, height: 10 }, shadowOpacity: getThemeMode() === 'dark' ? 0.4 : 0.16, shadowRadius: 22, elevation: 6 },
   cardOngoing: {},
   // A coloured edge by the kind of job: bids blue, bookings green, SOS red.
-  edgeBid: { borderWidth: 1, borderColor: '#1e3a8a' },
-  edgeSos: { borderWidth: 1, borderColor: '#ef4444' },
+  edgeBid: { borderWidth: 1, borderColor: '#dbeafe' },
+  edgeSos: { borderWidth: 1, borderColor: '#fecaca' },
   // A finished job: a little tighter, and the price in green.
   cardDone: { paddingVertical: 16, paddingHorizontal: 8, gap: 12 },
   priceDone: { color: Colors.textSoft },
@@ -633,7 +638,7 @@ const styles = themedStyles(() => StyleSheet.create({
   price: { fontSize: 16, fontFamily: FONTS.titleBold, color: getThemeMode() === 'dark' ? Colors.textSoft : '#1e3a8a' },
   kindTag: { paddingHorizontal: 10, height: 24, justifyContent: 'center', borderRadius: 12, backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#e8edf8' },
   kindTagText: { fontSize: 11, fontWeight: '700', color: getThemeMode() === 'dark' ? '#8db1ff' : '#1e3a8a' },
-  status: { paddingHorizontal: 10, height: 24, justifyContent: 'center', borderRadius: 12 },
+  status: { paddingHorizontal: 10, minHeight: 24, paddingVertical: 3, justifyContent: 'center', borderRadius: 12 },
   statusOngoing: { backgroundColor: 'rgba(245, 158, 11, 0.12)' },
   statusDone: { backgroundColor: 'rgba(16, 185, 129, 0.16)', borderWidth: 1, borderColor: 'rgba(16, 185, 129, 0.35)' },
   statusText: { fontSize: 11, fontFamily: FONTS.bodySemiBold },

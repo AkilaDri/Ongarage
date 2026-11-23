@@ -3,7 +3,7 @@
  * a sensible default for Sri Lanka (routine service, tyres, brakes and suspension, batteries and A/C are needed by nearly every vehicle; hybrid,
  * tuning and charging by few). An owner's own bookings and jobs then move the categories they use most to the front.
  */
-export const DEFAULT_POPULARITY: string[] = ['14', '6', '7', '11', '4', '9', '8', '2', '5', '1', '3', '12', '10', '15', '16', '13'];
+export const DEFAULT_POPULARITY: string[] = ['14', '6', '7', '11', '4', '9', '8', '2', '5', '1', '3', '12', '10', '15', '16', '13', ...Array.from({ length: 14 }, (_, i) => `b${i + 1}`), ...Array.from({ length: 15 }, (_, i) => `t${i + 1}`)];
 
 /** Categories ordered by how many times each was used (most first); ties, and categories never used, keep the default order. */
 export const rankCategories = <T extends { id: string }>(items: T[], usage: Record<string, number> = {}): T[] => {

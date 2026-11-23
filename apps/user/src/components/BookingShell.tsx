@@ -73,7 +73,7 @@ const styles = themedStyles(() =>
     progressSeg: { flex: 1, paddingVertical: 6 },
     progressBar: { height: 6, borderRadius: 3, backgroundColor: Colors.subtleBorder },
     progressBarOn: { backgroundColor: '#1a73e8' },
-    body: { paddingHorizontal: 8, paddingTop: 10, gap: 12, paddingBottom: 24 },
+    body: { paddingHorizontal: 8, paddingTop: 18, gap: 12, paddingBottom: 32 },
     footer: { paddingHorizontal: 8, paddingBottom: 12, paddingTop: 10, backgroundColor: Colors.bgCard, borderTopWidth: 1, borderTopColor: outline(), shadowColor: '#3c4043', shadowOffset: { width: 0, height: -1 }, shadowOpacity: getThemeMode() === 'dark' ? 0.4 : 0.12, shadowRadius: 3, elevation: 4 },
   })
 );
