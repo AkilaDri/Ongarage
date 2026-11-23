@@ -6,6 +6,7 @@ import { normalisePlate, type Vehicle } from '@ongarage/shared';
 const STORAGE_KEY = 'ongarage.addedVehicles';
 const EDITS_KEY = 'ongarage.vehicleEdits';
 const ACTIVE_KEY = 'ongarage.activeVehicle';
+const ARCHIVED_KEY = 'ongarage.archivedVehicles';
 /** The vehicle the owner starts on when nothing was chosen yet. */
 const FIRST_VEHICLE_ID = 'premio';
 
@@ -13,6 +14,11 @@ type VehiclesState = {
   vehicles: Vehicle[];
   findVehicle: (id: string) => Vehicle;
   addVehicle: (input: Omit<Vehicle, 'id'>) => Vehicle;
+  /** Takes a vehicle out of the lists and pickers (sold, scrapped). Its past jobs and records stay: `findVehicle` still finds it. Refused for the last vehicle. */
+  removeVehicle: (id: string) => boolean;
+  restoreVehicle: (id: string) => void;
+  /** The vehicles that were removed, newest first, so one can be brought back. */
+  archivedVehicles: Vehicle[];
   /** Saves details the owner typed in (reg no, chassis, engine, make, model…) for any vehicle, the seeded ones too. */
   updateVehicle: (id: string, change: Partial<Omit<Vehicle, 'id'>>) => void;
   /** The vehicle every tab is about. One value for the whole app: changing it changes Home, Bids, Activity, OnMart and Account together. */
@@ -32,6 +38,7 @@ export const VehiclesProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [added, setAdded] = useState<Vehicle[]>([]);
   const [edits, setEdits] = useState<Record<string, Partial<Vehicle>>>({});
   const [activeId, setActiveId] = useState(FIRST_VEHICLE_ID);
+  const [archivedIds, setArchivedIds] = useState<string[]>([]);
   const [showAllVehicles, setShowAllVehicles] = useState(false);
 
   useEffect(() => {
@@ -41,17 +48,44 @@ export const VehiclesProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     AsyncStorage.getItem(EDITS_KEY)
       .then((raw) => raw && setEdits(JSON.parse(raw)))
       .catch(() => {});
+    AsyncStorage.getItem(ARCHIVED_KEY)
+      .then((raw) => raw && setArchivedIds(JSON.parse(raw)))
+      .catch(() => {});
     AsyncStorage.getItem(ACTIVE_KEY)
       .then((raw) => raw && setActiveId(raw))
       .catch(() => {});
   }, []);
 
-  const vehicles = [...MOCK_VEHICLES, ...added].map((v) => (edits[v.id] ? { ...v, ...edits[v.id] } : v));
+  const everyVehicle = [...MOCK_VEHICLES, ...added].map((v) => (edits[v.id] ? { ...v, ...edits[v.id] } : v));
+  // The lists and pickers show the vehicles that were not removed; the records of a removed one still look it up by id.
+  const vehicles = everyVehicle.filter((v) => !archivedIds.includes(v.id));
+  const archivedVehicles = archivedIds.map((id) => everyVehicle.find((v) => v.id === id)).filter((v): v is Vehicle => !!v).reverse();
 
   const findVehicle = useCallback(
-    (id: string) => vehicles.find((v) => v.id === id) ?? vehicles[0],
+    (id: string) => everyVehicle.find((v) => v.id === id) ?? vehicles[0],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [everyVehicle, vehicles]
+  );
+
+  const removeVehicle = useCallback(
+    (id: string) => {
+      if (vehicles.length <= 1 || !vehicles.some((v) => v.id === id)) return false;
+      setArchivedIds((prev) => {
+        const next = [...prev.filter((x) => x !== id), id];
+        AsyncStorage.setItem(ARCHIVED_KEY, JSON.stringify(next)).catch(() => {});
+        return next;
+      });
+      return true;
+    },
     [vehicles]
   );
+  const restoreVehicle = useCallback((id: string) => {
+    setArchivedIds((prev) => {
+      const next = prev.filter((x) => x !== id);
+      AsyncStorage.setItem(ARCHIVED_KEY, JSON.stringify(next)).catch(() => {});
+      return next;
+    });
+  }, []);
 
   const addVehicle = useCallback((input: Omit<Vehicle, 'id'>) => {
     const vehicle: Vehicle = { ...input, plate: normalisePlate(input.plate), id: `v-${Date.now()}` };
@@ -81,7 +115,7 @@ export const VehiclesProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const isInScope = useCallback((vehicleId?: string) => showAllVehicles || vehicleId === activeVehicleId, [showAllVehicles, activeVehicleId]);
 
   return (
-    <VehiclesContext.Provider value={{ vehicles, findVehicle, addVehicle, updateVehicle, activeVehicleId, setActiveVehicleId, activeVehicle, showAllVehicles, setShowAllVehicles, isInScope }}>
+    <VehiclesContext.Provider value={{ vehicles, findVehicle, addVehicle, removeVehicle, restoreVehicle, archivedVehicles, updateVehicle, activeVehicleId, setActiveVehicleId, activeVehicle, showAllVehicles, setShowAllVehicles, isInScope }}>
       {children}
     </VehiclesContext.Provider>
   );

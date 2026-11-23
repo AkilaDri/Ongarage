@@ -25,6 +25,7 @@ setAppTone({ header: { bg: '#1e3a8a', title: '#ffffff', sub: '#dbe4f5' }, navInk
 // The owner app's page is white and its cards are the light grey (the other apps keep grey pages with white cards).
 setAppPalette({ light: { bgBody: '#f8fafc', sheetBg: '#f8fafc', bgCard: '#ffffff', primary: '#1e3a8a', primaryLight: '#60a5fa' } });
 import { VehiclesProvider, useVehicles } from './context/VehiclesContext';
+import { HandoverProvider } from './context/HandoverContext';
 import { OwnerMartNav, OwnerNav } from './components/OwnerNav';
 import { setMartOpener, setShopOpener } from './utils/martBridge';
 import { setFittingOpener } from './utils/fittingBridge';
@@ -149,6 +150,7 @@ export default function App() {
         <WorkshopProvider>
           <ProfileProvider>
           <VehiclesProvider>
+            <HandoverProvider>
             <BookingsProvider>
               <SOSRecordsProvider>
                 <PendingRepairsProvider>
@@ -158,6 +160,7 @@ export default function App() {
                 </PendingRepairsProvider>
               </SOSRecordsProvider>
             </BookingsProvider>
+            </HandoverProvider>
           </VehiclesProvider>
           </ProfileProvider>
         </WorkshopProvider>

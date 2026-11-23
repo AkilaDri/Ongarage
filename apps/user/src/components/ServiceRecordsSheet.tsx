@@ -7,6 +7,7 @@ import { pendingRepairsOf, usePendingRepairs } from '../context/PendingRepairsCo
 import { formatDate, money } from '../utils/format';
 import { elevation1, outline } from '../utils/material';
 import { Sheet } from './Sheet';
+import { useHandover } from '../context/HandoverContext';
 
 /** One finished service of a vehicle, as the garage closed it. */
 export type ServiceRecord = {
@@ -74,6 +75,8 @@ const Body: React.FC<{ vehicle: Vehicle; onClose: () => void }> = ({ vehicle, on
   const { repairs } = usePendingRepairs();
   const pending = pendingRepairsOf(repairs, vehicle.id);
   const spent = list.reduce((s, r) => s + r.amount, 0);
+  // The history the previous owner handed over with the vehicle: read-only, shown apart from this owner's own records.
+  const inherited = useHandover().inheritedOf(vehicle.id);
   return (
     <Sheet visible title="සේවා වාර්තා" subtitle={`${vehicle.name} · ${vehicle.plate}`} onClose={onClose}>
       {pending.length > 0 && (
@@ -90,7 +93,7 @@ const Body: React.FC<{ vehicle: Vehicle; onClose: () => void }> = ({ vehicle, on
           ))}
         </View>
       )}
-      {list.length === 0 ? (
+      {list.length === 0 && !inherited ? (
         <EmptyState icon="🧾" title="සේවා වාර්තා නැත" text="ගරාජයක් මගින් මෙම වාහනයේ රැකියාවක් අවසන් කළ විට (ඔබගේ කේතයෙන් වසා දැමූ පසු) එහි වාර්තාව මෙහි එකතු වේ." />
       ) : (
         <>
@@ -142,6 +145,34 @@ const Body: React.FC<{ vehicle: Vehicle; onClose: () => void }> = ({ vehicle, on
           ))}
         </>
       )}
+      {!!inherited && (
+        <>
+          <Text style={styles.inheritedHead}>පෙර හිමියාගේ වාර්තා · {inherited.records.length}</Text>
+          <Text style={styles.sub}>{formatDate(inherited.receivedAt)} දින ලැබුණු, වෙනස් කළ නොහැකි වාර්තා{inherited.sharedPrices ? '' : ' (මිල බෙදා ගෙන නැත)'}.</Text>
+          {inherited.records.map((r) => (
+            <View key={r.id} style={styles.record} accessibilityLabel={`Previous owner record ${r.title}`}>
+              <View style={styles.recordTop}>
+                <View style={styles.iconTile}>
+                  <Text style={styles.icon}>{r.icon}</Text>
+                </View>
+                <View style={styles.flex1}>
+                  <Text style={styles.title} numberOfLines={2}>{r.title}</Text>
+                  <Text style={styles.sub} numberOfLines={1}>{r.garage}</Text>
+                </View>
+                <View style={styles.right}>
+                  {r.amount !== undefined && <Text style={styles.amount}>{money(r.amount)}</Text>}
+                  <Text style={styles.sub}>{formatDate(r.at)}</Text>
+                </View>
+              </View>
+              {!!r.service && <Text style={styles.serviceLine}>📏 මීටර් කියවීම: {r.service.mileageKm.toLocaleString('en-US')} km</Text>}
+              <View style={styles.chips}>
+                {r.verified && <View style={styles.chip}><Text style={styles.chipText}>✓ සත්‍යාපිත</Text></View>}
+                {!!r.warrantyUntil && <View style={styles.chip}><Text style={styles.chipText}>🛡️ වගකීම {formatDate(r.warrantyUntil)} දක්වා{r.warrantyUntil > Date.now() ? ' · ඔබට හිමියි' : ''}</Text></View>}
+              </View>
+            </View>
+          ))}
+        </>
+      )}
     </Sheet>
   );
 };
@@ -149,6 +180,7 @@ const Body: React.FC<{ vehicle: Vehicle; onClose: () => void }> = ({ vehicle, on
 const styles = themedStyles(() =>
   StyleSheet.create({
     flex1: { flex: 1 },
+    inheritedHead: { fontSize: 15, fontFamily: FONTS.titleBold, color: Colors.textMain, marginTop: 8 },
     pendingBox: { borderRadius: 12, backgroundColor: getThemeMode() === 'dark' ? 'rgba(224, 162, 67, 0.12)' : '#fef7e0', padding: 14, gap: 10 },
     pendingTitle: { fontSize: 13, fontFamily: FONTS.titleBold, color: getThemeMode() === 'dark' ? '#f2c46d' : '#b06000' },
     pendingRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
