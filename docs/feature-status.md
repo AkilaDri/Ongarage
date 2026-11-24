@@ -86,6 +86,20 @@ A working checklist of every feature in the four apps: whether its **design is o
 ## Not built yet
 Admin app (OnGarage staff) · backend · Claude-backed AI provider · Laya · push notifications · real publishing for offers, packages, gallery, hours · payments to the platform · real garage matching by vehicle type.
 
+## Pareto: the vital few (use this to pick what to work on next)
+The 80/20 rule (Universal Principles of Design, 133 Pareto): about 80% of use comes from 20% of the features, so work on the few that most owners use most often, or that cost the most when they fail, before the long tail. Until there is real usage data (the search log, then the backend) this ranking is an estimate; replace it with data when it exists.
+
+**The vital few (owner app), in order of use × cost of failure**
+1. **Find a garage and book it:** Home (services grid, job chips, search) → garage profile → garage booking form.
+2. **Post a quote request and take a bid:** quote request → Bids tab → accept → book a time.
+3. **Follow the job to the end:** Activity tab and the workshop sheets (approval, extra work, handover with the code, receipt, rating).
+4. **The vehicle:** the active vehicle chip, picking a vehicle, and menus that match the vehicle type (bikes and three-wheelers are common in Sri Lanka, so the vehicle-type gaps belong here).
+5. **Emergencies:** SOS and towing: rarely used but the highest cost when they fail.
+
+**The trivial many (leave until the vital few are done):** reels, gallery, staff, certifications, saved garages, language, theme, EV charging, OnMart deals and banners, vehicle removal and handover, weather animation.
+
+**When the user asks "what should we work on?":** read this file, list the not-finished items among the vital few first (design ⬜/🟡 or process 🔴/🟠 that blocks the journey), say why each one earns its place (how many owners meet it, how bad a failure is), name the smallest next step, and only then mention the long tail. Do not suggest a long-tail feature while a vital-few feature is unfinished, unless the user asks for it.
+
 ## Suggested order
 1. **Finish the owner flows** (design): quote steps 3 and 4, OnBuddy open state, Activity cards.
 2. **Close the vehicle-type gaps** (process): job chips, quote and booking categories, towing and SOS.
