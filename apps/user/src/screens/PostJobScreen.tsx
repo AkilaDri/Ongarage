@@ -867,8 +867,8 @@ const styles = themedStyles(() => StyleSheet.create({
   vehRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   vehLabel: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, letterSpacing: 0.4 },
   vehTitle: { fontSize: 15, fontFamily: FONTS.titleBold, color: Colors.textMain },
-  // The same card as the garage in the booking flows (green edge, soft blue shadow) and the Bids tab's button for the change action.
-  vehCard: { borderRadius: 26, borderColor: 'rgba(16, 185, 129, 0.55)', backgroundColor: getThemeMode() === 'dark' ? Colors.bgCard : '#ffffff', shadowColor: '#1e3a8a', shadowOffset: { width: 0, height: 10 }, shadowOpacity: getThemeMode() === 'dark' ? 0.6 : 0.16, shadowRadius: 22, elevation: 6, paddingHorizontal: 16, paddingVertical: 12 },
+  // A plain card like the others (the green edge means the garage being booked, so the vehicle does not wear it), with the Bids tab's button for the change action.
+  vehCard: { borderRadius: 26, borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#f3f4f6', backgroundColor: getThemeMode() === 'dark' ? Colors.bgCard : '#ffffff', shadowColor: '#1e3a8a', shadowOffset: { width: 0, height: 10 }, shadowOpacity: getThemeMode() === 'dark' ? 0.6 : 0.16, shadowRadius: 22, elevation: 6, paddingHorizontal: 16, paddingVertical: 12 },
   vehBtn: { height: 40, minWidth: 96, paddingHorizontal: 14, alignItems: 'center', justifyContent: 'center', borderRadius: 20, borderWidth: 1.5, borderColor: '#facc15', backgroundColor: '#dbeafe' },
   vehLink: { fontSize: 14, fontFamily: FONTS.bodySemiBold, color: '#1e3a8a' },
   container: { flex: 1, backgroundColor: pageBg() },

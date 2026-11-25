@@ -1,4 +1,4 @@
-import type { Garage, PartsFitting, VoiceNote } from '@ongarage/shared';
+import type { Garage, PartsFitting, PartType, VoiceNote } from '@ongarage/shared';
 
 // Owner-side views of what the owner sends to garages. When a backend exists these
 // are what the garage app receives as direct requests (its DirectRequest type).
@@ -24,6 +24,8 @@ export type DirectBookingInput = {
   fitting?: PartsFitting;
   /** The offer this booking was made with. */
   offer?: AppliedOffer;
+  /** The kind of spare part the owner prefers (it limits what the garage may fit without asking). */
+  partType?: PartType;
   /** The owner's choice: true = live tracking of every stage in the app; false = the work goes on without stage updates (photos at check-in and the finish only). */
   liveTrack?: boolean;
 };

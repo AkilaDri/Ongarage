@@ -97,7 +97,7 @@ export const BookingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           if (hour >= OPEN_HOUR && hour < CLOSE_HOUR) {
             const priced = withOffer(b, estimate);
             patch(b.id, { status: 'confirmed', scheduledAt: b.preferredAt, estimate, discount: priced.discount || undefined, garageNote: b.doorstep ? undefined : 'පැමිණීමට පෙර අමතන්න.' });
-            startWorkshop({ id: b.id, garageId: b.garage.id, garageName: b.garage.name, categoryId: b.categoryId, ...priced.start, scheduledAt: b.preferredAt, doorstep: b.doorstep, vehicleId: b.vehicleId, subService: b.service, protectedJob: b.garage.level === 'premier', liveTrack: b.liveTrack });
+            startWorkshop({ id: b.id, garageId: b.garage.id, garageName: b.garage.name, categoryId: b.categoryId, ...priced.start, scheduledAt: b.preferredAt, doorstep: b.doorstep, vehicleId: b.vehicleId, subService: b.service, partType: b.partType, protectedJob: b.garage.level === 'premier', liveTrack: b.liveTrack });
             notify({
               icon: '✅',
               title: `${b.garage.name} වෙන්කිරීම තහවුරු කළා`,
@@ -122,7 +122,7 @@ export const BookingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       if (!b?.proposal) return;
       const priced = withOffer(b, b.proposal.estimate);
       patch(id, { status: 'confirmed', scheduledAt: b.proposal.at, estimate: b.proposal.estimate, discount: priced.discount || undefined });
-      startWorkshop({ id, garageId: b.garage.id, garageName: b.garage.name, categoryId: b.categoryId, ...priced.start, scheduledAt: b.proposal.at, doorstep: b.doorstep, vehicleId: b.vehicleId, subService: b.service, protectedJob: b.garage.level === 'premier', liveTrack: b.liveTrack });
+      startWorkshop({ id, garageId: b.garage.id, garageName: b.garage.name, categoryId: b.categoryId, ...priced.start, scheduledAt: b.proposal.at, doorstep: b.doorstep, vehicleId: b.vehicleId, subService: b.service, partType: b.partType, protectedJob: b.garage.level === 'premier', liveTrack: b.liveTrack });
       notify({ icon: '✅', title: 'වෙන්කිරීම තහවුරුයි', body: `${b.garage.name} · ${categoryInfo(b.categoryId).name}`, tone: 'success' });
     },
     [notify, patch, startWorkshop]

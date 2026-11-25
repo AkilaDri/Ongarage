@@ -21,7 +21,7 @@ A working checklist of every feature in the four apps: whether its **design is o
 | Feature | Design | Process | Notes / next step |
 |---|---|---|---|
 | Book a time after accepting a bid (3 steps) | ✅ | 🟠 | Refined this session. |
-| Book a garage directly from a garage card (4 steps, vehicle first, summary) | ✅ | 🟠 | Refined this session. Categories not yet filtered by vehicle type. |
+| Book a garage directly from a garage card (6 steps: service and vehicle, details, day and time, part type and place, tracking, summary) | ✅ | 🟠 | Day and time merged, part type added 2026-11-25. Categories not yet filtered by vehicle type. |
 | Quote request: step 1 (vehicle card, OnBuddy, service card) and step 2 (problem, photos, voice) | ✅ | 🟠 | Refined this session. |
 | Quote request: step 3 (spare part type, place, home pickup) and step 4 (bidding time, summary) | 🟡 | 🟠 | Cards and footer done; contents (choice chips, slider, map card, switch) not reviewed. |
 | OnBuddy (AI describes the problem, suggests the service) | 🟡 | 🟠 | Card restyled; the open chat/results area keeps its old look. Not in the garage booking. |

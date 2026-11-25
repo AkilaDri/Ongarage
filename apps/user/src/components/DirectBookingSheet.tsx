@@ -20,6 +20,7 @@ import {
   PARTS_FITTING_CATEGORY_ID,
   type Garage,
   type PartsFitting,
+  type PartType,
   type PickedLocation,
   type VoiceNote,
 } from '@ongarage/shared';
@@ -28,10 +29,11 @@ import { BookingShell } from './BookingShell';
 import { FlowButton } from './FlowButton';
 import { FlowField } from './FlowField';
 import { FlowVehicleCard } from './FlowVehicleCard';
-import { FlowSummary } from './FlowSummary';
+import { BookingSummaryCard } from './BookingSummaryCard';
 import { DayStep, TimeStep } from './BidBookingSteps';
 import { GARAGE_COVERS } from '../constants/home';
 import { garageCategoryIds, garageTickedSubs } from '../constants/garageSubServices';
+import { SPARE_PARTS } from '../constants/labels';
 import type { AppliedOffer } from '../types';
 import { CategoryStrip } from './home/CategoryStrip';
 import { slotIsPast, slotTime } from './SlotPicker';
@@ -73,6 +75,12 @@ export const BookingSentBox: React.FC<{ visible: boolean; garageName: string; wh
   )
 );
 
+/** How the owner follows the job: what each choice gives, in the order it is offered. */
+const TRACK_CHOICES = [
+  { live: true, a11y: 'Live tracking', title: '📡 Live track', points: ['හැම පියවරක්ම update වේ', 'අමතර වැඩ app එකෙන් අනුමත කරන්න'] },
+  { live: false, a11y: 'Without live tracking', title: '📷 Live නැතුව', points: ['තත්ත්ව ඡායාරූප බලන්න', 'අවසානයේ “job අවසන් කරන්න”'] },
+];
+
 const sentStyles = themedStyles(() =>
   StyleSheet.create({
     backdrop: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, zIndex: 300, alignItems: 'center', justifyContent: 'center', padding: 28, backgroundColor: 'rgba(15, 23, 42, 0.45)' },
@@ -111,9 +119,13 @@ export const DirectBookingSheet: React.FC<{ garage: Garage | null; categoryId?: 
   const [vehicleId, setVehicleId] = useState(defaultVehicleId);
   // Nothing is preselected: the owner picks the day, then the time.
   const [day, setDay] = useState<number | null>(null);
-  // The form is five steps, filled in this order: the vehicle (an owner with several says first which one it is for), the service, the details, the day, then the time and where.
-  const [tab, setTab] = useState<'service' | 'details' | 'day' | 'time' | 'track' | 'summary'>('service');
+  // The form's steps, in order: vehicle and service, the details, the day and time, the part type and the place, how the job is followed, then the summary.
+  const [tab, setTab] = useState<'service' | 'details' | 'when' | 'options' | 'track' | 'summary'>('service');
   const [hour, setHour] = useState<number | null>(null);
+  // True after a summary line was tapped: that step's button goes straight back to the summary, not on through the steps.
+  const [editing, setEditing] = useState(false);
+  // The spare part the owner prefers; nothing is preselected, as in the quote request.
+  const [partType, setPartType] = useState<PartType | null>(null);
   const [doorstep, setDoorstep] = useState(false);
   // The owner decides how the job is followed: live (every stage in the app) or only the check-in photos and the finish.
   const [liveTrack, setLiveTrack] = useState(true);
@@ -141,6 +153,8 @@ export const DirectBookingSheet: React.FC<{ garage: Garage | null; categoryId?: 
     setTab('service');
     setDay(null);
     setHour(null);
+    setPartType(null);
+    setEditing(false);
     setDoorstep(false);
     setDescription(initial?.description ?? '');
     setPhotos([]);
@@ -177,17 +191,27 @@ export const DirectBookingSheet: React.FC<{ garage: Garage | null; categoryId?: 
   const slotPast = day === null || hour === null || slotIsPast(preferredAt);
   const fitting = categoryId === PARTS_FITTING_CATEGORY_ID;
   const detailsOk = problemTold(description, voiceNotes, 5) && (!fitting || fitPart.trim().length > 0);
-  const valid = detailsOk && !slotPast;
+  // An owner who brings the part to be fitted has no part type to choose.
+  const partOk = partType !== null || (fitting && fitSupply === 'owner');
+  const valid = detailsOk && !slotPast && partOk;
 
-  const ORDER = ['service', 'details', 'day', 'time', 'track', 'summary'] as const;
-  const STEP_NAMES = ['සේවාව සහ වාහනය', 'විස්තර', 'දිනය', 'වේලාව', 'හඹා යාම', 'සාරාංශය'] as const;
+  const ORDER = ['service', 'details', 'when', 'options', 'track', 'summary'] as const;
+  const STEP_NAMES = ['සේවාව සහ වාහනය', 'විස්තර', 'දිනය සහ වේලාව', 'කොටස් සහ ස්ථානය', 'හඹා යාම', 'සාරාංශය'] as const;
   const tabIndex = ORDER.indexOf(tab);
   const lastTab = tabIndex === ORDER.length - 1;
   // A step's own requirement for moving on.
-  const tabOk = tab === 'service' ? picked : tab === 'details' ? detailsOk : tab === 'day' ? day !== null : tab === 'time' ? !slotPast : true;
+  const tabOk = tab === 'service' ? picked : tab === 'details' ? detailsOk : tab === 'when' ? !slotPast : tab === 'options' ? partOk : true;
   // What a disabled button says is missing, so it never just looks broken.
-  const missingLabel = tab === 'service' ? 'සේවා අංශයක් තෝරන්න' : tab === 'details' ? (fitting && fitPart.trim().length === 0 ? 'කොටස ලියන්න' : 'ගැටලුව විස්තර කරන්න') : tab === 'day' ? 'දිනයක් තෝරන්න' : 'වේලාවක් තෝරන්න';
-  const next = () => setTab(ORDER[Math.min(ORDER.length - 1, tabIndex + 1)]);
+  const missingLabel = tab === 'service' ? 'සේවා අංශයක් තෝරන්න' : tab === 'details' ? (fitting && fitPart.trim().length === 0 ? 'කොටස ලියන්න' : 'ගැටලුව විස්තර කරන්න') : tab === 'when' ? (day === null ? 'දිනයක් තෝරන්න' : 'වේලාවක් තෝරන්න') : 'කොටස් වර්ගයක් තෝරන්න';
+  const backToSummary = () => {
+    setEditing(false);
+    setTab('summary');
+  };
+  const next = () => (editing ? backToSummary() : setTab(ORDER[Math.min(ORDER.length - 1, tabIndex + 1)]));
+  const editStep = (step: (typeof ORDER)[number]) => {
+    setEditing(true);
+    setTab(step);
+  };
   const pickDay = (d: number) => {
     setDay(d);
     if (hour !== null && slotIsPast(slotTime(d, hour))) setHour(null);
@@ -195,7 +219,7 @@ export const DirectBookingSheet: React.FC<{ garage: Garage | null; categoryId?: 
 
   const submit = () => {
     const fittingInfo: PartsFitting | undefined = fitting ? { partName: fitPart.trim(), supply: fitSupply } : undefined;
-    requestBooking({ garage: shown, categoryId, service, vehicleId, preferredAt, description: fittingInfo ? `${jobDescription(description)}\n🔩 සවි කළ යුතු කොටස: ${fittingInfo.partName} (${FITTING_SUPPLY.find((x) => x.id === fittingInfo.supply)?.short})` : jobDescription(description), doorstep, liveTrack, photos, voiceNotes, fitting: fittingInfo, offer });
+    requestBooking({ garage: shown, categoryId, service, vehicleId, preferredAt, description: fittingInfo ? `${jobDescription(description)}\n🔩 සවි කළ යුතු කොටස: ${fittingInfo.partName} (${FITTING_SUPPLY.find((x) => x.id === fittingInfo.supply)?.short})` : jobDescription(description), doorstep, liveTrack, partType: partType ?? undefined, photos, voiceNotes, fitting: fittingInfo, offer });
     onBooked?.();
     setSent(true);
   };
@@ -213,27 +237,29 @@ export const DirectBookingSheet: React.FC<{ garage: Garage | null; categoryId?: 
         lastTab ? (
           <FlowButton label={slotPast ? 'වේලාවක් තෝරන්න' : 'වෙන්කිරීම ඉල්ලන්න'} icon={slotPast ? undefined : '📅'} variant="primary" disabled={!valid} onPress={submit} />
         ) : (
-          <FlowButton label={tabOk ? 'ඊළඟ ›' : missingLabel} variant="primary" disabled={!tabOk} onPress={next} />
+          <FlowButton label={tabOk ? (editing ? 'සාරාංශයට ආපසු ›' : 'ඊළඟ ›') : missingLabel} variant="primary" disabled={!tabOk} onPress={next} />
         )
       }
       overlay={<BookingSentBox visible={sent} garageName={shown.name} when={`${formatDate(preferredAt)} ${formatTime(preferredAt)}`} onViewActivity={() => { setSent(false); onViewActivity?.(); }} onClose={() => { setSent(false); onClose(); }} />}
     >
       {/* The garage stays at the top whichever step is open (not on the summary step): the same card as the bid the owner accepted. */}
-      <View style={styles.garage}>
-        <View style={styles.garageTop}>
-          {GARAGE_COVERS[shown.id] ? <Image source={GARAGE_COVERS[shown.id]} style={styles.avatar} accessibilityLabel={`${shown.name} photo`} /> : <View style={styles.avatar} />}
-          <View style={styles.flex1}>
-            <View style={styles.nameRow}>
-              <Text style={[styles.title, styles.shrink]}>{shown.name}</Text>
-              <GarageHistoryTag garage={shown} part="tag" />
+      {tab !== 'summary' && (
+        <View style={styles.garage}>
+          <View style={styles.garageTop}>
+            {GARAGE_COVERS[shown.id] ? <Image source={GARAGE_COVERS[shown.id]} style={styles.avatar} accessibilityLabel={`${shown.name} photo`} /> : <View style={styles.avatar} />}
+            <View style={styles.flex1}>
+              <View style={styles.nameRow}>
+                <Text style={[styles.title, styles.shrink]}>{shown.name}</Text>
+                <GarageHistoryTag garage={shown} part="tag" />
+              </View>
+              <Text style={styles.rating} numberOfLines={1}>
+                <Text style={styles.stars}>{'★'.repeat(Math.round(shown.rating))}{'☆'.repeat(5 - Math.round(shown.rating))}</Text> {shown.rating.toFixed(1)} ({shown.reviews}) · km {shown.distance}
+              </Text>
             </View>
-            <Text style={styles.rating} numberOfLines={1}>
-              <Text style={styles.stars}>{'★'.repeat(Math.round(shown.rating))}{'☆'.repeat(5 - Math.round(shown.rating))}</Text> {shown.rating.toFixed(1)} ({shown.reviews}) · km {shown.distance}
-            </Text>
           </View>
+          <GarageLastLine garage={shown} />
         </View>
-        <GarageLastLine garage={shown} />
-      </View>
+      )}
       {!!offer?.title && (
         <View style={styles.offerChip} accessibilityLabel="Chosen offer">
           <Text style={styles.offerChipText} numberOfLines={2}>{offer.icon} {offer.title} · {offer.percent ? 'වට්ටම බිල්පතෙන් අඩු වේ' : offer.warrantyMonths ? `වගකීම මාස ${offer.warrantyMonths}කින් දිගු වේ` : 'ගරාජයට දැනුම් දෙනු ලැබේ'}</Text>
@@ -353,21 +379,54 @@ export const DirectBookingSheet: React.FC<{ garage: Garage | null; categoryId?: 
         </>
       )}
 
-      {tab === 'day' && (
-        <DayStep
-          day={day}
-          onDay={pickDay}
-          onSoonest={(d, h) => {
-            setDay(d);
-            setHour(h);
-            setTab('time');
-          }}
-        />
+      {/* One step for when: the day, and under it the times of the day that was picked. */}
+      {tab === 'when' && (
+        <>
+          <DayStep
+            day={day}
+            onDay={pickDay}
+            onSoonest={(d, h) => {
+              setDay(d);
+              setHour(h);
+              if (editing) backToSummary();
+              else setTab('options');
+            }}
+          />
+          {day !== null && <TimeStep day={day} hour={hour} onHour={setHour} />}
+        </>
       )}
 
-      {tab === 'time' && day !== null && (
+      {/* One step for how: the part the owner prefers, and where the work happens. */}
+      {tab === 'options' && (
         <>
-          <TimeStep day={day} hour={hour} onHour={setHour} onChangeDay={() => setTab('day')} />
+          <View style={[styles.headRow, styles.headTop]}>
+            <View style={styles.titleWithTick}>
+              {partType !== null && (
+                <View style={styles.stepBadge}>
+                  <Text style={styles.stepBadgeText}>✓</Text>
+                </View>
+              )}
+              <Text style={styles.question}>කැමති අමතර කොටස් වර්ගය</Text>
+            </View>
+            {!partOk && (
+              <View style={styles.requiredPill} accessibilityLabel="Required">
+                <Text style={styles.requiredText}>අත්‍යවශ්‍යයි</Text>
+              </View>
+            )}
+          </View>
+          <View style={styles.partGrid}>
+            {SPARE_PARTS.map((x) => {
+              const on = partType === x.id;
+              return (
+                <Pressable key={x.id} style={[styles.place, styles.partCell, on && styles.placeOn]} onPress={() => setPartType(x.id)} accessibilityRole="radio" accessibilityState={{ selected: on }} accessibilityLabel={`Part type ${x.id}`}>
+                  <Text style={[styles.placeText, styles.partText, on && styles.placeTextOn]}>{x.label}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          {/* What the chosen type means; before a choice, the general line. */}
+          <Text style={styles.hint}>{partType ? SPARE_PARTS.find((x) => x.id === partType)?.help : 'කොටසේ වර්ගය අනුව මිලත්, වගකීමත් වෙනස් වේ.'}</Text>
+
           <Text style={[styles.question, styles.headTop]}>සේවාව ලබාගන්නේ කොහේ ද?</Text>
           <View style={styles.placeRow}>
             <Pressable style={[styles.place, !doorstep && styles.placeOn]} onPress={() => setDoorstep(false)} accessibilityRole="radio" accessibilityState={{ selected: !doorstep }}>
@@ -387,43 +446,49 @@ export const DirectBookingSheet: React.FC<{ garage: Garage | null; categoryId?: 
       {/* Its own step: how the owner follows the job, with what each choice means in plain words. */}
       {tab === 'track' && (
         <>
-          <Text style={styles.question}>වැඩ ගමන හඹා යන ආකාරය</Text>
-          <Pressable style={[styles.place, liveTrack && styles.placeOn]} onPress={() => setLiveTrack(true)} accessibilityRole="radio" accessibilityState={{ selected: liveTrack }}>
-            <Text style={[styles.placeText, liveTrack && styles.placeTextOn]}>📡 Live track (හැම පියවරක්ම)</Text>
-            <View style={styles.trackChips}>
-              {['හැම පියවරක්ම update', 'අමතර වැඩ app එකෙන් අනුමත', 'වැඩ ගමන live'].map((c) => (
-                <View key={c} style={styles.trackChip}><Text style={styles.trackChipText}>{c}</Text></View>
-              ))}
+          <View style={[styles.headRow, styles.headTop]}>
+            <View style={styles.titleWithTick}>
+              <View style={styles.stepBadge}>
+                <Text style={styles.stepBadgeText}>✓</Text>
+              </View>
+              <Text style={styles.question}>වැඩ ගමන හඹා යන ආකාරය</Text>
             </View>
-          </Pressable>
-          <Pressable style={[styles.place, !liveTrack && styles.placeOn]} onPress={() => setLiveTrack(false)} accessibilityRole="radio" accessibilityState={{ selected: !liveTrack }}>
-            <Text style={[styles.placeText, !liveTrack && styles.placeTextOn]}>📷 Live නැතුව</Text>
-            <View style={styles.trackChips}>
-              {['තත්ත්ව ඡායාරූප බලන්න', 'වැඩ ගමන live නැත', 'අවසානයේ "job අවසන් කරන්න"'].map((c) => (
-                <View key={c} style={styles.trackChip}><Text style={styles.trackChipText}>{c}</Text></View>
-              ))}
-            </View>
-          </Pressable>
+          </View>
+          {/* Two choices drawn like the other steps' choices (navy with the yellow edge when picked), each saying what it gives in short lines. */}
+          <View style={styles.placeRow}>
+            {TRACK_CHOICES.map((c) => {
+              const on = liveTrack === c.live;
+              return (
+                <Pressable key={c.title} style={[styles.trackCard, on && styles.placeOn]} onPress={() => setLiveTrack(c.live)} accessibilityRole="radio" accessibilityState={{ selected: on }} accessibilityLabel={c.a11y}>
+                  <View style={styles.trackHead}>
+                    <Text style={[styles.trackTitle, on && styles.placeTextOn]}>{c.title}</Text>
+                    <View style={[styles.radio, on && styles.radioOn]}>{on && <Text style={styles.radioTick}>✓</Text>}</View>
+                  </View>
+                  {c.points.map((line) => (
+                    <Text key={line} style={[styles.trackLine, on && styles.trackLineOn]}>• {line}</Text>
+                  ))}
+                </Pressable>
+              );
+            })}
+          </View>
         </>
       )}
       {tab === 'summary' && day !== null && (
-        <>
-          {/* The whole request at a glance before it is sent: the owner checks it once, then confirms below. */}
-          <FlowSummary
-            title="ඔබේ වෙන්කිරීම"
-            rows={[
-              { label: 'ගරාජයේ ලිපිනය', value: shown.address ? '📍 ' + shown.address : '—' },
-              { label: 'සේවාව', value: service ? `${cat.name} · ${service}` : cat.name, half: true },
-              { label: 'වාහනය', value: vehicles.find((v) => v.id === vehicleId)?.name ?? '—', half: true },
-              { label: 'දිනය සහ වේලාව', value: hour === null ? '—' : `${formatDate(preferredAt)} · ${formatTime(preferredAt)}` },
-              { label: 'ගැටලුව / විස්තරය', value: description.trim() || '—', lines: 2 },
-              ...(fitting ? [{ label: 'සවි කළ යුතු කොටස', value: fitPart.trim() || '—' }] : []),
-              { label: 'ඡායාරූප සහ හඬ සටහන්', value: `${photos.length} ඡායාරූප · ${voiceNotes.length} හඬ සටහන්` },
-              { label: 'ස්ථානය', value: doorstep ? (homeLoc ? `ගරාජය මා වෙත පැමිණේ · ${homeLoc.address}` : 'ගරාජය මා වෙත පැමිණේ') : 'මම වාහනය ගරාජයට ගෙන යමි' },
-              { label: 'වැඩ ගමන', value: liveTrack ? 'Live track (හැම පියවරක්ම)' : 'Live නැත (ඡායාරූප + අවසානය)' },
-            ]}
-          />
-        </>
+        <BookingSummaryCard
+          garage={shown}
+          categoryId={categoryId}
+          title={service ? `${cat.name} · ${service}` : cat.name}
+          description={[fitting && fitPart.trim() ? `🔩 ${fitPart.trim()}` : '', description.trim()].filter(Boolean).join(' · ')}
+          vehicle={vehicles.find((v) => v.id === vehicleId)}
+          lines={[
+            { label: 'date and time', icon: '🗓', text: hour === null ? '—' : `${formatDate(preferredAt)} · ${formatTime(preferredAt)}`, onChange: () => editStep('when') },
+            { label: 'part type', icon: '🔧', text: partType ? SPARE_PARTS.find((x) => x.id === partType)?.label ?? '—' : fitting ? 'මම කොටස ගෙනෙමි' : '—', onChange: () => editStep('options') },
+            { label: 'place', icon: doorstep ? '🚛' : '🏠', text: doorstep ? (homeLoc ? `ගරාජය මා වෙත පැමිණේ · ${homeLoc.address}` : 'ගරාජය මා වෙත පැමිණේ') : 'මම වාහනය ගරාජයට ගෙන යමි', onChange: () => editStep('options') },
+            { label: 'tracking', icon: liveTrack ? '📡' : '📷', text: liveTrack ? 'Live track (හැම පියවරක්ම)' : 'Live නැත (ඡායාරූප + අවසානය)', onChange: () => editStep('track') },
+            ...(photos.length + voiceNotes.length > 0 ? [{ label: 'attachments', icon: '📎', text: [photos.length ? `ඡායාරූප ${photos.length}` : '', voiceNotes.length ? `හඬ සටහන් ${voiceNotes.length}` : ''].filter(Boolean).join(' · '), onChange: () => editStep('details') }] : []),
+          ]}
+          note="ගරාජය පැය 2ක් ඇතුළත පිළිතුරු දෙයි."
+        />
       )}
       <Modal visible={mapOpen} animationType="fade" statusBarTranslucent onRequestClose={() => setMapOpen(false)}>
         {mapOpen && (
@@ -475,12 +540,21 @@ const styles = themedStyles(() =>
     question: { fontSize: 16, fontFamily: FONTS.bodyBold, color: Colors.textMain },
     headTop: { marginTop: 12, marginBottom: 2 },
     placeRow: { gap: 8 },
+    partGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    partCell: { width: '48.5%', flexGrow: 1, alignItems: 'center', paddingHorizontal: 8 },
+    partText: { textAlign: 'center' },
     place: { minHeight: 48, justifyContent: 'center', paddingHorizontal: 16, borderRadius: 24, backgroundColor: Colors.bgCard, borderWidth: 1.5, borderColor: Colors.borderColor },
     placeOn: { backgroundColor: '#1e3a8a', borderColor: '#facc15' },
     placeText: { fontSize: 14, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
-    trackChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 },
-    trackChip: { paddingHorizontal: 10, height: 24, borderRadius: 12, justifyContent: 'center', backgroundColor: '#e8edf8' },
-    trackChipText: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: '#1e3a8a' },
+    // The same white choice as the part types, with room inside for a title and two lines.
+    trackCard: { gap: 4, paddingHorizontal: 16, paddingVertical: 14, borderRadius: 26, backgroundColor: Colors.bgCard, borderWidth: 1.5, borderColor: Colors.borderColor },
+    trackHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 2 },
+    trackTitle: { flex: 1, fontSize: 14, lineHeight: 20, fontFamily: FONTS.bodyBold, color: Colors.textMain },
+    trackLine: { fontSize: 13, lineHeight: 20, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
+    trackLineOn: { color: 'rgba(255, 255, 255, 0.85)' },
+    radio: { width: 22, height: 22, borderRadius: 11, borderWidth: 1.5, borderColor: Colors.borderColor, alignItems: 'center', justifyContent: 'center' },
+    radioOn: { backgroundColor: '#ffffff', borderColor: '#ffffff' },
+    radioTick: { fontSize: 13, lineHeight: 16, fontFamily: FONTS.bodyBold, color: '#1e3a8a' },
     placeTextOn: { color: '#ffffff' },
     nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
     // The last step, after the request has gone.

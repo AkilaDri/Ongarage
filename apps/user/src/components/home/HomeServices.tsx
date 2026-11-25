@@ -61,11 +61,14 @@ const ALL_SERVICES: { id: string; label: string }[] = [
   { id: 't14', label: 'Dealer' },
   { id: 't15', label: 'Custom' },
 ];
+/** Not offered in Quick Booking (the grid and its all-services list): EV charging and fuel stations are places, not garage services. */
+export const HIDDEN_FROM_QUICK_BOOKING = ['13', '16'];
+
 export const HomeServices: React.FC<{ onSelect: (c: ServiceCategory) => void; onSeeAll: () => void }> = ({ onSelect, onSeeAll }) => {
   // The services follow the active vehicle: a motorbike or three-wheeler, a bus or a lorry each get their own list.
   const { activeVehicle } = useVehicles();
   const allowed = categoriesForVehicle(activeVehicle.type);
-  const SERVICES = ALL_SERVICES.filter((s) => allowed.includes(s.id));
+  const SERVICES = ALL_SERVICES.filter((s) => allowed.includes(s.id) && !HIDDEN_FROM_QUICK_BOOKING.includes(s.id));
   const HALF = Math.ceil(SERVICES.length / 2);
   const COLUMNS = SERVICES.slice(0, HALF).map((x, i) => [x, SERVICES[HALF + i]].filter(Boolean) as typeof SERVICES);
   const [width, setWidth] = useState(358);

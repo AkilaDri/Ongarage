@@ -34,7 +34,7 @@ export const FlowVehicleCard: React.FC<{ vehicleId: string; onChange: (id: strin
 const styles = themedStyles(() =>
   StyleSheet.create({
     flex1: { flex: 1 },
-    card: { borderRadius: 26, borderWidth: 1, borderColor: 'rgba(16, 185, 129, 0.55)', backgroundColor: getThemeMode() === 'dark' ? Colors.bgCard : '#ffffff', shadowColor: '#1e3a8a', shadowOffset: { width: 0, height: 10 }, shadowOpacity: getThemeMode() === 'dark' ? 0.6 : 0.16, shadowRadius: 22, elevation: 6, paddingHorizontal: 16, paddingVertical: 12 },
+    card: { borderRadius: 26, borderWidth: 1, borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#f3f4f6', backgroundColor: getThemeMode() === 'dark' ? Colors.bgCard : '#ffffff', shadowColor: '#1e3a8a', shadowOffset: { width: 0, height: 10 }, shadowOpacity: getThemeMode() === 'dark' ? 0.6 : 0.16, shadowRadius: 22, elevation: 6, paddingHorizontal: 16, paddingVertical: 12 },
     row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
     label: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, letterSpacing: 0.4 },
     title: { fontSize: 15, fontFamily: FONTS.titleBold, color: Colors.textMain },

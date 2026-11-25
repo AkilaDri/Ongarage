@@ -13,6 +13,16 @@ Entry format:
 
 ## Entries
 
+## 2026-11-25 · Owner garage booking, summary step · drawn as an Activity card
+- Principles used: C5 (the Activity card: picture and garage, soft box with job and plate, footer line), C2 (the garage card above is hidden here so the garage is named once; empty attachments line left out), C1 (each choice line has a chevron and opens its step), C10 (the 2-hour answer rule before sending), UPD 099.
+- Core missing: none.
+- Outcome: built as asked. Not yet checked on a phone.
+
+## 2026-11-25 · Owner garage booking, tracking step · choices drawn like the other steps
+- Principles used: C5 (same heading with tick and the navy-with-yellow-edge choice as the part types), C1 (benefit chips that looked tappable became plain lines; a radio mark shows the choice), C2 (removed lines that repeated each title), C7.
+- Core missing: none.
+- Outcome: built as asked. Not yet checked on a phone.
+
 ## 2026-11-15 · Owner Home header · vehicle line weight, logo spacing
 - Principles used: C13 (plate and vehicle name share one weight, so the chip reads as one control), C2 (16px gap keeps the logo clear of the location chip), UPD 152 proximity.
 - Core missing: none.
