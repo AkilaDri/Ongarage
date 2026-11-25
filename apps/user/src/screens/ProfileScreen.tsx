@@ -7,6 +7,9 @@ import { Colors, FONTS, getThemeMode, Gradient, ThemeToggle, themedStyles, useTh
 import { useLang } from '../context/LanguageContext';
 import { useVehicles } from '../context/VehiclesContext';
 import { useProfile } from '../context/ProfileContext';
+import { useNotice } from '../context/NoticeContext';
+import { RemoveVehicleSheet, RemovedVehiclesSheet } from '../components/RemoveVehicleSheet';
+import { ClaimHandoverSheet, HandoverSheet } from '../components/HandoverSheets';
 import { AddVehicleSheet } from '../components/AddVehicleSheet';
 import { nextServiceOf, ServiceRecordsSheet, useServiceRecords } from '../components/ServiceRecordsSheet';
 import { SERVICE_KINDS } from '@ongarage/shared';
@@ -44,7 +47,12 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ activeVehicle, onV
   const { isDark, toggle } = useTheme();
   const { lang, setLang } = useLang();
   const { profile, fullName, initials } = useProfile();
-  const { vehicles, findVehicle } = useVehicles();
+  const { vehicles, findVehicle, archivedVehicles } = useVehicles();
+  const { notify } = useNotice();
+  const [removing, setRemoving] = useState<typeof vehicle | null>(null);
+  const [showRemoved, setShowRemoved] = useState(false);
+  const [handingOver, setHandingOver] = useState<typeof vehicle | null>(null);
+  const [claiming, setClaiming] = useState(false);
   const vehicle = findVehicle(activeVehicle);
   const [sheet, setSheet] = useState<SheetId>(null);
   // Garages saved with the heart: a row here opens them as a list (the same row appears on Home).
@@ -118,6 +126,9 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ activeVehicle, onV
         <View style={styles.gCard}>
           <View style={styles.gHead}>
             <Text style={styles.gHeadingInline}>මගේ වාහන</Text>
+            <Pressable style={styles.addVehicleChip} onPress={() => setClaiming(true)} accessibilityLabel="Add a vehicle with a handover code">
+              <Text style={styles.addVehicleText}>🔑 කේතයකින්</Text>
+            </Pressable>
             <Pressable style={styles.addVehicleChip} onPress={() => setAdding(true)} accessibilityLabel="Add vehicle">
               <Text style={styles.addVehiclePlus}>＋</Text>
               <Text style={styles.addVehicleText}>අලුත් වාහනයක්</Text>
@@ -204,6 +215,17 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ activeVehicle, onV
           <Pressable style={styles.editDetails} onPress={() => setDetailsFor(vehicle)} accessibilityLabel="Edit vehicle details">
             <Text style={styles.editDetailsText}>✎ වාහන තොරතුරු සංස්කරණය</Text>
           </Pressable>
+          <Pressable style={styles.removeLink} onPress={() => setHandingOver(vehicle)} hitSlop={6} accessibilityLabel="Hand over this vehicle's history">
+            <Text style={styles.removeLinkText}>විකුණා ඇත — ඉතිහාසය භාර දෙන්න</Text>
+          </Pressable>
+          <Pressable style={styles.removeLink} onPress={() => setRemoving(vehicle)} hitSlop={6} accessibilityLabel="Remove this vehicle">
+            <Text style={styles.removeLinkText}>වාහනය ඉවත් කරන්න</Text>
+          </Pressable>
+          {archivedVehicles.length > 0 && (
+            <Pressable style={styles.removeLink} onPress={() => setShowRemoved(true)} hitSlop={6} accessibilityLabel="Removed vehicles">
+              <Text style={styles.removeLinkText}>ඉවත් කළ වාහන ({archivedVehicles.length})</Text>
+            </Pressable>
+          )}
         </View>
 
         {/* Settings and help: one card of list rows */}
@@ -245,6 +267,24 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ activeVehicle, onV
       />
       <GarageReviewsSheet garage={openSaved} onClose={() => setOpenSaved(null)} onReopen={setOpenSaved} onCall={openSaved ? () => Linking.openURL(`tel:${openSaved.phone.replace(/\s/g, '')}`) : undefined} />
       <AppSettingsSheet visible={sheet === 'settings'} onClose={() => setSheet(null)} />
+      <RemoveVehicleSheet
+        vehicle={removing}
+        onClose={() => setRemoving(null)}
+        onRemoved={(v) => {
+          setRemoving(null);
+          notify({ icon: '🚗', title: 'වාහනය ඉවත් කළා', body: `${v.name} · ඉවත් කළ වාහන වලින් නැවත එක් කළ හැක`, tone: 'primary' });
+        }}
+      />
+      <HandoverSheet vehicle={handingOver} onClose={() => setHandingOver(null)} />
+      <ClaimHandoverSheet
+        visible={claiming}
+        onClose={() => setClaiming(false)}
+        onClaimed={(v, count) => {
+          setClaiming(false);
+          notify({ icon: '🚗', title: 'වාහනය එක් කළා', body: `${v.name} · සේවා වාර්තා ${count} ක්`, tone: 'primary' });
+        }}
+      />
+      <RemovedVehiclesSheet visible={showRemoved} onClose={() => setShowRemoved(false)} />
       <Sheet visible={sheet === 'help'} title="උදව් සහ සහාය" subtitle="OnGarage කණ්ඩායම ඔබට උදව් කිරීමට සූදානම්" onClose={() => setSheet(null)}>
         <Pressable style={styles.helpRow} onPress={() => Linking.openURL(`tel:${HELP_LINE}`)} accessibilityLabel="Call support">
           <Text style={styles.menuIcon}>📞</Text>
@@ -307,6 +347,8 @@ const styles = themedStyles(() =>
     recordsCount: { minWidth: 16, height: 16, paddingHorizontal: 4, borderRadius: 6, alignItems: 'center', justifyContent: 'center', backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.34)' : '#bfdbfe' },
     recordsCountText: { fontSize: 11.5, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1e3a8a' },
     editDetails: { marginHorizontal: 16, marginBottom: 14, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: outline() },
+    removeLink: { alignSelf: 'center', minHeight: 40, justifyContent: 'center', marginBottom: 6 },
+    removeLinkText: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
     editDetailsText: { fontSize: 13.5, fontFamily: FONTS.bodySemiBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1e3a8a' },
     gHeading: { fontSize: 14, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1e3a8a', paddingHorizontal: 16, paddingTop: 14 },
     contactLine: { fontSize: 13.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
