@@ -140,6 +140,8 @@ export type WorkshopStart = Omit<OwnerWorkshop, 'progress' | 'warrantyMonths' | 
   warrantyMonths?: number;
   /** Booked with a Premier garage: covered by the OnGarage Guarantee. */
   protectedJob?: boolean;
+  /** The owner's choice at booking: live tracking of every stage, or only the check-in photos and the finish. */
+  liveTrack?: boolean;
 };
 
 export type RatingInput = { dimensions: DimensionRating; technician?: number; text: string };
@@ -671,15 +673,17 @@ export const WorkshopProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const startWorkshop = useCallback(
     (start: WorkshopStart) => {
       if (live.current[start.id]) return;
-      const { protectedJob, ...rest } = start;
-      const w: OwnerWorkshop = { ...rest, warrantyMonths: start.warrantyMonths ?? DEFAULT_WARRANTY_MONTHS, progress: { ...newWorkshopProgress(), protected: protectedJob } };
+      const { protectedJob, liveTrack, ...rest } = start;
+      const w: OwnerWorkshop = { ...rest, warrantyMonths: start.warrantyMonths ?? DEFAULT_WARRANTY_MONTHS, progress: { ...newWorkshopProgress(), protected: protectedJob, liveTrack: liveTrack !== false } };
       setWorkshops((prev) => ({ ...prev, [w.id]: w }));
       // The garage receives the vehicle at the booked time.
       later(() => {
         if (stageOf(w.id) !== 'booked') return;
         patch(w.id, { stage: 'diagnosing', receivedAt: Date.now(), checkInPhotos: SAMPLE_UPLOAD_PHOTOS.slice(1) });
         patchJob(w.id, { technician: technicianFor(w.garageName) });
-        notify({ icon: '🚗', title: `${w.garageName}: වාහනය ලැබුණා`, body: w.doorstep ? 'ගරාජය ඔබ වෙත පැමිණ පරීක්ෂාව ඇරඹුවා.' : 'තත්ත්වයේ ඡායාරූප ගෙන පරීක්ෂාව ඇරඹුවා.', tone: 'primary' });
+        // Not live: the check-in photos are the only update until the finish, so the note says so.
+        const notLive = w.progress.liveTrack === false;
+        notify({ icon: '🚗', title: `${w.garageName}: වාහනය ලැබුණා`, body: notLive ? 'තත්ත්වයේ ඡායාරූප ගත්තා. වැඩ ගමන live නොපෙන්වයි; අවසානයේ දැනුම් දෙනවා.' : w.doorstep ? 'ගරාජය ඔබ වෙත පැමිණ පරීක්ෂාව ඇරඹුවා.' : 'තත්ත්වයේ ඡායාරූප ගෙන පරීක්ෂාව ඇරඹුවා.', tone: 'primary' });
         diagnose(w.id);
       // (For trying the whole process: the simulated garage does not wait hours for the booked time, only a few seconds.)
       }, Math.min(Math.max(0, w.scheduledAt - Date.now()), 6000) + RECEIVE_MS);

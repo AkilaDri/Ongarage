@@ -112,9 +112,11 @@ export const DirectBookingSheet: React.FC<{ garage: Garage | null; categoryId?: 
   // Nothing is preselected: the owner picks the day, then the time.
   const [day, setDay] = useState<number | null>(null);
   // The form is five steps, filled in this order: the vehicle (an owner with several says first which one it is for), the service, the details, the day, then the time and where.
-  const [tab, setTab] = useState<'service' | 'details' | 'day' | 'time' | 'summary'>('service');
+  const [tab, setTab] = useState<'service' | 'details' | 'day' | 'time' | 'track' | 'summary'>('service');
   const [hour, setHour] = useState<number | null>(null);
   const [doorstep, setDoorstep] = useState(false);
+  // The owner decides how the job is followed: live (every stage in the app) or only the check-in photos and the finish.
+  const [liveTrack, setLiveTrack] = useState(true);
   // The owner picks where the car is (for the garage to come to) on a map.
   const [homeLoc, setHomeLoc] = useState<PickedLocation | null>(null);
   const [mapOpen, setMapOpen] = useState(false);
@@ -177,8 +179,8 @@ export const DirectBookingSheet: React.FC<{ garage: Garage | null; categoryId?: 
   const detailsOk = problemTold(description, voiceNotes, 5) && (!fitting || fitPart.trim().length > 0);
   const valid = detailsOk && !slotPast;
 
-  const ORDER = ['service', 'details', 'day', 'time', 'summary'] as const;
-  const STEP_NAMES = ['සේවාව සහ වාහනය', 'විස්තර', 'දිනය', 'වේලාව', 'සාරාංශය'] as const;
+  const ORDER = ['service', 'details', 'day', 'time', 'track', 'summary'] as const;
+  const STEP_NAMES = ['සේවාව සහ වාහනය', 'විස්තර', 'දිනය', 'වේලාව', 'හඹා යාම', 'සාරාංශය'] as const;
   const tabIndex = ORDER.indexOf(tab);
   const lastTab = tabIndex === ORDER.length - 1;
   // A step's own requirement for moving on.
@@ -193,7 +195,7 @@ export const DirectBookingSheet: React.FC<{ garage: Garage | null; categoryId?: 
 
   const submit = () => {
     const fittingInfo: PartsFitting | undefined = fitting ? { partName: fitPart.trim(), supply: fitSupply } : undefined;
-    requestBooking({ garage: shown, categoryId, service, vehicleId, preferredAt, description: fittingInfo ? `${jobDescription(description)}\n🔩 සවි කළ යුතු කොටස: ${fittingInfo.partName} (${FITTING_SUPPLY.find((x) => x.id === fittingInfo.supply)?.short})` : jobDescription(description), doorstep, photos, voiceNotes, fitting: fittingInfo, offer });
+    requestBooking({ garage: shown, categoryId, service, vehicleId, preferredAt, description: fittingInfo ? `${jobDescription(description)}\n🔩 සවි කළ යුතු කොටස: ${fittingInfo.partName} (${FITTING_SUPPLY.find((x) => x.id === fittingInfo.supply)?.short})` : jobDescription(description), doorstep, liveTrack, photos, voiceNotes, fitting: fittingInfo, offer });
     onBooked?.();
     setSent(true);
   };
@@ -382,6 +384,28 @@ export const DirectBookingSheet: React.FC<{ garage: Garage | null; categoryId?: 
           )}
         </>
       )}
+      {/* Its own step: how the owner follows the job, with what each choice means in plain words. */}
+      {tab === 'track' && (
+        <>
+          <Text style={styles.question}>වැඩ ගමන හඹා යන ආකාරය</Text>
+          <Pressable style={[styles.place, liveTrack && styles.placeOn]} onPress={() => setLiveTrack(true)} accessibilityRole="radio" accessibilityState={{ selected: liveTrack }}>
+            <Text style={[styles.placeText, liveTrack && styles.placeTextOn]}>📡 Live track (හැම පියවරක්ම)</Text>
+            <View style={styles.trackChips}>
+              {['හැම පියවරක්ම update', 'අමතර වැඩ app එකෙන් අනුමත', 'වැඩ ගමන live'].map((c) => (
+                <View key={c} style={styles.trackChip}><Text style={styles.trackChipText}>{c}</Text></View>
+              ))}
+            </View>
+          </Pressable>
+          <Pressable style={[styles.place, !liveTrack && styles.placeOn]} onPress={() => setLiveTrack(false)} accessibilityRole="radio" accessibilityState={{ selected: !liveTrack }}>
+            <Text style={[styles.placeText, !liveTrack && styles.placeTextOn]}>📷 Live නැතුව</Text>
+            <View style={styles.trackChips}>
+              {['තත්ත්ව ඡායාරූප බලන්න', 'වැඩ ගමන live නැත', 'අවසානයේ "job අවසන් කරන්න"'].map((c) => (
+                <View key={c} style={styles.trackChip}><Text style={styles.trackChipText}>{c}</Text></View>
+              ))}
+            </View>
+          </Pressable>
+        </>
+      )}
       {tab === 'summary' && day !== null && (
         <>
           {/* The whole request at a glance before it is sent: the owner checks it once, then confirms below. */}
@@ -396,6 +420,7 @@ export const DirectBookingSheet: React.FC<{ garage: Garage | null; categoryId?: 
               ...(fitting ? [{ label: 'සවි කළ යුතු කොටස', value: fitPart.trim() || '—' }] : []),
               { label: 'ඡායාරූප සහ හඬ සටහන්', value: `${photos.length} ඡායාරූප · ${voiceNotes.length} හඬ සටහන්` },
               { label: 'ස්ථානය', value: doorstep ? (homeLoc ? `ගරාජය මා වෙත පැමිණේ · ${homeLoc.address}` : 'ගරාජය මා වෙත පැමිණේ') : 'මම වාහනය ගරාජයට ගෙන යමි' },
+              { label: 'වැඩ ගමන', value: liveTrack ? 'Live track (හැම පියවරක්ම)' : 'Live නැත (ඡායාරූප + අවසානය)' },
             ]}
           />
         </>
@@ -453,6 +478,9 @@ const styles = themedStyles(() =>
     place: { minHeight: 48, justifyContent: 'center', paddingHorizontal: 16, borderRadius: 24, backgroundColor: Colors.bgCard, borderWidth: 1.5, borderColor: Colors.borderColor },
     placeOn: { backgroundColor: '#1e3a8a', borderColor: '#facc15' },
     placeText: { fontSize: 14, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
+    trackChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 },
+    trackChip: { paddingHorizontal: 10, height: 24, borderRadius: 12, justifyContent: 'center', backgroundColor: '#e8edf8' },
+    trackChipText: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: '#1e3a8a' },
     placeTextOn: { color: '#ffffff' },
     nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
     // The last step, after the request has gone.

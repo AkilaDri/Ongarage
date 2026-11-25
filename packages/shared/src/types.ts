@@ -606,6 +606,8 @@ export type JobCancellation = { at: number; by: 'owner'; reason: string; note?: 
 
 export type WorkshopProgress = {
   stage: WorkshopStage;
+  /** Chosen by the owner at booking. true: every stage the garage reaches shows live in the owner's app. false: only the check-in photos and the finish are shown, the work goes on without stage updates. Undefined counts as live (older jobs). */
+  liveTrack?: boolean;
   checkInPhotos?: string[];
   receivedAt?: number;
   /** The owner confirmed (in their app) that they really handed the vehicle over, after the garage said it had received it. */
