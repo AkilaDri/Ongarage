@@ -64,7 +64,7 @@ import { setBookingOpener } from './utils/bookingBridge';
 import type { AppliedOffer } from './types';
 import { MOCK_GARAGES } from './constants/mockData';
 import { usePayStanding } from './context/PayStanding';
-import { chatDockDrop, chatDockOffset, chatHide } from './utils/chatDock';
+import { chatDockOffset, chatHide } from './utils/chatDock';
 import { openActivityCalendar } from './utils/activityCalendar';
 import { openFeedRecord } from './utils/feedRecord';
 import { focusActivity } from './utils/activityFocus';
@@ -647,10 +647,10 @@ function AppShell() {
         <MartSeenTracker active={activeTab === 'mart'} segment={martSegment} />
         <ServiceReminders />
         <PaymentReminders />
-        {/* The chat icon stays put at the top right however the header folds away while the page scrolls. */}
+        {/* The chat icon floats at the bottom right, just above the tab bar, in the same place on every tab. */}
         {(
           <Animated.View
-            style={[styles.floatChat, (activeTab === 'home' || activeTab === 'activity' || activeTab === 'bids' || activeTab === 'mart') ? styles.floatChatHome : { top: -2 }, { opacity: chatHide.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }), transform: [{ translateY: (activeTab === 'home' || activeTab === 'activity' || activeTab === 'bids' || activeTab === 'mart') ? 0 : Animated.multiply(martHeaderCollapse, chatDockDrop) }, { translateY: chatHide.interpolate({ inputRange: [0, 1], outputRange: [0, -24] }) }] }]}
+            style={[styles.floatChat, styles.floatChatHome, { opacity: chatHide.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }), transform: [{ translateY: chatHide.interpolate({ inputRange: [0, 1], outputRange: [0, -24] }) }] }]}
             pointerEvents={chatBlocked ? 'none' : 'box-none'}
           >
             <ChatHeaderButton scrolled={activeTab === 'home' ? sheetScroll : martHeaderCollapse} />
@@ -838,7 +838,7 @@ const styles = themedStyles(() => StyleSheet.create({
   pageTitle: { flexShrink: 1, fontSize: 18, fontFamily: FONTS.titleBold, color: Colors.textMain },
   pageTitleAction: { paddingHorizontal: 12, height: 32, borderRadius: 16, justifyContent: 'center', backgroundColor: '#eff6ff', borderWidth: 1, borderColor: '#bfdbfe' },
   pageTitleActionText: { fontSize: 12, fontFamily: FONTS.bodyBold, color: '#1e3a8a' },
-  // On Home the OnChat pill floats at the bottom right, just above the tab bar (72px high).
+  // The OnChat pill floats at the bottom right, just above the tab bar (72px high).
   floatChatHome: { top: 'auto', bottom: 84 },
   floatChat: { position: 'absolute', top: 10, right: 14, zIndex: 50, height: 44, backgroundColor: 'transparent' },
   // The tab's screen overlaps the header band with rounded top corners.
