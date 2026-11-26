@@ -126,11 +126,10 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         icon: '🛍️',
         title: buyerLabel(cr),
         subtitle: `OnMart ඉල්ලීම · ${parts}${v ? ` · ${v.plate}` : ''}`,
-        phone: cr.via === 'shop' ? cr.enquiry.buyer.phone : undefined,
         vehicle: v,
         record: jobRecordText({
           title: `🛍️ OnMart ඉල්ලීම · ${parts}`,
-          who: cr.via === 'shop' ? { label: 'Customer', name: cr.enquiry.buyer.name, phone: cr.enquiry.buyer.phone } : undefined,
+          who: cr.via === 'shop' ? { label: 'Customer', name: cr.enquiry.buyer.name } : undefined,
           vehicle: v,
           description: briefs.map((b) => b.note).filter(Boolean).join(' · ') || undefined,
           partType: briefs[0]?.partType,

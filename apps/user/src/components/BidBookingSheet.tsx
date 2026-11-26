@@ -21,7 +21,7 @@ import { formatDate, formatTime, money } from '../utils/format';
 
 const HOUR = 60 * 60 * 1000;
 // Three steps, as in the garage booking: the day and time together, how the job is followed, then a check; where the work is done was already decided when the job was posted, so it is not asked again.
-const PICK_STEPS = ['දිනය සහ වේලාව', 'හඹා යාම', 'පරීක්ෂා කර යවන්න'] as const;
+const PICK_STEPS = ['දිනය සහ වේලාව', 'රැඳී සිටීම', 'පරීක්ෂා කර යවන්න'] as const;
 type Phase = 'when' | 'track' | 'review';
 const PHASES: Phase[] = ['when', 'track', 'review'];
 
@@ -42,7 +42,7 @@ export const BidBookingSheet: React.FC<{ jobId: string | null; onClose: () => vo
   const [phase, setPhase] = useState<Phase>('when');
   const [doorstep, setDoorstep] = useState(false);
   // Live tracking is on unless the owner turns it off, as in the garage booking.
-  const [liveTrack, setLiveTrack] = useState(true);
+  const [stays, setStays] = useState<boolean | null>(null);
   // True after a summary line was tapped: that step's button goes straight back to the summary.
   const [editing, setEditing] = useState(false);
   // The soonest slot's confirmation is open: the times below the days are hidden meanwhile.
@@ -58,7 +58,7 @@ export const BidBookingSheet: React.FC<{ jobId: string | null; onClose: () => vo
     setHour(null);
     setPhase('when');
     setDoorstep(!!job?.doorstep);
-    setLiveTrack(true);
+    setStays(null);
     setEditing(false);
     setAsking(false);
     setSent(false);
@@ -113,16 +113,16 @@ export const BidBookingSheet: React.FC<{ jobId: string | null; onClose: () => vo
       if (phase === 'when')
         footer = <FlowButton label={day === null ? 'දිනයක් තෝරන්න' : past ? 'වේලාවක් තෝරන්න' : editing ? 'සාරාංශයට ආපසු ›' : 'ඊළඟ ›'} variant="primary" disabled={past} onPress={afterWhen} />;
       else if (phase === 'track')
-        footer = <FlowButton label={editing ? 'සාරාංශයට ආපසු ›' : 'ඊළඟ ›'} variant="primary" onPress={backToSummary} />;
+        footer = <FlowButton label={stays === null ? 'ඔව් / නැහැ තෝරන්න' : editing ? 'සාරාංශයට ආපසු ›' : 'ඊළඟ ›'} variant="primary" disabled={stays === null} onPress={backToSummary} />;
       else
         footer = (
             <FlowButton
               label="වේලාව ඉල්ලන්න"
               icon="📅"
               variant="primary"
-              disabled={past}
+              disabled={past || stays === null}
               onPress={() => {
-                requestBidSlot(job.id, { preferredAt, doorstep, liveTrack });
+                requestBidSlot(job.id, { preferredAt, doorstep, stays: !!stays });
                 setSent(true);
               }}
             />
@@ -234,7 +234,7 @@ export const BidBookingSheet: React.FC<{ jobId: string | null; onClose: () => vo
                         <Text style={{ fontFamily: FONTS.bodyBold, color: '#1e3a8a', fontSize: 14 }}>📍 {homeLoc ? homeLoc.address : 'ඔබේ ස්ථානය map එකෙන් තෝරන්න'}</Text>
                       </Pressable>
                     )}
-                    {phase === 'track' && <TrackStep live={liveTrack} onLive={setLiveTrack} />}
+                    {phase === 'track' && <TrackStep stays={stays} onStays={setStays} />}
                     {phase === 'review' && day !== null && hour !== null && (
                       <>
                         {past && <Text style={styles.warn}>මෙම වේලාව ඉක්මවා ඇත. දිනය හෝ වේලාව වෙනස් කරන්න.</Text>}
@@ -251,7 +251,7 @@ export const BidBookingSheet: React.FC<{ jobId: string | null; onClose: () => vo
                             { label: 'part type', icon: '🔧', text: sparePartLabel(job.sparePart) },
                             { label: 'place', icon: doorstep ? '🚛' : '🏠', text: doorstep ? 'ගරාජය මා වෙත පැමිණේ' : 'මම වාහනය ගරාජයට ගෙන යමි' },
                             ...(doorstep ? [{ label: 'my location', icon: '📍', text: homeLoc ? homeLoc.address : 'තවම තෝරා නැත', onChange: () => editStep('when') }] : []),
-                            { label: 'tracking', icon: liveTrack ? '📡' : '📷', text: liveTrack ? 'Live track (හැම පියවරක්ම)' : 'Live නැත (ඡායාරූප + අවසානය)', onChange: () => editStep('track') },
+                            { label: 'staying', icon: stays ? '🪑' : '🚶', text: stays ? 'මම ගරාජයේ රැඳී සිටිමි' : 'මම වාහනය තබා යනවා', onChange: () => editStep('track') },
                             ...((job.photos?.length ?? 0) + (job.voiceNotes?.length ?? 0) > 0 ? [{ label: 'attachments', icon: '📎', text: [job.photos?.length ? `ඡායාරූප ${job.photos.length}` : '', job.voiceNotes?.length ? `හඬ සටහන් ${job.voiceNotes.length}` : ''].filter(Boolean).join(' · ') }] : []),
                           ]}
                           note="ගරාජය පැය 2ක් ඇතුළත පිළිතුරු දෙයි. ඔබ ඉල්ලූ වේලාව නොගැළපුණොත් වෙනත් වේලාවක් යෝජනා කරයි."

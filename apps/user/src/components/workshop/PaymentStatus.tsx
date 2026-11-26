@@ -47,7 +47,7 @@ const DisputeSheet: React.FC<{ workshop: OwnerWorkshop | null; onClose: () => vo
 /** "I paid": names the amount, and says the garage still has to confirm it. */
 const ClaimButton: React.FC<{ amount: number; onPress: () => void }> = ({ amount, onPress }) => (
   <View style={styles.claim}>
-    <FlowButton label={`${money(amount)} ගෙව්වා කියා දන්වන්න`} icon="🧾" variant="primary" onPress={onPress} />
+    <FlowButton label="ගෙව්වා කියා දන්වන්න" detail={money(amount)} icon="🧾" variant="primary" onPress={onPress} />
     <Text style={styles.claimHint}>ගරාජය එය තහවුරු කරයි.</Text>
   </View>
 );

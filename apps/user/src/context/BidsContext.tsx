@@ -127,7 +127,7 @@ type BidsState = {
   /** The owner accepts a quote: the price is agreed, and the owner then has to pick a time (the workshop starts when the garage confirms it). */
   acceptBid: (jobId: string, bidId: string) => void;
   /** The owner asks the winning garage for a time; the garage confirms it or proposes another. */
-  requestBidSlot: (jobId: string, input: { preferredAt: number; doorstep?: boolean; liveTrack?: boolean; note?: string }) => void;
+  requestBidSlot: (jobId: string, input: { preferredAt: number; doorstep?: boolean; stays?: boolean; note?: string }) => void;
   /** The owner takes the other time the garage proposed. */
   acceptSlotProposal: (jobId: string) => void;
   /** The owner turns the proposed time down and goes back to picking a time with the same garage. */
@@ -178,8 +178,8 @@ export const BidsProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   /** The garage takes the vehicle in at the agreed time and follows the workshop steps. */
   const beginWorkshop = useCallback(
-    (job: RepairJob, bid: Bid, scheduledAt: number, doorstep: boolean, liveTrack?: boolean) => {
-      startWorkshop({ id: job.id, garageId: bid.garageId, garageName: bid.garageName, categoryId: job.categoryId, agreedPrice: bid.price, scheduledAt, doorstep, warrantyMonths: bid.warrantyMonths, vehicleId: job.vehicleId, partType: job.sparePart, protectedJob: bid.level === 'premier', liveTrack });
+    (job: RepairJob, bid: Bid, scheduledAt: number, doorstep: boolean, stays?: boolean) => {
+      startWorkshop({ id: job.id, garageId: bid.garageId, garageName: bid.garageName, categoryId: job.categoryId, agreedPrice: bid.price, scheduledAt, doorstep, warrantyMonths: bid.warrantyMonths, vehicleId: job.vehicleId, partType: job.sparePart, protectedJob: bid.level === 'premier', stays });
     },
     [startWorkshop]
   );
@@ -194,9 +194,9 @@ export const BidsProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const requestBidSlot = useCallback(
-    (jobId: string, input: { preferredAt: number; doorstep?: boolean; liveTrack?: boolean; note?: string }) => {
+    (jobId: string, input: { preferredAt: number; doorstep?: boolean; stays?: boolean; note?: string }) => {
       const now = Date.now();
-      patchBooking(jobId, (b) => ({ ...b, status: 'requested', preferredAt: input.preferredAt, doorstep: input.doorstep, liveTrack: input.liveTrack, note: input.note, requestedAt: now, respondBy: now + GARAGE_RESPOND_WITHIN_MS, proposal: undefined }));
+      patchBooking(jobId, (b) => ({ ...b, status: 'requested', preferredAt: input.preferredAt, doorstep: input.doorstep, stays: input.stays, note: input.note, requestedAt: now, respondBy: now + GARAGE_RESPOND_WITHIN_MS, proposal: undefined }));
       timers.current.push(
         setTimeout(() => {
           const job = live.current.find((j) => j.id === jobId);
@@ -206,7 +206,7 @@ export const BidsProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (answer.kind === 'confirm') {
             patchBooking(jobId, (b) => ({ ...b, status: 'confirmed', scheduledAt: input.preferredAt, confirmedAt: Date.now() }));
             flyTo('booked');
-            beginWorkshop(job, bid, input.preferredAt, input.doorstep ?? job.doorstep, input.liveTrack);
+            beginWorkshop(job, bid, input.preferredAt, input.doorstep ?? job.doorstep, input.stays);
             notify({ icon: '✅', title: `${bid.garageName} වෙන්කිරීම තහවුරු කළා`, body: `දැන් “ක්‍රියාකාරකම්” හි ඇත. ${(input.doorstep ?? job.doorstep) ? 'නියමිත වේලාවට ගරාජය ඔබ වෙත පැමිණේ.' : `${categoryInfo(job.categoryId).name} · ගරාජයේ ස්ථානය එහි ඇත.`}`, tone: 'success' });
           } else {
             patchBooking(jobId, (b) => ({ ...b, status: 'proposed', proposal: { at: answer.at, note: 'එම වේලාවේ ගරාජය වසා ඇත.' } }));
@@ -226,7 +226,7 @@ export const BidsProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!job || !bid || !proposal) return;
       patchBooking(jobId, (b) => ({ ...b, status: 'confirmed', scheduledAt: proposal.at, proposal: undefined, confirmedAt: Date.now() }));
       flyTo('booked');
-      beginWorkshop(job, bid, proposal.at, job.booking?.doorstep ?? job.doorstep, job.booking?.liveTrack);
+      beginWorkshop(job, bid, proposal.at, job.booking?.doorstep ?? job.doorstep, job.booking?.stays);
       notify({ icon: '✅', title: 'වෙන්කිරීම තහවුරුයි', body: `දැන් “ක්‍රියාකාරකම්” හි ඇත · ${bid.garageName} · ${categoryInfo(job.categoryId).name}`, tone: 'success' });
     },
     [beginWorkshop, notify, patchBooking]

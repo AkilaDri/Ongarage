@@ -28,7 +28,7 @@ The four tab icons are the designer's artwork in `assets/updated_icons/*.svg`. `
 ## Booking and request flows (shared look)
 
 - **Frame:** `components/BookingShell` (blue band with a round white back chevron from step 2, then a pill showing title, step counter and step name with a grey ✕ at its right end; the rounded sheet overlapping it with progress segments; a body with 8px side padding and a 12px rhythm; a footer with 8px side padding). The direct booking form uses it; the bid booking sheet and the quote request keep the same measurements.
-- **Footer buttons:** always `components/FlowButton` (pill at least 40px, up to two lines, yellow `#facc15` edge, soft blue fill, 14px semi-bold navy label; `success` is soft green, `ghost` is clear, `danger` is soft red for a risky confirm, disabled is solid grey). "ඊළඟ ›" is the label for the next step, with no icon. Do not use `ActionButton` for a flow's footer.
+- **Footer buttons:** always `components/FlowButton` (pill at least 40px, up to two lines, yellow `#facc15` edge, soft blue fill, 14px semi-bold navy label; `success` is soft green, `ghost` is clear, `danger` is soft red for a risky confirm, disabled is solid grey). "ඊළඟ ›" is the label for the next step, with no icon. A price or item the action is about goes in the `detail` prop (its own line under the action), never joined into the label with "·". Do not use `ActionButton` for a flow's footer.
 - **Headings:** 16px bold, 24px of space above and 14px below, with the amber deadline or "required" chip at the right end of the row.
 
 ## Feature status

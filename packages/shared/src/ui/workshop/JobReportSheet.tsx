@@ -19,7 +19,7 @@ const names = (l: DiagnosisLine) => (l.qty > 1 ? `${l.name} ×${l.qty}` : l.name
 const decisionText = (d?: OwnerDecision, lines: DiagnosisLine[] = []) => {
   if (!d) return '⏳ අයිතිකරුගේ අනුමැතිය බලාපොරොත්තුවෙන්';
   const approved = lines.filter((l) => d.approvedLineIds.includes(l.id));
-  const how = d.via === 'phone' ? ' (දුරකථන ඇමතුමකින්)' : d.via === 'deferred' ? ' (පසෙක තැබුවා)' : '';
+  const how = d.via === 'phone' ? ' (දුරකථන ඇමතුමකින්)' : d.via === 'deferred' ? ' (පසෙක තැබුවා)' : d.via === 'inPerson' ? ' (ගරාජයේදී එකඟ වූ)' : '';
   return approved.length ? `✅ අනුමත කළා${how}: ${approved.map(names).join(', ')}` : `✖ කිසිවක් අනුමත නොකළා${how}`;
 };
 

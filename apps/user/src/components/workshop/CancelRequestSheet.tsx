@@ -48,7 +48,8 @@ export const CancelRequestSheet: React.FC<{ workshop: OwnerWorkshop | null; onCl
           />
           {quoted && (
             <FlowButton
-              label={`${money(req.compensation ?? 0)} වන්දියට එකඟයි — රැකියාව අවලංගු කරන්න`}
+              label="එකඟයි, රැකියාව අවලංගු කරන්න"
+              detail={`වන්දිය ${money(req.compensation ?? 0)}`}
               variant="danger"
               onPress={() => {
                 confirmCancel(w.id, { rating: stars || undefined });

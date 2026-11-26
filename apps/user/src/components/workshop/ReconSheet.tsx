@@ -52,7 +52,8 @@ export const ReconSheet: React.FC<{ workshop: OwnerWorkshop | null; reconId?: st
             </View>
           )}
           <FlowButton
-            label={pick === 'recon' ? `Recon අනුමතයි · ${money(r.reconPrice)}` : pick === 'genuine' ? `Genuine බලා සිටින්න · ${money(r.genuinePrice)}` : 'තෝරන්න'}
+            label={pick === 'recon' ? 'Recon අනුමතයි' : pick === 'genuine' ? 'Genuine බලා සිටින්න' : 'තෝරන්න'}
+            detail={pick === 'recon' ? money(r.reconPrice) : pick === 'genuine' ? money(r.genuinePrice) : undefined}
             icon={pick === 'recon' ? '✓' : undefined}
             variant={pick === 'recon' ? 'success' : 'primary'}
             disabled={pick === null}

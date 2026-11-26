@@ -1,4 +1,5 @@
 import { FlowButton } from '../FlowButton';
+import { StayToggle } from '../StayToggle';
 import React, { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import {
@@ -17,6 +18,8 @@ import {
   WORKSHOP_STEP_LABELS,
   workshopBill,
   workshopStepIndex,
+  stayingStepIndex,
+  STAYING_STEPS,
   type WorkshopStage,
   getThemeMode,
 } from '@ongarage/shared';
@@ -63,8 +66,13 @@ type SheetId = 'fit' | 'cancel' | 'decide' | 'approve' | 'extra' | 'recon' | 'ha
 /** The steps as the owner reads them: the approval is theirs ("your approval"), not "the owner's". */
 const OWNER_STEP_LABELS = WORKSHOP_STEP_LABELS.map((l) => l.replace('අයිතිකරුගේ අනුමැතිය', 'ඔබගේ අනුමැතිය'));
 
+const STAY_OPTIONS = [
+  { stays: true, label: '🪑 රැඳී සිටිමි', about: 'අලුත් වැඩ ගැන එතනම කතා\u00a0කර\u00a0ගන්න.', a11y: 'I am at the garage' },
+  { stays: false, label: '🚶 තබා ගොස් ඇත', about: 'අතරමැදි පියවර app එකෙන් බලා\u00a0අනුමත\u00a0කරන්න.', a11y: 'I am leaving the garage' },
+];
+
 export const WorkshopTracker: React.FC<{ id: string; detailed?: boolean }> = ({ id, detailed }) => {
-  const { workshops, escalate, acknowledgeClosed, confirmReceived, disputeReceipt } = useWorkshops();
+  const { workshops, setStays, escalate, acknowledgeClosed, confirmReceived, disputeReceipt } = useWorkshops();
   const { openBasket, say } = useChat();
   const [sheet, setSheet] = useState<SheetId>(null);
   // "No, they do not have it" opens a short question first.
@@ -91,37 +99,29 @@ export const WorkshopTracker: React.FC<{ id: string; detailed?: boolean }> = ({ 
   const receiptPending = !!p.receivedAt && !w.receiptConfirmed && p.stage !== 'closed' && p.stage !== 'declined';
   // The bar shows only as far as the owner has accepted: until they confirm the garage has the vehicle it stays on "vehicle received", even if the garage has
   // already gone further (a report may be waiting, but it cannot be answered yet). A disputed handover goes back to "booked".
-  const step = disputed ? 0 : receiptPending ? workshopStepIndex('received') : workshopStepIndex(p.stage);
+  // An owner who stays has a shorter bar: the inspection and the approvals happen face to face.
+  const stepOf = p.stays ? stayingStepIndex : workshopStepIndex;
+  const step = disputed ? 0 : receiptPending ? stepOf('received') : stepOf(p.stage);
+  const stepLabels = p.stays ? STAYING_STEPS.map((s) => s.label) : OWNER_STEP_LABELS;
+  const canSwitchStay = !p.cancelled && !disputed && ['booked', 'received', 'diagnosing', 'awaitingApproval', 'repairing'].includes(p.stage);
+  const toBuy = linesOwnerBuys(p).filter((l) => !w.partsBought?.[l.id]);
+  const switchStay = () => {
+    setStays(id, !p.stays);
+    say(id, p.stays ? '🚶 අයිතිකරු ගරාජයෙන් යනවා. මෙතැන් සිට අනුමැතිය app එකෙන් ඉල්ලන්න.' : '🪑 අයිතිකරු ගරාජයේ සිටී. මෙතැන් සිට අලුත් වැඩ එතනම කතා කර ගන්න.');
+  };
 
   const action = () => {
     if (receiptPending) return null;
+    // No approval is asked of an owner who is at the garage.
+    if (p.stays && (p.stage === 'awaitingApproval' || p.stage === 'repairing')) return null;
     switch (p.stage) {
-      case 'awaitingApproval': {
-        // The same figures the approval sheet opens with (every line ticked), so the price is known before opening it. Parts the owner buys are paid to the shop.
-        const asked = p.diagnosis ? w.agreedPrice + p.diagnosis.lines.filter((l) => l.source !== 'owner').reduce((s, l) => s + l.price, 0) : null;
-        return (
-          <>
-            {asked !== null && (
-              <View style={styles.askFacts}>
-                <Text style={styles.askLine}>සියල්ල අනුමත කළහොත් නව එකතුව <Text style={styles.askMoney}>{money(asked)}</Text></Text>
-                {!!p.diagnosis?.finishBy && <Text style={styles.askSub}>අවසන් කිරීමට {formatDate(p.diagnosis.finishBy)} · {formatTime(p.diagnosis.finishBy)} පමණ</Text>}
-              </View>
-            )}
-            <FlowButton label="වාර්තාව බලා අනුමත කරන්න" icon="🔍" variant="primary" onPress={() => setSheet('approve')} />
-          </>
-        );
-      }
+      case 'awaitingApproval':
+        return <FlowButton label="වාර්තාව බලා අනුමත කරන්න" icon="🔍" variant="primary" onPress={() => setSheet('approve')} />;
       case 'repairing':
         if (reconAsk)
-          return <FlowButton label={`Recon අවසරය ඉල්ලයි · ${reconAsk.partNames.join(', ')}`} icon="📲" variant="primary" onPress={() => setSheet('recon')} />;
+          return <FlowButton label="Recon අවසරය ඉල්ලයි" detail={reconAsk.partNames.join(', ')} icon="📲" variant="primary" onPress={() => setSheet('recon')} />;
         return extraAsk ? (
-          <>
-            <View style={styles.askFacts}>
-              <Text style={styles.askLine}>සියල්ල අනුමත කළහොත් නව එකතුව <Text style={styles.askMoney}>{money(workshopBill(w.agreedPrice, p).total + extraAsk.lines.filter((l) => l.source !== 'owner').reduce((s, l) => s + l.price, 0))}</Text></Text>
-              <Text style={styles.askSub}>ඔබ පිළිතුරු දෙන තුරු ගරාජය දැනටමත් අනුමත කළ වැඩ දිගටම කරයි.</Text>
-            </View>
-            <FlowButton label={`අමතර වැඩ බලා අනුමත කරන්න · ${money(extraAsk.lines.reduce((s, l) => s + l.price, 0))}`} icon="➕" variant="primary" onPress={() => setSheet('extra')} />
-          </>
+          <FlowButton label="අමතර වැඩ බලා අනුමත කරන්න" detail={money(extraAsk.lines.reduce((s, l) => s + l.price, 0))} icon="➕" variant="primary" onPress={() => setSheet('extra')} />
         ) : null;
       case 'readyForHandover':
         return (
@@ -238,9 +238,9 @@ export const WorkshopTracker: React.FC<{ id: string; detailed?: boolean }> = ({ 
     <View style={styles.wrap}>
       {/* The line under the bar says what is needed or awaited now, not just the step's name. */}
       {p.stage !== 'closed' && (
-        <StepProgress steps={OWNER_STEP_LABELS.map((l, i) => (i === step ? need ?? waitingText(w) ?? l : l))} current={step} alert={!!need || disputed || p.stage === 'disputed'} readable />
+        <StepProgress steps={stepLabels.map((l, i) => (i === step ? need ?? waitingText(w) ?? l : l))} current={step} alert={!!need || disputed || p.stage === 'disputed'} readable />
       )}
-      {/* The owner's turn: one soft blue box, under the progress bar, holding exactly what is asked of them now. Nothing is shown while the job waits on others. */}
+      {/* The owner's turn: under the progress bar, with no box of its own, holding exactly what is asked of them now. Nothing is shown while the job waits on others. */}
       {disputed && <ReceiptDisputeBox workshop={w} onUpdate={(t) => say(id, t)} />}
       {!!need && !disputed && (
         <View style={styles.turn} accessibilityLabel="Your turn">
@@ -274,11 +274,11 @@ export const WorkshopTracker: React.FC<{ id: string; detailed?: boolean }> = ({ 
         )}
           {!receiptPending && !p.cancelRequest && action()}
           {p.cancelRequest?.status === 'quoted' && (
-            <FlowButton label={`වන්දිය ${money(p.cancelRequest.compensation ?? 0)} · තීරණය කරන්න`} variant="primary" onPress={() => setSheet('decide')} />
+            <FlowButton label="තීරණය කරන්න" detail={`වන්දිය ${money(p.cancelRequest.compensation ?? 0)}`} variant="primary" onPress={() => setSheet('decide')} />
           )}
           {!receiptPending && !p.cancelRequest && (
             <>
-              {linesOwnerBuys(p).filter((l) => !w.partsBought?.[l.id]).length > 0 && (
+              {!p.stays && toBuy.length > 0 && (
                 <Pressable style={styles.mustBuy} onPress={() => openBasket(id)} accessibilityLabel="Buy the parts in OnMart">
                   <Text style={styles.mustBuyHead}>⚠️ ඔබ OnMart හි මිලදී ගත යුතුය - {linesOwnerBuys(p).filter((l) => !w.partsBought?.[l.id]).map((l) => l.name).join(', ')}</Text>
                   <Text style={styles.mustBuyText}>නැත්නම් අලුත්වැඩියාව ප්‍රමාද වේ · 🛍️ OnMart හි මිලදී ගන්න ›</Text>
@@ -289,7 +289,17 @@ export const WorkshopTracker: React.FC<{ id: string; detailed?: boolean }> = ({ 
         </View>
       )}
       {/* Between the confirmed handover and the report: when to expect it and what is happening. */}
-      {!disputed && !receiptPending && !p.cancelRequest && (p.stage === 'received' || p.stage === 'diagnosing') && <InspectionBox workshop={w} detailed={detailed} />}
+      {!disputed && !receiptPending && !p.cancelRequest && !p.stays && (p.stage === 'received' || p.stage === 'diagnosing') && <InspectionBox workshop={w} detailed={detailed} />}
+      {/* At the garage, parts to buy are the technician's to tell: only a quiet way into OnMart, with the job attached. */}
+      {p.stays && toBuy.length > 0 && !p.cancelRequest && (
+        <Pressable onPress={() => openBasket(id)} hitSlop={8} accessibilityLabel="Find the job's parts in OnMart">
+          <Text style={styles.link}>🛍️ OnMart හි කොටස් සොයන්න ›</Text>
+        </Pressable>
+      )}
+      {/* Plans change: a two-way toggle that names both answers, with a line saying what the chosen one means. One tap, and it counts only from now on. */}
+      {canSwitchStay && !p.cancelRequest && (
+        <StayToggle value={!!p.stays} options={STAY_OPTIONS} onChange={switchStay} />
+      )}
       {p.protected && (
         <View style={styles.protectedPill} accessibilityLabel="Protected job">
           <Text style={styles.protectedText}>🛡️ ආරක්ෂිත රැකියාව · OnGarage Guarantee</Text>
@@ -355,7 +365,7 @@ export const WorkshopTracker: React.FC<{ id: string; detailed?: boolean }> = ({ 
             <View key={x.id} style={styles.box}>
               <Text style={styles.boxTitle}>
                 ➕ {x.reason}
-                {x.decision?.via === 'phone' ? ' · 📞 ඔබ දුරකථනයෙන් අනුමත කළා' : x.decision?.via === 'deferred' ? ' · ➡️ පසුවට තැබුවා' : ''}
+                {x.decision?.via === 'inPerson' ? ' · 🤝 ගරාජයේදී එකඟ වූ' : x.decision?.via === 'phone' ? ' · 📞 ඔබ දුරකථනයෙන් අනුමත කළා' : x.decision?.via === 'deferred' ? ' · ➡️ පසුවට තැබුවා' : ''}
               </Text>
               {x.lines.map((l) => {
                 const ok = x.decision?.approvedLineIds.includes(l.id);
@@ -446,9 +456,8 @@ export const WorkshopTracker: React.FC<{ id: string; detailed?: boolean }> = ({ 
 
 const styles = themedStyles(() =>
   StyleSheet.create({
-    turn: { gap: 10, padding: 12, borderRadius: 18, backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.12)' : '#eff6ff' },
+    turn: { gap: 10 },
     receiptBox: { gap: 10 },
-    askFacts: { gap: 2 },
     foot: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, paddingTop: 4, borderTopWidth: 1, borderTopColor: getThemeMode() === 'dark' ? Colors.borderColor : '#eef2f8' },
     footWarranty: { flexShrink: 1, fontSize: 13, lineHeight: 20, fontFamily: FONTS.bodySemiBold, color: Colors.successText },
     footLink: { minHeight: 44, justifyContent: 'center' },
@@ -456,9 +465,6 @@ const styles = themedStyles(() =>
     rareRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, minHeight: 44, paddingVertical: 6 },
     rareText: { flex: 1, fontSize: 13.5, lineHeight: 20, fontFamily: FONTS.bodySemiBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1e3a8a' },
     rareChevron: { fontSize: 18, color: Colors.textMuted },
-    askLine: { fontSize: 13.5, lineHeight: 21, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
-    askMoney: { fontFamily: FONTS.titleBold, color: Colors.success },
-    askSub: { fontSize: 13, lineHeight: 20, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
     receiptText: { fontSize: 13.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain, lineHeight: 21 },
     receiptBtns: { flexDirection: 'row', gap: 8 },
     sep: { height: 1, backgroundColor: getThemeMode() === 'dark' ? Colors.borderColor : '#dadce0' },

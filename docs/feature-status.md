@@ -23,13 +23,13 @@ A working checklist of every feature in the four apps: whether its **design is o
 ### Booking and request flows
 | Feature | Design | Process | Notes / next step |
 |---|---|---|---|
-| Book a time after accepting a bid (3 steps: day and time, tracking, summary) | ✅ | 🟠 | Same date step, soonest-slot confirmation, tracking step, summary card and back button as the garage booking. |
-| Book a garage directly from a garage card (6 steps: service and vehicle, details, day and time, part type and place, tracking, summary) | ✅ | 🟠 | Summary lines edit and return. Categories not filtered by vehicle type; ✕ closes without asking. |
+| Book a time after accepting a bid (3 steps: day and time, staying, summary) | ✅ | 🟠 | Same date step, soonest-slot confirmation, staying step, summary card and back button as the garage booking. |
+| Book a garage directly from a garage card (6 steps: service and vehicle, details, day and time, part type and place, staying, summary) | ✅ | 🟠 | Summary lines edit and return. Categories not filtered by vehicle type; ✕ closes without asking. |
 | Quote request: step 1 (vehicle card, OnBuddy, service card) and step 2 (problem, photos, voice) | ✅ | 🟠 | Its header has not had the new back button and close placement. |
 | Quote request: step 3 (spare part type, place, home pickup) and step 4 (bidding time, summary) | 🟡 | 🟠 | Cards and footer done; contents (choice chips, slider, map card, switch) not reviewed. |
 | OnBuddy (AI describes the problem, suggests the service) | 🟡 | 🟠 | Card restyled; the open chat/results area keeps its old look. Not in the garage booking. |
 | SOS flow (11 steps) | ⬜ | 🟠 | The pattern source for towing; not reviewed here. Operators are simulated. |
-| Tracking choice ("Live track" / "without live") in both bookings | ✅ | 🔴 | Screen done; "without live" does not yet mute the step notifications. |
+| Staying or leaving (both bookings, two job paths, switch during the job, bill check for in-person items) | ✅ | 🟠 | Built 2026-11-26; replaces the tracking choice. Garage side (see the answer, record in-person items) waits for "match up with the user app". Not checked on a phone. |
 | Towing flow (6 steps) | ✅ | 🟠 | Refined 2026-11-10. Tow operators simulated; no vehicle-type rule. |
 | EV charging booking, fuel station finder, place reports | ⬜ | 🟠 | `PLACES` is a fixed list; reports have rules. |
 | Search (Home search, category browse, "did you mean") | ⬜ | 🟢 | Learns from real queries (see memory). |
@@ -107,7 +107,7 @@ The 80/20 rule (Universal Principles of Design, 133 Pareto): about 80% of use co
 
 ## Suggested order
 1. **Finish the owner flows** (design): quote steps 3 and 4, OnBuddy open state, Activity list cards, direct-booking details.
-2. **Close the process gaps:** vehicle type (job chips, quote and booking categories, towing and SOS) and the "without live" muting.
+2. **Close the process gaps:** vehicle type (job chips, quote and booking categories, towing and SOS).
 3. **Owner tabs not yet reviewed:** OnMart, Account rows and sheets, add vehicle, vehicle details.
 4. **Workshop sheets** (approval, handover, rating, receipt).
 5. **Replace the dead controls** (process): notification switches and reminders (one push setup), saved garages.

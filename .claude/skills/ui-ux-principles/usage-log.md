@@ -13,6 +13,56 @@ Entry format:
 
 ## Entries
 
+## 2026-11-27 · Owner running job · a waiting approval follows the toggle
+- Principles used: UPD 113 mapping and C4 (the card answers the toggle at once), C2 (no approval asked of someone standing at the garage), C10 (switching approves nothing; in-person items are checked on the bill).
+- Core missing: none.
+- Outcome: user changed the earlier rule that a waiting request stays open. Not yet checked on a phone.
+
+## 2026-11-26 · Owner booking, staying step · same toggle as the job card
+- Principles used: C5 and UPD 035 (one shared StayToggle in both places), C2 and UPD 148 (two large cards and a repeated sentence removed), C6 (choice lighter than the next button's job), UX 05 (nothing preselected), C4 (meaning line in a fixed space).
+- Core missing: none.
+- Outcome: user asked. Not yet checked on a phone.
+
+## 2026-11-26 · Owner running job card · stay or leave as a two-way toggle
+- Principles used: C1 and UPD 005 (looks changeable), C3 (both answers visible, unlike an on/off switch), C4 (line under it says what the choice means), C5 (navy chosen pill), C7 (44px), Typography 31 (constant width and weight), C9 (no confirm, reversible).
+- Core missing: none.
+- Outcome: user asked for a toggle. Not yet checked on a phone.
+
+## 2026-11-26 · Owner running job card · the "your turn" tint removed
+- Principles used: C2 (the pill, the amber "your reply" tag and the progress line already say it is the owner's turn).
+- Core missing: none.
+- Outcome: user asked. Not yet checked on a phone.
+
+## 2026-11-26 · Owner booking and running job · stays or leaves
+- Principles used: UX 89 and UPD 148 (one question instead of tracking plus staying), UX 05 (nothing preselected), C10 (in-person items shown against the agreed price before the code), C2 (no approval or buy nudges for someone standing there), UX 28 (matches how people wait at the garage), C9 (the switch is one tap, reversible).
+- Core missing: none.
+- Outcome: user approved all three decisions. Not yet checked on a phone; not type checked.
+
+## 2026-11-26 · Owner OnMart entry · permission pop-up removed
+- Principles used: C8 and UX 33 (the user says owners already know this, so it does not earn an interruption). Replaces the pop-up entry below.
+- Core missing: none.
+- Outcome: user asked to remove it. The owner's phone number is still not sent to shops.
+
+## 2026-11-26 · Owner OnMart permission pop-up · one row per thing asked for
+- Principles used: UX 05 and C10 (copy matches what is sent; owner phone no longer sent to shops), C13 and UPD 099 (title says what is asked; name, detail, reason), C2 and UPD 148, C4 ("දැන් නොවේ"), C8 and UPD 087 (asked once, switch in settings).
+- Core missing: none.
+- Outcome: user chose to hide the phone number. Not yet checked on a phone.
+
+## 2026-11-26 · Owner running job cards · total-and-note box removed
+- Principles used: C2 and UPD 148 (the approval pop-up already shows the total and the rule).
+- Core missing: none. Trade-off: the first approval card now shows no price before opening (C10).
+- Outcome: user asked to remove it. Not yet checked on a phone.
+
+## 2026-11-26 · Owner workshop buttons · action line, then price line
+- Principles used: C13 and Typography 52 (action first, figure bold on its own line), C10 (price stays on the button), C5 (one shared FlowButton `detail` line), C7 and Typography 60 (no forced wrap or stray separator), UPD 006 (icon beside the action so both lines centre).
+- Core missing: none.
+- Outcome: user asked for it on all phone widths. Not yet checked on a phone.
+
+## 2026-11-26 · Owner running job card · new total on its own line
+- Principles used: C13 (condition and figure on separate lines, the figure stands out), C5 (same two lines on both approval cards).
+- Core missing: none.
+- Outcome: user gave the format, to hold on every phone width. Not yet checked on a phone.
+
 ## 2026-11-26 · Owner Recon sheet · two cards as the choice, fewer words
 - Principles used: C2 and UPD 148 (the same fact said three times removed), C10 (warranty and new total before choosing), UPD 006 (same rows in both cards), UX 05 (nothing preselected), C1 and UPD 113 (cards are the choice, one button that names it).
 - Core missing: none.

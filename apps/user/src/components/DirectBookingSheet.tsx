@@ -125,7 +125,7 @@ export const DirectBookingSheet: React.FC<{ garage: Garage | null; categoryId?: 
   const [partType, setPartType] = useState<PartType | null>(null);
   const [doorstep, setDoorstep] = useState(false);
   // The owner decides how the job is followed: live (every stage in the app) or only the check-in photos and the finish.
-  const [liveTrack, setLiveTrack] = useState(true);
+  const [stays, setStays] = useState<boolean | null>(null);
   // The owner picks where the car is (for the garage to come to) on a map.
   const [homeLoc, setHomeLoc] = useState<PickedLocation | null>(null);
   const [mapOpen, setMapOpen] = useState(false);
@@ -154,6 +154,7 @@ export const DirectBookingSheet: React.FC<{ garage: Garage | null; categoryId?: 
     setEditing(false);
     setAsking(false);
     setDoorstep(false);
+    setStays(null);
     setDescription(initial?.description ?? '');
     setPhotos([]);
     setVoiceNotes([]);
@@ -191,16 +192,16 @@ export const DirectBookingSheet: React.FC<{ garage: Garage | null; categoryId?: 
   const detailsOk = problemTold(description, voiceNotes, 5) && (!fitting || fitPart.trim().length > 0);
   // An owner who brings the part to be fitted has no part type to choose.
   const partOk = partType !== null || (fitting && fitSupply === 'owner');
-  const valid = detailsOk && !slotPast && partOk;
+  const valid = detailsOk && !slotPast && partOk && stays !== null;
 
   const ORDER = ['service', 'details', 'when', 'options', 'track', 'summary'] as const;
-  const STEP_NAMES = ['සේවාව සහ වාහනය', 'විස්තර', 'දිනය සහ වේලාව', 'කොටස් සහ ස්ථානය', 'හඹා යාම', 'සාරාංශය'] as const;
+  const STEP_NAMES = ['සේවාව සහ වාහනය', 'විස්තර', 'දිනය සහ වේලාව', 'කොටස් සහ ස්ථානය', 'රැඳී සිටීම', 'සාරාංශය'] as const;
   const tabIndex = ORDER.indexOf(tab);
   const lastTab = tabIndex === ORDER.length - 1;
   // A step's own requirement for moving on.
-  const tabOk = tab === 'service' ? picked : tab === 'details' ? detailsOk : tab === 'when' ? !slotPast : tab === 'options' ? partOk : true;
+  const tabOk = tab === 'service' ? picked : tab === 'details' ? detailsOk : tab === 'when' ? !slotPast : tab === 'options' ? partOk : tab === 'track' ? stays !== null : true;
   // What a disabled button says is missing, so it never just looks broken.
-  const missingLabel = tab === 'service' ? 'සේවා අංශයක් තෝරන්න' : tab === 'details' ? (fitting && fitPart.trim().length === 0 ? 'කොටස ලියන්න' : 'ගැටලුව විස්තර කරන්න') : tab === 'when' ? (day === null ? 'දිනයක් තෝරන්න' : 'වේලාවක් තෝරන්න') : 'කොටස් වර්ගයක් තෝරන්න';
+  const missingLabel = tab === 'track' ? 'ඔව් / නැහැ තෝරන්න' : tab === 'service' ? 'සේවා අංශයක් තෝරන්න' : tab === 'details' ? (fitting && fitPart.trim().length === 0 ? 'කොටස ලියන්න' : 'ගැටලුව විස්තර කරන්න') : tab === 'when' ? (day === null ? 'දිනයක් තෝරන්න' : 'වේලාවක් තෝරන්න') : 'කොටස් වර්ගයක් තෝරන්න';
   const backToSummary = () => {
     setEditing(false);
     setTab('summary');
@@ -217,7 +218,7 @@ export const DirectBookingSheet: React.FC<{ garage: Garage | null; categoryId?: 
 
   const submit = () => {
     const fittingInfo: PartsFitting | undefined = fitting ? { partName: fitPart.trim(), supply: fitSupply } : undefined;
-    requestBooking({ garage: shown, categoryId, service, vehicleId, preferredAt, description: fittingInfo ? `${jobDescription(description)}\n🔩 සවි කළ යුතු කොටස: ${fittingInfo.partName} (${FITTING_SUPPLY.find((x) => x.id === fittingInfo.supply)?.short})` : jobDescription(description), doorstep, liveTrack, partType: partType ?? undefined, photos, voiceNotes, fitting: fittingInfo, offer });
+    requestBooking({ garage: shown, categoryId, service, vehicleId, preferredAt, description: fittingInfo ? `${jobDescription(description)}\n🔩 සවි කළ යුතු කොටස: ${fittingInfo.partName} (${FITTING_SUPPLY.find((x) => x.id === fittingInfo.supply)?.short})` : jobDescription(description), doorstep, stays: !!stays, partType: partType ?? undefined, photos, voiceNotes, fitting: fittingInfo, offer });
     onBooked?.();
     setSent(true);
   };
@@ -454,7 +455,7 @@ export const DirectBookingSheet: React.FC<{ garage: Garage | null; categoryId?: 
         </>
       )}
       {/* Its own step: how the owner follows the job, with what each choice means in plain words. */}
-      {tab === 'track' && <TrackStep live={liveTrack} onLive={setLiveTrack} />}
+      {tab === 'track' && <TrackStep stays={stays} onStays={setStays} />}
       {tab === 'summary' && day !== null && (
         <BookingSummaryCard
           garage={shown}
@@ -466,7 +467,7 @@ export const DirectBookingSheet: React.FC<{ garage: Garage | null; categoryId?: 
             { label: 'date and time', icon: '🗓', text: hour === null ? '—' : `${formatDate(preferredAt)} · ${formatTime(preferredAt)}`, onChange: () => editStep('when') },
             { label: 'part type', icon: '🔧', text: partType ? SPARE_PARTS.find((x) => x.id === partType)?.label ?? '—' : fitting ? 'මම කොටස ගෙනෙමි' : '—', onChange: () => editStep('options') },
             { label: 'place', icon: doorstep ? '🚛' : '🏠', text: doorstep ? (homeLoc ? `ගරාජය මා වෙත පැමිණේ · ${homeLoc.address}` : 'ගරාජය මා වෙත පැමිණේ') : 'මම වාහනය ගරාජයට ගෙන යමි', onChange: () => editStep('options') },
-            { label: 'tracking', icon: liveTrack ? '📡' : '📷', text: liveTrack ? 'Live track (හැම පියවරක්ම)' : 'Live නැත (ඡායාරූප + අවසානය)', onChange: () => editStep('track') },
+            { label: 'staying', icon: stays ? '🪑' : '🚶', text: stays ? 'මම ගරාජයේ රැඳී සිටිමි' : 'මම වාහනය තබා යනවා', onChange: () => editStep('track') },
             ...(photos.length + voiceNotes.length > 0 ? [{ label: 'attachments', icon: '📎', text: [photos.length ? `ඡායාරූප ${photos.length}` : '', voiceNotes.length ? `හඬ සටහන් ${voiceNotes.length}` : ''].filter(Boolean).join(' · '), onChange: () => editStep('details') }] : []),
           ]}
           note="ගරාජය පැය 2ක් ඇතුළත පිළිතුරු දෙයි."

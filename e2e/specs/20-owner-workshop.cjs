@@ -10,13 +10,13 @@ module.exports = spec('Owner · workshop job, extra work, problem, rating, Recon
   const lines = (await t.labels('Approve line ')).map((l) => l.slice(13));
   await t.clickLabel(`Approve line ${lines[lines.length - 1]}`);
   t.check('unticking a line lowers the total', await t.has('අනුමත කරන්න · LKR 10,650'));
-  await t.clickText('අනුමත කරන්න ·');
+  await t.clickText('අනුමත කරන්නLKR');
   await t.wait(9000);
 
   t.check('garage asks for extra work; no handover yet', (await t.has('අමතර වැඩ බලා අනුමත කරන්න')) && !(await t.has('භාරගන්න · කේතය පෙන්වන්න')));
   await t.clickText('අමතර වැඩ බලා අනුමත කරන්න');
   await t.clickLabel('Approve line Disc fitting');
-  await t.clickText('අනුමත කරන්න ·');
+  await t.clickText('අනුමත කරන්නLKR');
   await t.wait(9000);
 
   await t.clickText('භාරගන්න · කේතය පෙන්වන්න');
@@ -56,7 +56,7 @@ module.exports = spec('Owner · workshop job, extra work, problem, rating, Recon
   await t.clickText('Activity');
   await t.wait(11000);
   await t.clickText('වාර්තාව බලා අනුමත කරන්න');
-  await t.clickText('අනුමත කරන්න ·');
+  await t.clickText('අනුමත කරන්නLKR');
   await t.wait(3200);
   await t.clickText('Recon අවසරය ඉල්ලයි');
   await t.clickLabel('Approve Recon');

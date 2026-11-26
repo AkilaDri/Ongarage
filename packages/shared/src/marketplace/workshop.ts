@@ -23,6 +23,25 @@ export const workshopStepIndex = (stage: WorkshopStage) => {
   return WORKSHOP_STEPS.findIndex((s) => s.stage === stage);
 };
 
+/** An owner who stays with the vehicle sees fewer steps: the inspection and the approvals happen face to face. */
+export const STAYING_STEPS: { stage: WorkshopStage; label: string }[] = WORKSHOP_STEPS.filter((s) => s.stage !== 'diagnosing' && s.stage !== 'awaitingApproval');
+
+export const stayingStepIndex = (stage: WorkshopStage) => {
+  if (stage === 'diagnosing' || stage === 'awaitingApproval') return STAYING_STEPS.findIndex((s) => s.stage === 'received');
+  if (stage === 'disputed') return STAYING_STEPS.findIndex((s) => s.stage === 'readyForHandover');
+  if (stage === 'declined') return STAYING_STEPS.length - 1;
+  return STAYING_STEPS.findIndex((s) => s.stage === stage);
+};
+
+/** A decision the garage records for what the owner agreed to face to face: every line named in it. */
+export const agreedInPerson = (lines: DiagnosisLine[], now: number) => ({ approvedLineIds: lines.map((l) => l.id), declinedLineIds: [] as string[], decidedAt: now, via: 'inPerson' as const });
+
+/** What was added by face-to-face agreement, for the owner to check on the bill before giving the code. */
+export const inPersonLines = (p: WorkshopProgress): DiagnosisLine[] => [
+  ...(p.diagnosis && p.decision?.via === 'inPerson' ? p.diagnosis.lines.filter((l) => p.decision!.approvedLineIds.includes(l.id)) : []),
+  ...(p.extras ?? []).flatMap((x) => (x.decision?.via === 'inPerson' ? x.lines.filter((l) => x.decision!.approvedLineIds.includes(l.id)) : [])),
+];
+
 /** One line describing where the job is, for cards and headers. */
 export const WORKSHOP_STAGE_TEXT: Record<WorkshopStage, string> = {
   booked: 'වෙන් කළ වේලාව බලාපොරොත්තුවෙන්',

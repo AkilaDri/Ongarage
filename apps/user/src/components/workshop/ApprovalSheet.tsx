@@ -78,7 +78,8 @@ export const ApprovalSheet: React.FC<{
           // One main action across the sheet, with the total on one line; saying no stands under it, apart from the thumb's first reach.
           <View style={styles.footer}>
             <FlowButton
-              label={`${change ? 'වෙනස්කම් සුරකින්න' : 'අනුමත කරන්න'} · ${money(total)}`}
+              label={change ? 'වෙනස්කම් සුරකින්න' : 'අනුමත කරන්න'}
+              detail={money(total)}
               icon="✓"
               variant="success"
               onPress={() => {

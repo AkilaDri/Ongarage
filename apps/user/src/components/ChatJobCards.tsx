@@ -107,8 +107,9 @@ export const ChatJobCards: React.FC<{ id: string; onUpdate: (text: string) => vo
       </View>
     );
   }
-  const extra = pendingExtra(p);
-  const recon = pendingRecon(p);
+  // At the garage nothing is asked in the app: no approval cards (they come back if the owner leaves).
+  const extra = p.stays ? undefined : pendingExtra(p);
+  const recon = p.stays ? undefined : pendingRecon(p);
   // Parts the owner buys themselves: the repair waits for them, so this is a nudge card of its own (amber, with a filled button), not a quiet chip.
   const ownerBuys = (lines: DiagnosisLine[]) => {
     const buys = lines.filter((l) => l.kind === 'part' && l.source === 'owner');
@@ -137,7 +138,7 @@ export const ChatJobCards: React.FC<{ id: string; onUpdate: (text: string) => vo
   const toRate = p.stage === 'closed' && !w.review;
   const inWarranty = p.stage === 'closed' && !!p.warrantyUntil && p.warrantyUntil > Date.now() && !p.warrantyClaim;
   const extraBoth = !!extra && extra.lines.some((l) => l.kind === 'part') && extra.lines.some((l) => l.kind === 'labour');
-  const asked = p.stage === 'awaitingApproval' && p.diagnosis;
+  const asked = !p.stays && p.stage === 'awaitingApproval' && p.diagnosis;
   const dxPicked = asked ? p.diagnosis!.lines.map((l) => l.id).filter((x) => !off.includes(x)) : [];
   const toggleLine = (lineId: string) => setOff((o) => (o.includes(lineId) ? o.filter((x) => x !== lineId) : [...o, lineId]));
   const toConfirm = !!p.receivedAt && !w.receiptConfirmed && p.stage !== 'closed' && p.stage !== 'declined';

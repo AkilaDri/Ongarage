@@ -102,8 +102,8 @@ export type JobBooking = {
   /** The time the owner asked for. */
   preferredAt?: number;
   doorstep?: boolean;
-  /** The owner's choice of following the job: false = no stage-by-stage updates (approvals still apply). */
-  liveTrack?: boolean;
+  /** The owner stays with the vehicle during the work (see WorkshopProgress.stays). */
+  stays?: boolean;
   note?: string;
   requestedAt?: number;
   /** The garage must answer by then. */
@@ -428,8 +428,8 @@ export type OwnerDecision = {
   approvedLineIds: string[];
   declinedLineIds: string[];
   decidedAt: number;
-  /** In the owner's app (default), told by phone to the garage / technician (no code), or left for later because the owner couldn't be reached. */
-  via?: 'app' | 'phone' | 'deferred';
+  /** In the owner's app (default), told by phone to the garage / technician (no code), left for later because the owner couldn't be reached, or agreed face to face while the owner stayed with the vehicle (the garage records it). */
+  via?: 'app' | 'phone' | 'deferred' | 'inPerson';
 };
 
 /** Work found mid-repair; same approval rule as the diagnosis. */
@@ -613,8 +613,12 @@ export type JobCancellation = { at: number; by: 'owner'; reason: string; note?: 
 
 export type WorkshopProgress = {
   stage: WorkshopStage;
-  /** Chosen by the owner at booking. true: every stage the garage reaches shows live in the owner's app. false: only the check-in photos and the finish are shown, the work goes on without stage updates. Undefined counts as live (older jobs). */
-  liveTrack?: boolean;
+  /**
+   * Whether the owner stays with the vehicle while the work is done (chosen at booking; they can change it during the job, and a change counts only from then on).
+   * Stays: no approval is asked in the app; the garage records what was agreed in person (decision via 'inPerson') and the owner checks it on the bill before
+   * giving the code. Leaves (false or unset): every stage shows live and the owner approves in the app.
+   */
+  stays?: boolean;
   checkInPhotos?: string[];
   receivedAt?: number;
   /** The owner confirmed (in their app) that they really handed the vehicle over, after the garage said it had received it. */
@@ -803,7 +807,7 @@ export type PartEnquiryStatus = 'open' | 'reserved' | 'bought' | 'cancelled' | '
 
 export type PartEnquiry = {
   id: string;
-  /** What shops and the wall see of the buyer (the wall never shows a phone number). */
+  /** What shops and the wall see of the buyer. A vehicle owner's phone number is never sent (shops use OnChat); the wall never shows one. */
   buyer: { name: string; phone?: string };
   briefs: PartBrief[];
   audience: MartAudience;

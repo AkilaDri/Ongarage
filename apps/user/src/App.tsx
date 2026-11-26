@@ -14,7 +14,7 @@ import {
 } from '@expo-google-fonts/noto-sans-sinhala';
 import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
 import Svg, { Path } from 'react-native-svg';
-import { Icon, CalendarGridIcon, HeaderIconButton, pageHeaderBlue, Colors, DialogButton, FONTS, getThemeMode, Gradient, ModalCard, Pulse, themedStyles } from '@ongarage/shared';
+import { Icon, CalendarGridIcon, HeaderIconButton, pageHeaderBlue, Colors, FONTS, getThemeMode, Gradient, Pulse, themedStyles } from '@ongarage/shared';
 import { ThemeProvider, useTheme, setAppShape, setAppPalette, setAppTone, setCardCorner } from '@ongarage/shared';
 
 // This app has PickMe's shapes too (big rounded cards, pill buttons and chips, light edges, soft shadows), like the garage app. Set before the first screen is drawn.
@@ -242,8 +242,7 @@ function AppShell() {
     if (activeTab === 'mart') return;
     const next = USER_TABS[USER_TABS.findIndex((t) => t.id === activeTab) + dir]?.id;
     if (!next) return;
-    if (next === 'mart' && !martAllowed) setAskMart(true);
-    else switchTab(next);
+    switchTab(next);
   };
   const tabSwipe = useRef(
     PanResponder.create({
@@ -291,9 +290,6 @@ function AppShell() {
   const martHeaderCollapse = useRef(new Animated.Value(0)).current;
   // Natural height of the title band (the inner view keeps it even while the wrapper folds), so the band can fold to nothing.
   const [titleH, setTitleH] = useState(0);
-  // OnMart asks the owner for permission the first time its tab is tapped (remembered for the session).
-  const [martAllowed, setMartAllowed] = useState(false);
-  const [askMart, setAskMart] = useState(false);
   const foldableBar = activeTab === 'activity' || activeTab === 'bids' || activeTab === 'profile';
   const [sosStage, setSOSStage] = useState<SOSStage>('closed');
   // The chat icon can be hidden by a screen while it scrolls (Bids): then it must not catch taps either.
@@ -621,32 +617,12 @@ function AppShell() {
           ) : (
             <OwnerNav
               activeTab={activeTab}
-              onTabChange={(next) => (next === 'mart' && !martAllowed ? setAskMart(true) : switchTab(next))}
+              onTabChange={switchTab}
             />
           )}
         </View>
         <Toast />
         <FlyLayer />
-        {askMart && (
-          <ModalCard
-            material
-            icon="🛍️"
-            tone="primary"
-            title="OnMart විවෘත කරන්නද?"
-            body="වාහන කොටස් වෙළඳසැල් සොයා ගැනීමට OnMart හට ඔබගේ ස්ථානය සහ තෝරාගත් වාහනයේ තොරතුරු (මාදිලිය, අංක තහඩුව) භාවිතා කිරීමට ඔබගේ අවසරය අවශ්‍යයි. ඔබගේ දුරකථන අංකය වෙළඳසැල්වලට පෙන්වන්නේ නැත."
-          >
-            <DialogButton label="අවලංගු" onPress={() => setAskMart(false)} />
-            <DialogButton
-              filled
-              label="අවසර දෙන්න"
-              onPress={() => {
-                setAskMart(false);
-                setMartAllowed(true);
-                setActiveTab('mart');
-              }}
-            />
-          </ModalCard>
-        )}
         {/* Something in OnMart for the owner while they are elsewhere shows on the OnMart tab; the page being open counts it as seen. */}
         <MartSeenTracker active={activeTab === 'mart'} segment={martSegment} />
         <ServiceReminders />

@@ -19,7 +19,7 @@ const useOwnerCounts = () => {
     bookings.filter((b) => b.status === 'proposed').length +
     Object.values(workshops).filter((w) => {
       const p = w.progress;
-      return !p.cancelled && (p.stage === 'awaitingApproval' || p.stage === 'readyForHandover' || (p.stage === 'repairing' && (!!pendingExtra(p) || !!pendingRecon(p))));
+      return !p.cancelled && (p.stage === 'readyForHandover' || (!p.stays && (p.stage === 'awaitingApproval' || (p.stage === 'repairing' && (!!pendingExtra(p) || !!pendingRecon(p))))));
     }).length;
   // OnMart: what is news and not seen yet (a shop has the part, a reply to a wall post, a shop writing back, an order ready / sent / arrived).
   return { bids, activity, mart: attention };

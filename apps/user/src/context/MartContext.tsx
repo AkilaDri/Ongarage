@@ -258,7 +258,7 @@ const shopReply = (offer: ShopOffer | undefined, quick?: PartsQuickAsk): string 
 
 export const MartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { notify } = useNotice();
-  const { fullName, profile } = useProfile();
+  const { fullName } = useProfile();
   const { coords } = useUserLocation();
   const { markPartBought } = useWorkshops();
   const [enquiries, setEnquiries] = useState<MartEnquiry[]>([]);
@@ -392,7 +392,8 @@ export const MartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const id = `pe-${now}-${seq}`;
       const enquiry: PartEnquiry = {
         id,
-        buyer: { name: fullName, phone: profile.phone },
+        // The owner's phone number is never sent: shops talk to them in OnChat (the permission pop-up promises this).
+        buyer: { name: fullName },
         briefs: [{ ...input.brief, id: `pb-${now}-${seq}` }],
         audience: input.audience,
         ring: input.ring,
@@ -413,7 +414,7 @@ export const MartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!input.silent) notify({ icon: '📨', title: 'ඉල්ලීම යැව්වා', body: onWall(input.audience) ? 'වෙළඳසැල් සහ විවෘත පෝස්ට් එක වෙත.' : 'ළඟ වෙළඳසැල් වෙත — පිළිතුරු ලැබෙන විට දැනුම් දෙමු.', tone: 'primary' });
       return id;
     },
-    [coords, fullName, notify, profile.phone, runRound]
+    [coords, fullName, notify, runRound]
   );
 
   const createBatch = useCallback(

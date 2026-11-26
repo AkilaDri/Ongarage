@@ -27,7 +27,7 @@ export type DirectBookingInput = {
   /** The kind of spare part the owner prefers (it limits what the garage may fit without asking). */
   partType?: PartType;
   /** The owner's choice: true = live tracking of every stage in the app; false = the work goes on without stage updates (photos at check-in and the finish only). */
-  liveTrack?: boolean;
+  stays?: boolean;
 };
 
 /**

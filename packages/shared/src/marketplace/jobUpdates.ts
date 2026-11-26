@@ -70,7 +70,9 @@ export const workshopUpdateTexts = (prev: WorkshopProgress | undefined, next: Wo
   const owner = (text: string) => out.push({ from: 'owner', text });
 
   // The diagnosis: sent, then decided.
-  if (next.diagnosis && !prev.diagnosis) {
+  // Agreed face to face while the owner stayed: one record of what was agreed, nothing to answer.
+  const agreedHere = (lines: DiagnosisLine[]) => `🤝 ගරාජයේදී එකඟ වුණා: ${lines.length ? names(lines) : 'කිසිවක් නැත'} · LKR ${lines.reduce((s, l) => s + l.price, 0).toLocaleString('en-US')}`;
+  if (next.diagnosis && !prev.diagnosis && next.decision?.via !== 'inPerson') {
     garage(
       request('📋 පරීක්ෂා වාර්තාව', next.diagnosis.findings, [
         { heading: 'අවශ්‍ය කොටස්', lines: next.diagnosis.lines.filter((l) => l.kind === 'part') },
@@ -82,7 +84,8 @@ export const workshopUpdateTexts = (prev: WorkshopProgress | undefined, next: Wo
   }
   if (next.decision && !prev.decision) {
     const approved = (next.diagnosis?.lines ?? []).filter((l) => next.decision!.approvedLineIds.includes(l.id));
-    if (next.decision.via === 'phone') garage(`📞 දුරකථන ඇමතුමකින් අයිතිකරු අනුමත කළා: ${approved.length ? names(approved) : 'කිසිවක් නැත'}.`);
+    if (next.decision.via === 'inPerson') garage(agreedHere(approved));
+    else if (next.decision.via === 'phone') garage(`📞 දුරකථන ඇමතුමකින් අයිතිකරු අනුමත කළා: ${approved.length ? names(approved) : 'කිසිවක් නැත'}.`);
     else owner(diagnosisDecisionText(approved));
   }
 
@@ -90,6 +93,10 @@ export const workshopUpdateTexts = (prev: WorkshopProgress | undefined, next: Wo
   for (const x of next.extras ?? []) {
     const before = (prev.extras ?? []).find((y) => y.id === x.id);
     if (!before) {
+      if (x.decision?.via === 'inPerson') {
+        garage(`${agreedHere(x.lines)}\n${x.reason}`, x.photos);
+        continue;
+      }
       // A report with nothing to approve: just the findings, from the garage.
       if (x.noteOnly) {
         garage('📋 වාර්තාව — ' + x.reason, x.photos, { kind: 'extra', id: x.id });
@@ -106,6 +113,7 @@ export const workshopUpdateTexts = (prev: WorkshopProgress | undefined, next: Wo
     if (x.decision && !before.decision) {
       const approved = x.lines.filter((l) => x.decision!.approvedLineIds.includes(l.id));
       if (x.decision.via === 'deferred') garage('⏸ අමතර වැඩය පසෙක තැබුවා — එකඟ වූ වැඩය පමණක් අවසන් කරනවා.');
+      else if (x.decision.via === 'inPerson') garage(agreedHere(approved));
       else if (x.decision.via === 'phone') garage(`📞 දුරකථන ඇමතුමකින් අයිතිකරු අමතර වැඩය අනුමත කළා: ${approved.length ? names(approved) : 'කිසිවක් නැත'}.`);
       else owner(extraDecisionText(approved));
     } else if (x.waitingSince && !before.waitingSince) {

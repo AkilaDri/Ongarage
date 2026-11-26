@@ -106,3 +106,17 @@ test('closing and pickup codes', () => {
   assert.ok(code.checkCloseCode(c, code.formatCloseCode(c)), 'checks with the space');
   assert.equal(code.pickupCodePayload('123456'), 'ongarage:pickup:123456');
 });
+
+test('an owner who stays has no inspection or approval steps', () => {
+  assert.deepEqual(w.STAYING_STEPS.map((s) => s.stage), ['booked', 'received', 'repairing', 'readyForHandover', 'closed']);
+  assert.equal(w.stayingStepIndex('diagnosing'), w.stayingStepIndex('received'));
+  assert.equal(w.stayingStepIndex('disputed'), w.stayingStepIndex('readyForHandover'));
+});
+
+test('what was agreed in person is billed and listed apart from app approvals', () => {
+  const here = { ...base, decision: w.agreedInPerson(lines, 1) };
+  assert.equal(here.decision.via, 'inPerson');
+  assert.deepEqual(w.inPersonLines(here).map((l) => l.id), ['p1', 'p2', 'l1']);
+  assert.equal(w.workshopBill(5000, here).total, 5000 + 6850 + 1350 + 1800);
+  assert.deepEqual(w.inPersonLines(decided(['p1'])), []);
+});

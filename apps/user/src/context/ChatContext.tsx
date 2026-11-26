@@ -351,7 +351,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode; /** The Home ta
         }}
         martMustBuy={(m) => {
           const p = target ? workshops[target.id]?.progress : undefined;
-          if (!p || m.from === 'owner') return false;
+          if (!p || p.stays || m.from === 'owner') return false;
           const lines = m.report?.kind === 'diagnosis' ? p.diagnosis?.lines : m.report?.kind === 'extra' ? p.extras?.find((x) => x.id === m.report!.id)?.lines : undefined;
           return (lines ?? []).some((l) => l.kind === 'part' && l.source === 'owner');
         }}

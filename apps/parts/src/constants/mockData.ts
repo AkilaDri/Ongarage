@@ -162,7 +162,7 @@ export type CustomerSeed = {
 export const CUSTOMER_POOL: CustomerSeed[] = [
   {
     // The demo job: TOPCODE's brake job, where the owner buys the brake discs themselves.
-    id: 'c1', buyer: { name: 'නිමල් පෙරේරා', phone: '0771234567' },
+    id: 'c1', buyer: { name: 'නිමල් පෙරේරා' },
     vehicle: { name: 'Premio', plate: 'CAD-8821', type: 'Sedan', make: 'Toyota', model: 'Premio', year: 2012, chassisNo: 'JMBF05090D6226789', engineNo: '3AZFE-2235601' },
     briefs: [{ name: 'Brake disc', qty: 2, partType: 'OEM', partNo: '43512-20180', note: 'ඉදිරිපස ඩිස්ක් දෙකම.', photos: 2 }],
     audience: 'shops', coords: { latitude: 6.0412, longitude: 80.2129 }, ageMin: 4, windowMin: 90,

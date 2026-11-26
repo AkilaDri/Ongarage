@@ -1,6 +1,7 @@
 import { flyTo } from '../utils/fly';
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import {
+  agreedInPerson,
   approvedLines,
   type CustomerTag,
   claimBlockers,
@@ -58,6 +59,8 @@ const RECEIVE_MS = 4000;
 // The inspection takes an hour to a day in life; here the report comes about 40 s after the owner confirms the handover, with one short update on the way.
 const DIAGNOSE_MS = 40000;
 const INSPECTION_UPDATE_MS = 15000;
+// How long the face-to-face talk takes when something was already waiting for an answer as the owner came to stay: long enough to switch back and see the request return.
+const IN_PERSON_MS = 20000;
 const REPAIR_MS = 8000;
 const SCAN_MS = 5000;
 const REWORK_MS = 4000;
@@ -155,14 +158,16 @@ export type WorkshopStart = Omit<OwnerWorkshop, 'progress' | 'warrantyMonths' | 
   warrantyMonths?: number;
   /** Booked with a Premier garage: covered by the OnGarage Guarantee. */
   protectedJob?: boolean;
-  /** The owner's choice at booking: live tracking of every stage, or only the check-in photos and the finish. */
-  liveTrack?: boolean;
+  /** The owner's answer at booking: they stay with the vehicle during the work. */
+  stays?: boolean;
 };
 
 export type RatingInput = { dimensions: DimensionRating; technician?: number; text: string };
 
 type WorkshopState = {
   workshops: Record<string, OwnerWorkshop>;
+  /** The owner left the garage, or came back to stay: it changes only what happens from now on. */
+  setStays: (id: string, stays: boolean) => void;
   /** A booking was confirmed / a bid accepted: the job follows the workshop steps. */
   startWorkshop: (start: WorkshopStart) => void;
   /** Approve some or all diagnosis lines (none = only the agreed work). */
@@ -408,7 +413,7 @@ export const WorkshopProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     (id: string, approvedLineIds: string[]) => {
       const w = live.current[id];
       const d = w?.progress.diagnosis;
-      if (!w || !d || !w.progress.decision || w.progress.stage !== 'repairing' || w.progress.cancelRequest) return;
+      if (!w || !d || !w.progress.decision || w.progress.decision.via === 'inPerson' || w.progress.stage !== 'repairing' || w.progress.cancelRequest) return;
       patch(id, { decision: { ...w.progress.decision, approvedLineIds, declinedLineIds: d.lines.map((l) => l.id).filter((x) => !approvedLineIds.includes(x)), decidedAt: Date.now() } });
       notify({ icon: '✏️', title: 'ඔබගේ අනුමැතිය වෙනස් කළා', body: `${w.garageName} යාවත්කාලීන කළ අනුමැතිය අනුව වැඩ කරයි.`, tone: 'primary' });
     },
@@ -419,7 +424,7 @@ export const WorkshopProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     (id: string, extraId: string, approvedLineIds: string[]) => {
       const w = live.current[id];
       const x = w?.progress.extras?.find((e) => e.id === extraId);
-      if (!w || !x?.decision || w.progress.stage !== 'repairing' || w.progress.cancelRequest) return;
+      if (!w || !x?.decision || x.decision.via === 'inPerson' || w.progress.stage !== 'repairing' || w.progress.cancelRequest) return;
       const decision = { ...x.decision, approvedLineIds, declinedLineIds: x.lines.map((l) => l.id).filter((l) => !approvedLineIds.includes(l)), decidedAt: Date.now() };
       patch(id, { extras: w.progress.extras!.map((e) => (e.id === extraId ? { ...e, decision } : e)) });
       notify({ icon: '✏️', title: 'අමතර වැඩ පිළිබඳ තීරණය වෙනස් කළා', body: `${w.garageName} යාවත්කාලීන කළ තීරණය අනුව වැඩ කරයි.`, tone: 'primary' });
@@ -448,6 +453,7 @@ export const WorkshopProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   /** Set below, once the simulated garage's steps exist: carries the job on after a cancellation request was withdrawn. */
   const resumeRef = useRef<(id: string) => void>(() => {});
+  const carryOnRef = useRef<(id: string) => void>(() => {});
 
   const confirmPayment = useCallback(
     (id: string, ok: boolean, note?: string) => {
@@ -607,6 +613,16 @@ export const WorkshopProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     [notify, patch]
   );
 
+  /** Simulated: extra work talked over face to face is recorded as agreed, and the work carries on. */
+  const agreeExtraHere = useCallback(
+    (id: string, x: ExtraWorkRequest) => {
+      patch(id, { extras: [{ ...x, decision: agreedInPerson(x.lines, Date.now()) }] });
+      notify({ icon: '🤝', title: 'ගරාජයේදී එකඟ වූ අමතර වැඩ සටහන් කළා', body: 'කේතය දීමට පෙර බිල්පතේ ඒවා පරීක්ෂා කරන්න.', tone: 'primary' });
+      carryOnRef.current(id);
+    },
+    [notify, patch]
+  );
+
   /** Simulated garage: repair, then hand over with a report and the bill. */
   const repairThenHandover = useCallback(
     (id: string) => {
@@ -615,7 +631,12 @@ export const WorkshopProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         if (!w || w.progress.stage !== 'repairing' || pendingExtra(w.progress) || pendingRecon(w.progress)) return;
         // Simulated garage: any other new job gets an extra part and work found, once.
         if (w.id !== SEED_WORKSHOP_ID && !w.progress.extras?.length && !w.progress.dispute) {
-          patch(id, { extras: [simulatedExtra(w)] });
+          const found = simulatedExtra(w);
+          if (w.progress.stays) {
+            agreeExtraHere(id, found);
+            return;
+          }
+          patch(id, { extras: [found] });
           notify({ icon: '➕', title: `${w.garageName}: අමතර කොටස් / වැඩ`, body: 'චැට් එකේ ඇති කාඩ්පතෙන් අනුමත කරන්න.', tone: 'primary' });
           return;
         }
@@ -632,6 +653,10 @@ export const WorkshopProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             ],
             sentAt: Date.now(),
           };
+          if (w.progress.stays) {
+            agreeExtraHere(id, extra);
+            return;
+          }
           patch(id, { extras: [extra] });
           notify({ icon: '➕', title: `${w.garageName}: අමතර වැඩක් හමු විය`, body: 'ඔබ අනුමත කරන තුරු ඔවුන් එය කරන්නේ හෝ කොටස් ගෙන්වන්නේ නැත.', tone: 'primary' });
           return;
@@ -661,8 +686,9 @@ export const WorkshopProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         }, 4000);
       }, REPAIR_MS);
     },
-    [later, notify, patch]
+    [agreeExtraHere, later, notify, patch]
   );
+  carryOnRef.current = repairThenHandover;
 
   const diagnose = useCallback(
     (id: string) => {
@@ -670,11 +696,74 @@ export const WorkshopProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         const w = live.current[id];
         // No report before the owner has confirmed that the garage has the vehicle.
         if (!w || w.progress.stage !== 'diagnosing' || !w.receiptConfirmed) return;
-        patch(id, { stage: 'awaitingApproval', diagnosis: simulatedDiagnosis(w) });
+        const report = simulatedDiagnosis(w);
+        if (w.progress.stays) {
+          // Simulated: the technician explains the report face to face, and the garage records what was agreed.
+          patch(id, { stage: 'repairing', diagnosis: report, decision: agreedInPerson(report.lines, Date.now()) });
+          notify({ icon: '🤝', title: `${w.garageName}: ගරාජයේදී එකඟ වූ වැඩ සටහන් කළා`, body: 'කේතය දීමට පෙර බිල්පතේ ඒවා පරීක්ෂා කරන්න.', tone: 'primary' });
+          repairThenHandover(id);
+          return;
+        }
+        patch(id, { stage: 'awaitingApproval', diagnosis: report });
         notify({ icon: '🔍', title: `${w.garageName}: පරීක්ෂා වාර්තාව`, body: 'ඔබ අනුමත කරන කොටස් / වැඩ පමණක් කෙරේ.', tone: 'primary' });
       }, DIAGNOSE_MS);
     },
-    [later, notify, patch]
+    [later, notify, patch, repairThenHandover]
+  );
+
+  // The latest switch to staying, per job: an older timer must not settle anything after the owner has left and come back.
+  const staySince = useRef<Record<string, number>>({});
+
+  /** Simulated: whatever was waiting is talked over face to face, and the garage records what was agreed. */
+  const settleHere = useCallback(
+    (id: string) => {
+      const since = Date.now();
+      staySince.current[id] = since;
+      later(() => {
+        const w = live.current[id];
+        if (!w || staySince.current[id] !== since || !w.progress.stays || w.progress.cancelRequest || w.progress.cancelled) return;
+        const p = w.progress;
+        const extra = pendingExtra(p);
+        const recon = pendingRecon(p);
+        if (p.stage === 'awaitingApproval' && p.diagnosis) patch(id, { stage: 'repairing', decision: agreedInPerson(p.diagnosis.lines, Date.now()) });
+        else if (p.stage === 'repairing' && (extra || recon))
+          patch(id, {
+            extras: p.extras?.map((x) => (x.id === extra?.id ? { ...x, decision: agreedInPerson(x.lines, Date.now()) } : x)),
+            // The simulated talk keeps Genuine: no part or price changes without a stated yes.
+            recon: p.recon?.map((r) => (r.id === recon?.id ? { ...r, status: 'declined' as const, decidedAt: Date.now() } : r)),
+          });
+        else return;
+        notify({ icon: '🤝', title: `${w.garageName}: ගරාජයේදී එකඟ වූ දේ සටහන් කළා`, body: 'කේතය දීමට පෙර බිල්පත පරීක්ෂා කරන්න.', tone: 'primary' });
+        repairThenHandover(id);
+      }, IN_PERSON_MS);
+    },
+    [later, notify, patch, repairThenHandover]
+  );
+
+  const setStays = useCallback(
+    (id: string, stays: boolean) => {
+      const w = live.current[id];
+      if (!w || !!w.progress.stays === stays || w.progress.cancelled || w.receiptDispute || !['booked', 'received', 'diagnosing', 'awaitingApproval', 'repairing'].includes(w.progress.stage)) return;
+      patch(id, { stays });
+      // Anything waiting for an answer is no longer asked in the app while the owner stays (the garage settles it face to face); leaving again brings it back.
+      if (stays) settleHere(id);
+      const inspecting = w.progress.stage === 'diagnosing' && !w.progress.diagnosis;
+      if (stays && w.progress.receivedAt && !w.receiptConfirmed) {
+        patchJob(id, { receiptConfirmed: true });
+        if (inspecting) later(() => diagnose(id), 0);
+      }
+      // Leaving during the inspection: the owner now needs to know when the report is due.
+      if (!stays && inspecting && w.receiptConfirmed && !w.inspection) {
+        const at = Date.now();
+        patchJob(id, { inspection: { startedAt: at, etaAt: at + 3 * HOUR, updates: [{ at, kind: 'started' }] } });
+      }
+      notify(
+        stays
+          ? { icon: '🪑', title: 'ඔබ ගරාජයේ සිටින බව දැනුම් දුන්නා', body: 'මෙතැන් සිට අලුත් වැඩ ගැන කාර්මිකයා ඔබ සමඟ එතනම කතා කරයි.', tone: 'primary' }
+          : { icon: '🚶', title: 'ඔබ ගරාජයෙන් යන බව දැනුම් දුන්නා', body: 'මෙතැන් සිට අලුත් වැඩ සඳහා app එකෙන් ඔබගේ අනුමැතිය ඉල්ලයි.', tone: 'primary' }
+      );
+    },
+    [diagnose, later, notify, patch, patchJob, settleHere]
   );
 
   resumeRef.current = (id: string) => {
@@ -687,25 +776,34 @@ export const WorkshopProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         if (!cur || cur.progress.stage !== 'booked' || cur.progress.cancelRequest) return;
         patch(id, { stage: 'diagnosing', receivedAt: Date.now(), checkInPhotos: SAMPLE_UPLOAD_PHOTOS.slice(1) });
         patchJob(id, { technician: technicianFor(cur.garageName) });
+        if (cur.progress.stays) {
+          patchJob(id, { receiptConfirmed: true });
+          later(() => diagnose(id), 0);
+        }
       }, RECEIVE_MS);
     } else if (st === 'diagnosing') diagnose(id);
+    else if (st === 'awaitingApproval' && w.progress.stays) settleHere(id);
     else if (st === 'repairing') repairThenHandover(id);
   };
 
   const startWorkshop = useCallback(
     (start: WorkshopStart) => {
       if (live.current[start.id]) return;
-      const { protectedJob, liveTrack, ...rest } = start;
-      const w: OwnerWorkshop = { ...rest, warrantyMonths: start.warrantyMonths ?? DEFAULT_WARRANTY_MONTHS, progress: { ...newWorkshopProgress(), protected: protectedJob, liveTrack: liveTrack !== false } };
+      const { protectedJob, stays, ...rest } = start;
+      const w: OwnerWorkshop = { ...rest, warrantyMonths: start.warrantyMonths ?? DEFAULT_WARRANTY_MONTHS, progress: { ...newWorkshopProgress(), protected: protectedJob, stays: !!stays } };
       setWorkshops((prev) => ({ ...prev, [w.id]: w }));
       // The garage receives the vehicle at the booked time.
       later(() => {
         if (stageOf(w.id) !== 'booked') return;
         patch(w.id, { stage: 'diagnosing', receivedAt: Date.now(), checkInPhotos: SAMPLE_UPLOAD_PHOTOS.slice(1) });
         patchJob(w.id, { technician: technicianFor(w.garageName) });
-        // Not live: the check-in photos are the only update until the finish, so the note says so.
-        const notLive = w.progress.liveTrack === false;
-        notify({ icon: '🚗', title: `${w.garageName}: වාහනය ලැබුණා`, body: notLive ? 'තත්ත්වයේ ඡායාරූප ගත්තා. වැඩ ගමන live නොපෙන්වයි; අවසානයේ දැනුම් දෙනවා.' : w.doorstep ? 'ගරාජය ඔබ වෙතින් වාහනය භාර ගත්තා. තහවුරු කරන්න.' : 'තත්ත්වයේ ඡායාරූප ගත්තා. භාර දුන් බව තහවුරු කරන්න.', tone: 'primary' });
+        // An owner who is there has nothing to confirm: they can see the garage has the vehicle.
+        const here = !!live.current[w.id]?.progress.stays;
+        if (here) {
+          patchJob(w.id, { receiptConfirmed: true });
+          later(() => diagnose(w.id), 0);
+        }
+        notify({ icon: '🚗', title: `${w.garageName}: වාහනය ලැබුණා`, body: here ? 'තත්ත්වයේ ඡායාරූප ගත්තා. වැඩ සහ මිල ගැන කාර්මිකයා සමඟ කතා කරන්න.' : w.doorstep ? 'ගරාජය ඔබ වෙතින් වාහනය භාර ගත්තා. තහවුරු කරන්න.' : 'තත්ත්වයේ ඡායාරූප ගත්තා. භාර දුන් බව තහවුරු කරන්න.', tone: 'primary' });
       // (For trying the whole process: the simulated garage does not wait hours for the booked time, only a few seconds.)
       }, Math.min(Math.max(0, w.scheduledAt - Date.now()), 6000) + RECEIVE_MS);
     },
@@ -736,7 +834,7 @@ export const WorkshopProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       if (w.partType === 'Genuine' && genuine)
         later(() => {
           const cur = live.current[id];
-          if (cur?.progress.stage !== 'repairing' || cur.progress.recon?.length) return;
+          if (cur?.progress.stage !== 'repairing' || cur.progress.recon?.length || cur.progress.stays) return;
           const ask: ReconRequest = {
             id: `rc-${id}`,
             lineIds: [genuine.id],
@@ -1051,7 +1149,7 @@ export const WorkshopProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   );
 
   return (
-    <WorkshopContext.Provider value={{ workshops, openBill, startWorkshop, approveDiagnosis, decideExtra, decideRecon, claimGuarantee, rateJob, declineDiagnosis, changeDiagnosisDecision, changeExtraDecision, changeReconDecision, confirmPayment, claimPayment, reschedulePayment, replyToCustomerRating, disputeCustomerRating, requestFit, requestCancel, editCancelRequest, withdrawCancel, confirmCancel, showCloseCode, acknowledgeClosed, confirmReceived, disputeReceipt, escalateReceipt, cancelDisputedReceipt, reportProblem, escalate, claimWarranty, markPartBought }}>
+    <WorkshopContext.Provider value={{ workshops, setStays, openBill, startWorkshop, approveDiagnosis, decideExtra, decideRecon, claimGuarantee, rateJob, declineDiagnosis, changeDiagnosisDecision, changeExtraDecision, changeReconDecision, confirmPayment, claimPayment, reschedulePayment, replyToCustomerRating, disputeCustomerRating, requestFit, requestCancel, editCancelRequest, withdrawCancel, confirmCancel, showCloseCode, acknowledgeClosed, confirmReceived, disputeReceipt, escalateReceipt, cancelDisputedReceipt, reportProblem, escalate, claimWarranty, markPartBought }}>
       {children}
     </WorkshopContext.Provider>
   );

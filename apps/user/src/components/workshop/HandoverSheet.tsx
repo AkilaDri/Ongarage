@@ -1,7 +1,7 @@
 import { FlowButton } from '../FlowButton';
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { CloseCode, Colors, FONTS, LATE_VIA_LABEL, PhotoStrip, themedStyles } from '@ongarage/shared';
+import { CloseCode, Colors, FONTS, inPersonLines, LATE_VIA_LABEL, PhotoStrip, themedStyles } from '@ongarage/shared';
 import { useWorkshops, type OwnerWorkshop } from '../../context/WorkshopContext';
 import { formatDate, money } from '../../utils/format';
 import { Sheet } from '../Sheet';
@@ -35,6 +35,7 @@ export const HandoverSheet: React.FC<{ workshop: OwnerWorkshop | null; onClose: 
   const h = w?.progress.handover;
   if (!w || !h) return null;
   const closed = w.progress.stage === 'closed';
+  const inPerson = inPersonLines(w.progress);
   const dismiss = () => {
     if (closed) acknowledgeClosed(w.id);
     onClose();
@@ -104,6 +105,17 @@ export const HandoverSheet: React.FC<{ workshop: OwnerWorkshop | null; onClose: 
                   {!!l.receipt?.length && <PhotoStrip photos={l.receipt} height={56} />}
                 </View>
               ))}
+            </View>
+          )}
+          {/* Agreed face to face: set against the agreed price, to be checked before the code is given. */}
+          {inPerson.length > 0 && (
+            <View style={styles.box} accessibilityLabel="Agreed at the garage">
+              <Text style={styles.label}>🤝 ගරාජයේදී එකඟ වූ</Text>
+              <Row label="මුලින් එකඟ වූ මිල" value={money(w.agreedPrice)} />
+              {inPerson.map((l) => (
+                <Row key={l.id} label={`+ ${l.name}${l.qty > 1 ? ` ×${l.qty}` : ''}${l.source === 'owner' ? ' (ඔබ මිලදී ගත්)' : ''}`} value={money(l.price)} />
+              ))}
+              <Text style={styles.note}>ඔබ එකඟ නොවූ දෙයක් ඇත්නම්, කේතය නොදී “ගැටලුවක් ඇත” තෝරන්න.</Text>
             </View>
           )}
           <Text style={styles.label}>පෙර / පසු</Text>

@@ -14,11 +14,13 @@ export const ownerNeed = (w?: OwnerWorkshop): string | null => {
   // A disputed handover waits on the garage or OnGarage, except when the garage sends photos for the owner to check.
   if (w.receiptDispute) return w.receiptDispute.status === 'garageHasIt' ? 'ගරාජයේ ඡායාරූප බලා තහවුරු කරන්න' : null;
   if (p.receivedAt && !w.receiptConfirmed) return 'වාහනය භාර දුන් බව තහවුරු කරන්න';
-  if (p.stage === 'awaitingApproval') return 'පරීක්ෂා වාර්තාව අනුමත කරන්න';
-  if (p.stage === 'repairing' && pendingRecon(p)) return 'Recon අවසරය දෙන්න';
-  if (p.stage === 'repairing' && pendingExtra(p)) return 'අමතර වැඩ අනුමත කරන්න';
+  // An owner who stays is asked for nothing in the app: a waiting report, extra work or Recon is talked over face to face (it comes back if they leave).
+  if (!p.stays && p.stage === 'awaitingApproval') return 'පරීක්ෂා වාර්තාව අනුමත කරන්න';
+  if (!p.stays && p.stage === 'repairing' && pendingRecon(p)) return 'Recon අවසරය දෙන්න';
+  if (!p.stays && p.stage === 'repairing' && pendingExtra(p)) return 'අමතර වැඩ අනුමත කරන්න';
   if (p.stage === 'readyForHandover') return 'වාහනය භාරගන්න';
-  if (linesOwnerBuys(p).some((l) => !w.partsBought?.[l.id])) return 'කොටස් OnMart හි මිලදී ගන්න';
+  // Someone at the garage is told about parts to buy by the technician: no nudge.
+  if (!p.stays && linesOwnerBuys(p).some((l) => !w.partsBought?.[l.id])) return 'කොටස් OnMart හි මිලදී ගන්න';
   return null;
 };
 
@@ -32,7 +34,9 @@ export const waitingText = (w: OwnerWorkshop): string | undefined => {
       return 'වෙන් කළ වේලාව බලාපොරොත්තුවෙන්';
     case 'received':
     case 'diagnosing':
-      return 'ගරාජය වාහනය පරීක්ෂා කරමින්';
+      return p.stays ? 'කාර්මිකයා ඔබ සමඟ පරීක්ෂා කරමින්' : 'ගරාජය වාහනය පරීක්ෂා කරමින්';
+    case 'awaitingApproval':
+      return p.stays ? 'කාර්මිකයා ඔබ සමඟ වාර්තාව කතා කරයි' : undefined;
     case 'repairing':
       return 'ගරාජය අලුත්වැඩියා කරමින්';
     case 'disputed':

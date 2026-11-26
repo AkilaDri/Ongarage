@@ -30,9 +30,7 @@ export const InspectionBox: React.FC<{ workshop: OwnerWorkshop; /** The details 
   const x = w.inspection;
   if (!x) return null;
   const late = now > x.etaAt;
-  const live = w.progress.liveTrack !== false;
-  // An owner who chose not to follow live still sees when the report is due, without the short updates.
-  const updates = live ? (detailed ? [...x.updates].reverse() : x.updates.slice(-1)) : [];
+  const updates = detailed ? [...x.updates].reverse() : x.updates.slice(-1);
   const shots = w.progress.checkInPhotos ?? [];
   const phone = MOCK_GARAGES.find((g) => g.name === w.garageName)?.phone;
   return (
