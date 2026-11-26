@@ -59,6 +59,7 @@ module.exports = spec('Owner · workshop job, extra work, problem, rating, Recon
   await t.clickText('අනුමත කරන්න ·');
   await t.wait(3200);
   await t.clickText('Recon අවසරය ඉල්ලයි');
+  await t.clickLabel('Approve Recon');
   await t.clickText('Recon අනුමතයි');
   await t.wait(9000);
   await t.clickText('භාරගන්න · කේතය පෙන්වන්න');
