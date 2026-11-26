@@ -23,6 +23,7 @@ import {
 import { useWorkshops } from '../../context/WorkshopContext';
 import { ownerNeed, waitingText } from '../../utils/ownerNeed';
 import { formatDate, formatTime, money } from '../../utils/format';
+import { ReceiptDisputeBox, ReceiptReasonSheet } from './ReceiptDispute';
 import { ApprovalSheet } from './ApprovalSheet';
 import { HandoverSheet } from './HandoverSheet';
 import { ProblemSheet, TOPIC_LABEL } from './ProblemSheet';
@@ -62,13 +63,16 @@ type SheetId = 'fit' | 'cancel' | 'decide' | 'approve' | 'extra' | 'recon' | 'ha
 const OWNER_STEP_LABELS = WORKSHOP_STEP_LABELS.map((l) => l.replace('අයිතිකරුගේ අනුමැතිය', 'ඔබගේ අනුමැතිය'));
 
 export const WorkshopTracker: React.FC<{ id: string; detailed?: boolean }> = ({ id, detailed }) => {
-  const { workshops, escalate, acknowledgeClosed, confirmReceived } = useWorkshops();
+  const { workshops, escalate, acknowledgeClosed, confirmReceived, disputeReceipt } = useWorkshops();
   const { openBasket, say } = useChat();
   const [sheet, setSheet] = useState<SheetId>(null);
+  // "No, they do not have it" opens a short question first.
+  const [askReason, setAskReason] = useState(false);
   const w = workshops[id];
   if (!w) return null;
   const p = w.progress;
   const need = ownerNeed(w);
+  const disputed = !!w.receiptDispute;
   const d = p.dispute;
   const inWarranty = p.stage === 'closed' && !!p.warrantyUntil && p.warrantyUntil > Date.now();
   const claim = p.warrantyClaim;
@@ -229,7 +233,8 @@ export const WorkshopTracker: React.FC<{ id: string; detailed?: boolean }> = ({ 
   return (
     <View style={styles.wrap}>
       {/* The owner's turn: one soft blue box, above the progress, holding exactly what is asked of them now. Nothing is shown while the job waits on others. */}
-      {!!need && (
+      {disputed && <ReceiptDisputeBox workshop={w} onUpdate={(t) => say(id, t)} />}
+      {!!need && !disputed && (
         <View style={styles.turn} accessibilityLabel="Your turn">
         {/* The garage says it received the vehicle: the same question as in the job's chat, short, so it can be answered from the card. */}
         {receiptPending && !p.cancelRequest && (
@@ -241,10 +246,7 @@ export const WorkshopTracker: React.FC<{ id: string; detailed?: boolean }> = ({ 
                   label="එසේ නොවේ"
                   variant="ghost"
                   a11y="Not handed over"
-                  onPress={() => {
-                    confirmReceived(id, false);
-                    say(id, '⚠️ අයිතිකරු වාහනය භාර දුන් බව තහවුරු නොකරයි — ගරාජය පරීක්ෂා කළ යුතුයි.');
-                  }}
+                  onPress={() => setAskReason(true)}
                 />
               </View>
               <View style={styles.flex1}>
@@ -280,7 +282,7 @@ export const WorkshopTracker: React.FC<{ id: string; detailed?: boolean }> = ({ 
       )}
       {/* The line under the bar says what is needed or awaited now, not just the step's name. */}
       {p.stage !== 'closed' && (
-        <StepProgress steps={OWNER_STEP_LABELS.map((l, i) => (i === workshopStepIndex(p.stage) ? need ?? waitingText(w) ?? l : l))} current={workshopStepIndex(p.stage)} alert={!!need || p.stage === 'disputed'} readable />
+        <StepProgress steps={OWNER_STEP_LABELS.map((l, i) => (i === (disputed ? 0 : workshopStepIndex(p.stage)) ? need ?? waitingText(w) ?? l : l))} current={disputed ? 0 : workshopStepIndex(p.stage)} alert={!!need || disputed || p.stage === 'disputed'} readable />
       )}
       {p.protected && (
         <View style={styles.protectedPill} accessibilityLabel="Protected job">
@@ -314,8 +316,8 @@ export const WorkshopTracker: React.FC<{ id: string; detailed?: boolean }> = ({ 
         </View>
       ) : (
         <>
-          {!need && action()}
-          {!need && !!action() && <View style={styles.sep} />}
+          {!need && !disputed && action()}
+          {!need && !disputed && !!action() && <View style={styles.sep} />}
         </>
       )}
 
@@ -396,7 +398,7 @@ export const WorkshopTracker: React.FC<{ id: string; detailed?: boolean }> = ({ 
               <Text style={styles.rareChevron}>›</Text>
             </Pressable>
           )}
-          {canRequestCancel(p) && !p.cancelRequest && (
+          {canRequestCancel(p) && !p.cancelRequest && !disputed && (
             <Pressable style={styles.rareRow} onPress={() => setSheet('cancel')} accessibilityRole="button" accessibilityLabel="Cancel this job">
               <Text style={[styles.rareText, { color: Colors.errorText }]}>✖ රැකියාව අවලංගු කරන්න</Text>
               <Text style={[styles.rareChevron, { color: Colors.errorText }]}>›</Text>
@@ -405,6 +407,15 @@ export const WorkshopTracker: React.FC<{ id: string; detailed?: boolean }> = ({ 
         </View>
       )}
 
+      <ReceiptReasonSheet
+        visible={askReason}
+        onClose={() => setAskReason(false)}
+        onPick={(reason, label) => {
+          setAskReason(false);
+          disputeReceipt(id, reason);
+          say(id, `⚠️ අයිතිකරු: වාහනය තවම භාර දී නැත (${label}) — ගරාජය පරීක්ෂා කළ යුතුයි.`);
+        }}
+      />
       <FitPartSheet id={id} visible={sheet === 'fit'} onClose={close} />
       <CancelJobSheet workshop={sheet === 'cancel' ? w : null} onClose={close} />
       <CancelRequestSheet workshop={sheet === 'decide' ? w : null} onClose={close} />

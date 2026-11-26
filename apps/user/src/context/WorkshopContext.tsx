@@ -100,6 +100,12 @@ const receiptNo = (closedAt: number, code: string) => {
 export const overallFrom = (d: DimensionRating) => Math.round(RATING_DIMENSIONS.reduce((s, x) => s + d[x.id] * x.weight, 0) * 10) / 10;
 
 /** One workshop job the owner follows: a confirmed direct booking or an accepted bid. */
+export type ReceiptDisputeReason = 'notYet' | 'onTheWay';
+/** `waiting`: for the garage's answer. `garageHasIt`: it says it does have the vehicle, with photos, for the owner to check. `onGarage`: with the OnGarage team. */
+export type ReceiptDispute = { reason: ReceiptDisputeReason; at: number; respondBy: number; status: 'waiting' | 'garageHasIt' | 'onGarage'; photos?: string[] };
+/** How long the garage has to answer before the dispute goes to OnGarage by itself. */
+export const RECEIPT_REPLY_WITHIN_MS = 2 * 60 * 60 * 1000;
+
 export type OwnerWorkshop = {
   /** The direct booking's or posted job's id. */
   id: string;
@@ -127,6 +133,8 @@ export type OwnerWorkshop = {
   acknowledged?: boolean;
   /** The owner said (in the chat) whether the vehicle was really handed over: yes / no; unset until they answer. */
   receiptConfirmed?: boolean;
+  /** The owner said the garage does not have the vehicle: the job is on hold until it is settled. */
+  receiptDispute?: ReceiptDispute;
   receiptNo?: string;
   /** The owner's review, and later the garage's public reply. */
   review?: GarageReview;
@@ -136,7 +144,7 @@ export type OwnerWorkshop = {
   offer?: { title: string; icon: string; amount: number };
 };
 
-export type WorkshopStart = Omit<OwnerWorkshop, 'progress' | 'warrantyMonths' | 'acknowledged' | 'receiptConfirmed' | 'receiptNo' | 'review' | 'technician'> & {
+export type WorkshopStart = Omit<OwnerWorkshop, 'progress' | 'warrantyMonths' | 'acknowledged' | 'receiptConfirmed' | 'receiptDispute' | 'receiptNo' | 'review' | 'technician'> & {
   warrantyMonths?: number;
   /** Booked with a Premier garage: covered by the OnGarage Guarantee. */
   protectedJob?: boolean;
@@ -192,6 +200,11 @@ type WorkshopState = {
   acknowledgeClosed: (id: string) => void;
   /** The owner confirms (or denies) that the vehicle was handed over to the garage. */
   confirmReceived: (id: string, ok: boolean) => void;
+  /** "No, they do not have my vehicle": holds the job and asks the garage. */
+  disputeReceipt: (id: string, reason: ReceiptDisputeReason) => void;
+  escalateReceipt: (id: string) => void;
+  /** While the handover is disputed the owner may end the job with no fee. */
+  cancelDisputedReceipt: (id: string) => void;
   reportProblem: (id: string, topic: DisputeTopic, text: string, photos?: string[]) => void;
   /** Rework didn't fix it, or the garage won't: OnGarage steps in (admin app). */
   escalate: (id: string) => void;
@@ -898,8 +911,62 @@ export const WorkshopProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   );
 
   const confirmReceived = useCallback(
-    (id: string, ok: boolean) => setWorkshops((prev) => (prev[id] ? { ...prev, [id]: { ...prev[id], receiptConfirmed: ok } } : prev)),
+    (id: string, ok: boolean) => setWorkshops((prev) => (prev[id] ? { ...prev, [id]: { ...prev[id], receiptConfirmed: ok, receiptDispute: ok ? undefined : prev[id].receiptDispute } } : prev)),
     []
+  );
+
+  const escalateReceipt = useCallback(
+    (id: string) => {
+      const w = live.current[id];
+      if (!w?.receiptDispute || w.receiptDispute.status === 'onGarage') return;
+      patchJob(id, { receiptDispute: { ...w.receiptDispute, status: 'onGarage' } });
+      notify({ icon: '⚖️', title: 'OnGarage වෙත යොමු කළා', body: `${w.garageName} · වාහනය භාර දීම පිළිබඳ ගැටලුව`, tone: 'primary' });
+    },
+    [notify, patchJob]
+  );
+
+  const disputeReceipt = useCallback(
+    (id: string, reason: ReceiptDisputeReason) => {
+      const w = live.current[id];
+      if (!w || w.receiptDispute) return;
+      const at = Date.now();
+      patchJob(id, { receiptConfirmed: false, receiptDispute: { reason, at, respondBy: at + RECEIPT_REPLY_WITHIN_MS, status: 'waiting' } });
+      notify({ icon: '📨', title: 'ගරාජයට දැනුම් දුන්නා', body: `${w.garageName} පරීක්ෂා කර පිළිතුරු දෙයි. එතෙක් රැකියාව නවතා ඇත.`, tone: 'primary' });
+      const still = () => {
+        const cur = live.current[id];
+        return cur?.receiptDispute?.at === at && cur.receiptDispute.status === 'waiting' && !cur.progress.cancelled ? cur : null;
+      };
+      // Simulated garage. "Not handed over yet": it was the garage's mistake, so the job goes back to booked. "On the way": by then it has the vehicle, and sends photos.
+      later(() => {
+        const cur = still();
+        if (!cur) return;
+        if (reason === 'notYet') {
+          patch(id, { stage: 'booked', receivedAt: undefined, checkInPhotos: undefined, diagnosis: undefined });
+          patchJob(id, { receiptConfirmed: undefined, receiptDispute: undefined });
+          notify({ icon: '↩️', title: `${cur.garageName}: අපගේ වැරැද්දකි`, body: 'ඔබගේ වාහනය ලැබී නැත. රැකියාව නැවත වෙන් කළ තත්ත්වයට පත් විය.', tone: 'primary' });
+          // (For trying the whole process: the vehicle "arrives" again a while later.)
+          later(() => resumeRef.current(id), 30000);
+        } else {
+          patchJob(id, { receiptDispute: { ...cur.receiptDispute!, status: 'garageHasIt', photos: cur.progress.checkInPhotos ?? SAMPLE_UPLOAD_PHOTOS.slice(1) } });
+          notify({ icon: '📷', title: `${cur.garageName}: වාහනය අප ළඟ ඇත`, body: 'ඡායාරූප බලා තහවුරු කරන්න.', tone: 'primary' });
+        }
+      }, 8000);
+      later(() => {
+        if (still()) escalateReceipt(id);
+      }, RECEIPT_REPLY_WITHIN_MS);
+    },
+    [escalateReceipt, later, notify, patch, patchJob]
+  );
+
+  const cancelDisputedReceipt = useCallback(
+    (id: string) => {
+      const w = live.current[id];
+      if (!w?.receiptDispute) return;
+      patch(id, { cancelRequest: undefined, cancelled: { at: Date.now(), by: 'owner', reason: 'වාහනය භාර දී නැත', compensation: 0, feeNote: 'ගාස්තුවක් නැත — වාහනය භාර දීම තහවුරු වී නොතිබුණි.' } });
+      patchJob(id, { receiptDispute: undefined });
+      notify({ icon: '❌', title: 'රැකියාව අවලංගු කළා', body: `${w.garageName} · ගාස්තුවක් නැත`, tone: 'primary' });
+    },
+    [notify, patch, patchJob]
   );
 
   const acknowledgeClosed = useCallback(
@@ -955,7 +1022,7 @@ export const WorkshopProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   );
 
   return (
-    <WorkshopContext.Provider value={{ workshops, openBill, startWorkshop, approveDiagnosis, decideExtra, decideRecon, claimGuarantee, rateJob, declineDiagnosis, changeDiagnosisDecision, changeExtraDecision, changeReconDecision, confirmPayment, claimPayment, reschedulePayment, replyToCustomerRating, disputeCustomerRating, requestFit, requestCancel, editCancelRequest, withdrawCancel, confirmCancel, showCloseCode, acknowledgeClosed, confirmReceived, reportProblem, escalate, claimWarranty, markPartBought }}>
+    <WorkshopContext.Provider value={{ workshops, openBill, startWorkshop, approveDiagnosis, decideExtra, decideRecon, claimGuarantee, rateJob, declineDiagnosis, changeDiagnosisDecision, changeExtraDecision, changeReconDecision, confirmPayment, claimPayment, reschedulePayment, replyToCustomerRating, disputeCustomerRating, requestFit, requestCancel, editCancelRequest, withdrawCancel, confirmCancel, showCloseCode, acknowledgeClosed, confirmReceived, disputeReceipt, escalateReceipt, cancelDisputedReceipt, reportProblem, escalate, claimWarranty, markPartBought }}>
       {children}
     </WorkshopContext.Provider>
   );

@@ -1,3 +1,4 @@
+import { ReceiptDisputeBox, ReceiptReasonSheet } from './workshop/ReceiptDispute';
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Pressable, StyleSheet, Text, View } from 'react-native';
 import { reconDecisionText, canRequestCancel, Colors, FONTS, getThemeMode, pendingExtra, pendingRecon, PhotoStrip, themedStyles, type DiagnosisLine } from '@ongarage/shared';
@@ -55,7 +56,8 @@ const Section: React.FC<{ title: string; lines: DiagnosisLine[]; hidePrice?: boo
  * The same answers are in the job card's tracker; each answer also goes into the chat as an update line.
  */
 export const ChatJobCards: React.FC<{ id: string; onUpdate: (text: string) => void; /** Search a part in OnMart (a part the owner has to buy). */ onOpenMart?: (part: string) => void; /** Several parts to buy: the whole basket is asked of OnMart together. */ onOpenBasket?: (workshopId: string) => void }> = ({ id, onUpdate, onOpenMart, onOpenBasket }) => {
-  const { workshops, approveDiagnosis, declineDiagnosis, decideExtra, decideRecon, confirmReceived, showCloseCode, openBill, rateJob, acknowledgeClosed, withdrawCancel } = useWorkshops();
+  const { workshops, approveDiagnosis, declineDiagnosis, decideExtra, decideRecon, confirmReceived, showCloseCode, openBill, rateJob, acknowledgeClosed, withdrawCancel, disputeReceipt } = useWorkshops();
+  const [askReason, setAskReason] = useState(false);
   const [codeShown, setCodeShown] = useState(false);
   const [rateOpen, setRateOpen] = useState(false);
   // The other forms of the job, opened from the chat: a problem at handover, the receipt, a warranty claim, cancelling.
@@ -141,7 +143,17 @@ export const ChatJobCards: React.FC<{ id: string; onUpdate: (text: string) => vo
 
   return (
     <View style={styles.wrap}>
-      {toConfirm && (
+      {!!w.receiptDispute && !p.cancelled && <ReceiptDisputeBox workshop={w} onUpdate={onUpdate} />}
+      <ReceiptReasonSheet
+        visible={askReason}
+        onClose={() => setAskReason(false)}
+        onPick={(reason, label) => {
+          setAskReason(false);
+          disputeReceipt(id, reason);
+          onUpdate(`⚠️ අයිතිකරු: වාහනය තවම භාර දී නැත (${label}) — ගරාජය පරීක්ෂා කළ යුතුයි.`);
+        }}
+      />
+      {toConfirm && !w.receiptDispute && (
         <View style={styles.card} accessibilityLabel="Confirm vehicle handed over">
           <Text style={styles.head}>🚗 වාහනය භාර දුන් බව තහවුරු කරන්න</Text>
           <Text style={styles.text}>{w.garageName} ඔබගේ වාහනය ලැබුණා කියා දන්වා ඇත. එය නිවැරදි නම් තහවුරු කරන්න.</Text>
@@ -159,10 +171,7 @@ export const ChatJobCards: React.FC<{ id: string; onUpdate: (text: string) => vo
             </Pressable>
             <Pressable
               style={[styles.btn, styles.no]}
-              onPress={() => {
-                confirmReceived(id, false);
-                onUpdate('⚠️ අයිතිකරු වාහනය භාර දුන් බව තහවුරු නොකරයි — ගරාජය පරීක්ෂා කළ යුතුයි.');
-              }}
+              onPress={() => setAskReason(true)}
               accessibilityLabel="Not handed over"
             >
               <Text style={styles.noText}>✖ එසේ නොවේ</Text>

@@ -11,6 +11,8 @@ export const ownerNeed = (w?: OwnerWorkshop): string | null => {
   const p = w.progress;
   if (p.cancelled || p.stage === 'closed' || p.stage === 'declined') return null;
   if (p.cancelRequest) return p.cancelRequest.status === 'quoted' ? 'වන්දිය ගැන තීරණය කරන්න' : null;
+  // A disputed handover waits on the garage or OnGarage, except when the garage sends photos for the owner to check.
+  if (w.receiptDispute) return w.receiptDispute.status === 'garageHasIt' ? 'ගරාජයේ ඡායාරූප බලා තහවුරු කරන්න' : null;
   if (p.receivedAt && !w.receiptConfirmed) return 'වාහනය භාර දුන් බව තහවුරු කරන්න';
   if (p.stage === 'awaitingApproval') return 'පරීක්ෂා වාර්තාව අනුමත කරන්න';
   if (p.stage === 'repairing' && pendingRecon(p)) return 'Recon අවසරය දෙන්න';
@@ -23,6 +25,7 @@ export const ownerNeed = (w?: OwnerWorkshop): string | null => {
 /** The progress line while nothing is asked of the owner: what is happening, and whom they are waiting for. */
 export const waitingText = (w: OwnerWorkshop): string | undefined => {
   const p = w.progress;
+  if (w.receiptDispute) return w.receiptDispute.status === 'onGarage' ? 'OnGarage කණ්ඩායම බලමින්' : 'ගරාජයේ පිළිතුර බලාපොරොත්තුවෙන්';
   if (p.cancelRequest) return 'අවලංගු ඉල්ලීමට ගරාජයේ පිළිතුර බලාපොරොත්තුවෙන්';
   switch (p.stage) {
     case 'booked':

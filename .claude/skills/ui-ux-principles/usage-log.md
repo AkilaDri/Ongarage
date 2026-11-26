@@ -13,6 +13,11 @@ Entry format:
 
 ## Entries
 
+## 2026-11-26 · Owner handover question · a real process behind "no"
+- Principles used: C4 and UPD 116 (the card says what happens next; progress goes back to step 1), C9 and UPD 074 (one question before sending, a way back, "handed over now"), C10 (free cancel stated), C5 (same box on card and chat).
+- Core missing: none.
+- Outcome: user approved with two reasons only, no police advice, 2 hours. Not yet checked on a phone.
+
 ## 2026-11-26 · Owner running job, step 6 · payment and cancellation wording
 - Principles used: C10 (the claim names the amount and says the garage confirms), C4 (chosen date on its button; work shown as paused), UPD 029 (red only for lateness), UPD 074 (safe choice first, cancel with a fee second in soft red).
 - Core missing: none.
