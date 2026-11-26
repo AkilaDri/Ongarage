@@ -13,6 +13,16 @@ Entry format:
 
 ## Entries
 
+## 2026-11-26 · Owner running job · inspection stage
+- Principles used: C4 and UX 13 (expected time for a long wait), UPD 087 and C8 (calm card, notify only for changes), C15 (late only when the time has passed), C10 (fee stated before the report).
+- Core missing: none.
+- Outcome: approved. Not yet checked on a phone.
+
+## 2026-11-26 · Owner running job · the bar waits for the owner's confirmation
+- Principles used: UPD 116 mental model and C11 (the step number matches what the owner is being asked; it never jumps past a step they have not accepted).
+- Core missing: none.
+- Outcome: user reported confusion at 4/7. Not yet checked on a phone.
+
 ## 2026-11-26 · Owner handover question · a real process behind "no"
 - Principles used: C4 and UPD 116 (the card says what happens next; progress goes back to step 1), C9 and UPD 074 (one question before sending, a way back, "handed over now"), C10 (free cancel stated), C5 (same box on card and chat).
 - Core missing: none.

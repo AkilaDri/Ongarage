@@ -24,6 +24,7 @@ import { useWorkshops } from '../../context/WorkshopContext';
 import { ownerNeed, waitingText } from '../../utils/ownerNeed';
 import { formatDate, formatTime, money } from '../../utils/format';
 import { ReceiptDisputeBox, ReceiptReasonSheet } from './ReceiptDispute';
+import { InspectionBox } from './InspectionBox';
 import { ApprovalSheet } from './ApprovalSheet';
 import { HandoverSheet } from './HandoverSheet';
 import { ProblemSheet, TOPIC_LABEL } from './ProblemSheet';
@@ -88,6 +89,9 @@ export const WorkshopTracker: React.FC<{ id: string; detailed?: boolean }> = ({ 
   // The garage says it has the vehicle but the owner has not yet confirmed that: nothing on the job can be answered (the report, extra work, Recon, the
   // handover code) until the owner has confirmed it, the same order as in the job's chat.
   const receiptPending = !!p.receivedAt && !w.receiptConfirmed && p.stage !== 'closed' && p.stage !== 'declined';
+  // The bar shows only as far as the owner has accepted: until they confirm the garage has the vehicle it stays on "vehicle received", even if the garage has
+  // already gone further (a report may be waiting, but it cannot be answered yet). A disputed handover goes back to "booked".
+  const step = disputed ? 0 : receiptPending ? workshopStepIndex('received') : workshopStepIndex(p.stage);
 
   const action = () => {
     if (receiptPending) return null;
@@ -232,6 +236,10 @@ export const WorkshopTracker: React.FC<{ id: string; detailed?: boolean }> = ({ 
 
   return (
     <View style={styles.wrap}>
+      {/* The line under the bar says what is needed or awaited now, not just the step's name. */}
+      {p.stage !== 'closed' && (
+        <StepProgress steps={OWNER_STEP_LABELS.map((l, i) => (i === step ? need ?? waitingText(w) ?? l : l))} current={step} alert={!!need || disputed || p.stage === 'disputed'} readable />
+      )}
       {/* The owner's turn: one soft blue box, above the progress, holding exactly what is asked of them now. Nothing is shown while the job waits on others. */}
       {disputed && <ReceiptDisputeBox workshop={w} onUpdate={(t) => say(id, t)} />}
       {!!need && !disputed && (
@@ -280,10 +288,8 @@ export const WorkshopTracker: React.FC<{ id: string; detailed?: boolean }> = ({ 
           )}
         </View>
       )}
-      {/* The line under the bar says what is needed or awaited now, not just the step's name. */}
-      {p.stage !== 'closed' && (
-        <StepProgress steps={OWNER_STEP_LABELS.map((l, i) => (i === (disputed ? 0 : workshopStepIndex(p.stage)) ? need ?? waitingText(w) ?? l : l))} current={disputed ? 0 : workshopStepIndex(p.stage)} alert={!!need || disputed || p.stage === 'disputed'} readable />
-      )}
+      {/* Between the confirmed handover and the report: when to expect it and what is happening. */}
+      {!disputed && !receiptPending && !p.cancelRequest && (p.stage === 'received' || p.stage === 'diagnosing') && <InspectionBox workshop={w} detailed={detailed} />}
       {p.protected && (
         <View style={styles.protectedPill} accessibilityLabel="Protected job">
           <Text style={styles.protectedText}>🛡️ ආරක්ෂිත රැකියාව · OnGarage Guarantee</Text>

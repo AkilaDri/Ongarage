@@ -55,7 +55,9 @@ const HOUR = 60 * MIN;
 
 // Simulated garage (compressed). The garage app does these steps for real once there's a backend.
 const RECEIVE_MS = 4000;
-const DIAGNOSE_MS = 6000;
+// The inspection takes an hour to a day in life; here the report comes about 40 s after the owner confirms the handover, with one short update on the way.
+const DIAGNOSE_MS = 40000;
+const INSPECTION_UPDATE_MS = 15000;
 const REPAIR_MS = 8000;
 const SCAN_MS = 5000;
 const REWORK_MS = 4000;
@@ -100,6 +102,10 @@ const receiptNo = (closedAt: number, code: string) => {
 export const overallFrom = (d: DimensionRating) => Math.round(RATING_DIMENSIONS.reduce((s, x) => s + d[x.id] * x.weight, 0) * 10) / 10;
 
 /** One workshop job the owner follows: a confirmed direct booking or an accepted bid. */
+export type InspectionUpdateKind = 'started' | 'moreTests' | 'outsideTest';
+/** The garage's inspection, from the owner's confirmation of the handover to its report. It must say when the report is expected (one hour, three hours, today by a time, or tomorrow). */
+export type Inspection = { startedAt: number; etaAt: number; previousEtaAt?: number; delayReason?: string; updates: { at: number; kind: InspectionUpdateKind; note?: string }[] };
+
 export type ReceiptDisputeReason = 'notYet' | 'onTheWay';
 /** `waiting`: for the garage's answer. `garageHasIt`: it says it does have the vehicle, with photos, for the owner to check. `onGarage`: with the OnGarage team. */
 export type ReceiptDispute = { reason: ReceiptDisputeReason; at: number; respondBy: number; status: 'waiting' | 'garageHasIt' | 'onGarage'; photos?: string[] };
@@ -133,6 +139,7 @@ export type OwnerWorkshop = {
   acknowledged?: boolean;
   /** The owner said (in the chat) whether the vehicle was really handed over: yes / no; unset until they answer. */
   receiptConfirmed?: boolean;
+  inspection?: Inspection;
   /** The owner said the garage does not have the vehicle: the job is on hold until it is settled. */
   receiptDispute?: ReceiptDispute;
   receiptNo?: string;
@@ -144,7 +151,7 @@ export type OwnerWorkshop = {
   offer?: { title: string; icon: string; amount: number };
 };
 
-export type WorkshopStart = Omit<OwnerWorkshop, 'progress' | 'warrantyMonths' | 'acknowledged' | 'receiptConfirmed' | 'receiptDispute' | 'receiptNo' | 'review' | 'technician'> & {
+export type WorkshopStart = Omit<OwnerWorkshop, 'progress' | 'warrantyMonths' | 'acknowledged' | 'receiptConfirmed' | 'receiptDispute' | 'inspection' | 'receiptNo' | 'review' | 'technician'> & {
   warrantyMonths?: number;
   /** Booked with a Premier garage: covered by the OnGarage Guarantee. */
   protectedJob?: boolean;
@@ -350,6 +357,8 @@ const seedWorkshop = (): OwnerWorkshop => {
     warrantyMonths: DEFAULT_WARRANTY_MONTHS,
     progress: newWorkshopProgress(),
     technician: technicianFor(SPEED_WORKS.name),
+    // Its report is already waiting, so the owner has confirmed the handover (a report cannot come before that).
+    receiptConfirmed: true,
   };
   return {
     ...base,
@@ -659,7 +668,8 @@ export const WorkshopProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     (id: string) => {
       later(() => {
         const w = live.current[id];
-        if (!w || w.progress.stage !== 'diagnosing') return;
+        // No report before the owner has confirmed that the garage has the vehicle.
+        if (!w || w.progress.stage !== 'diagnosing' || !w.receiptConfirmed) return;
         patch(id, { stage: 'awaitingApproval', diagnosis: simulatedDiagnosis(w) });
         notify({ icon: '🔍', title: `${w.garageName}: පරීක්ෂා වාර්තාව`, body: 'ඔබ අනුමත කරන කොටස් / වැඩ පමණක් කෙරේ.', tone: 'primary' });
       }, DIAGNOSE_MS);
@@ -677,7 +687,6 @@ export const WorkshopProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         if (!cur || cur.progress.stage !== 'booked' || cur.progress.cancelRequest) return;
         patch(id, { stage: 'diagnosing', receivedAt: Date.now(), checkInPhotos: SAMPLE_UPLOAD_PHOTOS.slice(1) });
         patchJob(id, { technician: technicianFor(cur.garageName) });
-        diagnose(id);
       }, RECEIVE_MS);
     } else if (st === 'diagnosing') diagnose(id);
     else if (st === 'repairing') repairThenHandover(id);
@@ -696,8 +705,7 @@ export const WorkshopProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         patchJob(w.id, { technician: technicianFor(w.garageName) });
         // Not live: the check-in photos are the only update until the finish, so the note says so.
         const notLive = w.progress.liveTrack === false;
-        notify({ icon: '🚗', title: `${w.garageName}: වාහනය ලැබුණා`, body: notLive ? 'තත්ත්වයේ ඡායාරූප ගත්තා. වැඩ ගමන live නොපෙන්වයි; අවසානයේ දැනුම් දෙනවා.' : w.doorstep ? 'ගරාජය ඔබ වෙත පැමිණ පරීක්ෂාව ඇරඹුවා.' : 'තත්ත්වයේ ඡායාරූප ගෙන පරීක්ෂාව ඇරඹුවා.', tone: 'primary' });
-        diagnose(w.id);
+        notify({ icon: '🚗', title: `${w.garageName}: වාහනය ලැබුණා`, body: notLive ? 'තත්ත්වයේ ඡායාරූප ගත්තා. වැඩ ගමන live නොපෙන්වයි; අවසානයේ දැනුම් දෙනවා.' : w.doorstep ? 'ගරාජය ඔබ වෙතින් වාහනය භාර ගත්තා. තහවුරු කරන්න.' : 'තත්ත්වයේ ඡායාරූප ගත්තා. භාර දුන් බව තහවුරු කරන්න.', tone: 'primary' });
       // (For trying the whole process: the simulated garage does not wait hours for the booked time, only a few seconds.)
       }, Math.min(Math.max(0, w.scheduledAt - Date.now()), 6000) + RECEIVE_MS);
     },
@@ -911,8 +919,26 @@ export const WorkshopProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   );
 
   const confirmReceived = useCallback(
-    (id: string, ok: boolean) => setWorkshops((prev) => (prev[id] ? { ...prev, [id]: { ...prev[id], receiptConfirmed: ok, receiptDispute: ok ? undefined : prev[id].receiptDispute } } : prev)),
-    []
+    (id: string, ok: boolean) => {
+      const w = live.current[id];
+      if (!w) return;
+      // The inspection starts here (once): the garage states when the report is expected, and the report cannot come before this.
+      const starts = ok && !w.inspection && !w.progress.diagnosis && (w.progress.stage === 'diagnosing' || w.progress.stage === 'received');
+      const at = Date.now();
+      patchJob(id, {
+        receiptConfirmed: ok,
+        receiptDispute: ok ? undefined : w.receiptDispute,
+        ...(starts ? { inspection: { startedAt: at, etaAt: at + 3 * HOUR, updates: [{ at, kind: 'started' as const }] } } : {}),
+      });
+      if (!starts) return;
+      later(() => {
+        const cur = live.current[id];
+        if (cur?.inspection?.startedAt === at && cur.progress.stage === 'diagnosing') patchJob(id, { inspection: { ...cur.inspection, updates: [...cur.inspection.updates, { at: Date.now(), kind: 'moreTests' }] } });
+      }, INSPECTION_UPDATE_MS);
+      // The timer waits for the confirmation to be stored.
+      later(() => diagnose(id), 0);
+    },
+    [diagnose, later, patchJob]
   );
 
   const escalateReceipt = useCallback(
@@ -942,7 +968,7 @@ export const WorkshopProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         if (!cur) return;
         if (reason === 'notYet') {
           patch(id, { stage: 'booked', receivedAt: undefined, checkInPhotos: undefined, diagnosis: undefined });
-          patchJob(id, { receiptConfirmed: undefined, receiptDispute: undefined });
+          patchJob(id, { receiptConfirmed: undefined, receiptDispute: undefined, inspection: undefined });
           notify({ icon: '↩️', title: `${cur.garageName}: අපගේ වැරැද්දකි`, body: 'ඔබගේ වාහනය ලැබී නැත. රැකියාව නැවත වෙන් කළ තත්ත්වයට පත් විය.', tone: 'primary' });
           // (For trying the whole process: the vehicle "arrives" again a while later.)
           later(() => resumeRef.current(id), 30000);

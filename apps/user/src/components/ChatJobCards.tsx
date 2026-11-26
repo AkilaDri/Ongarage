@@ -1,4 +1,5 @@
 import { ReceiptDisputeBox, ReceiptReasonSheet } from './workshop/ReceiptDispute';
+import { InspectionBox } from './workshop/InspectionBox';
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Pressable, StyleSheet, Text, View } from 'react-native';
 import { reconDecisionText, canRequestCancel, Colors, FONTS, getThemeMode, pendingExtra, pendingRecon, PhotoStrip, themedStyles, type DiagnosisLine } from '@ongarage/shared';
@@ -153,6 +154,7 @@ export const ChatJobCards: React.FC<{ id: string; onUpdate: (text: string) => vo
           onUpdate(`⚠️ අයිතිකරු: වාහනය තවම භාර දී නැත (${label}) — ගරාජය පරීක්ෂා කළ යුතුයි.`);
         }}
       />
+      {!toConfirm && !w.receiptDispute && (p.stage === 'received' || p.stage === 'diagnosing') && <InspectionBox workshop={w} />}
       {toConfirm && !w.receiptDispute && (
         <View style={styles.card} accessibilityLabel="Confirm vehicle handed over">
           <Text style={styles.head}>🚗 වාහනය භාර දුන් බව තහවුරු කරන්න</Text>
