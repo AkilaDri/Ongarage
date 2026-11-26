@@ -1,4 +1,5 @@
 import { GarageHistoryTag, useUsedGarages } from '../components/GarageHistory';
+import { FlowButton } from '../components/FlowButton';
 import { garageProfileContent } from '../constants/garageProfile';
 import { Gradient, LkPlate, PhotoStrip, VoiceNotePlayer, bidWork, marketPrice, MoneyText, MoneyIcon } from '@ongarage/shared';
 import { cardGlow, elevation1, outline, pageBg } from '../utils/material';
@@ -17,7 +18,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { bookingStatusText } from '../components/BidBookingStatus';
 import { FilterChips, Icon, ClipboardLineIcon, ReceiptLineIcon, ScheduleLineIcon, SegmentTabs } from '@ongarage/shared';
 import { GoogleMap, zoomToFit } from '@ongarage/shared';
-import { ActionButton, EmptyState, GlassIcon, ModalCard, SwipeCard } from '@ongarage/shared';
+import { ActionButton, GlassIcon, ModalCard, SwipeCard } from '@ongarage/shared';
 import { OwnerDetailView } from '../components/OwnerDetailView';
 import { GarageReviewsSheet, garageForBid } from '../components/GarageReviewsSheet';
 import { ThreeStateSheet, type SheetApi } from '../components/ThreeStateSheet';
@@ -27,7 +28,7 @@ import { CategoryPhoto } from '../components/home/CategoryPhoto';
 import { money } from '../utils/format';
 import { Sheet } from '../components/Sheet';
 import { sparePartLabel } from '../constants/labels';
-import { biddingEndsAt, isExpired, lowestBidId, useBids } from '../context/BidsContext';
+import { biddingEndsAt, isExpired, isHandedOver, lowestBidId, useBids } from '../context/BidsContext';
 import { useUserLocation } from '../context/LocationContext';
 import { useWorkshops } from '../context/WorkshopContext';
 import { usePayStanding } from '../context/PayStanding';
@@ -104,6 +105,32 @@ const ZERO = new Animated.Value(0);
 const ONE = new Animated.Value(1);
 /** 3,700 → "3.7k": a price short enough for a small badge. */
 const shortMoney = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(n % 1000 === 0 ? 0 : 1)}k` : String(n));
+
+/**
+ * An empty tab: no card, only the message in the middle of the page (an icon on its disc, what is missing, and when it will appear). It also gives the next step:
+ * `post` (with nothing running at all) offers a new quote request, `link` points to the tab where the owner's job is now.
+ */
+const BidsEmpty: React.FC<{ icon: string; title: string; text: string; post?: () => void; link?: { label: string; onPress: () => void } }> = ({ icon, title, text, post, link }) => (
+  <View style={styles.empty}>
+    <GlassIcon emoji={icon} />
+    <Text style={styles.emptyTitle}>{title}</Text>
+    <Text style={styles.emptyText}>{text}</Text>
+    {!!post && (
+      <View style={styles.emptyAction}>
+        <FlowButton label="Ongarage Quotes ඉල්ලන්න" icon="＋" variant="primary" onPress={post} />
+        <Text style={styles.emptyFree}>නොමිලේ</Text>
+      </View>
+    )}
+    {!!link && (
+      <Pressable style={styles.emptyLink} onPress={link.onPress} accessibilityRole="button" accessibilityLabel={link.label}>
+        <Text style={styles.emptyLinkText}>{link.label}</Text>
+      </Pressable>
+    )}
+  </View>
+);
+
+/** The words for a first-time (or quiet) owner: the question first, then what they get. */
+const ASK_TEXT = 'වාහනයේ අලුත්වැඩියාවක් තිබේද? ළඟම ගරාජවලින් මිල ගණන් ලබාගන්න.';
 
 export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsView, onToggleRows, onRepublish, onNewBid, onPayFirst, onPickTime, onViewActivity, onHeaderVisibilityChange, onHeaderCollapse, minimizeRef, mapRef, closeMapRef, onMapChange }) => {
   // "Garages I have used": narrows the received bids to the garages the owner has finished a job with before.
@@ -218,7 +245,8 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
     return () => clearInterval(timer);
   }, []);
 
-  const received = jobs.filter((j) => j.bids.length > 0);
+  // A booked job has moved to Activity: what is listed here still needs deciding or arranging.
+  const received = jobs.filter((j) => j.bids.length > 0 && !isHandedOver(j));
   const pending = jobs.filter((j) => j.bids.length === 0 && !isExpired(j, now));
   const expired = jobs.filter((j) => isExpired(j, now));
   const mapBids = received.filter((j) => !j.acceptedBidId).flatMap((j) => j.bids.map((b) => ({ job: j, bid: b, lowest: b.id === lowestBidId(j.bids) })));
@@ -475,7 +503,7 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
           {isAccepted ? (
             job.booking && job.booking.status !== 'confirmed' ? (
               <Pressable style={[styles.fbAction, styles.fbActionAccept, styles.fbActionWide]} onPress={() => onPickTime(job.id)} accessibilityRole="button" accessibilityLabel="Pick a time with the garage">
-                <Text style={[styles.fbActionText, styles.fbActionPrimary]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>{job.booking.status === 'choosing' ? '📅 වේලාව තෝරන්න' : job.booking.status === 'proposed' ? '🕘 යෝජිත වේලාව' : '⏳ පිළිතුර බලන්න'}</Text>
+                <Text style={[styles.fbActionText, styles.fbActionPrimary]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>{job.booking.status === 'choosing' ? '📅 වේලාව තෝරන්න' : job.booking.status === 'proposed' ? '🕘 යෝජිත වේලාව' : '⏳ පිළිතුරු බලාපොරොත්තුවෙන්'}</Text>
               </Pressable>
             ) : (
               <View style={[styles.fbAction, styles.fbActionDone]}>
@@ -585,7 +613,12 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
   const renderReceived = () => (
     <>
       {received.length === 0 ? (
-        <EmptyState icon="📥" title="තවම ලංසු ලැබී නැත" text="ගරාජ ඔබගේ රැකියාවලට ලංසු තැබූ විට ඒවා මෙහි පෙන්වනු ඇත." />
+        pending.length > 0 ? (
+          // A job is already waiting: no second request is asked for, only the way to see it.
+          <BidsEmpty icon="📥" title="තවම ලංසු ලැබී නැත" text="ඔබේ රැකියාවට තවම ලංසු නැත. ගරාජවලින් ලංසු එනතෙක් රැඳී සිටින්න." link={{ label: 'Pending බලන්න ›', onPress: () => onTabChange('pending') }} />
+        ) : (
+          <BidsEmpty icon="📥" title="තවම ලංසු ලැබී නැත" text={ASK_TEXT} post={onNewBid} />
+        )
       ) : (
         received.map((job, jIdx) => {
           const shown = (job.acceptedBidId ? job.bids.filter((b) => b.id === job.acceptedBidId) : sortBids(job.bids, bidSort)).filter((b) => !usedOnly || isUsed(garageForBid(b)));
@@ -624,9 +657,13 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
   const renderWaiting = (list: RepairJob[], kind: 'pending' | 'expired') =>
     list.length === 0 ? (
       kind === 'pending' ? (
-        <EmptyState icon="⏱️" title="බලාපොරොත්තුවෙන් සිටින රැකියා නැත" text="ලංසු එනතෙක් රැඳී සිටින රැකියා මෙහි පෙන්වනු ඇත." />
+        received.length > 0 ? (
+          <BidsEmpty icon="⏱️" title="රැඳී සිටින රැකියා නැත" text="ඔබට ලැබුණු ලංසු Received හි ඇත." link={{ label: 'Received බලන්න ›', onPress: () => onTabChange('received') }} />
+        ) : (
+          <BidsEmpty icon="⏱️" title="රැඳී සිටින රැකියා නැත" text={ASK_TEXT} post={onNewBid} />
+        )
       ) : (
-        <EmptyState icon="✅" title="කල් ඉකුත් වූ රැකියා නැත" text="ලංසු කාලය අවසන් වූ රැකියා නැවත පළ කිරීමට මෙහි පෙන්වනු ඇත." />
+        <BidsEmpty icon="✅" title="කල් ඉකුත් වූ රැකියා නැත" text="ලංසු කාලය අවසන් වූ රැකියා නැවත පළ කිරීමට මෙහි පෙන්වනු ඇත." />
       )
     ) : (
       list.map((job) => {
@@ -937,7 +974,8 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
               <ScrollView
                 ref={api.scrollRef}
                 style={styles.flex1}
-                contentContainerStyle={[styles.body, { paddingTop: 12 }]}
+                // With nothing to list, the content fills the sheet so the message can stand in its middle.
+                contentContainerStyle={[styles.body, { paddingTop: 12 }, (tab === 'received' ? received : tab === 'pending' ? pending : expired).length === 0 && styles.bodyEmpty]}
                 showsVerticalScrollIndicator={false}
                 scrollEventThrottle={16}
                 // Like Home: scrolling the sheet leaves the "＋ නව ලංසුවක්" chip and the tabs pinned at the top, and the chat icon docked right under them.
@@ -1259,6 +1297,15 @@ const styles = themedStyles(() => StyleSheet.create({
   usedChipTextOn: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#1e3a8a' },
   tabCountText: { fontSize: 10, fontFamily: FONTS.bodyBold, color: '#111827' },
   tabCountTextActive: {},
+  // The bottom space is the tab bar's height, so the message is centred in the part of the page that is seen.
+  bodyEmpty: { flexGrow: 1, paddingBottom: 72 },
+  empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10, paddingHorizontal: 32, minHeight: 320 },
+  emptyTitle: { fontSize: 16, lineHeight: 24, fontFamily: FONTS.bodyBold, color: Colors.textMain, textAlign: 'center', marginTop: 6 },
+  emptyAction: { alignSelf: 'stretch', gap: 8, marginTop: 12 },
+  emptyFree: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.success, textAlign: 'center' },
+  emptyLink: { minHeight: 44, justifyContent: 'center', marginTop: 4 },
+  emptyLinkText: { fontSize: 14, fontFamily: FONTS.bodySemiBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1e3a8a' },
+  emptyText: { maxWidth: 270, fontSize: 13.5, lineHeight: 22, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, textAlign: 'center' },
   body: { paddingHorizontal: 4, paddingTop: 4, gap: 18, paddingBottom: 24, backgroundColor: pageBg() },
   fullMap: { ...StyleSheet.absoluteFill },
   mapFullLayer: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 2, elevation: 2 },

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Colors, FONTS, themedStyles } from '@ongarage/shared';
+import { getThemeMode, Colors, FONTS, themedStyles } from '@ongarage/shared';
 import { elevation1, outline } from '../utils/material';
 import { useWorkshops } from '../context/WorkshopContext';
 import { JobTimelineSheet } from './JobTimelineSheet';
@@ -41,25 +41,7 @@ export const CompletedRecord: React.FC<{ id: string }> = ({ id }) => {
 
   return (
     <>
-      <Text style={styles.section}>සම්පූර්ණ කළ වාර්තාව</Text>
-      <Pressable style={styles.card} onPress={() => setTimeline(true)} accessibilityLabel="Open full job timeline">
-        {steps.map((s, i) => (
-          <View key={i} style={styles.step}>
-            <View style={styles.rail}>
-              <Text style={styles.stepIcon}>{s.icon}</Text>
-              {i < steps.length - 1 && <View style={styles.railLine} />}
-            </View>
-            <View style={styles.flex1}>
-              <Text style={styles.stepLabel}>{s.label}</Text>
-              <Text style={styles.sub}>{stamp(s.at)}</Text>
-            </View>
-          </View>
-        ))}
-        <View style={styles.line} />
-        <Text style={styles.more}>සම්පූර්ණ කාල රේඛාව, ඉල්ලූ කොටස් සහ කාර්මික වාර්තාව බලන්න ›</Text>
-      </Pressable>
-      <JobTimelineSheet id={timeline ? id : null} onClose={() => setTimeline(false)} />
-
+      {/* What was paid and what is covered come first; the step-by-step history is looked up rarely, so it is last. */}
       {rows.length > 0 && (
         <>
           <Text style={styles.section}>බිල සහ ගෙවීම</Text>
@@ -207,6 +189,24 @@ export const CompletedRecord: React.FC<{ id: string }> = ({ id }) => {
           </View>
         </>
       )}
+      <Text style={styles.section}>සම්පූර්ණ කළ වාර්තාව</Text>
+      <Pressable style={styles.card} onPress={() => setTimeline(true)} accessibilityLabel="Open full job timeline">
+        {steps.map((s, i) => (
+          <View key={i} style={styles.step}>
+            <View style={styles.rail}>
+              <Text style={styles.stepIcon}>{s.icon}</Text>
+              {i < steps.length - 1 && <View style={styles.railLine} />}
+            </View>
+            <View style={styles.flex1}>
+              <Text style={styles.stepLabel}>{s.label}</Text>
+              <Text style={styles.sub}>{stamp(s.at)}</Text>
+            </View>
+          </View>
+        ))}
+        <View style={styles.line} />
+        <Text style={styles.more}>සම්පූර්ණ කාල රේඛාව, ඉල්ලූ කොටස් සහ කාර්මික වාර්තාව බලන්න ›</Text>
+      </Pressable>
+      <JobTimelineSheet id={timeline ? id : null} onClose={() => setTimeline(false)} />
     </>
   );
 };
@@ -214,17 +214,17 @@ export const CompletedRecord: React.FC<{ id: string }> = ({ id }) => {
 const styles = themedStyles(() =>
   StyleSheet.create({
     flex1: { flex: 1 },
-    section: { fontSize: 14, fontFamily: FONTS.bodyBold, color: Colors.primary, letterSpacing: 0.2, marginTop: 8 },
-    card: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), borderRadius: 12, padding: 16, gap: 10, ...elevation1() },
+    section: { fontSize: 16, fontFamily: FONTS.bodyBold, color: Colors.textMain, marginTop: 12, marginBottom: 2 },
+    card: { gap: 10, paddingHorizontal: 16, paddingVertical: 14, borderRadius: 26, borderWidth: 1, borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#f3f4f6', backgroundColor: getThemeMode() === 'dark' ? Colors.bgCard : '#ffffff', shadowColor: '#1e3a8a', shadowOffset: { width: 0, height: 10 }, shadowOpacity: getThemeMode() === 'dark' ? 0.6 : 0.16, shadowRadius: 22, elevation: 6 },
     rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
     line: { height: 1, backgroundColor: outline() },
-    sub: { fontSize: 11.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 17, flexShrink: 1 },
+    sub: { fontSize: 13, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 20, flexShrink: 1 },
     strong: { fontFamily: FONTS.bodyBold, color: Colors.textMain },
     step: { flexDirection: 'row', gap: 12 },
     rail: { alignItems: 'center', width: 24 },
     stepIcon: { fontSize: 15 },
     railLine: { flex: 1, width: 2, marginTop: 2, borderRadius: 1, backgroundColor: outline() },
     more: { fontSize: 12, fontFamily: FONTS.bodyBold, color: Colors.primary },
-    stepLabel: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
+    stepLabel: { fontSize: 13.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
   })
 );

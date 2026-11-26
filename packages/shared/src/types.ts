@@ -110,6 +110,8 @@ export type JobBooking = {
   respondBy?: number;
   /** The confirmed time. */
   scheduledAt?: number;
+  /** When the garage confirmed it (the day the booking was made). */
+  confirmedAt?: number;
   /** The garage's other time, when the asked-for time did not suit. */
   proposal?: { at: number; note?: string };
   /** How many times a time was asked for and not agreed (declined, or the garage did not answer). */

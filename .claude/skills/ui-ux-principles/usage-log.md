@@ -13,6 +13,41 @@ Entry format:
 
 ## Entries
 
+## 2026-11-26 · Owner booking, tracking step · the rule box stays put
+- Principles used: UPD 035 consistency of position and C5 (what does not change with the choice does not move), UPD 152 (the explanation stays next to the choice it explains). Space is reserved for the longer text instead of a fixed height.
+- Core missing: none.
+- Outcome: user asked for it. Not yet checked on a phone.
+
+## 2026-11-26 · Owner Bids · next step in empty tabs
+- Principles used: C14 and UX 15 (the empty state names the next step), UPD 087 and C2 (a post button only when nothing is waiting or received; a link to the other tab otherwise; none on Expired), C5 (Home's wording, the flow button), C10 ("free" by the button), Typography 60 (Pending title shortened).
+- Core missing: none.
+- Outcome: user approved. Not yet checked on a phone.
+
+## 2026-11-26 · Owner completed job details · same hierarchy as the job details
+- Principles used: UPD 099 (job and cost, then bill, cover, service record, review, history), C2 (the three-cell strip, the repeated garage row and the repeated receipt number removed), C5 (the same card, soft box, headings and money style), C13.
+- Core missing: none.
+- Outcome: built as asked. CompletedRecord's new order also shows in a session job's details. Direct booking details still old. Not yet checked on a phone.
+
+## 2026-11-26 · Owner booking, soonest confirmation · one answer on screen
+- Principles used: C2 and UPD 067 figure-ground (the day and time choices hide while the soonest slot waits for a yes, so two dates are never shown together), UPD 074 forgiveness (saying no brings the owner's choice back unchanged).
+- Core missing: none.
+- Outcome: user asked for it. Not yet checked on a phone.
+
+## 2026-11-26 · Owner posted-job details · Activity card on top, decision first
+- Principles used: UPD 099 inverted pyramid (job, time left, bids, then map and what was sent), C2 (the three-cell strip repeated the count and lowest price; empty photo and voice sections merged into one card), C5 (Bids-tab chip, count label, bid cards, FlowButton), C1 (other bids folded behind a visible link once one is chosen).
+- Core missing: none.
+- Outcome: built as asked. The direct-booking details view is unchanged. Not yet checked on a phone.
+
+## 2026-11-26 · Owner Bids · empty tabs without a card
+- Principles used: UPD 067 figure-ground and C2 (no card around nothing; the message alone, centred), C14 (the empty state says what is missing and when it appears).
+- Core missing: none.
+- Outcome: user asked for it. Suggested, not built: a "new quote" button in the empty state. Not yet checked on a phone.
+
+## 2026-11-26 · Owner Bids and Activity · one place per job
+- Principles used: C2 (each tab answers one question), C4 and UX 134 (a notice says where the job went), C15 (the Bids badge counts only what needs the owner). The job's bid history stays in its detail view.
+- Core missing: none.
+- Outcome: user approved the hand-off at the garage's confirmation. Not yet checked on a phone.
+
 ## 2026-11-26 · Owner bid booking, tracking step · same step as the garage booking
 - Principles used: C5 (one shared TrackStep and the same return-to-summary behaviour), C11 (step count updated), C10 (approval rule shown for both choices).
 - Core missing: none.

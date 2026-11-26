@@ -19,7 +19,7 @@ import { ActivityCalendar, type CalendarItem } from '../components/ActivityCalen
 import { onOpenActivityCalendar } from '../utils/activityCalendar';
 import { BREAKDOWN_IMAGES } from '../constants/home';
 import { OwnerDetailView, type OwnerDetailTarget } from '../components/OwnerDetailView';
-import { useBids } from '../context/BidsContext';
+import { isHandedOver, useBids } from '../context/BidsContext';
 import { useUserLocation } from '../context/LocationContext';
 import { directionsUrl } from '@ongarage/shared';
 import { useBookings } from '../context/BookingsContext';
@@ -131,7 +131,8 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
   useEffect(() => () => { chatHide.setValue(0); }, []);
   const pinnedH = useRef(0);
   // Each kind of record has its own chip: pick one to see only those records.
-  const [tab, setTab] = useState<'current' | 'done' | 'ended'>('done');
+  // Opens on the ongoing work each time; a notice or a button may ask for another tab (utils/activityFocus).
+  const [tab, setTab] = useState<'current' | 'done' | 'ended'>('current');
   // The top band's own height: it folds up as the page scrolls (edge 0 to 1).
   const [bandH, setBandH] = useState(0);
   // OnMart is a chip beside the kinds of record (under every tab), not a tab: when it is on it shows the OnMart records instead.
@@ -179,7 +180,8 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
   const user = useUserLocation();
 
   const accepted = jobs
-    .filter((j) => j.acceptedBidId)
+    // Only booked quotes: one still being arranged is in Bids.
+    .filter(isHandedOver)
     .map((j) => ({ job: j, bid: j.bids.find((b) => b.id === j.acceptedBidId)! }))
     .filter((x) => x.bid);
   const ongoing = accepted.filter((x) => !finished(x.job.id) && !cancelled(x.job.id));
@@ -196,7 +198,7 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
           photo={<CategoryPhoto categoryId={job.categoryId} size={48} />}
           name={bid.garageName}
           garage={{ id: bid.garageId, name: bid.garageName }}
-          meta={`වෙන් කළේ ${formatDate(new Date(bid.submittedAt))}`}
+          meta={`වෙන් කළේ ${formatDate(new Date(job.booking?.confirmedAt ?? bid.submittedAt))}`}
           kind="bid"
         />
         <PostBody

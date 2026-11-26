@@ -112,6 +112,11 @@ const seedJobs = (now: number): RepairJob[] => {
 };
 
 export const biddingEndsAt = (job: RepairJob) => job.submittedAt + job.biddingHours * HOUR;
+/**
+ * An accepted quote moves from Bids to Activity once the garage has confirmed the time. Until then it is still being arranged (picking a time, waiting, another
+ * time offered), so it stays in Bids; after that it is a repair. One place at a time.
+ */
+export const isHandedOver = (job: RepairJob) => !!job.acceptedBidId && (!job.booking || job.booking.status === 'confirmed');
 export const isExpired = (job: RepairJob, now: number) => job.bids.length === 0 && now >= biddingEndsAt(job);
 
 export type NewJob = Omit<RepairJob, 'id' | 'submittedAt' | 'bids' | 'acceptedBidId'> & { replacesJobId?: string };
@@ -186,7 +191,6 @@ export const BidsProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const acceptBid = useCallback((jobId: string, bidId: string) => {
     const now = Date.now();
     setJobs((prev) => prev.map((j) => (j.id === jobId ? { ...j, acceptedBidId: bidId, booking: { status: 'choosing', chooseBy: pickTimeDeadline(now), attempts: 0 } } : j)));
-    flyTo('booked');
   }, []);
 
   const requestBidSlot = useCallback(
@@ -200,9 +204,10 @@ export const BidsProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (!job || !bid || job.booking?.status !== 'requested' || job.booking.preferredAt !== input.preferredAt) return;
           const answer = garageAnswerFor(input.preferredAt);
           if (answer.kind === 'confirm') {
-            patchBooking(jobId, (b) => ({ ...b, status: 'confirmed', scheduledAt: input.preferredAt }));
+            patchBooking(jobId, (b) => ({ ...b, status: 'confirmed', scheduledAt: input.preferredAt, confirmedAt: Date.now() }));
+            flyTo('booked');
             beginWorkshop(job, bid, input.preferredAt, input.doorstep ?? job.doorstep, input.liveTrack);
-            notify({ icon: '✅', title: `${bid.garageName} වෙන්කිරීම තහවුරු කළා`, body: (input.doorstep ?? job.doorstep) ? 'නියමිත වේලාවට ගරාජය ඔබ වෙත පැමිණේ.' : `${categoryInfo(job.categoryId).name} · ගරාජයේ ස්ථානය “ක්‍රියාකාරකම්” හි ඇත.`, tone: 'success' });
+            notify({ icon: '✅', title: `${bid.garageName} වෙන්කිරීම තහවුරු කළා`, body: `දැන් “ක්‍රියාකාරකම්” හි ඇත. ${(input.doorstep ?? job.doorstep) ? 'නියමිත වේලාවට ගරාජය ඔබ වෙත පැමිණේ.' : `${categoryInfo(job.categoryId).name} · ගරාජයේ ස්ථානය එහි ඇත.`}`, tone: 'success' });
           } else {
             patchBooking(jobId, (b) => ({ ...b, status: 'proposed', proposal: { at: answer.at, note: 'එම වේලාවේ ගරාජය වසා ඇත.' } }));
             notify({ icon: '🕘', title: `${bid.garageName} වෙනත් වේලාවක් යෝජනා කළා`, body: 'පිළිගන්න හෝ වෙනත් වේලාවක් තෝරන්න.', tone: 'primary' });
@@ -219,9 +224,10 @@ export const BidsProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const bid = job?.bids.find((b) => b.id === job.acceptedBidId);
       const proposal = job?.booking?.proposal;
       if (!job || !bid || !proposal) return;
-      patchBooking(jobId, (b) => ({ ...b, status: 'confirmed', scheduledAt: proposal.at, proposal: undefined }));
+      patchBooking(jobId, (b) => ({ ...b, status: 'confirmed', scheduledAt: proposal.at, proposal: undefined, confirmedAt: Date.now() }));
+      flyTo('booked');
       beginWorkshop(job, bid, proposal.at, job.booking?.doorstep ?? job.doorstep, job.booking?.liveTrack);
-      notify({ icon: '✅', title: 'වෙන්කිරීම තහවුරුයි', body: `${bid.garageName} · ${categoryInfo(job.categoryId).name}`, tone: 'success' });
+      notify({ icon: '✅', title: 'වෙන්කිරීම තහවුරුයි', body: `දැන් “ක්‍රියාකාරකම්” හි ඇත · ${bid.garageName} · ${categoryInfo(job.categoryId).name}`, tone: 'success' });
     },
     [beginWorkshop, notify, patchBooking]
   );

@@ -1,7 +1,9 @@
 import React from 'react';
 import { Linking, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ActionButton, categoryInfo, Colors, FONTS, GlassIcon, Icon, themedStyles } from '@ongarage/shared';
+import { ActionButton, categoryInfo, Colors, FONTS, getThemeMode, GlassIcon, Icon, LkPlate, MoneyText, themedStyles } from '@ongarage/shared';
+import { CategoryPhoto } from './home/CategoryPhoto';
+import { GarageHistoryTag } from './GarageHistory';
 import { elevation1, outline, pageBg } from '../utils/material';
 import { WorkshopTracker } from './workshop/WorkshopTracker';
 import { TxnTag } from './TxnTag';
@@ -46,51 +48,65 @@ export const RecordDetailView: React.FC<{ target: RecordTarget | null; onClose: 
           </View>
 
           <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
-            <View style={styles.row}>
-              <GlassIcon emoji={w ? w.icon ?? categoryInfo(w.categoryId).icon : r!.breakdown.icon} />
-              <View style={styles.flex1}>
-                <Text style={styles.bigTitle}>{title}</Text>
-                <Text style={styles.sub}>
-                  {w ? [vehicle?.name, vehicle?.plate].filter(Boolean).join(' · ') : `${r!.vehicleName} · ${r!.vehiclePlate}`}
-                </Text>
-                <TxnTag kind={w ? 'JOB' : 'SOS'} source={w ? w.id : r!.id} />
-              </View>
-              <View style={styles.rowChat}>
-              {w ? (
-                <ChatButton size={36} target={{ id: w.id, title: w.garageName, subtitle: title, phone: MOCK_GARAGES.find((g) => g.name === w.garageName)?.phone, vehicle: vehicle ?? undefined }} />
-              ) : (
-                <ChatButton size={36} target={{ id: r!.id, title: r!.responder.name, subtitle: `SOS · ${r!.breakdown.label}`, phone: r!.responder.phone, profile: 'sos' }} />
-              )}
-              </View>
-            </View>
-
-            <View style={styles.timing}>
-              <Cell label="සම්පූර්ණ කළ දිනය" value={doneAt ? formatDate(doneAt) : '—'} />
-              <View style={styles.divider} />
-              <Cell label="මුළු මුදල" value={money(total)} color={Colors.primary} />
-              <View style={styles.divider} />
-              <Cell label={w ? 'වගකීම' : 'ශ්‍රේණිගත කිරීම'} value={w ? `මාස ${w.warrantyMonths}` : `${'★'.repeat(r!.rating)}${'☆'.repeat(5 - r!.rating)}`} color={w ? Colors.successText : Colors.warning} />
-            </View>
-
-            <Text style={styles.section}>{w ? 'ගරාජය' : 'සේවාව ලබා දුන්නේ'}</Text>
+            {/* The same card as a job's details: the picture, who did it and when, then a soft box with the work, the vehicle and what it cost. */}
             <View style={styles.card}>
-              {w ? (
-                <Rows>
-                  <Fact icon="🛠️" label="ගරාජය" value={w.garageName} />
-                  {!!w.technician && <Fact icon="👷" label="කාර්මිකයා" value={w.technician} />}
-                  {!!w.subService && <Fact icon="🔧" label="සේවාව" value={w.subService} />}
-                  <Fact icon="🚛" label="සේවා ස්ථානය" value={w.doorstep ? 'නිවසටම පැමිණීම' : 'ගරාජයේදී'} />
-                  {!!w.receiptNo && <Fact icon="🧾" label="රිසිට්පත" value={w.receiptNo} />}
-                </Rows>
-              ) : (
-                <Rows>
-                  <Fact icon={r!.responder.kind === 'garage' ? '🛠️' : '👷'} label={r!.responder.kind === 'garage' ? 'ගරාජය' : 'කාර්මිකයා'} value={r!.responder.name} />
-                  <Fact icon="🔧" label="කාර්මිකයා" value={r!.responder.mechanic} />
-                  <Fact icon="📞" label="දුරකථනය" value={r!.responder.phone} />
-                  <Fact icon="📍" label="ස්ථානය" value={r!.address} />
-                </Rows>
-              )}
+              <View style={styles.row}>
+                {w ? <CategoryPhoto categoryId={w.categoryId} size={44} /> : <GlassIcon emoji={r!.breakdown.icon} />}
+                <View style={styles.flex1}>
+                  <View style={styles.nameRow}>
+                    <Text style={[styles.who, styles.shrink]}>{w ? w.garageName : r!.responder.name}</Text>
+                    {!!w && <GarageHistoryTag garage={{ id: w.garageId, name: w.garageName }} compact />}
+                  </View>
+                  <Text style={styles.meta}>{doneAt ? `${formatDate(doneAt)} සම්පූර්ණ කළා` : 'සම්පූර්ණයි'}</Text>
+                </View>
+                <View style={styles.rowChat}>
+                  {w ? (
+                    <ChatButton size={36} target={{ id: w.id, title: w.garageName, subtitle: title, phone: MOCK_GARAGES.find((g) => g.name === w.garageName)?.phone, vehicle: vehicle ?? undefined }} />
+                  ) : (
+                    <ChatButton size={36} target={{ id: r!.id, title: r!.responder.name, subtitle: `SOS · ${r!.breakdown.label}`, phone: r!.responder.phone, profile: 'sos' }} />
+                  )}
+                </View>
+              </View>
+              <View style={styles.softBox}>
+                <Text style={styles.jobTitle}>{title}</Text>
+                <View style={styles.nameRow}>
+                  <LkPlate plate={w ? vehicle?.registrationNo || vehicle?.plate || '—' : r!.vehiclePlate} stacked={vehicle?.type === 'Motorbike'} small />
+                  <Text style={styles.vehicleName}>{w ? vehicle?.name : r!.vehicleName}</Text>
+                </View>
+                <View style={styles.priceRow}>
+                  <Text style={styles.priceLabel}>මුළු මුදල</Text>
+                  <MoneyText icon style={styles.price}>{money(total)}</MoneyText>
+                </View>
+              </View>
+              <Text style={styles.facts}>{w ? `🛡️ මාස ${w.warrantyMonths} වගකීම` : `${'★'.repeat(r!.rating)}${'☆'.repeat(5 - r!.rating)} ඔබගේ ශ්‍රේණිගත කිරීම`}</Text>
+              <TxnTag kind={w ? 'JOB' : 'SOS'} source={w ? w.id : r!.id} />
             </View>
+
+            {/* A past job: the bill, the cover and the history. */}
+            {w && <CompletedRecord id={w.id} />}
+
+            {/* Who did the work (the garage is named at the top; its receipt number is with the cover above). */}
+            {(!w || !!w.technician || !!w.subService || w.doorstep !== undefined) && (
+              <>
+                <Text style={styles.section}>{w ? 'සේවා විස්තර' : 'සේවාව ලබා දුන්නේ'}</Text>
+                <View style={styles.card}>
+                  {w ? (
+                    <Rows>
+                      {!!w.technician && <Fact icon="👷" label="කාර්මිකයා" value={w.technician} />}
+                      {!!w.subService && <Fact icon="🔧" label="සේවාව" value={w.subService} />}
+                      <Fact icon="🚛" label="සේවා ස්ථානය" value={w.doorstep ? 'නිවසටම පැමිණීම' : 'ගරාජයේදී'} />
+                    </Rows>
+                  ) : (
+                    <Rows>
+                      <Fact icon={r!.responder.kind === 'garage' ? '🛠️' : '👷'} label={r!.responder.kind === 'garage' ? 'ගරාජය' : 'කාර්මිකයා'} value={r!.responder.name} />
+                      <Fact icon="🔧" label="කාර්මිකයා" value={r!.responder.mechanic} />
+                      <Fact icon="📞" label="දුරකථනය" value={r!.responder.phone} />
+                      <Fact icon="📍" label="ස්ථානය" value={r!.address} />
+                    </Rows>
+                  )}
+                </View>
+              </>
+            )}
 
             {r && (
               <>
@@ -114,8 +130,6 @@ export const RecordDetailView: React.FC<{ target: RecordTarget | null; onClose: 
                 )}
               </>
             )}
-
-            {w && <CompletedRecord id={w.id} />}
 
             {w && (
               <>
@@ -153,13 +167,6 @@ const Rows: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   </>
 );
 
-const Cell: React.FC<{ label: string; value: string; color?: string }> = ({ label, value, color }) => (
-  <View style={styles.cell}>
-    <Text style={styles.cellLabel}>{label}</Text>
-    <Text style={[styles.cellValue, color ? { color } : null]}>{value}</Text>
-  </View>
-);
-
 const Fact: React.FC<{ icon: string; label: string; value: string }> = ({ icon, label, value }) => (
   <View style={styles.fact}>
     <Text style={styles.factIcon}>{icon}</Text>
@@ -191,20 +198,26 @@ const styles = themedStyles(() =>
     bigTitle: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textMain },
     title: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.textMain },
     sub: { fontSize: 11.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 1, lineHeight: 17 },
+    shrink: { flexShrink: 1 },
+    nameRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
+    who: { fontSize: 15, lineHeight: 20, fontFamily: FONTS.titleBold, color: Colors.textMain },
+    meta: { fontSize: 12.5, lineHeight: 18, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 2 },
+    softBox: { gap: 10, padding: 12, borderRadius: 22, backgroundColor: getThemeMode() === 'dark' ? Colors.subtleFill : '#f1f1f2' },
+    jobTitle: { fontSize: 15, lineHeight: 22, fontFamily: FONTS.bodyBold, color: Colors.textMain },
+    vehicleName: { fontSize: 13.5, fontFamily: FONTS.bodyRegular, color: Colors.textMain },
+    priceRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: getThemeMode() === 'dark' ? Colors.borderColor : '#e2e2e6' },
+    priceLabel: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
+    price: { fontSize: 22, lineHeight: 28, fontFamily: FONTS.titleBold, color: Colors.success },
+    facts: { fontSize: 14, lineHeight: 21, fontFamily: FONTS.bodyRegular, color: Colors.textMain },
     bold: { fontFamily: FONTS.bodyBold, color: Colors.textMain },
-    section: { fontSize: 14, fontFamily: FONTS.bodyBold, color: Colors.primary, letterSpacing: 0.2, marginTop: 8 },
-    card: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), borderRadius: 12, padding: 16, gap: 10, ...elevation1() },
-    timing: { flexDirection: 'row', alignItems: 'center', padding: 16, borderRadius: 12, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), ...elevation1() },
-    cell: { flex: 1, alignItems: 'center', gap: 3 },
-    cellLabel: { fontSize: 10, fontFamily: FONTS.bodyMedium, color: Colors.textMuted, textAlign: 'center' },
-    cellValue: { fontSize: 12.5, fontFamily: FONTS.titleBold, color: Colors.textMain, textAlign: 'center' },
-    divider: { width: 1, alignSelf: 'stretch', backgroundColor: Colors.borderColor },
+    section: { fontSize: 16, fontFamily: FONTS.bodyBold, color: Colors.textMain, marginTop: 12, marginBottom: 2 },
+    card: { gap: 10, paddingHorizontal: 16, paddingVertical: 14, borderRadius: 26, borderWidth: 1, borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#f3f4f6', backgroundColor: getThemeMode() === 'dark' ? Colors.bgCard : '#ffffff', shadowColor: '#1e3a8a', shadowOffset: { width: 0, height: 10 }, shadowOpacity: getThemeMode() === 'dark' ? 0.6 : 0.16, shadowRadius: 22, elevation: 6 },
     rowLine: { height: 1, backgroundColor: outline() },
     hr: { height: 1, backgroundColor: outline() },
     fact: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     factIcon: { fontSize: 14, width: 20, textAlign: 'center' },
-    factLabel: { fontSize: 11.5, fontFamily: FONTS.bodyMedium, color: Colors.textMuted, width: 92 },
-    factValue: { flex: 1, fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
+    factLabel: { fontSize: 13, fontFamily: FONTS.bodyMedium, color: Colors.textMuted, width: 92 },
+    factValue: { flex: 1, fontSize: 13.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
     line: { flexDirection: 'row', alignItems: 'center', gap: 10 },
     footer: { padding: 16, paddingTop: 12, borderTopWidth: 1, borderTopColor: outline(), backgroundColor: Colors.bgCard },
   })

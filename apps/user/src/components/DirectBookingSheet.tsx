@@ -54,7 +54,7 @@ const HOUR = 60 * 60 * 1000;
  * What the owner sees when the booking request has gone: not a window but a message box that pops up in the middle of the screen, over the garage's profile. It says the
  * request was sent, when the garage answers, and points to the Activity tab where the answer shows.
  */
-export const BookingSentBox: React.FC<{ visible: boolean; garageName: string; when: string; onViewActivity: () => void; onClose: () => void }> = ({ visible, garageName, when, onViewActivity, onClose }) => (
+export const BookingSentBox: React.FC<{ visible: boolean; garageName: string; when: string; onViewActivity: () => void; onClose: () => void; /** The button's label when it does not lead to Activity (an accepted quote still waiting stays in Bids). */ actionLabel?: string }> = ({ visible, garageName, when, onViewActivity, onClose, actionLabel }) => (
   !visible ? null : (
     <View style={sentStyles.backdrop}>
       <View style={sentStyles.box} accessibilityLabel="Booking sent">
@@ -67,8 +67,8 @@ export const BookingSentBox: React.FC<{ visible: boolean; garageName: string; wh
         <Text style={sentStyles.title}>වෙන්කිරීම ඉල්ලීම යැව්වා</Text>
         <Text style={sentStyles.body}>{garageName} පැය 2ක් ඇතුළත පිළිතුරු දෙයි.</Text>
         <View style={sentStyles.actions}>
-          <Pressable style={sentStyles.main} onPress={onViewActivity} accessibilityLabel="Go to Activity">
-            <Text style={sentStyles.mainText}>ක්‍රියාකාරකම් බලන්න</Text>
+          <Pressable style={sentStyles.main} onPress={onViewActivity} accessibilityLabel={actionLabel ? 'Close booking sent' : 'Go to Activity'}>
+            <Text style={sentStyles.mainText}>{actionLabel ?? 'ක්‍රියාකාරකම් බලන්න'}</Text>
           </Pressable>
         </View>
       </View>
@@ -119,6 +119,8 @@ export const DirectBookingSheet: React.FC<{ garage: Garage | null; categoryId?: 
   const [hour, setHour] = useState<number | null>(null);
   // True after a summary line was tapped: that step's button goes straight back to the summary, not on through the steps.
   const [editing, setEditing] = useState(false);
+  // The soonest slot's confirmation is open: the times below the days are hidden meanwhile.
+  const [asking, setAsking] = useState(false);
   // The spare part the owner prefers; nothing is preselected, as in the quote request.
   const [partType, setPartType] = useState<PartType | null>(null);
   const [doorstep, setDoorstep] = useState(false);
@@ -150,6 +152,7 @@ export const DirectBookingSheet: React.FC<{ garage: Garage | null; categoryId?: 
     setHour(null);
     setPartType(null);
     setEditing(false);
+    setAsking(false);
     setDoorstep(false);
     setDescription(initial?.description ?? '');
     setPhotos([]);
@@ -382,6 +385,7 @@ export const DirectBookingSheet: React.FC<{ garage: Garage | null; categoryId?: 
           <DayStep
             day={day}
             onDay={pickDay}
+            onAsking={setAsking}
             onSoonest={(d, h) => {
               setDay(d);
               setHour(h);
@@ -389,7 +393,7 @@ export const DirectBookingSheet: React.FC<{ garage: Garage | null; categoryId?: 
               else setTab('options');
             }}
           />
-          {day !== null && <TimeStep day={day} hour={hour} onHour={setHour} />}
+          {!asking && day !== null && <TimeStep day={day} hour={hour} onHour={setHour} />}
         </>
       )}
 

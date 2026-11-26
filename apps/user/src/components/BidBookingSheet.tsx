@@ -45,6 +45,8 @@ export const BidBookingSheet: React.FC<{ jobId: string | null; onClose: () => vo
   const [liveTrack, setLiveTrack] = useState(true);
   // True after a summary line was tapped: that step's button goes straight back to the summary.
   const [editing, setEditing] = useState(false);
+  // The soonest slot's confirmation is open: the times below the days are hidden meanwhile.
+  const [asking, setAsking] = useState(false);
   // Where the car is, when the garage comes to the owner (picked on a map).
   const [homeLoc, setHomeLoc] = useState<PickedLocation | null>(null);
   const [mapOpen, setMapOpen] = useState(false);
@@ -58,6 +60,7 @@ export const BidBookingSheet: React.FC<{ jobId: string | null; onClose: () => vo
     setDoorstep(!!job?.doorstep);
     setLiveTrack(true);
     setEditing(false);
+    setAsking(false);
     setSent(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [jobId]);
@@ -165,9 +168,11 @@ export const BidBookingSheet: React.FC<{ jobId: string | null; onClose: () => vo
           visible={sent}
           garageName={bid?.garageName ?? ''}
           when={when(preferredAt)}
+          // Not booked yet, so it is not in Activity: the button just closes, back to Bids, where the answer shows.
+          actionLabel="හරි"
           onViewActivity={() => {
             setSent(false);
-            onViewActivity();
+            onClose();
           }}
           onClose={() => {
             setSent(false);
@@ -212,6 +217,7 @@ export const BidBookingSheet: React.FC<{ jobId: string | null; onClose: () => vo
                         <DayStep
                           day={day}
                           onDay={pickDay}
+                          onAsking={setAsking}
                           headerRight={booking.status === 'choosing' ? deadlineChip : undefined}
                           onSoonest={(d, h) => {
                             setDay(d);
@@ -222,8 +228,8 @@ export const BidBookingSheet: React.FC<{ jobId: string | null; onClose: () => vo
                       </>
                     )}
                     {/* As in the garage booking: once a day is picked, its times show under it on the same page. */}
-                    {phase === 'when' && day !== null && <TimeStep day={day} hour={hour} onHour={setHour} />}
-                    {phase === 'when' && doorstep && day !== null && (
+                    {phase === 'when' && !asking && day !== null && <TimeStep day={day} hour={hour} onHour={setHour} />}
+                    {phase === 'when' && !asking && doorstep && day !== null && (
                       <Pressable onPress={() => setMapOpen(true)} accessibilityLabel="Pick my location on the map" style={{ marginTop: 10, paddingHorizontal: 14, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: '#1e3a8a', backgroundColor: '#eff6ff' }}>
                         <Text style={{ fontFamily: FONTS.bodyBold, color: '#1e3a8a', fontSize: 14 }}>📍 {homeLoc ? homeLoc.address : 'ඔබේ ස්ථානය map එකෙන් තෝරන්න'}</Text>
                       </Pressable>
@@ -259,7 +265,7 @@ export const BidBookingSheet: React.FC<{ jobId: string | null; onClose: () => vo
                   <View style={styles.card}>
                     <Text style={styles.cardTitle}>⏳ ගරාජයේ පිළිතුර බලාපොරොත්තුවෙන්</Text>
                     <Text style={styles.cardLine}>ඔබ ඉල්ලූ වේලාව: {when(booking.preferredAt)}</Text>
-                    <Text style={styles.hint}>{bid.garageName} පැය 2ක් ඇතුළත පිළිතුරු දෙයි. පිළිතුර “ක්‍රියාකාරකම්” හි පෙන්වයි.</Text>
+                    <Text style={styles.hint}>{bid.garageName} පැය 2ක් ඇතුළත පිළිතුරු දෙයි. පිළිතුර “Bids” හි පෙන්වයි.</Text>
                   </View>
                 )}
 

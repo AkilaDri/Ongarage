@@ -1,6 +1,6 @@
 import React from 'react';
 import { BottomNav, pendingExtra, pendingRecon } from '@ongarage/shared';
-import { useBids } from '../context/BidsContext';
+import { isHandedOver, useBids } from '../context/BidsContext';
 import { useBookings } from '../context/BookingsContext';
 import { useMart } from '../context/MartContext';
 import { useWorkshops } from '../context/WorkshopContext';
@@ -12,8 +12,8 @@ const useOwnerCounts = () => {
   const { bookings } = useBookings();
   const { workshops } = useWorkshops();
   const { attention } = useMart();
-  // Posted jobs that have bids and no winner picked yet.
-  const bids = jobs.filter((j) => !j.acceptedBidId && j.bids.length > 0).length;
+  // Jobs in Bids that need the owner: a winner to pick, a time to pick, or a garage's other time to answer (not one that is only waiting for the garage).
+  const bids = jobs.filter((j) => j.bids.length > 0 && !isHandedOver(j) && (!j.acceptedBidId || j.booking?.status !== 'requested')).length;
   // A garage's proposed time, a diagnosis or extra work to approve, a Recon question, or a vehicle ready to collect.
   const activity =
     bookings.filter((b) => b.status === 'proposed').length +

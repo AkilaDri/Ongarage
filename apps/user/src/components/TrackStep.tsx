@@ -27,7 +27,18 @@ export const TrackStep: React.FC<{ live: boolean; onLive: (live: boolean) => voi
         );
       })}
     </View>
-    <Text style={styles.desc}>{TRACK_CHOICES.find((c) => c.live === live)?.about}</Text>
+    {/* Both explanations lie in the same place and only the picked one shows, so the space is always the longer one's height: the rule below never moves,
+        whatever the screen's width or the owner's text size. */}
+    <View style={styles.descStack}>
+      {TRACK_CHOICES.map((c, i) => {
+        const on = live === c.live;
+        return (
+          <Text key={c.title} style={[styles.desc, styles.descLayer, i > 0 && styles.descOver, !on && styles.descHidden]} accessibilityElementsHidden={!on} importantForAccessibility={on ? 'auto' : 'no-hide-descendants'} aria-hidden={!on}>
+            {c.about}
+          </Text>
+        );
+      })}
+    </View>
     {/* Always in view: following less never means approving less. */}
     <View style={styles.rule}>
       <Text style={styles.ruleIcon}>🛡️</Text>
@@ -48,6 +59,10 @@ const styles = themedStyles(() =>
     choiceText: { fontSize: 14, fontFamily: FONTS.bodySemiBold, color: Colors.textMain, textAlign: 'center' },
     choiceTextOn: { color: '#ffffff' },
     desc: { fontSize: 13.5, lineHeight: 22, fontFamily: FONTS.bodyRegular, color: Colors.textMain },
+    descStack: { flexDirection: 'row', alignItems: 'flex-start' },
+    descLayer: { width: '100%', flexShrink: 0 },
+    descOver: { marginLeft: '-100%' },
+    descHidden: { opacity: 0 },
     rule: { flexDirection: 'row', gap: 10, paddingHorizontal: 14, paddingVertical: 12, borderRadius: 22, backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.14)' : '#eff6ff' },
     ruleIcon: { fontSize: 15, lineHeight: 20 },
     ruleText: { flex: 1, fontSize: 13, lineHeight: 21, fontFamily: FONTS.bodySemiBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1e3a8a' },

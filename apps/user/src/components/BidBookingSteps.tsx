@@ -26,10 +26,14 @@ export const dayLabel = (offset: number) => {
 };
 
 /** Step 1: which day. The next seven days as cards; "වෙනත් දිනයක්" opens the calendar for any day within the month. */
-export const DayStep: React.FC<{ day: number | null; onDay: (day: number) => void; /** Picks the first open day and time in one tap (the next step then asks only where). */ onSoonest?: (day: number, hour: number) => void; /** Sits at the right of the heading (the deadline). */ headerRight?: React.ReactNode }> = ({ day, onDay, onSoonest, headerRight }) => {
+export const DayStep: React.FC<{ day: number | null; onDay: (day: number) => void; /** Picks the first open day and time in one tap (the next step then asks only where). */ onSoonest?: (day: number, hour: number) => void; /** Sits at the right of the heading (the deadline). */ headerRight?: React.ReactNode; /** True while the soonest slot waits for a yes: the caller hides its times meanwhile. */ onAsking?: (asking: boolean) => void }> = ({ day, onDay, onSoonest, headerRight, onAsking }) => {
   const [calendar, setCalendar] = useState(false);
   // The soonest slot waits here for a yes before the flow moves on: one tap on the card must not choose and advance by itself.
-  const [ask, setAsk] = useState<{ day: number; hour: number } | null>(null);
+  const [ask, setAskState] = useState<{ day: number; hour: number } | null>(null);
+  const setAsk = (v: { day: number; hour: number } | null) => {
+    setAskState(v);
+    onAsking?.(!!v);
+  };
   // After the owner says no to it, the card drops its blue highlight and sits as a plain white button: they are choosing their own time now.
   const [declined, setDeclined] = useState(false);
   const decline = () => {
@@ -70,18 +74,23 @@ export const DayStep: React.FC<{ day: number | null; onDay: (day: number) => voi
           <Text style={styles.soonestGo}>තෝරන්න ›</Text>
         </Pressable>
       )}
-      <View style={[styles.headRow, styles.headTop]}>
-        <Text style={styles.orLabel}>නැතිනම් වෙනත් දිනයක්</Text>
-        <Pressable onPress={() => setCalendar(true)} hitSlop={10} style={styles.calLink} accessibilityRole="button" accessibilityLabel="Pick another date">
-          <Text style={styles.calLinkText}>📅 දින දර්ශනය</Text>
-        </Pressable>
-      </View>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.dayRow}>
-        {extra !== null && <DayCard offset={extra} on onPress={() => onDay(extra)} />}
-        {offsets.map((o) => (
-          <DayCard key={o} offset={o} on={day === o} onPress={() => onDay(o)} />
-        ))}
-      </ScrollView>
+      {/* While the soonest slot waits for a yes, the owner's own choices step aside, so only one answer is on screen; saying no brings them back as they were. */}
+      {!ask && (
+        <>
+          <View style={[styles.headRow, styles.headTop]}>
+            <Text style={styles.orLabel}>නැතිනම් වෙනත් දිනයක්</Text>
+            <Pressable onPress={() => setCalendar(true)} hitSlop={10} style={styles.calLink} accessibilityRole="button" accessibilityLabel="Pick another date">
+              <Text style={styles.calLinkText}>📅 දින දර්ශනය</Text>
+            </Pressable>
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.dayRow}>
+            {extra !== null && <DayCard offset={extra} on onPress={() => onDay(extra)} />}
+            {offsets.map((o) => (
+              <DayCard key={o} offset={o} on={day === o} onPress={() => onDay(o)} />
+            ))}
+          </ScrollView>
+        </>
+      )}
       <Sheet visible={!!ask} noClose title="මෙම වේලාව තෝරන්නද?" onClose={decline}>
         {ask && (
           <>

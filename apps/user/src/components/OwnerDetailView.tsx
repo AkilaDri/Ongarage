@@ -1,11 +1,15 @@
-import { EmptyState, MoneyText } from '@ongarage/shared';
+import { EmptyState, LkPlate, MoneyText } from '@ongarage/shared';
+import { CategoryPhoto } from './home/CategoryPhoto';
+import { FlowButton } from './FlowButton';
+import { garageForBid } from './GarageReviewsSheet';
+import { GARAGE_COVERS } from '../constants/home';
 import { useChat } from '../context/ChatContext';
 import { MOCK_GARAGES } from '../constants/mockData';
 import { VehicleLine } from '@ongarage/shared';
 import { getThemeMode } from '@ongarage/shared';
 import { elevation1, outline, pageBg } from '../utils/material';
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Easing, Linking, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Animated, Easing, Image, Linking, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   ActionButton,
@@ -94,6 +98,11 @@ export const OwnerDetailView: React.FC<{
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [targetKey]);
 
+  const [showOthers, setShowOthers] = useState(false);
+  // Each time the view opens, the other bids start folded.
+  useEffect(() => {
+    if (!mounted) setShowOthers(false);
+  }, [mounted]);
   useEffect(() => {
     if (!mounted) return;
     const t = setInterval(() => setNow(Date.now()), 1000);
@@ -101,6 +110,7 @@ export const OwnerDetailView: React.FC<{
   }, [mounted]);
 
   if (!mounted || !shown) return null;
+
 
   const job = shown.kind === 'job' ? shown.job : null;
   const booking = shown.kind === 'booking' ? shown.booking : null;
@@ -117,77 +127,107 @@ export const OwnerDetailView: React.FC<{
   };
 
   // ---------- Posted job ----------
+  // What is to be decided comes first: how long is left, then the bids drawn as on the Bids tab. The map and what the owner sent are reference, so they follow.
   const jobBody = (j: RepairJob) => {
     const sorted = [...j.bids].sort((a, b) => a.price - b.price);
     const lowest = lowestBidId(j.bids);
     const accepted = j.bids.find((b) => b.id === j.acceptedBidId);
     const open = !j.acceptedBidId && now < biddingEndsAt(j);
+    const others = accepted ? sorted.filter((b) => b.id !== accepted.id) : [];
+    const shownBids = accepted ? [accepted, ...(showOthers ? others : [])] : sorted;
+    const left = biddingEndsAt(j) - now;
     return (
       <>
-        <View style={styles.timing}>
-          <Cell label={j.acceptedBidId ? 'තත්ත්වය' : 'ලංසු අවසන් වීමට'} value={j.acceptedBidId ? 'වෙන් කළා' : open ? countdown(biddingEndsAt(j) - now) : 'අවසන්'} color={j.acceptedBidId ? Colors.successText : Colors.primary} />
-          <View style={styles.divider} />
-          <Cell label="ලැබුණු ලංසු" value={String(j.bids.length)} />
-          <View style={styles.divider} />
-          <Cell label="අඩුම ලංසුව" value={sorted[0] ? money(sorted[0].price) : '—'} color={Colors.success} />
-        </View>
-
-        <Text style={styles.section}>ලංසු {j.bids.length ? `(${j.bids.length})` : ''}</Text>
+        {!j.acceptedBidId && (
+          <View style={[styles.chip, (!open || left < 3600000) && styles.chipRed]} accessibilityLabel="Time left for bids">
+            <Text style={[styles.chipText, (!open || left < 3600000) && styles.chipTextRed]}>{open ? `⏱️ ${countdown(left)} ඉතිරියි` : '⏱️ ලංසු කාලය අවසන්'}</Text>
+          </View>
+        )}
         {j.bids.length === 0 ? (
           <EmptyState icon="📥" title="තවම ලංසු නැත" text="ළඟම ගරාජවලට ඔබගේ රැකියාව පෙනේ; ලංසු ලැබුණු විට මෙහි පෙන්වයි." />
         ) : (
           <>
-            <GoogleMap
-              style={[styles.map, { height: MAP_H }]}
-              center={user.coords}
-              zoom={zoomToFit(Math.max(...j.bids.map((b) => b.distanceKm)) * 2.4, user.coords.latitude, MAP_H)}
-              renderOverlay={(project) => (
-                <>
-                  {j.bids.map((b) => {
-                    const p = project(b.coords);
-                    return p ? (
-                      <View key={b.id} style={[styles.pinAnchor, { left: p.x, top: p.y }]} pointerEvents="none">
-                        <View style={[styles.pricePin, b.id === (accepted?.id ?? lowest) && styles.pricePinBest]}>
-                          <Text style={styles.pricePinText}>{money(b.price)}</Text>
-                        </View>
-                      </View>
-                    ) : null;
-                  })}
-                </>
-              )}
-            />
-            {sorted.map((b) => {
+            <Text style={styles.countLabel} accessibilityRole="header">{accepted ? 'ඔබ තෝරා ගත් ලංසුව' : `ලංසු ${j.bids.length} ක් ලැබී ඇත · තෝරන්න`}</Text>
+            {shownBids.map((b) => {
               const isAccepted = b.id === j.acceptedBidId;
               const isLowest = b.id === lowest;
+              const garage = garageForBid(b);
               return (
-                <View key={b.id} style={[styles.card, isAccepted && styles.cardOk, !j.acceptedBidId && isLowest && styles.cardBest, j.acceptedBidId && !isAccepted && styles.dim]}>
-                  <View style={styles.rowBetween}>
+                <View key={b.id} style={[styles.bidCard, (isAccepted || (!j.acceptedBidId && isLowest)) && styles.bidCardBest, !!accepted && !isAccepted && styles.dim]}>
+                  <View style={styles.bidHead}>
+                    <Image source={GARAGE_COVERS[garage.id]} style={styles.avatar} accessibilityLabel={`${b.garageName} photo`} />
                     <View style={styles.flex1}>
-                      <Text style={styles.title}>{b.garageName}</Text>
-                      {!!b.level && <LevelBadge level={b.level} compact />}
-                      <Text style={styles.sub}>
-                        ★ {b.rating.toFixed(1)} ({b.reviews}) · km {b.distanceKm} · {ago(now - b.submittedAt)}
+                      <Text style={styles.bidName}>{b.garageName}</Text>
+                      <Text style={styles.bidRating}>
+                        <Text style={styles.stars}>{'★'.repeat(Math.round(b.rating))}{'☆'.repeat(5 - Math.round(b.rating))}</Text> {b.rating.toFixed(1)} ({b.reviews})
                       </Text>
                     </View>
-                    <MoneyText style={styles.price}>{money(b.price)}</MoneyText>
+                    {!!b.level && <LevelBadge level={b.level} compact />}
                   </View>
-                  <Text style={styles.sub}>
-                    🛡️ මාස {b.warrantyMonths} වගකීම · ⏱️ පැය {b.estHours}
-                    {b.travelFee ? ` · 🚗 ගමන් ගාස්තුව ${money(b.travelFee)} ඇතුළුව (රැකියාව ${money(b.price - b.travelFee)})` : ''}
-                    {isLowest && !j.acceptedBidId ? ' · 💰 අඩුම ලංසුව' : ''}
-                    {isAccepted ? ' · ✓ ඔබ තෝරා ගත්තා' : ''}
-                  </Text>
+                  <View style={styles.priceLine}>
+                    <MoneyText icon style={styles.bidPrice}>{money(b.price)}</MoneyText>
+                    {!j.acceptedBidId && isLowest && j.bids.length > 1 && (
+                      <View style={styles.lowTag}><Text style={styles.lowTagText}>අඩුම මිල</Text></View>
+                    )}
+                  </View>
+                  {!!b.travelFee && <Text style={styles.meta}>ගමන් ගාස්තුව {money(b.travelFee)} ඇතුළුව (රැකියාව {money(b.price - b.travelFee)})</Text>}
+                  <Text style={styles.facts}>🛡️ මාස {b.warrantyMonths} වගකීම · ⏱️ පැය {b.estHours}</Text>
+                  <Text style={styles.meta}>📍 {b.distanceKm} km · {ago(now - b.submittedAt)}</Text>
                   {!j.acceptedBidId && onAcceptBid && (
-                    <ActionButton label="මෙම ලංසුව පිළිගන්න" icon="✓" variant={isLowest ? 'success' : 'ghost'} compact onPress={close(() => onAcceptBid(j, b))} />
+                    <FlowButton label="මෙම ලංසුව පිළිගන්න" icon="✓" variant={isLowest ? 'success' : 'primary'} onPress={close(() => onAcceptBid(j, b))} />
                   )}
                 </View>
               );
             })}
+            {others.length > 0 && (
+              <Pressable style={styles.moreLink} onPress={() => setShowOthers((v) => !v)} accessibilityRole="button" accessibilityLabel="Other bids">
+                <Text style={styles.moreLinkText}>{showOthers ? 'අනෙකුත් ලංසු සඟවන්න' : `අනෙකුත් ලංසු (${others.length}) ›`}</Text>
+              </Pressable>
+            )}
+            {!accepted && (
+              <GoogleMap
+                style={[styles.mapRound, { height: MAP_H }]}
+                center={user.coords}
+                zoom={zoomToFit(Math.max(...j.bids.map((b) => b.distanceKm)) * 2.4, user.coords.latitude, MAP_H)}
+                renderOverlay={(project) => (
+                  <>
+                    {j.bids.map((b) => {
+                      const p = project(b.coords);
+                      return p ? (
+                        <View key={b.id} style={[styles.pinAnchor, { left: p.x, top: p.y }]} pointerEvents="none">
+                          <View style={[styles.pricePin, b.id === lowest && styles.pricePinBest]}>
+                            <Text style={styles.pricePinText}>{money(b.price)}</Text>
+                          </View>
+                        </View>
+                      ) : null;
+                    })}
+                  </>
+                )}
+              />
+            )}
           </>
         )}
       </>
     );
   };
+
+  /** What the owner sent with a posted job, in one card; empty parts are left out. */
+  const sentCard = (j: RepairJob) => (
+    <>
+      <Text style={styles.heading}>ඔබ එවූ අනෙකුත් විස්තර</Text>
+      <View style={styles.bidCard}>
+        {photos.length > 0 && <PhotoStrip photos={photos} height={96} />}
+        {voices.map((n, i) => <VoiceNotePlayer key={n.id} note={n} index={i} />)}
+        {photos.length === 0 && voices.length === 0 && <Text style={styles.meta}>ඡායාරූප හෝ හඬ සටහන් එවා නැත</Text>}
+        <View style={styles.rowLine} />
+        <Rows>
+          <Fact icon="🔩" label="අමතර කොටස්" value={sparePartLabel(j.sparePart)} />
+          <Fact icon="🚛" label="සේවා ස්ථානය" value={j.doorstep ? 'නිවසටම පැමිණීම' : 'ගරාජයට ගෙන යයි'} />
+          <Fact icon="📍" label="ස්ථානය" value={j.address} />
+        </Rows>
+      </View>
+    </>
+  );
 
   // ---------- Direct booking ----------
   const bookingBody = (b: DirectBooking) => {
@@ -318,61 +358,90 @@ export const OwnerDetailView: React.FC<{
           </View>
 
           <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
-            <View style={styles.row}>
-              <GlassIcon emoji={cat.icon} />
-              <View style={styles.flex1}>
-                <Text style={styles.bigTitle}>
-                  {cat.name}
-                  {booking?.service ? ` · ${booking.service}` : ''}
-                </Text>
-                <VehicleLine vehicle={vehicle} textStyle={styles.sub} extra={ago(now - (job?.submittedAt ?? booking!.requestedAt))} />
-                <TxnTag kind={job ? 'JOB' : 'BKG'} source={job ? job.id : booking!.id} />
-              </View>
-              {/* The way to reach the garage (the call icon with the unread count) sits at the right end of the job's title row. */}
-              <View style={styles.rowChat}>
-              {(() => {
-                const bid = job?.bids.find((x) => x.id === job.acceptedBidId);
-                if (job && bid) return <ChatButton size={36} target={{ id: job.id, title: bid.garageName, subtitle: cat.name, phone: MOCK_GARAGES.find((g) => g.name === bid.garageName)?.phone, vehicle }} />;
-                if (booking) return <ChatButton size={36} target={{ id: booking.id, title: booking.garage.name, subtitle: cat.name, phone: booking.garage.phone, vehicle }} />;
-                return null;
-              })()}
-              </View>
-            </View>
-
-            {job ? jobBody(job) : bookingBody(booking!)}
-
-            {workshops[shown.kind === 'job' ? shown.job.id : shown.booking.id] && (
+            {job ? (
               <>
-                <Text style={styles.section}>වැඩපළ ප්‍රගතිය</Text>
-                <View style={styles.card}>
-                  <WorkshopTracker id={shown.kind === 'job' ? shown.job.id : shown.booking.id} detailed />
+                {/* The job as the Activity tab draws it: picture and service, then a soft box with the problem and the vehicle. */}
+                <View style={styles.bidCard}>
+                  <View style={styles.bidHead}>
+                    <CategoryPhoto categoryId={job.categoryId} size={44} />
+                    <View style={styles.flex1}>
+                      <Text style={styles.jobName}>{cat.name}</Text>
+                      <Text style={styles.meta}>{ago(now - job.submittedAt)} පළ කළා</Text>
+                    </View>
+                    {(() => {
+                      const bid = job.bids.find((x) => x.id === job.acceptedBidId);
+                      return bid ? <ChatButton size={36} target={{ id: job.id, title: bid.garageName, subtitle: cat.name, phone: MOCK_GARAGES.find((g) => g.name === bid.garageName)?.phone, vehicle }} /> : null;
+                    })()}
+                  </View>
+                  <View style={styles.softBox}>
+                    {!!description?.trim() && <Text style={styles.problem}>{description}</Text>}
+                    <View style={styles.vehicleRow}>
+                      <LkPlate plate={vehicle.registrationNo || vehicle.plate} stacked={vehicle.type === 'Motorbike'} small />
+                      <Text style={styles.vehicleName}>{vehicle.name}</Text>
+                    </View>
+                  </View>
+                  <TxnTag kind="JOB" source={job.id} />
                 </View>
+                {/* Once a garage is working on it, what is happening now comes before the bids. */}
+
+              {workshops[shown.kind === 'job' ? shown.job.id : shown.booking.id] && (
+                <>
+                  <Text style={styles.section}>වැඩපළ ප්‍රගතිය</Text>
+                  <View style={styles.card}>
+                    <WorkshopTracker id={shown.kind === 'job' ? shown.job.id : shown.booking.id} detailed />
+                  </View>
+                </>
+              )}
+
+              <CompletedRecord id={shown.kind === 'job' ? shown.job.id : shown.booking.id} />
+                {jobBody(job)}
+                {sentCard(job)}
               </>
-            )}
-
-            <CompletedRecord id={shown.kind === 'job' ? shown.job.id : shown.booking.id} />
-
-            <Text style={styles.section}>ඔබ එවූ විස්තරය</Text>
-            <View style={styles.card}>
-              <Text style={styles.desc}>{description}</Text>
-            </View>
-
-            <Text style={styles.section}>ඡායාරූප {photos.length ? `(${photos.length})` : ''}</Text>
-            <PhotoStrip photos={photos} height={110} emptyText="ඡායාරූප එවා නැත" />
-
-            <Text style={styles.section}>හඬ සටහන් {voices.length ? `(${voices.length})` : ''}</Text>
-            {voices.length ? voices.map((n, i) => <VoiceNotePlayer key={n.id} note={n} index={i} />) : <Text style={styles.empty}>හඬ සටහන් එවා නැත</Text>}
-
-            {job && (
+            ) : (
               <>
-                <Text style={styles.section}>අවශ්‍යතා</Text>
-                <View style={styles.card}>
-                  <Rows>
-                    <Fact icon="🔩" label="අමතර කොටස්" value={sparePartLabel(job.sparePart)} />
-                    <Fact icon="🚛" label="සේවා ස්ථානය" value={job.doorstep ? 'නිවසටම පැමිණීම' : 'ගරාජයට ගෙන යයි'} />
-                    <Fact icon="📍" label="ස්ථානය" value={job.address} />
-                  </Rows>
+              <View style={styles.row}>
+                <GlassIcon emoji={cat.icon} />
+                <View style={styles.flex1}>
+                  <Text style={styles.bigTitle}>
+                    {cat.name}
+                    {booking?.service ? ` · ${booking.service}` : ''}
+                  </Text>
+                  <VehicleLine vehicle={vehicle} textStyle={styles.sub} extra={ago(now - booking!.requestedAt)} />
+                  <TxnTag kind="BKG" source={booking!.id} />
                 </View>
+                {/* The way to reach the garage (the call icon with the unread count) sits at the right end of the job's title row. */}
+                <View style={styles.rowChat}>
+                {(() => {
+                  if (booking) return <ChatButton size={36} target={{ id: booking.id, title: booking.garage.name, subtitle: cat.name, phone: booking.garage.phone, vehicle }} />;
+                  return null;
+                })()}
+                </View>
+              </View>
+
+              {bookingBody(booking!)}
+
+
+              {workshops[shown.kind === 'job' ? shown.job.id : shown.booking.id] && (
+                <>
+                  <Text style={styles.section}>වැඩපළ ප්‍රගතිය</Text>
+                  <View style={styles.card}>
+                    <WorkshopTracker id={shown.kind === 'job' ? shown.job.id : shown.booking.id} detailed />
+                  </View>
+                </>
+              )}
+
+              <CompletedRecord id={shown.kind === 'job' ? shown.job.id : shown.booking.id} />
+
+              <Text style={styles.section}>ඔබ එවූ විස්තරය</Text>
+              <View style={styles.card}>
+                <Text style={styles.desc}>{description}</Text>
+              </View>
+
+              <Text style={styles.section}>ඡායාරූප {photos.length ? `(${photos.length})` : ''}</Text>
+              <PhotoStrip photos={photos} height={110} emptyText="ඡායාරූප එවා නැත" />
+
+              <Text style={styles.section}>හඬ සටහන් {voices.length ? `(${voices.length})` : ''}</Text>
+              {voices.length ? voices.map((n, i) => <VoiceNotePlayer key={n.id} note={n} index={i} />) : <Text style={styles.empty}>හඬ සටහන් එවා නැත</Text>}
               </>
             )}
           </ScrollView>
@@ -450,6 +519,34 @@ const styles = themedStyles(() =>
     cellValue: { fontSize: 12.5, fontFamily: FONTS.titleBold, color: Colors.textMain, textAlign: 'center' },
     divider: { width: 1, alignSelf: 'stretch', backgroundColor: Colors.borderColor },
     rowLine: { height: 1, backgroundColor: outline() },
+    // The Bids tab's pieces, for a posted job.
+    bidCard: { gap: 10, paddingHorizontal: 16, paddingVertical: 14, borderRadius: 26, borderWidth: 1, borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#f3f4f6', backgroundColor: getThemeMode() === 'dark' ? Colors.bgCard : '#ffffff', shadowColor: '#1e3a8a', shadowOffset: { width: 0, height: 10 }, shadowOpacity: getThemeMode() === 'dark' ? 0.6 : 0.16, shadowRadius: 22, elevation: 6 },
+    bidCardBest: { borderColor: 'rgba(16, 185, 129, 0.55)' },
+    bidHead: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    avatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: Colors.subtleFill },
+    jobName: { fontSize: 17, lineHeight: 23, fontFamily: FONTS.titleBold, color: Colors.textMain },
+    softBox: { gap: 10, padding: 12, borderRadius: 22, backgroundColor: getThemeMode() === 'dark' ? Colors.subtleFill : '#f1f1f2' },
+    problem: { fontSize: 14, lineHeight: 22, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
+    vehicleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    vehicleName: { fontSize: 13.5, fontFamily: FONTS.bodyRegular, color: Colors.textMain },
+    chip: { alignSelf: 'flex-start', marginTop: 4, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, backgroundColor: 'rgba(245, 158, 11, 0.16)' },
+    chipRed: { backgroundColor: 'rgba(239, 68, 68, 0.14)' },
+    chipText: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: '#b45309' },
+    chipTextRed: { color: '#b91c1c' },
+    countLabel: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, paddingHorizontal: 6 },
+    bidName: { fontSize: 15, lineHeight: 19, fontFamily: FONTS.titleBold, color: Colors.textMain },
+    bidRating: { fontSize: 12, lineHeight: 16, fontFamily: FONTS.bodyMedium, color: Colors.textMain, marginTop: 1 },
+    stars: { color: '#f5a623', letterSpacing: 1 },
+    priceLine: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    bidPrice: { fontSize: 22, lineHeight: 28, fontFamily: FONTS.titleBold, color: Colors.success },
+    lowTag: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, backgroundColor: 'rgba(16, 185, 129, 0.14)' },
+    lowTagText: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: '#15803d' },
+    facts: { fontSize: 14, lineHeight: 21, fontFamily: FONTS.bodyRegular, color: Colors.textMain },
+    meta: { fontSize: 12.5, lineHeight: 18, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
+    moreLink: { alignSelf: 'center', minHeight: 44, justifyContent: 'center' },
+    moreLinkText: { fontSize: 13.5, fontFamily: FONTS.bodySemiBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1e3a8a' },
+    mapRound: { borderRadius: 22, overflow: 'hidden' },
+    heading: { fontSize: 16, fontFamily: FONTS.bodyBold, color: Colors.textMain, marginTop: 12, marginBottom: 2 },
     fact: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     factIcon: { fontSize: 14, width: 20, textAlign: 'center' },
     factLabel: { fontSize: 11.5, fontFamily: FONTS.bodyMedium, color: Colors.textMuted, width: 92 },
