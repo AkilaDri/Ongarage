@@ -102,6 +102,8 @@ export type JobBooking = {
   /** The time the owner asked for. */
   preferredAt?: number;
   doorstep?: boolean;
+  /** The owner's choice of following the job: false = no stage-by-stage updates (approvals still apply). */
+  liveTrack?: boolean;
   note?: string;
   requestedAt?: number;
   /** The garage must answer by then. */

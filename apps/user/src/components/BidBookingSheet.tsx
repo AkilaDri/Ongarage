@@ -6,7 +6,9 @@ import { useVehicles } from '../context/VehiclesContext';
 import { outline, pageBg } from '../utils/material';
 import { BookingSentBox } from './DirectBookingSheet';
 import { BookingShell } from './BookingShell';
-import { FlowSummary } from './FlowSummary';
+import { BookingSummaryCard } from './BookingSummaryCard';
+import { TrackStep } from './TrackStep';
+import { sparePartLabel } from '../constants/labels';
 import { SOSMapPickerScreen } from '../screens/SOSMapPickerScreen';
 import { slotIsPast, slotTime } from './SlotPicker';
 import { DayStep, TimeStep, dayLabel } from './BidBookingSteps';
@@ -18,10 +20,10 @@ import { useBids } from '../context/BidsContext';
 import { formatDate, formatTime, money } from '../utils/format';
 
 const HOUR = 60 * 60 * 1000;
-// Picking a time is two questions and a check, one per step (counted like the quote request's 1/3 … 3/3); where the work is done was already decided when the job was posted, so it is not asked again. After it is sent the sheet only shows where the booking stands.
-const PICK_STEPS = ['දිනය', 'වේලාව', 'පරීක්ෂා කර යවන්න'] as const;
-type Phase = 'day' | 'time' | 'review';
-const PHASES: Phase[] = ['day', 'time', 'review'];
+// Three steps, as in the garage booking: the day and time together, how the job is followed, then a check; where the work is done was already decided when the job was posted, so it is not asked again.
+const PICK_STEPS = ['දිනය සහ වේලාව', 'හඹා යාම', 'පරීක්ෂා කර යවන්න'] as const;
+type Phase = 'when' | 'track' | 'review';
+const PHASES: Phase[] = ['when', 'track', 'review'];
 
 /**
  * After the owner accepts a quote: book a time with that garage. The price is agreed, so the owner only picks a day and a time; the garage
@@ -37,8 +39,12 @@ export const BidBookingSheet: React.FC<{ jobId: string | null; onClose: () => vo
   // Nothing is preselected: the owner picks the day, then the time.
   const [day, setDay] = useState<number | null>(null);
   const [hour, setHour] = useState<number | null>(null);
-  const [phase, setPhase] = useState<Phase>('day');
+  const [phase, setPhase] = useState<Phase>('when');
   const [doorstep, setDoorstep] = useState(false);
+  // Live tracking is on unless the owner turns it off, as in the garage booking.
+  const [liveTrack, setLiveTrack] = useState(true);
+  // True after a summary line was tapped: that step's button goes straight back to the summary.
+  const [editing, setEditing] = useState(false);
   // Where the car is, when the garage comes to the owner (picked on a map).
   const [homeLoc, setHomeLoc] = useState<PickedLocation | null>(null);
   const [mapOpen, setMapOpen] = useState(false);
@@ -48,8 +54,10 @@ export const BidBookingSheet: React.FC<{ jobId: string | null; onClose: () => vo
   useEffect(() => {
     setDay(null);
     setHour(null);
-    setPhase('day');
+    setPhase('when');
     setDoorstep(!!job?.doorstep);
+    setLiveTrack(true);
+    setEditing(false);
     setSent(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [jobId]);
@@ -61,7 +69,7 @@ export const BidBookingSheet: React.FC<{ jobId: string | null; onClose: () => vo
     if (bookingStatus !== 'choosing' || bookingAttempts === 0) return;
     setDay(null);
     setHour(null);
-    setPhase('day');
+    setPhase('when');
     setSent(false);
   }, [bookingStatus, bookingAttempts]);
 
@@ -86,30 +94,35 @@ export const BidBookingSheet: React.FC<{ jobId: string | null; onClose: () => vo
                   </View>
   );
 
+  const backToSummary = () => {
+    setEditing(false);
+    setPhase('review');
+  };
+  const afterWhen = () => (editing ? backToSummary() : setPhase('track'));
+  const editStep = (to: Phase) => {
+    setEditing(true);
+    setPhase(to);
+  };
+
   let footer: React.ReactNode = null;
   if (ready && booking) {
     if (booking.status === 'choosing') {
-      if (phase === 'day')
-        footer = (
-          <FlowButton label={day === null ? 'දිනයක් තෝරන්න' : 'ඊළඟ ›'} variant="primary" disabled={day === null} onPress={() => setPhase('time')} />
-        );
-      else if (phase === 'time')
-        footer = <FlowButton label={hour === null ? 'වේලාවක් තෝරන්න' : 'ඊළඟ ›'} variant="primary" disabled={hour === null || past} onPress={() => setPhase('review')} />;
+      if (phase === 'when')
+        footer = <FlowButton label={day === null ? 'දිනයක් තෝරන්න' : past ? 'වේලාවක් තෝරන්න' : editing ? 'සාරාංශයට ආපසු ›' : 'ඊළඟ ›'} variant="primary" disabled={past} onPress={afterWhen} />;
+      else if (phase === 'track')
+        footer = <FlowButton label={editing ? 'සාරාංශයට ආපසු ›' : 'ඊළඟ ›'} variant="primary" onPress={backToSummary} />;
       else
         footer = (
-          <View style={styles.sendBox}>
             <FlowButton
               label="වේලාව ඉල්ලන්න"
               icon="📅"
               variant="primary"
               disabled={past}
               onPress={() => {
-                requestBidSlot(job.id, { preferredAt, doorstep });
+                requestBidSlot(job.id, { preferredAt, doorstep, liveTrack });
                 setSent(true);
               }}
             />
-            <Text style={styles.sendNote}>ගරාජය පැය 2ක් ඇතුළත පිළිතුරු දෙයි. ඔබ ඉල්ලූ වේලාව නොගැළපුණොත් වෙනත් වේලාවක් යෝජනා කරයි.</Text>
-          </View>
         );
     } else if (booking.status === 'proposed') {
       footer = (
@@ -144,6 +157,7 @@ export const BidBookingSheet: React.FC<{ jobId: string | null; onClose: () => vo
       steps={PICK_STEPS}
       step={choosing ? phaseIndex : PICK_STEPS.length - 1}
       onStep={choosing ? (i) => setPhase(PHASES[i]) : undefined}
+      onBack={choosing && phaseIndex > 0 ? (editing ? backToSummary : () => setPhase(PHASES[phaseIndex - 1])) : undefined}
       onClose={onClose}
       footer={footer}
       overlay={
@@ -166,32 +180,34 @@ export const BidBookingSheet: React.FC<{ jobId: string | null; onClose: () => vo
             {ready && job && bid && booking && (
               <>
                 {/* The garage and the agreed price: nothing to ask again, the owner only picks a time (not on the summary step). */}
-                <View style={styles.garage}>
-                  <View style={styles.garageTop}>
-                    <Image source={GARAGE_COVERS[garageForBid(bid).id]} style={styles.avatar} accessibilityLabel={`${bid.garageName} photo`} />
-                    <View style={styles.flex1}>
-                      <View style={styles.nameRow}>
-                        <Text style={[styles.name, styles.nameText]}>
-                          {bid.garageName}
-                          {bid.level ? <Text>{` ${LEVELS.find((l) => l.id === bid.level)?.icon}`}</Text> : null}
+                {!(choosing && phase === 'review') && (
+                  <View style={styles.garage}>
+                    <View style={styles.garageTop}>
+                      <Image source={GARAGE_COVERS[garageForBid(bid).id]} style={styles.avatar} accessibilityLabel={`${bid.garageName} photo`} />
+                      <View style={styles.flex1}>
+                        <View style={styles.nameRow}>
+                          <Text style={[styles.name, styles.nameText]}>
+                            {bid.garageName}
+                            {bid.level ? <Text>{` ${LEVELS.find((l) => l.id === bid.level)?.icon}`}</Text> : null}
+                          </Text>
+                          <GarageHistoryTag garage={garageForBid(bid)} part="tag" />
+                        </View>
+                        <Text style={styles.rating} numberOfLines={1}>
+                          <Text style={styles.stars}>{'★'.repeat(Math.round(bid.rating))}{'☆'.repeat(5 - Math.round(bid.rating))}</Text> {bid.rating.toFixed(1)} ({bid.reviews}) · {categoryInfo(job.categoryId).name}
                         </Text>
-                        <GarageHistoryTag garage={garageForBid(bid)} part="tag" />
                       </View>
-                      <Text style={styles.rating} numberOfLines={1}>
-                        <Text style={styles.stars}>{'★'.repeat(Math.round(bid.rating))}{'☆'.repeat(5 - Math.round(bid.rating))}</Text> {bid.rating.toFixed(1)} ({bid.reviews}) · {categoryInfo(job.categoryId).name}
-                      </Text>
+                    </View>
+                    <View style={styles.priceRow}>
+                      <Text style={styles.priceLabel}>එකඟ වූ මිල</Text>
+                      <MoneyText icon style={styles.priceValue}>{money(bid.price)}</MoneyText>
                     </View>
                   </View>
-                  <View style={styles.priceRow}>
-                    <Text style={styles.priceLabel}>එකඟ වූ මිල</Text>
-                    <MoneyText icon style={styles.priceValue}>{money(bid.price)}</MoneyText>
-                  </View>
-                </View>
+                )}
                 {/* The real limit, up front: the bid reopens if no time is chosen by then (amber, red under an hour). */}
                 {booking.status === 'choosing' && (
                   <>
                     {!!booking.attempts && <Text style={styles.warn}>පෙර වේලාව ගැළපුණේ නැත. වෙනත් වේලාවක් තෝරන්න.</Text>}
-                    {phase === 'day' && (
+                    {phase === 'when' && (
                       <>
                         <DayStep
                           day={day}
@@ -200,32 +216,39 @@ export const BidBookingSheet: React.FC<{ jobId: string | null; onClose: () => vo
                           onSoonest={(d, h) => {
                             setDay(d);
                             setHour(h);
-                            setPhase('review');
+                            afterWhen();
                           }}
                         />
                       </>
                     )}
-                    {phase === 'time' && day !== null && <TimeStep day={day} hour={hour} onHour={setHour} onChangeDay={() => setPhase('day')} headerRight={deadlineChip} />}
-                    {phase === 'time' && doorstep && (
+                    {/* As in the garage booking: once a day is picked, its times show under it on the same page. */}
+                    {phase === 'when' && day !== null && <TimeStep day={day} hour={hour} onHour={setHour} />}
+                    {phase === 'when' && doorstep && day !== null && (
                       <Pressable onPress={() => setMapOpen(true)} accessibilityLabel="Pick my location on the map" style={{ marginTop: 10, paddingHorizontal: 14, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: '#1e3a8a', backgroundColor: '#eff6ff' }}>
                         <Text style={{ fontFamily: FONTS.bodyBold, color: '#1e3a8a', fontSize: 14 }}>📍 {homeLoc ? homeLoc.address : 'ඔබේ ස්ථානය map එකෙන් තෝරන්න'}</Text>
                       </Pressable>
                     )}
+                    {phase === 'track' && <TrackStep live={liveTrack} onLive={setLiveTrack} />}
                     {phase === 'review' && day !== null && hour !== null && (
                       <>
                         {past && <Text style={styles.warn}>මෙම වේලාව ඉක්මවා ඇත. දිනය හෝ වේලාව වෙනස් කරන්න.</Text>}
-                        <FlowSummary
-                          title="ඔබේ වෙන්කිරීම"
-                          rows={[
-                            { label: 'ගරාජයේ ලිපිනය', value: `📍 ${garageForBid(bid).address}` },
-                            { label: 'සේවාව', value: categoryInfo(job.categoryId).name, half: true },
-                            { label: 'වාහනය', value: findVehicle(job.vehicleId).name, half: true },
-                            { label: 'දිනය සහ වේලාව', value: `${dayLabel(day)} · ${formatTime(preferredAt)}` },
-                            { label: 'ගැටලුව / විස්තරය', value: `${job.description?.trim() || '—'}\n📷 ඡායාරූප ${job.photos?.length ?? 0} · 🎙 හඬ සටහන් ${job.voiceNotes?.length ?? 0}`, lines: 3 },
-                            ...(job.fitting ? [{ label: 'සවි කළ යුතු කොටස', value: job.fitting.partName || '—' }] : []),
-                            { label: 'ස්ථානය', value: doorstep ? 'ගරාජය මා වෙත පැමිණේ' : 'මම වාහනය ගරාජයට ගෙන යමි' },
-                            ...(doorstep ? [{ label: 'ඔබේ ස්ථානය', value: homeLoc ? `📍 ${homeLoc.address}` : 'තවම තෝරා නැත' }] : []),
+                        <BookingSummaryCard
+                          garage={garageForBid(bid)}
+                          categoryId={job.categoryId}
+                          title={categoryInfo(job.categoryId).name}
+                          description={[job.fitting?.partName ? `🔩 ${job.fitting.partName}` : '', job.description?.trim() ?? ''].filter(Boolean).join(' · ')}
+                          vehicle={findVehicle(job.vehicleId)}
+                          price={money(bid.price)}
+                          lines={[
+                            { label: 'date and time', icon: '🗓', text: `${dayLabel(day)} · ${formatTime(preferredAt)}`, onChange: () => editStep('when') },
+                            // The part type and the place were chosen when the job was posted: shown, not changed here.
+                            { label: 'part type', icon: '🔧', text: sparePartLabel(job.sparePart) },
+                            { label: 'place', icon: doorstep ? '🚛' : '🏠', text: doorstep ? 'ගරාජය මා වෙත පැමිණේ' : 'මම වාහනය ගරාජයට ගෙන යමි' },
+                            ...(doorstep ? [{ label: 'my location', icon: '📍', text: homeLoc ? homeLoc.address : 'තවම තෝරා නැත', onChange: () => editStep('when') }] : []),
+                            { label: 'tracking', icon: liveTrack ? '📡' : '📷', text: liveTrack ? 'Live track (හැම පියවරක්ම)' : 'Live නැත (ඡායාරූප + අවසානය)', onChange: () => editStep('track') },
+                            ...((job.photos?.length ?? 0) + (job.voiceNotes?.length ?? 0) > 0 ? [{ label: 'attachments', icon: '📎', text: [job.photos?.length ? `ඡායාරූප ${job.photos.length}` : '', job.voiceNotes?.length ? `හඬ සටහන් ${job.voiceNotes.length}` : ''].filter(Boolean).join(' · ') }] : []),
                           ]}
+                          note="ගරාජය පැය 2ක් ඇතුළත පිළිතුරු දෙයි. ඔබ ඉල්ලූ වේලාව නොගැළපුණොත් වෙනත් වේලාවක් යෝජනා කරයි."
                         />
                       </>
                     )}

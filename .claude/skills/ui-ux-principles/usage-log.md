@@ -13,6 +13,36 @@ Entry format:
 
 ## Entries
 
+## 2026-11-26 · Owner bid booking, tracking step · same step as the garage booking
+- Principles used: C5 (one shared TrackStep and the same return-to-summary behaviour), C11 (step count updated), C10 (approval rule shown for both choices).
+- Core missing: none.
+- Outcome: user asked for it. Open: muting for "without live". Not yet checked on a phone.
+
+## 2026-11-26 · Owner bid booking, review step · same summary card as the garage booking
+- Principles used: C5 (BookingSummaryCard in both), C10 (the agreed price inside the card; the 2-hour answer rule before sending), C1 (chevron only on lines that can be changed here), C2 (garage named once; empty attachments line left out).
+- Core missing: none.
+- Outcome: user asked for it. Not yet checked on a phone.
+
+## 2026-11-26 · Owner bid booking, date and time · merged as in the garage booking
+- Principles used: C5 (one day-and-time step with the same cards, soonest confirmation and back button), UX 49 (one step fewer), C4 (the button names what is missing).
+- Core missing: none.
+- Outcome: user asked for it. Not yet checked on a phone.
+
+## 2026-11-26 · Owner garage booking, header · back first, close quiet and last
+- Principles used: C6 and UPD 067 (the often-used back is the solid white button; close, which drops the request, is faint), UPD 069 (46px targets kept apart by the pill), C7 (white at 75% on the navy band stays legible). Trade-off: close moved from the app's usual left place; user's decision.
+- Core missing: none.
+- Outcome: user asked for it. Open: confirm on close; bid booking and quote headers still have close on the left. Not yet checked on a phone.
+
+## 2026-11-26 · Owner garage booking, header · back chevron in the step pill
+- Principles used: C1 (a chevron on a round disc), C7 (40px disc with extra hit area), C5 (mirrors the icon disc). Trade-off noted: back usually sits left; the user chose the right end, which also keeps it away from close.
+- Core missing: none.
+- Outcome: user chose the position. Open: confirm on close not decided. Not yet checked on a phone.
+
+## 2026-11-26 · Owner garage booking, tracking step · choice apart from explanation
+- Principles used: C5 (laid out like the part-type step), C2 and UPD 099 (two short choices, the picked one explained below), C10 (the approval and close-code rule shown for both choices), UPD 107.
+- Core missing: none.
+- Outcome: user chose option A of three. Open: muting step updates for "without live" is not built yet. Not yet checked on a phone.
+
 ## 2026-11-26 · Owner booking, soonest slot · confirmed before moving on
 - Principles used: C4 (a sheet names the date and time and says nothing is sent yet), UPD 074 forgiveness (a way out that changes nothing), C6 (confirm is the filled button), C5 (the soonest card's colours and the flow buttons). C9 noted: the step is reversible, so a confirm is not required by it; the user asked for one because one tap chose and advanced.
 - Core missing: none.

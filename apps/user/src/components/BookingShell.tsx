@@ -8,14 +8,17 @@ import { outline, pageBg } from '../utils/material';
  * The frame the owner's booking flows share: the blue band with a round close button and a pill (title, step counter, step name), the rounded sheet that overlaps it
  * with the progress segments, a scrolling body at the Bids tab's 12px rhythm, and a footer with the step's button. `steps` are the names; a finished step's segment goes back to it.
  */
-export const BookingShell: React.FC<{ visible: boolean; title: string; icon: string; steps: readonly string[]; step: number; onStep?: (index: number) => void; onClose: () => void; footer: React.ReactNode; overlay?: React.ReactNode; children: React.ReactNode }> = ({ visible, title, icon, steps, step, onStep, onClose, footer, overlay, children }) => (
+export const BookingShell: React.FC<{ visible: boolean; title: string; icon: string; steps: readonly string[]; step: number; onStep?: (index: number) => void; /** One step back: the round white chevron before the pill. Left out on the first step. */ onBack?: () => void; onClose: () => void; footer: React.ReactNode; overlay?: React.ReactNode; children: React.ReactNode }> = ({ visible, title, icon, steps, step, onStep, onBack, onClose, footer, overlay, children }) => (
   <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <View style={styles.header}>
         <View style={styles.topRow}>
-          <Pressable style={styles.topRoundBtn} onPress={onClose} accessibilityLabel="Close">
-            <Text style={styles.topRoundText}>✕</Text>
-          </Pressable>
+          {/* Back comes first, where the eye and the thumb look for it. On the first step there is none, and the pill takes the whole row. */}
+          {!!onBack && (
+            <Pressable style={styles.topRoundBtn} onPress={onBack} accessibilityRole="button" accessibilityLabel="Previous step">
+              <Text style={styles.topBackText}>‹</Text>
+            </Pressable>
+          )}
           <View style={styles.topPill}>
             <View style={styles.topPillIcon}>
               <Text style={styles.topPillEmoji}>{icon}</Text>
@@ -27,8 +30,11 @@ export const BookingShell: React.FC<{ visible: boolean; title: string; icon: str
                 <Text style={styles.topPillSub} numberOfLines={1}>{steps[step]}</Text>
               </View>
             </View>
+            {/* Close ends the whole request, so it sits quiet at the end of the pill: a grey ✕ with no disc. */}
+            <Pressable style={styles.topCloseBtn} onPress={onClose} accessibilityRole="button" accessibilityLabel="Close">
+              <Text style={styles.topCloseText}>✕</Text>
+            </Pressable>
           </View>
-          <View style={styles.topSlot} />
         </View>
       </View>
       <View style={styles.postSheet}>
@@ -58,9 +64,10 @@ const styles = themedStyles(() =>
     header: { flexDirection: 'column', alignItems: 'stretch', gap: 10, paddingHorizontal: 16, paddingVertical: 9, overflow: 'hidden', paddingTop: 12, paddingBottom: 68, backgroundColor: '#1d367f' },
     topRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
     topRoundBtn: { width: 46, height: 46, borderRadius: 23, backgroundColor: Colors.bgCard, justifyContent: 'center', alignItems: 'center' },
-    topRoundText: { fontSize: 16, fontWeight: '700', color: Colors.textMain },
-    topSlot: { width: 46 },
-    topPill: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, height: 52, paddingLeft: 6, paddingRight: 16, borderRadius: 26, backgroundColor: Colors.bgCard },
+    topCloseBtn: { width: 44, height: 44, justifyContent: 'center', alignItems: 'center' },
+    topCloseText: { fontSize: 15, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
+    topPill: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, height: 52, paddingLeft: 6, paddingRight: 4, borderRadius: 26, backgroundColor: Colors.bgCard },
+    topBackText: { fontSize: 26, lineHeight: 30, marginTop: -3, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
     topPillIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: getThemeMode() === 'dark' ? 'rgba(59, 130, 246, 0.18)' : '#dbeafe', justifyContent: 'center', alignItems: 'center' },
     topPillEmoji: { fontSize: 18 },
     topPillTitle: { fontSize: 13.5, fontFamily: FONTS.titleBold, color: Colors.textMain },

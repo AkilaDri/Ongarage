@@ -1,6 +1,6 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Colors, FONTS, getThemeMode, LkPlate, themedStyles, type Garage, type Vehicle } from '@ongarage/shared';
+import { Colors, FONTS, getThemeMode, LkPlate, MoneyText, themedStyles, type Garage, type Vehicle } from '@ongarage/shared';
 import { CategoryPhoto } from './home/CategoryPhoto';
 import { GarageHistoryTag } from './GarageHistory';
 
@@ -10,7 +10,7 @@ export type SummaryLine = { icon: string; text: string; /** Opens the step where
  * The booking as it will appear in the Activity tab, shown before it is sent: who (the service's picture, the garage and its address), what (a soft box with
  * the service, the problem and the vehicle's plate), then one short line for each other choice, each opening its step again, and the rule for the answer.
  */
-export const BookingSummaryCard: React.FC<{ garage: Garage; categoryId: string; title: string; description?: string; vehicle?: Vehicle; lines: SummaryLine[]; note: string }> = ({ garage, categoryId, title, description, vehicle, lines, note }) => (
+export const BookingSummaryCard: React.FC<{ garage: Garage; categoryId: string; title: string; description?: string; vehicle?: Vehicle; lines: SummaryLine[]; note: string; /** A price already agreed (an accepted quote), shown in the box so it is seen before sending. */ price?: string }> = ({ garage, categoryId, title, description, vehicle, lines, note, price }) => (
   <View style={styles.card} accessibilityLabel="Summary">
     <View style={styles.head}>
       <CategoryPhoto categoryId={categoryId} size={36} />
@@ -33,6 +33,12 @@ export const BookingSummaryCard: React.FC<{ garage: Garage; categoryId: string; 
         <View style={styles.vehicleRow}>
           <LkPlate plate={vehicle.registrationNo || vehicle.plate} stacked={vehicle.type === 'Motorbike'} small />
           <Text style={styles.vehicleName}>{vehicle.name}</Text>
+        </View>
+      )}
+      {!!price && (
+        <View style={styles.priceRow}>
+          <Text style={styles.priceLabel}>එකඟ වූ මිල</Text>
+          <MoneyText icon style={styles.price}>{price}</MoneyText>
         </View>
       )}
     </View>
@@ -69,6 +75,9 @@ const styles = themedStyles(() =>
     desc: { fontSize: 13, lineHeight: 20, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
     vehicleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     vehicleName: { fontSize: 13.5, fontFamily: FONTS.bodyRegular, color: Colors.textMain },
+    priceRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, paddingTop: 8, borderTopWidth: 1, borderTopColor: getThemeMode() === 'dark' ? Colors.borderColor : '#e2e2e6' },
+    priceLabel: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
+    price: { fontSize: 20, lineHeight: 26, fontFamily: FONTS.titleBold, color: Colors.success },
     line: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44, paddingVertical: 6 },
     lineIcon: { width: 20, fontSize: 14, textAlign: 'center' },
     lineText: { flex: 1, fontSize: 13.5, lineHeight: 20, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },

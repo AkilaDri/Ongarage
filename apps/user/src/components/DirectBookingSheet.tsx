@@ -30,6 +30,7 @@ import { FlowButton } from './FlowButton';
 import { FlowField } from './FlowField';
 import { FlowVehicleCard } from './FlowVehicleCard';
 import { BookingSummaryCard } from './BookingSummaryCard';
+import { TrackStep } from './TrackStep';
 import { DayStep, TimeStep } from './BidBookingSteps';
 import { GARAGE_COVERS } from '../constants/home';
 import { garageCategoryIds, garageTickedSubs } from '../constants/garageSubServices';
@@ -74,12 +75,6 @@ export const BookingSentBox: React.FC<{ visible: boolean; garageName: string; wh
     </View>
   )
 );
-
-/** How the owner follows the job: what each choice gives, in the order it is offered. */
-const TRACK_CHOICES = [
-  { live: true, a11y: 'Live tracking', title: '📡 Live track', points: ['හැම පියවරක්ම update වේ', 'අමතර වැඩ app එකෙන් අනුමත කරන්න'] },
-  { live: false, a11y: 'Without live tracking', title: '📷 Live නැතුව', points: ['තත්ත්ව ඡායාරූප බලන්න', 'අවසානයේ “job අවසන් කරන්න”'] },
-];
 
 const sentStyles = themedStyles(() =>
   StyleSheet.create({
@@ -232,6 +227,8 @@ export const DirectBookingSheet: React.FC<{ garage: Garage | null; categoryId?: 
       steps={STEP_NAMES}
       step={tabIndex}
       onStep={(i) => setTab(ORDER[i])}
+      // While a summary line is being changed, back returns to the summary, as the step's button does.
+      onBack={tabIndex === 0 ? undefined : editing ? backToSummary : () => setTab(ORDER[tabIndex - 1])}
       onClose={onClose}
       footer={
         lastTab ? (
@@ -444,42 +441,16 @@ export const DirectBookingSheet: React.FC<{ garage: Garage | null; categoryId?: 
             </Pressable>
           </View>
           {doorstep && (
-            <Pressable onPress={() => setMapOpen(true)} accessibilityLabel="Pick my location on the map" style={{ marginTop: 10, paddingHorizontal: 14, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: '#1e3a8a', backgroundColor: '#eff6ff' }}>
-              <Text style={{ fontFamily: FONTS.bodyBold, color: '#1e3a8a', fontSize: 14 }}>📍 {homeLoc ? homeLoc.address : 'ඔබේ ස්ථානය map එකෙන් තෝරන්න'}</Text>
+            <Pressable onPress={() => setMapOpen(true)} accessibilityLabel="Pick my location on the map" style={styles.mapBtn}>
+              <Text style={styles.mapBtnText}>
+                📍 {homeLoc ? homeLoc.address : <>ඔබේ ස්ථානය <Text style={styles.mapBtnLatin}>map</Text> එකෙන් තෝරන්න</>}
+              </Text>
             </Pressable>
           )}
         </>
       )}
       {/* Its own step: how the owner follows the job, with what each choice means in plain words. */}
-      {tab === 'track' && (
-        <>
-          <View style={[styles.headRow, styles.headTop]}>
-            <View style={styles.titleWithTick}>
-              <View style={styles.stepBadge}>
-                <Text style={styles.stepBadgeText}>✓</Text>
-              </View>
-              <Text style={styles.question}>වැඩ ගමන හඹා යන ආකාරය</Text>
-            </View>
-          </View>
-          {/* Two choices drawn like the other steps' choices (navy with the yellow edge when picked), each saying what it gives in short lines. */}
-          <View style={styles.placeRow}>
-            {TRACK_CHOICES.map((c) => {
-              const on = liveTrack === c.live;
-              return (
-                <Pressable key={c.title} style={[styles.trackCard, on && styles.placeOn]} onPress={() => setLiveTrack(c.live)} accessibilityRole="radio" accessibilityState={{ selected: on }} accessibilityLabel={c.a11y}>
-                  <View style={styles.trackHead}>
-                    <Text style={[styles.trackTitle, on && styles.placeTextOn]}>{c.title}</Text>
-                    <View style={[styles.radio, on && styles.radioOn]}>{on && <Text style={styles.radioTick}>✓</Text>}</View>
-                  </View>
-                  {c.points.map((line) => (
-                    <Text key={line} style={[styles.trackLine, on && styles.trackLineOn]}>• {line}</Text>
-                  ))}
-                </Pressable>
-              );
-            })}
-          </View>
-        </>
-      )}
+      {tab === 'track' && <TrackStep live={liveTrack} onLive={setLiveTrack} />}
       {tab === 'summary' && day !== null && (
         <BookingSummaryCard
           garage={shown}
@@ -553,15 +524,11 @@ const styles = themedStyles(() =>
     place: { minHeight: 48, justifyContent: 'center', paddingHorizontal: 16, borderRadius: 24, backgroundColor: Colors.bgCard, borderWidth: 1.5, borderColor: Colors.borderColor },
     placeOn: { backgroundColor: '#1e3a8a', borderColor: '#facc15' },
     placeText: { fontSize: 14, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
-    // The same white choice as the part types, with room inside for a title and two lines.
-    trackCard: { gap: 4, paddingHorizontal: 16, paddingVertical: 14, borderRadius: 26, backgroundColor: Colors.bgCard, borderWidth: 1.5, borderColor: Colors.borderColor },
-    trackHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 2 },
-    trackTitle: { flex: 1, fontSize: 14, lineHeight: 20, fontFamily: FONTS.bodyBold, color: Colors.textMain },
-    trackLine: { fontSize: 13, lineHeight: 20, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
-    trackLineOn: { color: 'rgba(255, 255, 255, 0.85)' },
-    radio: { width: 22, height: 22, borderRadius: 11, borderWidth: 1.5, borderColor: Colors.borderColor, alignItems: 'center', justifyContent: 'center' },
-    radioOn: { backgroundColor: '#ffffff', borderColor: '#ffffff' },
-    radioTick: { fontSize: 13, lineHeight: 16, fontFamily: FONTS.bodyBold, color: '#1e3a8a' },
+    // In the style sheet (not inline) so the web gets the font's weight too: without it the Latin "map" falls to the system font's regular weight.
+    mapBtn: { marginTop: 10, paddingHorizontal: 14, minHeight: 44, paddingVertical: 8, borderRadius: 22, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: '#1e3a8a', backgroundColor: '#eff6ff' },
+    mapBtnText: { fontSize: 14, fontFamily: FONTS.bodyBold, color: '#1e3a8a', textAlign: 'center' },
+    // Latin letters sit smaller than Sinhala ones at the same size, so the word is set a step larger (the app's rule).
+    mapBtnLatin: { fontSize: 15 },
     placeTextOn: { color: '#ffffff' },
     nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
     // The last step, after the request has gone.
