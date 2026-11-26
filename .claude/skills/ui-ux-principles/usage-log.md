@@ -13,6 +13,11 @@ Entry format:
 
 ## Entries
 
+## 2026-11-26 · Owner Recon sheet · two cards as the choice, fewer words
+- Principles used: C2 and UPD 148 (the same fact said three times removed), C10 (warranty and new total before choosing), UPD 006 (same rows in both cards), UX 05 (nothing preselected), C1 and UPD 113 (cards are the choice, one button that names it).
+- Core missing: none.
+- Outcome: user approved. Garage warranty periods shown when given. Not yet checked on a phone.
+
 ## 2026-11-26 · Owner running job card · pill aligned, clock in the job box
 - Principles used: UPD 006 alignment (pill on the same left edge as the box), UPD 152 proximity (the clock beside the job it times), C2 (the clock's empty row removed).
 - Core missing: none.

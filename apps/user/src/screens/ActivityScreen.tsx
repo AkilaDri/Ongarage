@@ -224,7 +224,6 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
           name={bid.garageName}
           garage={{ id: bid.garageId, name: bid.garageName }}
           meta={`වෙන් කළේ ${formatDate(new Date(job.booking?.confirmedAt ?? bid.submittedAt))}`}
-          kind="bid"
           attention={!!ownerNeed(workshops[job.id])}
         />
         <PostBody
@@ -532,7 +531,6 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
               name={w.garageName}
               garage={{ id: w.garageId, name: w.garageName }}
               meta={formatDate(new Date(w.progress.closedAt ?? 0))}
-              kind="bid"
             />
             <PostBody price={money(w.progress.handover?.bill.total ?? 0)} vehicle={w.vehicleId ? findVehicle(w.vehicleId) : undefined} kind="bid" subject={w.title ?? categoryInfo(w.categoryId).name}>
               <GridRow left={<RatingLine rating={w.review?.rating} onRate={() => setRating(w)} />} right={<DoneTag />} />

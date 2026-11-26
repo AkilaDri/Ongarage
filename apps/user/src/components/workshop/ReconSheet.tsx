@@ -1,7 +1,7 @@
 import { FlowButton } from '../FlowButton';
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-import { Colors, FONTS, themedStyles } from '@ongarage/shared';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Colors, FONTS, getThemeMode, themedStyles, workshopBill } from '@ongarage/shared';
 import { useWorkshops, type OwnerWorkshop } from '../../context/WorkshopContext';
 import { money } from '../../utils/format';
 import { Sheet } from '../Sheet';
@@ -16,10 +16,20 @@ export const ReconSheet: React.FC<{ workshop: OwnerWorkshop | null; reconId?: st
   useEffect(() => {
     if (workshop) setShown(workshop);
   }, [workshop]);
+  // Neither choice is selected for the owner: the sheet opens undecided each time.
+  const [pick, setPick] = useState<'genuine' | 'recon' | null>(null);
+  useEffect(() => {
+    setPick(null);
+  }, [workshop?.id, reconId]);
 
   const w = workshop ?? shown;
   const r = w?.progress.recon?.find((x) => x.id === reconId) ?? w?.progress.recon?.[0];
   if (!w || !r) return null;
+  const saving = r.genuinePrice - r.reconPrice;
+  // The whole job's new total with each choice. The bill carries the part at the Genuine price, unless Recon was already approved (when changing the answer).
+  const now = workshopBill(w.agreedPrice, w.progress).total;
+  const genuineTotal = r.status === 'approved' ? now + saving : now;
+  const total = pick === null ? null : pick === 'recon' ? genuineTotal - saving : genuineTotal;
   const decide = (approve: boolean) => {
     if (change) changeReconDecision(w.id, r.id, approve);
     else decideRecon(w.id, r.id, approve);
@@ -30,56 +40,88 @@ export const ReconSheet: React.FC<{ workshop: OwnerWorkshop | null; reconId?: st
     <Sheet
       visible={!!workshop}
       title={change ? 'Genuine කොටස් නොමැත · වෙනස් කිරීම' : 'Genuine කොටස් නොමැත'}
-      subtitle={`${w.garageName} · Recon යෙදීමට ඔබගේ අවසරය`}
+      subtitle={w.garageName}
       onClose={onClose}
+      noDividers
       footer={
-        <View style={styles.row}>
-          <View style={styles.flex1}>
-            <FlowButton label="Genuine බලා සිටින්න" variant="ghost" onPress={() => decide(false)} />
-          </View>
-          <View style={styles.flex1}>
-            <FlowButton label="Recon අනුමතයි" icon="✓" variant="success" onPress={() => decide(true)} />
-          </View>
+        <View style={styles.footer}>
+          {total !== null && (
+            <View style={styles.totalRow}>
+              <Text style={styles.totalLabel}>රැකියාවේ නව එකතුව</Text>
+              <Text style={styles.total}>{money(total)}</Text>
+            </View>
+          )}
+          <FlowButton
+            label={pick === 'recon' ? `Recon අනුමතයි · ${money(r.reconPrice)}` : pick === 'genuine' ? `Genuine බලා සිටින්න · ${money(r.genuinePrice)}` : 'තෝරන්න'}
+            icon={pick === 'recon' ? '✓' : undefined}
+            variant={pick === 'recon' ? 'success' : 'primary'}
+            disabled={pick === null}
+            onPress={() => decide(pick === 'recon')}
+          />
         </View>
       }
     >
-      <Text style={styles.text}>ඔබ Genuine කොටස් ඉල්ලුවා. ළඟම වෙළඳසැල්වල මේ වන විට Genuine නොමැත:</Text>
-      <View style={styles.box}>
-        {r.partNames.map((n) => (
-          <Text key={n} style={styles.part}>
-            🔩 {n}
-          </Text>
-        ))}
-        <View style={styles.compare}>
-          <View style={styles.col}>
-            <Text style={styles.label}>Genuine (ඇස්තමේන්තුව)</Text>
-            <Text style={styles.price}>{money(r.genuinePrice)}</Text>
-            <Text style={styles.sub}>සොයා ගැනීමට අමතර දිනයක් පමණ</Text>
-          </View>
-          <View style={[styles.col, styles.colRecon]}>
-            <Text style={styles.label}>Recon</Text>
-            <Text style={[styles.price, { color: Colors.success }]}>{money(r.reconPrice)}</Text>
-            <Text style={styles.sub}>දැන් ලබා ගත හැක · LKR {(r.genuinePrice - r.reconPrice).toLocaleString()} අඩුයි</Text>
-          </View>
-        </View>
+      {r.partNames.map((n) => (
+        <Text key={n} style={styles.part}>
+          🔩 {n}
+        </Text>
+      ))}
+      {/* The two cards are the choices, each with the same lines in the same order: price, how soon, warranty. */}
+      <View style={styles.compare}>
+        <Choice
+          on={pick === 'genuine'}
+          onPress={() => setPick('genuine')}
+          name="Genuine"
+          price={money(r.genuinePrice)}
+          note="ඇස්තමේන්තුව"
+          time="තව දිනයක් පමණ"
+          warranty={r.genuineWarrantyMonths ? `මාස ${r.genuineWarrantyMonths} වගකීම` : undefined}
+          a11y="Wait for Genuine"
+        />
+        <Choice
+          on={pick === 'recon'}
+          onPress={() => setPick('recon')}
+          name="Recon"
+          price={money(r.reconPrice)}
+          note={`${money(saving)} අඩුයි`}
+          time="දැන් ගත හැක"
+          // With no stated period, only the honest general warning on the shorter choice.
+          warranty={r.reconWarrantyMonths ? `මාස ${r.reconWarrantyMonths} වගකීම` : 'වගකීම කෙටි විය හැක'}
+          warn={!r.reconWarrantyMonths || (!!r.genuineWarrantyMonths && r.reconWarrantyMonths < r.genuineWarrantyMonths)}
+          a11y="Approve Recon"
+        />
       </View>
-      <Text style={styles.sub}>Recon යනු භාවිත කළ, පරීක්ෂා කර නැවත සකස් කළ මුල් කොටස්ය — කොටසේ වගකීම සාමාන්‍යයෙන් කෙටියි. ඔබ අනුමත නොකළොත් ගරාජය Genuine පමණක් යොදයි.</Text>
+      <Text style={styles.sub}>Recon: පරීක්ෂා කර නැවත සකස් කළ, භාවිත කළ මුල් කොටසක්.</Text>
     </Sheet>
   );
 };
 
+const Choice: React.FC<{ on: boolean; onPress: () => void; name: string; price: string; note: string; time: string; warranty?: string; warn?: boolean; a11y: string }> = ({ on, onPress, name, price, note, time, warranty, warn, a11y }) => (
+  <Pressable style={[styles.choice, on && styles.choiceOn]} onPress={onPress} accessibilityRole="radio" accessibilityState={{ selected: on }} accessibilityLabel={a11y}>
+    <Text style={[styles.name, on && styles.onText]}>{name}</Text>
+    <Text style={[styles.price, on && styles.onText]}>{price}</Text>
+    <Text style={[styles.sub, on && styles.onSub]}>{note}</Text>
+    <Text style={[styles.fact, on && styles.onText]}>⏱️ {time}</Text>
+    {!!warranty && <Text style={[styles.fact, warn && styles.warnText, on && styles.onText]}>🛡️ {warranty}</Text>}
+  </Pressable>
+);
+
 const styles = themedStyles(() =>
   StyleSheet.create({
-    flex1: { flex: 1 },
-    row: { flexDirection: 'row', gap: 8 },
-    text: { fontSize: 13, fontFamily: FONTS.bodyRegular, color: Colors.textSoft, lineHeight: 19 },
-    box: { padding: 12, borderRadius: 14, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.borderColor, gap: 10 },
-    part: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
-    compare: { flexDirection: 'row', gap: 8 },
-    col: { flex: 1, padding: 10, borderRadius: 12, backgroundColor: Colors.subtleFill, gap: 2 },
-    colRecon: { borderWidth: 1, borderColor: 'rgba(16, 185, 129, 0.45)' },
-    label: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
-    price: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textMain },
+    footer: { gap: 10 },
+    totalRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
+    totalLabel: { fontSize: 13, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
+    total: { fontSize: 20, lineHeight: 26, fontFamily: FONTS.titleBold, color: Colors.success },
+    part: { fontSize: 16, lineHeight: 24, fontFamily: FONTS.bodyBold, color: Colors.textMain },
+    compare: { flexDirection: 'row', alignItems: 'stretch', gap: 10 },
+    choice: { flex: 1, gap: 4, paddingHorizontal: 14, paddingVertical: 14, borderRadius: 22, borderWidth: 1.5, borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#eef2f8', backgroundColor: getThemeMode() === 'dark' ? Colors.bgCard : '#ffffff' },
+    choiceOn: { backgroundColor: '#1e3a8a', borderColor: '#facc15' },
+    name: { fontSize: 14, fontFamily: FONTS.bodyBold, color: Colors.textMain },
+    price: { fontSize: 18, lineHeight: 24, fontFamily: FONTS.titleBold, color: Colors.textMain },
     sub: { fontSize: 13, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 20 },
+    fact: { fontSize: 13, lineHeight: 20, marginTop: 4, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
+    warnText: { color: '#b45309' },
+    onText: { color: '#ffffff' },
+    onSub: { color: 'rgba(255, 255, 255, 0.85)' },
   })
 );

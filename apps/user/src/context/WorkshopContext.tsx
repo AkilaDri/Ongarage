@@ -743,6 +743,9 @@ export const WorkshopProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             partNames: [genuine.name],
             genuinePrice: genuine.price,
             reconPrice: partMarketPrice(genuine.name, 'Recon') * genuine.qty,
+            // The simulated garage states both warranties.
+            genuineWarrantyMonths: 6,
+            reconWarrantyMonths: 2,
             askedAt: Date.now(),
             status: 'pending',
           };

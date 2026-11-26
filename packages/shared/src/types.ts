@@ -510,6 +510,9 @@ export type ReconRequest = {
   partNames: string[];
   genuinePrice: number;
   reconPrice: number;
+  /** The warranty the garage gives with each choice, when it states it. */
+  genuineWarrantyMonths?: number;
+  reconWarrantyMonths?: number;
   askedAt: number;
   status: 'pending' | 'approved' | 'declined';
   decidedAt?: number;
