@@ -29,6 +29,8 @@ export const Sheet: React.FC<{
   roomy?: boolean;
   /** No thin line between one block of the body and the next (the caller spaces its sections itself). */
   noDividers?: boolean;
+  /** No ✕ in the title row, for a sheet whose own buttons already offer the way out (the backdrop and swiping down still close it). */
+  noClose?: boolean;
   /** Covers the whole window with a back-arrow app bar (a chat), instead of rising from the bottom. */
   fullScreen?: boolean;
   /** Full screen only: the caller scrolls its own body, so the children fill the space between the bar and the footer. */
@@ -48,7 +50,7 @@ export const Sheet: React.FC<{
   /** The colour behind the sheet instead of the usual dark dim (it fades in with the sheet and dissolves when it closes). */
   backdropColor?: string;
   children: React.ReactNode;
-}> = ({ visible, title, subtitle, onClose, footer, overlay, hero, compact, roomy, noDividers, fullScreen, bare, headerRight, titleIcon, scrollToTopKey, topInset, heroSticky, scrollTarget, backdropColor, heroFull, onHeroScrolled, children }) => {
+}> = ({ visible, title, subtitle, onClose, footer, overlay, hero, compact, roomy, noDividers, noClose, fullScreen, bare, headerRight, titleIcon, scrollToTopKey, topInset, heroSticky, scrollTarget, backdropColor, heroFull, onHeroScrolled, children }) => {
   const { height: windowH } = useWindowDimensions();
   const bodyRef = useRef<ScrollView>(null);
   useEffect(() => {
@@ -136,9 +138,11 @@ export const Sheet: React.FC<{
                 <Text style={styles.title}>{title}</Text>
                 {!!subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
               </View>
-              <Pressable style={styles.closeBtn} onPress={onClose} hitSlop={8} accessibilityLabel="Close sheet">
-                <Text style={styles.closeText}>✕</Text>
-              </Pressable>
+              {!noClose && (
+                <Pressable style={styles.closeBtn} onPress={onClose} hitSlop={8} accessibilityLabel="Close sheet">
+                  <Text style={styles.closeText}>✕</Text>
+                </Pressable>
+              )}
             </View>
           )}
           {fullScreen && bare ? (

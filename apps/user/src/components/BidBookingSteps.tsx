@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { BOOKING_SLOT_HOURS, Colors, FONTS, GARAGE_CLOSE_HOUR, themedStyles } from '@ongarage/shared';
+import { FlowButton } from './FlowButton';
 import { Sheet } from './Sheet';
 import { InlineCalendar } from './BookingCalendar';
 import { dayStart, MAX_BOOKING_DAYS, slotIsPast, slotTime } from './SlotPicker';
@@ -27,6 +28,14 @@ export const dayLabel = (offset: number) => {
 /** Step 1: which day. The next seven days as cards; "වෙනත් දිනයක්" opens the calendar for any day within the month. */
 export const DayStep: React.FC<{ day: number | null; onDay: (day: number) => void; /** Picks the first open day and time in one tap (the next step then asks only where). */ onSoonest?: (day: number, hour: number) => void; /** Sits at the right of the heading (the deadline). */ headerRight?: React.ReactNode }> = ({ day, onDay, onSoonest, headerRight }) => {
   const [calendar, setCalendar] = useState(false);
+  // The soonest slot waits here for a yes before the flow moves on: one tap on the card must not choose and advance by itself.
+  const [ask, setAsk] = useState<{ day: number; hour: number } | null>(null);
+  // After the owner says no to it, the card drops its blue highlight and sits as a plain white button: they are choosing their own time now.
+  const [declined, setDeclined] = useState(false);
+  const decline = () => {
+    setAsk(null);
+    setDeclined(true);
+  };
   // Today is only offered while a time is still left today.
   const todayOpen = BOOKING_SLOT_HOURS.some((h) => !slotIsPast(slotTime(0, h)));
   const offsets = Array.from({ length: QUICK_DAYS }, (_, i) => i).filter((o) => o !== 0 || todayOpen);
@@ -53,7 +62,7 @@ export const DayStep: React.FC<{ day: number | null; onDay: (day: number) => voi
         {headerRight}
       </View>
       {!!first && !!onSoonest && (
-        <Pressable style={styles.soonest} onPress={() => onSoonest(first.day, first.hour)} accessibilityRole="button" accessibilityLabel="Take the soonest time">
+        <Pressable style={[styles.soonest, declined && styles.soonestPlain]} onPress={() => setAsk(first)} accessibilityRole="button" accessibilityLabel="Take the soonest time">
           <View style={styles.flex1}>
             <Text style={styles.soonestLabel}>⚡ ඉක්මන්ම</Text>
             <Text style={styles.soonestValue}>{dayLabel(first.day)} · {formatTime(slotTime(first.day, first.hour))}</Text>
@@ -73,6 +82,33 @@ export const DayStep: React.FC<{ day: number | null; onDay: (day: number) => voi
           <DayCard key={o} offset={o} on={day === o} onPress={() => onDay(o)} />
         ))}
       </ScrollView>
+      <Sheet visible={!!ask} noClose title="මෙම වේලාව තෝරන්නද?" onClose={decline}>
+        {ask && (
+          <>
+            <View style={styles.askBox}>
+              <Text style={styles.askDay}>📅 {dayLabel(ask.day)}</Text>
+              <Text style={styles.askTime}>{formatTime(slotTime(ask.day, ask.hour))}</Text>
+            </View>
+            <View style={styles.askRow}>
+              <View style={styles.flex1}>
+                <FlowButton label="වෙනත් වේලාවක්" variant="ghost" onPress={decline} />
+              </View>
+              <View style={styles.flex1}>
+                <FlowButton
+                  label="තහවුරු කරන්න"
+                  variant="primary"
+                  disabled={slotIsPast(slotTime(ask.day, ask.hour))}
+                  onPress={() => {
+                    const chosen = ask;
+                    setAsk(null);
+                    onSoonest?.(chosen.day, chosen.hour);
+                  }}
+                />
+              </View>
+            </View>
+          </>
+        )}
+      </Sheet>
       <Sheet visible={calendar} title="" onClose={() => setCalendar(false)}>
         <InlineCalendar
           plain
@@ -113,14 +149,15 @@ export const TimeStep: React.FC<{ day: number; hour: number | null; onHour: (hou
       </View>
       {headerRight}
     </View>
-    <View style={styles.headRow}>
-      <Text style={styles.chosen}>📅 {dayLabel(day)}</Text>
-      {!!onChangeDay && (
+    {/* Where the day is on another step, it is named here with a way back to change it. */}
+    {!!onChangeDay && (
+      <View style={styles.headRow}>
+        <Text style={styles.chosen}>📅 {dayLabel(day)}</Text>
         <Pressable onPress={onChangeDay} hitSlop={10} style={styles.calLink} accessibilityRole="button" accessibilityLabel="Change the day">
           <Text style={styles.calLinkText}>වෙනස් කරන්න</Text>
         </Pressable>
-      )}
-    </View>
+      </View>
+    )}
     <View style={styles.timeGrid}>
       {BOOKING_SLOT_HOURS.map((h) => {
         const t = slotTime(day, h);
@@ -168,6 +205,7 @@ const styles = themedStyles(() =>
     hint: { fontSize: 12.5, lineHeight: 18, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
     dayRow: { gap: 8, paddingVertical: 4, paddingRight: 8 },
     soonest: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 12, borderRadius: 26, backgroundColor: '#dbeafe', borderWidth: 1.5, borderColor: '#facc15', minHeight: 64 },
+    soonestPlain: { backgroundColor: Colors.bgCard, borderColor: Colors.borderColor },
     soonestLabel: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: '#1e3a8a' },
     soonestValue: { fontSize: 16, lineHeight: 24, fontFamily: FONTS.titleBold, color: '#1e3a8a', marginTop: 2 },
     soonestGo: { fontSize: 14, fontFamily: FONTS.bodySemiBold, color: '#1e3a8a' },
@@ -190,9 +228,13 @@ const styles = themedStyles(() =>
     moreText: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: '#1e3a8a', textAlign: 'center' },
     timeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
     timeChip: { width: '30.5%', height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.bgCard, borderWidth: 1.5, borderColor: Colors.borderColor },
+    timeText: { fontSize: 14.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
+    askBox: { alignItems: 'center', gap: 4, paddingVertical: 16, borderRadius: 26, backgroundColor: '#dbeafe', borderWidth: 1.5, borderColor: '#facc15' },
+    askDay: { fontSize: 14, fontFamily: FONTS.bodySemiBold, color: '#1e3a8a' },
+    askTime: { fontSize: 26, lineHeight: 34, fontFamily: FONTS.titleBold, color: '#1e3a8a' },
+    askRow: { flexDirection: 'row', gap: 10 },
     timeChipOn: { backgroundColor: '#1e3a8a', borderColor: '#facc15' },
     timeChipOff: { opacity: 0.35 },
-    timeText: { fontSize: 14.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
     whereCard: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 16, borderRadius: 22, backgroundColor: Colors.bgCard, borderWidth: 1.5, borderColor: '#facc15' },
     whereCardOn: { backgroundColor: '#1e3a8a' },
     whereIcon: { fontSize: 28 },

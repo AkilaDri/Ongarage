@@ -13,6 +13,16 @@ Entry format:
 
 ## Entries
 
+## 2026-11-26 · Owner booking, soonest slot · confirmed before moving on
+- Principles used: C4 (a sheet names the date and time and says nothing is sent yet), UPD 074 forgiveness (a way out that changes nothing), C6 (confirm is the filled button), C5 (the soonest card's colours and the flow buttons). C9 noted: the step is reversible, so a confirm is not required by it; the user asked for one because one tap chose and advanced.
+- Core missing: none.
+- Outcome: user asked for it. The soonest card stays after a choice, and the short time chips are back. Not yet checked on a phone.
+
+## 2026-11-26 · Owner booking, day and time · times drawn like the day cards
+- Principles used: C5 and UPD 171 (one card for date and time: small label, big number, small label), C3 and UPD 127 (six times in a 3x2 grid, in order), C2 (the repeated picked-day line is left out where the day is in view; the soonest shortcut leaves once a day is picked).
+- Core missing: none.
+- Outcome: user chose the grid option. Not yet checked on a phone.
+
 ## 2026-11-25 · Owner garage booking, summary step · drawn as an Activity card
 - Principles used: C5 (the Activity card: picture and garage, soft box with job and plate, footer line), C2 (the garage card above is hidden here so the garage is named once; empty attachments line left out), C1 (each choice line has a chevron and opens its step), C10 (the 2-hour answer rule before sending), UPD 099.
 - Core missing: none.

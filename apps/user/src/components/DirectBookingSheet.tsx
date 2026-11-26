@@ -427,7 +427,14 @@ export const DirectBookingSheet: React.FC<{ garage: Garage | null; categoryId?: 
           {/* What the chosen type means; before a choice, the general line. */}
           <Text style={styles.hint}>{partType ? SPARE_PARTS.find((x) => x.id === partType)?.help : 'කොටසේ වර්ගය අනුව මිලත්, වගකීමත් වෙනස් වේ.'}</Text>
 
-          <Text style={[styles.question, styles.headTop]}>සේවාව ලබාගන්නේ කොහේ ද?</Text>
+          <View style={[styles.headRow, styles.headTop]}>
+            <View style={styles.titleWithTick}>
+              <View style={styles.stepBadge}>
+                <Text style={styles.stepBadgeText}>✓</Text>
+              </View>
+              <Text style={styles.question}>සේවාව ලබාගන්නේ කොහේ ද?</Text>
+            </View>
+          </View>
           <View style={styles.placeRow}>
             <Pressable style={[styles.place, !doorstep && styles.placeOn]} onPress={() => setDoorstep(false)} accessibilityRole="radio" accessibilityState={{ selected: !doorstep }}>
               <Text style={[styles.placeText, !doorstep && styles.placeTextOn]}>🏠 මම වාහනය ගරාජයට ගෙන යමි</Text>
