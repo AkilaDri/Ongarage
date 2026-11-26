@@ -59,11 +59,11 @@ export const DirectBookingCard: React.FC<{ booking: DirectBooking; onBookAgain: 
         name={b.garage.name}
         garage={{ id: b.garage.id, name: b.garage.name }}
         meta={`${formatDate(b.scheduledAt ?? b.preferredAt)} · ${formatTime(b.scheduledAt ?? b.preferredAt)}`}
-        kind="direct"
         // The owner's turn: a time the garage proposed, or something a running job asks for.
+        attentionBleed={8}
         attention={!cancelledJob && (b.status === 'proposed' || (!finishedJob && !!ownerNeed(w)))}
       />
-      <PostBody bleed={8} price={priceText} swap={runningJob} vehicle={v} kind="direct" subject={`${cat.name}${b.service ? ` · ${b.service}` : ''}`} onPress={onOpen}>
+      <PostBody bleed={8} price={priceText} swap={runningJob} vehicle={v} kind="direct" subject={`${cat.name}${b.service ? ` · ${b.service}` : ''}`} onPress={onOpen} status={w?.progress.workStartedAt && !doneOk ? <WorkTimer startedAt={w.progress.workStartedAt} endedAt={w.progress.handover?.readyAt} /> : undefined}>
         {doneOk && (
           <GridRow
             left={
@@ -82,7 +82,6 @@ export const DirectBookingCard: React.FC<{ booking: DirectBooking; onBookAgain: 
           />
         )}
       </PostBody>
-      {!!w?.progress.workStartedAt && !doneOk && <WorkTimer startedAt={w.progress.workStartedAt} endedAt={w.progress.handover?.readyAt} />}
       <View style={styles.divider} />
 
       {b.status === 'requested' && (

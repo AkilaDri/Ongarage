@@ -240,7 +240,7 @@ export const WorkshopTracker: React.FC<{ id: string; detailed?: boolean }> = ({ 
       {p.stage !== 'closed' && (
         <StepProgress steps={OWNER_STEP_LABELS.map((l, i) => (i === step ? need ?? waitingText(w) ?? l : l))} current={step} alert={!!need || disputed || p.stage === 'disputed'} readable />
       )}
-      {/* The owner's turn: one soft blue box, above the progress, holding exactly what is asked of them now. Nothing is shown while the job waits on others. */}
+      {/* The owner's turn: one soft blue box, under the progress bar, holding exactly what is asked of them now. Nothing is shown while the job waits on others. */}
       {disputed && <ReceiptDisputeBox workshop={w} onUpdate={(t) => say(id, t)} />}
       {!!need && !disputed && (
         <View style={styles.turn} accessibilityLabel="Your turn">

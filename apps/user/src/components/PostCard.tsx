@@ -22,9 +22,12 @@ export const PostHead: React.FC<{
   bleed?: number;
   /** The OnChat button for this job: shown in the top right corner in place of the three dots. */
   chat?: React.ReactNode;
-  /** The job is waiting for the owner: an amber "your reply" pill stands in the corner in place of the kind tag. */
+  /** The job is waiting for the owner: an amber "your reply" pill on its own line under the header; the kind tag in the corner is left out. */
   attention?: boolean;
-}> = ({ photo, name, garage, meta, kind, chat, bleed = 0, attention }) => (
+  /** How far the card's soft box reaches into the side padding (its `bleed`): the pill's left edge is lined up with the box's. */
+  attentionBleed?: number;
+}> = ({ photo, name, garage, meta, kind, chat, bleed = 0, attention, attentionBleed = 0 }) => (
+  <>
   <View style={[styles.head, !!bleed && { marginHorizontal: -bleed }]}>
     {photo}
     <View style={styles.flex1}>
@@ -39,16 +42,17 @@ export const PostHead: React.FC<{
       </Text>
     </View>
     <View style={styles.priceCol}>
-      {attention ? (
-        <View style={styles.turnPill} accessibilityLabel="Your reply needed">
-          <Text style={styles.turnPillText}>ඔබේ පිළිතුර අවශ්‍යයි</Text>
-        </View>
-      ) : (
-        !!kind && <KindTag kind={kind} />
-      )}
+      {!attention && !!kind && <KindTag kind={kind} />}
       {chat}
     </View>
   </View>
+  {/* The pill has its own line under the header, at the same left edge as the box below it, so it never squeezes the name or the date; the corner tag steps aside meanwhile. */}
+  {attention && (
+    <View style={[styles.turnPill, !!attentionBleed && { marginLeft: -attentionBleed }]} accessibilityLabel="Your reply needed">
+      <Text style={styles.turnPillText}>ඔබේ පිළිතුර අවශ්‍යයි</Text>
+    </View>
+  )}
+  </>
 );
 
 /** A job's price on a line of its own (label at the left, the price at the right): above the warranty line of a finished job, above the step bar of a running one. */
@@ -141,7 +145,7 @@ const styles = themedStyles(() =>
     name: { fontSize: 12, fontFamily: FONTS.bodyBold, color: Colors.textMain },
     meta: { fontSize: 11, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 1 },
     // The Bids tab's amber chip.
-    turnPill: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, backgroundColor: 'rgba(245, 158, 11, 0.16)' },
+    turnPill: { alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, backgroundColor: 'rgba(245, 158, 11, 0.16)' },
     turnPillText: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: '#b45309' },
     priceCol: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     dotsBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 6, paddingLeft: 6 },

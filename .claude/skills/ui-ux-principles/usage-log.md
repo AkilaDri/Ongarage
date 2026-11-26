@@ -13,6 +13,26 @@ Entry format:
 
 ## Entries
 
+## 2026-11-26 · Owner running job card · pill aligned, clock in the job box
+- Principles used: UPD 006 alignment (pill on the same left edge as the box), UPD 152 proximity (the clock beside the job it times), C2 (the clock's empty row removed).
+- Core missing: none.
+- Outcome: user asked for it. Not yet checked on a phone.
+
+## 2026-11-26 · Owner Activity header · never rests half folded
+- Principles used: UPD 064 and 113 (the band moves one to one with the scroll), UX 13 (it settles at once to open or folded).
+- Core missing: none.
+- Outcome: user reported it stuck mid-way. Not yet checked on a phone.
+
+## 2026-11-26 · Owner approval sheet · evidence, decision, total
+- Principles used: UPD 099 (finding and photo, then the choice, then the total), UPD 152 and C10 (the not-charged rule under the question), C6 and UPD 069 (one full-width approve; stop as a quiet red link under it), Typography 60 (no wrapped button leaving a stray word), C5 (soft box, 22px cards, amber chip, receipt total).
+- Core missing: none.
+- Outcome: user asked for it. Also used for extra work and changing an answer. Not yet checked on a phone.
+
+## 2026-11-26 · Owner Activity header · folds as the Bids header does
+- Principles used: C5 (same fold distance and behaviour), UPD 064 feedback in step with the finger (no layout jump under the scroll).
+- Core missing: none.
+- Outcome: user reported a rough fold. Not yet checked on a phone.
+
 ## 2026-11-26 · Owner running job · inspection stage
 - Principles used: C4 and UX 13 (expected time for a long wait), UPD 087 and C8 (calm card, notify only for changes), C15 (late only when the time has passed), C10 (fee stated before the report).
 - Core missing: none.

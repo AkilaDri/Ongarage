@@ -1,7 +1,7 @@
 import { FlowButton } from '../FlowButton';
 import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Colors, FONTS, INSPECTION_FEE, PhotoStrip, themedStyles, VoiceNotePlayer, workshopBill } from '@ongarage/shared';
+import { Colors, FONTS, INSPECTION_FEE, PhotoStrip, getThemeMode, themedStyles, VoiceNotePlayer, workshopBill } from '@ongarage/shared';
 import { useWorkshops, type OwnerWorkshop } from '../../context/WorkshopContext';
 import { formatTime, money } from '../../utils/format';
 import { Sheet } from '../Sheet';
@@ -51,8 +51,9 @@ export const ApprovalSheet: React.FC<{
     <Sheet
       visible={!!workshop}
       title={`${x ? 'අමතර වැඩ — ඔබගේ අනුමැතියට' : 'පරීක්ෂා වාර්තාව'}${change ? ' · වෙනස් කිරීම' : ''}`}
-      subtitle={x ? `${w.garageName} · අලුත්වැඩියාව අතරතුර හමු විය` : `${w.garageName} · අවසන් කිරීමට ${formatTime(d.finishBy)} පමණ`}
+      subtitle={x ? `${w.garageName} · අලුත්වැඩියාව අතරතුර හමු විය` : w.garageName}
       onClose={onClose}
+      noDividers
       footer={
         confirmStop ? (
           <View style={styles.footer}>
@@ -74,85 +75,101 @@ export const ApprovalSheet: React.FC<{
             </View>
           </View>
         ) : (
-          <View style={styles.row}>
-            <View style={styles.flex1}>
-              {x || change ? (
-                <FlowButton
-                  label={x ? 'අමතර වැඩ එපා' : 'කිසිවක් එපා'}
-                  variant="ghost"
-                  onPress={() => {
-                    if (x) (change ? changeExtraDecision : decideExtra)(w.id, x.id, []);
-                    else changeDiagnosisDecision(w.id, []);
-                    onClose();
-                  }}
-                />
-              ) : (
-                <FlowButton label="රැකියාව නවත්වන්න" variant="ghost" onPress={() => setConfirmStop(true)} />
-              )}
-            </View>
-            <View style={styles.flex2}>
+          // One main action across the sheet, with the total on one line; saying no stands under it, apart from the thumb's first reach.
+          <View style={styles.footer}>
+            <FlowButton
+              label={`${change ? 'වෙනස්කම් සුරකින්න' : 'අනුමත කරන්න'} · ${money(total)}`}
+              icon="✓"
+              variant="success"
+              onPress={() => {
+                if (change) {
+                  if (x) changeExtraDecision(w.id, x.id, picked);
+                  else changeDiagnosisDecision(w.id, picked);
+                } else if (x) decideExtra(w.id, x.id, picked);
+                else approveDiagnosis(w.id, picked);
+                onClose();
+              }}
+            />
+            {x || change ? (
               <FlowButton
-                label={`${change ? 'වෙනස්කම් සුරකින්න' : 'අනුමත කරන්න'} · ${money(total)}`}
-                icon="✓"
-                variant="success"
+                label={x ? 'අමතර වැඩ එපා' : 'කිසිවක් එපා'}
+                variant="ghost"
                 onPress={() => {
-                  if (change) {
-                    if (x) changeExtraDecision(w.id, x.id, picked);
-                    else changeDiagnosisDecision(w.id, picked);
-                  } else if (x) decideExtra(w.id, x.id, picked);
-                  else approveDiagnosis(w.id, picked);
+                  if (x) (change ? changeExtraDecision : decideExtra)(w.id, x.id, []);
+                  else changeDiagnosisDecision(w.id, []);
                   onClose();
                 }}
               />
-            </View>
+            ) : (
+              <Pressable style={styles.stopLink} onPress={() => setConfirmStop(true)} accessibilityRole="button" accessibilityLabel="Stop the job">
+                <Text style={styles.stopText}>රැකියාව නවත්වන්න</Text>
+              </Pressable>
+            )}
           </View>
         )
       }
     >
       {/* While extra work waits, the garage goes on with what is already approved. */}
       {!!x && !change && <Text style={styles.sub}>ඔබ පිළිතුරු දෙන තුරු ගරාජය දැනටමත් අනුමත කළ වැඩ දිගටම කරයි.</Text>}
-      <View style={styles.box}>
+
+      {/* 1. What was found, and the proof of it. */}
+      <View style={styles.found}>
         <Text style={styles.label}>ගරාජය සොයාගත් දේ</Text>
-        <Text style={styles.text}>{d.findings}</Text>
+        <Text style={styles.findings}>{d.findings}</Text>
         {!!d.photos?.length && <PhotoStrip photos={d.photos} height={80} />}
         {d.voiceNotes?.map((n, i) => <VoiceNotePlayer key={n.id} note={n} index={i} />)}
+        {!!d.finishBy && (
+          <View style={styles.timeChip}>
+            <Text style={styles.timeChipText}>⏱️ අවසන් කිරීමට {formatTime(d.finishBy)} පමණ</Text>
+          </View>
+        )}
       </View>
 
-      <Text style={styles.label}>ඔබ එකඟ වන දේ තෝරන්න</Text>
-      {d.lines.map((l) => {
-        const on = picked.includes(l.id);
-        return (
-          <Pressable key={l.id} style={[styles.line, on && styles.lineOn]} onPress={() => toggle(l.id)} accessibilityLabel={`Approve line ${l.name}`}>
-            <View style={[styles.check, on && styles.checkOn]}>{on && <Text style={styles.checkMark}>✓</Text>}</View>
-            <View style={styles.flex1}>
-              <Text style={styles.lineName}>
-                {l.kind === 'part' ? '🔩' : '🔧'} {l.name}
-                {l.qty > 1 ? ` ×${l.qty}` : ''}
-              </Text>
-              {l.kind === 'part' && (
-                <Text style={styles.sub}>
-                  {l.partType} · {l.source === 'order' ? 'ඔබ අනුමත කළ පසු ඇණවුම් කරයි' : l.source === 'owner' ? 'ඔබ OnMart හි මිලදී ගත යුතුය — වෙළඳසැලට ගෙවන්න, ගරාජයේ බිලට නොවේ' : 'ගරාජයේ තොගයේ'}
-                </Text>
-              )}
-            </View>
-            <Text style={[styles.price, !on && styles.priceOff]}>{money(l.price)}</Text>
-          </Pressable>
-        );
-      })}
+      {/* 2. The decision, with its rule right under the question, before anything is ticked. */}
+      <View style={styles.choose}>
+        <Text style={styles.heading}>ඔබ එකඟ වන දේ තෝරන්න</Text>
+        <Text style={styles.sub}>තෝරා නොගත් දේ කිසිවක් කෙරෙන්නේ හෝ අය කෙරෙන්නේ නැත.</Text>
+      </View>
+      <View style={styles.lines}>
+        {d.lines.map((l) => {
+          const on = picked.includes(l.id);
+          return (
+            <Pressable key={l.id} style={[styles.line, on && styles.lineOn]} onPress={() => toggle(l.id)} accessibilityRole="checkbox" accessibilityState={{ checked: on }} accessibilityLabel={`Approve line ${l.name}`}>
+              <View style={[styles.check, on && styles.checkOn]}>{on && <Text style={styles.checkMark}>✓</Text>}</View>
+              <View style={styles.flex1}>
+                <View style={styles.lineTop}>
+                  <Text style={[styles.lineName, styles.flex1]}>
+                    {l.kind === 'part' ? '🔩' : '🔧'} {l.name}
+                    {l.qty > 1 ? ` ×${l.qty}` : ''}
+                  </Text>
+                  <Text style={[styles.price, !on && styles.priceOff]}>{money(l.price)}</Text>
+                </View>
+                {l.kind === 'part' && (
+                  <Text style={styles.sub}>
+                    {l.partType} · {l.source === 'order' ? 'ඔබ අනුමත කළ පසු ඇණවුම් කරයි' : l.source === 'owner' ? 'ඔබ OnMart හි මිලදී ගත යුතුය — වෙළඳසැලට ගෙවන්න, ගරාජයේ බිලට නොවේ' : 'ගරාජයේ තොගයේ'}
+                  </Text>
+                )}
+              </View>
+            </Pressable>
+          );
+        })}
+      </View>
 
-      <View style={styles.box}>
+      {/* 3. What it comes to, like a receipt: the total last and largest. */}
+      <View style={styles.card}>
         <Row label={x ? 'දැනට අනුමත මුළු මුදල' : 'එකඟ වූ මිල'} value={money(base)} />
         <Row label={`තෝරාගත් අමතර (${picked.length}/${d.lines.length})`} value={money(extra)} />
+        <View style={styles.rule} />
         <Row label="නව එකතුව" value={money(total)} strong />
       </View>
-      <Text style={styles.sub}>තෝරා නොගත් දේ කිසිවක් කෙරෙන්නේ හෝ අය කෙරෙන්නේ නැත. වැඩ අතරතුර අමතර දෙයක් හමු වුවහොත් ගරාජය නැවත ඔබගෙන් අසයි.</Text>
+      <Text style={styles.sub}>වැඩ අතරතුර අමතර දෙයක් හමු වුවහොත් ගරාජය නැවත ඔබගෙන් අසයි.</Text>
     </Sheet>
   );
 };
 
 const Row: React.FC<{ label: string; value: string; strong?: boolean }> = ({ label, value, strong }) => (
   <View style={styles.sumRow}>
-    <Text style={strong ? styles.sumStrong : styles.text}>{label}</Text>
+    <Text style={strong ? styles.sumStrong : styles.rowLabel}>{label}</Text>
     <Text style={strong ? styles.totalValue : styles.sumValue}>{value}</Text>
   </View>
 );
@@ -160,25 +177,35 @@ const Row: React.FC<{ label: string; value: string; strong?: boolean }> = ({ lab
 const styles = themedStyles(() =>
   StyleSheet.create({
     flex1: { flex: 1 },
-    flex2: { flex: 2 },
-    row: { flexDirection: 'row', gap: 8 },
+    row: { flexDirection: 'row', gap: 10 },
     footer: { gap: 8 },
-    warn: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.warning, lineHeight: 20 },
-    box: { padding: 12, borderRadius: 14, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.borderColor, gap: 6 },
-    label: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, letterSpacing: 0.4 },
-    text: { fontSize: 13, fontFamily: FONTS.bodyRegular, color: Colors.textSoft, lineHeight: 19 },
+    warn: { fontSize: 13.5, fontFamily: FONTS.bodySemiBold, color: Colors.warning, lineHeight: 21 },
+    stopLink: { minHeight: 44, alignItems: 'center', justifyContent: 'center' },
+    stopText: { fontSize: 13.5, fontFamily: FONTS.bodySemiBold, color: Colors.errorText },
+    found: { gap: 8, padding: 14, borderRadius: 22, backgroundColor: getThemeMode() === 'dark' ? Colors.subtleFill : '#f1f1f2' },
+    label: { fontSize: 13, lineHeight: 20, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
+    findings: { fontSize: 14.5, lineHeight: 23, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
+    timeChip: { alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, backgroundColor: 'rgba(245, 158, 11, 0.16)' },
+    timeChipText: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: '#b45309' },
+    choose: { gap: 4, marginTop: 8, paddingHorizontal: 2 },
+    heading: { fontSize: 16, lineHeight: 24, fontFamily: FONTS.bodyBold, color: Colors.textMain },
     sub: { fontSize: 13, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 20 },
-    line: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: 14, borderWidth: 1, borderColor: Colors.borderColor, backgroundColor: Colors.bgCard },
-    lineOn: { borderColor: 'rgba(16, 185, 129, 0.5)', backgroundColor: 'rgba(16, 185, 129, 0.06)' },
+    lines: { gap: 8 },
+    line: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingHorizontal: 14, paddingVertical: 12, minHeight: 56, borderRadius: 22, borderWidth: 1.5, borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#eef2f8', backgroundColor: getThemeMode() === 'dark' ? Colors.bgCard : '#ffffff' },
+    lineOn: { borderColor: 'rgba(16, 185, 129, 0.55)', backgroundColor: 'rgba(16, 185, 129, 0.06)' },
+    lineTop: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
     check: { width: 24, height: 24, borderRadius: 8, borderWidth: 1.5, borderColor: Colors.subtleBorder, justifyContent: 'center', alignItems: 'center' },
     checkOn: { backgroundColor: Colors.success, borderColor: Colors.success },
     checkMark: { fontSize: 13, fontWeight: '900', color: '#fff' },
-    lineName: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
-    price: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.textMain },
+    lineName: { fontSize: 14, lineHeight: 21, fontFamily: FONTS.bodyBold, color: Colors.textMain },
+    price: { fontSize: 14, lineHeight: 21, fontFamily: FONTS.titleBold, color: Colors.textMain },
     priceOff: { color: Colors.textMuted, textDecorationLine: 'line-through' },
-    sumRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-    sumValue: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
-    sumStrong: { fontSize: 13, fontFamily: FONTS.bodyBold, color: Colors.textMain },
-    totalValue: { fontSize: 15, fontFamily: FONTS.titleBold, color: Colors.success },
+    card: { gap: 8, paddingHorizontal: 16, paddingVertical: 14, borderRadius: 22, borderWidth: 1, borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#f3f4f6', backgroundColor: getThemeMode() === 'dark' ? Colors.bgCard : '#ffffff', shadowColor: '#1e3a8a', shadowOffset: { width: 0, height: 6 }, shadowOpacity: getThemeMode() === 'dark' ? 0.4 : 0.1, shadowRadius: 14, elevation: 3 },
+    rule: { height: 1.5, backgroundColor: Colors.textMuted, opacity: 0.35 },
+    sumRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 },
+    rowLabel: { flexShrink: 1, fontSize: 13, lineHeight: 20, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
+    sumValue: { fontSize: 14, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
+    sumStrong: { fontSize: 16, lineHeight: 24, fontFamily: FONTS.titleBold, color: Colors.textMain },
+    totalValue: { fontSize: 22, lineHeight: 28, fontFamily: FONTS.titleBold, color: Colors.success },
   })
 );

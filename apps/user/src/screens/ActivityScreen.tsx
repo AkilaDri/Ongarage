@@ -131,6 +131,16 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
   const [titleH, setTitleH] = useState(0);
   useEffect(() => () => { chatHide.setValue(0); }, []);
   const pinnedH = useRef(0);
+  // How far the band is folded, and its unfolded height (the room the list leaves for it).
+  const foldAt = useRef(0);
+  const [bandFull, setBandFull] = useState(190);
+  // The scrolling that folds the band equals what the band loses (the title row and 34px of top space), so the first card stays right under it all the way.
+  const foldBy = (titleH || 58) + 34;
+  const listRef = useRef<ScrollView>(null);
+  const [listH, setListH] = useState(0);
+  // A scroll that stops part way is carried to the nearer end: the header is never left half folded.
+  const settle = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (settle.current) clearTimeout(settle.current); }, []);
   // Each kind of record has its own chip: pick one to see only those records.
   // Opens on the ongoing work each time; a notice or a button may ask for another tab (utils/activityFocus).
   const [tab, setTab] = useState<'current' | 'done' | 'ended'>('current');
@@ -225,7 +235,10 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
           subject={cat?.name ?? 'Service'}
           onPress={() => setDetail({ kind: 'job', id: job.id })}
           status={
-            finished(job.id) && !cancelled(job.id) ? undefined : (
+            // Once the work is running its clock takes the status's place on the title line.
+            !finished(job.id) && workshops[job.id]?.progress.workStartedAt ? (
+              <WorkTimer startedAt={workshops[job.id]!.progress.workStartedAt!} endedAt={workshops[job.id]!.progress.handover?.readyAt} />
+            ) : finished(job.id) && !cancelled(job.id) ? undefined : (
             <View style={[styles.status, finished(job.id) ? styles.statusDone : styles.statusOngoing]}>
               <Text style={[styles.statusText, { color: cancelled(job.id) ? Colors.errorText : finished(job.id) ? Colors.success : Colors.warning }]}>{cancelled(job.id) ? '✕ අවලංගු කළා' : finished(job.id) ? '✓ සම්පූර්ණයි' : `● ${bookingStatusText(job.booking) ?? 'වෙන් කළා'}`}</Text>
             </View>
@@ -236,7 +249,6 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
             <GridRow left={<RatingLine rating={workshops[job.id]?.review?.rating} onRate={workshops[job.id] ? () => setRating(workshops[job.id]) : undefined} />} right={<DoneTag />} />
           )}
         </PostBody>
-        {!finished(job.id) && !!workshops[job.id]?.progress.workStartedAt && <WorkTimer startedAt={workshops[job.id]!.progress.workStartedAt!} endedAt={workshops[job.id]!.progress.handover?.readyAt} />}
         <View style={styles.divider} />
         {finished(job.id) ? (
           <GridRow
@@ -314,85 +326,91 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
 
   return (
     <View style={styles.container}>
+      {/* The header floats over the list (as on Bids): it folds in step with the scroll while the list under it keeps its place, so nothing jumps. */}
+      <View style={styles.statsPinned} onLayout={(e) => {
+        pinnedH.current = Math.round(e.nativeEvent.layout.height);
+        // The list keeps room for the unfolded band only: folding must not move the list.
+        if (foldAt.current < 0.001) setBandFull(pinnedH.current);
+      }}>
+      {/* The header's blue carries on behind the tab bar and the filter chips, ending straight under the chips. */}
+      {/* The blue goes with the band: it fades away as the band folds, so no strip stays behind. */}
+      <View pointerEvents="none" style={styles.pinnedBand} />
+      {/* The band folds up as the page scrolls (the same as the Bids band), so the list gets the room. */}
+      <Animated.View style={{ overflow: 'hidden' }}>
+      <View onLayout={(e) => setBandH(Math.round(e.nativeEvent.layout.height))}>
+      {/* The shared top of the page (the garage's Garage layout): title, calendar, the tabs, and the kind-of-record chips under them. */}
+      {/* Under the tabs: the kind of record (bids, bookings, SOS), one always open, the number of each on its chip. */}
+      {/* The garage's Jobs layout: the title row, then the pill tabs, then the filter chips, all on the same blue band. */}
+      <Animated.View style={[styles.bandHead, { paddingTop: edge.interpolate({ inputRange: [0, 1], outputRange: [46, 12] }) }]}>
+        {/* Scrolling folds the title row away: only the tabs and the chips stay pinned. */}
+        <Animated.View style={{ overflow: 'hidden', opacity: edge.interpolate({ inputRange: [0, 0.6], outputRange: [1, 0], extrapolate: 'clamp' }), height: titleH ? edge.interpolate({ inputRange: [0, 1], outputRange: [titleH, 0] }) : undefined }}>
+        <View style={styles.bandTitleRow} onLayout={(e) => setTitleH(Math.round(e.nativeEvent.layout.height))}>
+          <Text style={styles.bandTitle} numberOfLines={1} accessibilityRole="header">Activity</Text>
+          <VehicleChip onBlue />
+          <Pressable style={styles.bandIcon} onPress={onOpenCalendar} hitSlop={8} accessibilityRole="button" accessibilityLabel="Open calendar">
+            <CalendarGridIcon size={24} color="#ffffff" />
+          </Pressable>
+        </View>
+        </Animated.View>
+        <View style={styles.bandNav}>
+          <SegmentTabs
+            pills
+            radius={12}
+            items={[
+              { id: 'current' as const, label: 'පවතින', count: ongoing.length + liveBookings.length },
+              { id: 'done' as const, label: 'සම්පූර්ණ' },
+              { id: 'ended' as const, label: 'අවලංගු' },
+            ]}
+            value={tab}
+            onChange={(k) => {
+              setKind(k);
+              // Opening a tab lands on the chip that has something in it (the one with the notification), not an empty one.
+              const counts = k === 'current' ? [ongoing.length, liveBookings.length, 0] : k === 'done' ? [doneJobs.length, doneBookings.length, sosRecords.length] : null;
+              if (!counts) return;
+              const ids = ['bids', 'direct', 'sos'] as const;
+              const cur = k === 'current' ? currentKind : doneKind;
+              if (counts[ids.indexOf(cur)] > 0) return;
+              const first = ids.find((_, i) => counts[i] > 0);
+              if (first) (k === 'current' ? setCurrentKind : setDoneKind)(first);
+            }}
+          />
+          <FilterChips
+            plain
+            onBlue
+            radius={10}
+            items={
+              tab === 'current' ? withMart(kindItems([ongoing.length, liveBookings.length, 0]))
+                : tab === 'done' ? withMart(kindItems([doneJobs.length, doneBookings.length, sosRecords.length]))
+                : withMart(kindItems([0, 0, 0]))
+            }
+            value={martOn ? 'mart' : tab === 'current' ? currentKind : tab === 'done' ? doneKind : endedKind}
+            onChange={(id) => pickKind(id as 'bids' | 'direct' | 'sos' | 'mart' | null, tab === 'current' ? setCurrentKind : tab === 'done' ? setDoneKind : setEndedKind)}
+          />
+        </View>
+      </Animated.View>
+      </View>
+      </Animated.View>
+        <PinnedEdge progress={edge} />
+      </View>
       <ScrollView
+        ref={listRef}
         style={styles.flex1}
-        contentContainerStyle={styles.body}
+        onLayout={(e) => setListH(Math.round(e.nativeEvent.layout.height))}
+        // Even a short list can scroll far enough to fold the header completely.
+        contentContainerStyle={[styles.body, { paddingTop: bandFull + 12 }, listH > 0 && { minHeight: listH + foldBy }]}
         showsVerticalScrollIndicator={false}
-        stickyHeaderIndices={[0]}
         scrollEventThrottle={16}
         onScroll={(e) => {
           const y = e.nativeEvent.contentOffset.y;
-          edge.setValue(Math.min(1, Math.max(0, (y - 8) / 30)));
-          // The title band folds away in step with the scroll (the first PAGE_TITLE_H px) and comes back the same way, straight from the offset: no thresholds or
-          // timers, so nothing shakes.
-          onHeaderProgress?.(Math.min(1, Math.max(0, y / 40)));
+          // Straight from the offset (no thresholds), so the band moves with the finger.
+          const fold = Math.min(1, Math.max(0, y / foldBy));
+          foldAt.current = fold;
+          edge.setValue(fold);
+          onHeaderProgress?.(fold);
+          if (settle.current) clearTimeout(settle.current);
+          if (fold > 0.001 && fold < 0.999) settle.current = setTimeout(() => listRef.current?.scrollTo({ y: fold < 0.5 ? 0 : foldBy, animated: true }), 160);
         }}
       >
-        {/* Pinned: the three summary tiles stay at the top while the lists scroll beneath */}
-        {/* Folded away, the pinned strip has no padding left, so no white or blue strip stays behind. */}
-        <Animated.View style={[styles.statsPinned, { paddingTop: edge.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0, 20, 0] }), paddingBottom: 0 }]} onLayout={(e) => {
-          pinnedH.current = Math.round(e.nativeEvent.layout.height);
-        }}>
-        {/* The header's blue carries on behind the tab bar and the filter chips, ending straight under the chips. */}
-        {/* The blue goes with the band: it fades away as the band folds, so no strip stays behind. */}
-        <View pointerEvents="none" style={styles.pinnedBand} />
-        {/* The band folds up as the page scrolls (the same as the Bids band), so the list gets the room. */}
-        <Animated.View style={{ overflow: 'hidden' }}>
-        <View onLayout={(e) => setBandH(Math.round(e.nativeEvent.layout.height))}>
-        {/* The shared top of the page (the garage's Garage layout): title, calendar, the tabs, and the kind-of-record chips under them. */}
-        {/* Under the tabs: the kind of record (bids, bookings, SOS), one always open, the number of each on its chip. */}
-        {/* The garage's Jobs layout: the title row, then the pill tabs, then the filter chips, all on the same blue band. */}
-        <Animated.View style={[styles.bandHead, { paddingTop: edge.interpolate({ inputRange: [0, 1], outputRange: [46, 12] }) }]}>
-          {/* Scrolling folds the title row away: only the tabs and the chips stay pinned. */}
-          <Animated.View style={{ overflow: 'hidden', opacity: edge.interpolate({ inputRange: [0, 0.6], outputRange: [1, 0], extrapolate: 'clamp' }), height: titleH ? edge.interpolate({ inputRange: [0, 1], outputRange: [titleH, 0] }) : undefined }}>
-          <View style={styles.bandTitleRow} onLayout={(e) => setTitleH(Math.round(e.nativeEvent.layout.height))}>
-            <Text style={styles.bandTitle} numberOfLines={1} accessibilityRole="header">Activity</Text>
-            <VehicleChip onBlue />
-            <Pressable style={styles.bandIcon} onPress={onOpenCalendar} hitSlop={8} accessibilityRole="button" accessibilityLabel="Open calendar">
-              <CalendarGridIcon size={24} color="#ffffff" />
-            </Pressable>
-          </View>
-          </Animated.View>
-          <View style={styles.bandNav}>
-            <SegmentTabs
-              pills
-              radius={12}
-              items={[
-                { id: 'current' as const, label: 'පවතින', count: ongoing.length + liveBookings.length },
-                { id: 'done' as const, label: 'සම්පූර්ණ' },
-                { id: 'ended' as const, label: 'අවලංගු' },
-              ]}
-              value={tab}
-              onChange={(k) => {
-                setKind(k);
-                // Opening a tab lands on the chip that has something in it (the one with the notification), not an empty one.
-                const counts = k === 'current' ? [ongoing.length, liveBookings.length, 0] : k === 'done' ? [doneJobs.length, doneBookings.length, sosRecords.length] : null;
-                if (!counts) return;
-                const ids = ['bids', 'direct', 'sos'] as const;
-                const cur = k === 'current' ? currentKind : doneKind;
-                if (counts[ids.indexOf(cur)] > 0) return;
-                const first = ids.find((_, i) => counts[i] > 0);
-                if (first) (k === 'current' ? setCurrentKind : setDoneKind)(first);
-              }}
-            />
-            <FilterChips
-              plain
-              onBlue
-              radius={10}
-              items={
-                tab === 'current' ? withMart(kindItems([ongoing.length, liveBookings.length, 0]))
-                  : tab === 'done' ? withMart(kindItems([doneJobs.length, doneBookings.length, sosRecords.length]))
-                  : withMart(kindItems([0, 0, 0]))
-              }
-              value={martOn ? 'mart' : tab === 'current' ? currentKind : tab === 'done' ? doneKind : endedKind}
-              onChange={(id) => pickKind(id as 'bids' | 'direct' | 'sos' | 'mart' | null, tab === 'current' ? setCurrentKind : tab === 'done' ? setDoneKind : setEndedKind)}
-            />
-          </View>
-        </Animated.View>
-        </View>
-        </Animated.View>
-          <PinnedEdge progress={edge} />
-        </Animated.View>
 
 
         {kind === 'done' && (
@@ -566,8 +584,7 @@ const styles = themedStyles(() => StyleSheet.create({
   bandIcon: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
   bandTitle: { flex: 1, fontSize: 19, lineHeight: 24, fontFamily: FONTS.titleBold, color: '#ffffff' },
   bandNav: { marginBottom: 10 },
-  // Stretched over the list's own side padding, with none of its own: the band's padding alone sets the side spacing, as on Bids.
-  statsPinned: { marginHorizontal: -12, backgroundColor: pageBg() },
+  statsPinned: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 40 },
   pinnedBand: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: pageHeaderBlue().from },
   // The short OnChat icon inside the filter card, on its right side.
   pinnedChat: { position: 'absolute', right: 8, bottom: -12 },
