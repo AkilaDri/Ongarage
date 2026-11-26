@@ -118,7 +118,6 @@ const BidsEmpty: React.FC<{ icon: string; title: string; text: string; post?: ()
     {!!post && (
       <View style={styles.emptyAction}>
         <FlowButton label="Ongarage Quotes ඉල්ලන්න" icon="＋" variant="primary" onPress={post} />
-        <Text style={styles.emptyFree}>නොමිලේ</Text>
       </View>
     )}
     {!!link && (
@@ -250,6 +249,8 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
   const pending = jobs.filter((j) => j.bids.length === 0 && !isExpired(j, now));
   const expired = jobs.filter((j) => isExpired(j, now));
   const mapBids = received.filter((j) => !j.acceptedBidId).flatMap((j) => j.bids.map((b) => ({ job: j, bid: b, lowest: b.id === lowestBidId(j.bids) })));
+  // On the map the sort chips choose which pin is picked out: the first bid in that order (the cheapest, the best rated, the nearest…).
+  const topPinId = sortBids(mapBids.map((m) => m.bid), bidSort)[0]?.id;
 
   // The other tabs (waiting, expired) keep the header as it is before the Received sheet is raised: whole, with its heading and ONCHAT.
   useEffect(() => {
@@ -710,6 +711,16 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
     return { latitude: user.coords.latitude - (mapArea * 0.22 * metersPerPx) / 111320, longitude: user.coords.longitude };
   })();
 
+  // The opened map has no sheet over it: it is framed round the owner and every pin together, with room left for the header at the top and a pin's card below.
+  const openFrame = (() => {
+    const points = [user.coords, ...mapBids.map((m) => m.bid.coords)];
+    const lats = points.map((c) => c.latitude);
+    const lngs = points.map((c) => c.longitude);
+    const center = { latitude: (Math.max(...lats) + Math.min(...lats)) / 2, longitude: (Math.max(...lngs) + Math.min(...lngs)) / 2 };
+    const spanKm = Math.max((Math.max(...lats) - Math.min(...lats)) * 111, (Math.max(...lngs) - Math.min(...lngs)) * 111 * Math.cos((center.latitude * Math.PI) / 180), 2);
+    return { center, zoom: zoomToFit(spanKm * 1.35, center.latitude, Math.max(220, Math.min(340, mapArea - 240))) };
+  })();
+
   return (
     <View style={styles.container} onLayout={(e) => {
         const h = Math.round(e.nativeEvent.layout.height);
@@ -730,8 +741,8 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
         <View style={styles.mapFullLayer}>
           <GoogleMap
             style={styles.fullMap}
-            center={mapCenter}
-            zoom={mapZoom}
+            center={openFrame.center}
+            zoom={openFrame.zoom}
         renderOverlay={(project) => (
           <>
             {mapBids.map(({ job, bid, lowest }) => {
@@ -739,7 +750,7 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
               return p ? (
                 <View key={bid.id} style={[styles.pinAnchor, { left: p.x, top: p.y }]} pointerEvents="box-none">
                   <Pressable
-                    style={[styles.pricePin, lowest && styles.pricePinLowest, !lowest && !marketNote(job, bid).cheaper && styles.pricePinDear, pinBid?.bid.id === bid.id && styles.pricePinOn]}
+                    style={[styles.pricePin, lowest && styles.pricePinLowest, !lowest && !marketNote(job, bid).cheaper && styles.pricePinDear, (pinBid?.bid.id === bid.id || (!pinBid && bid.id === topPinId)) && styles.pricePinOn]}
                     onPress={() => setPinBid({ job, bid })}
                     accessibilityLabel={`Bid pin ${bid.garageName}`}
                     hitSlop={8}
@@ -759,58 +770,94 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
         </View>
       )}
 
+      {/* Over the map, as on the SOS map: a round close button and a pill, then the sort chips on one sliding row. The blue band steps aside, so the map fills the page. */}
+      {tab === 'received' && mapOpen && (
+        <View style={styles.mapTop} pointerEvents="box-none">
+          <View style={styles.mapTopRow} pointerEvents="box-none">
+            <Pressable style={styles.mapRound} onPress={() => { setPinBid(null); setMapOpen(false); }} accessibilityRole="button" accessibilityLabel="Close the map">
+              <Icon name="x" size={18} color={Colors.textMain} />
+            </Pressable>
+            <View style={styles.mapPill}>
+              <Text style={styles.mapPillTitle} numberOfLines={1} accessibilityRole="header">Your Bids</Text>
+              <View style={styles.mapPillCount}>
+                <Text style={styles.mapPillCountText}>ලංසු {mapBids.length} ක්</Text>
+              </View>
+            </View>
+          </View>
+          {mapBids.length > 0 && (
+            <View style={styles.mapChips}>
+              <FilterChips
+                items={SORTS.map((x) => ({ id: x.id, label: x.label, tone: 'blue' as const, icon: (on: boolean) => <SortChipIcon id={x.id} on={on} /> }))}
+                plain
+                onBlue
+                scroll
+                radius={10}
+                value={bidSort}
+                onChange={(id) => {
+                  if (!id) return;
+                  setPinBid(null);
+                  setBidSort(id as typeof bidSort);
+                }}
+              />
+            </View>
+          )}
+        </View>
+      )}
+
       {/* The tab bar floats over the bottom 72px and its top corners are round: this strip, in the sheet's colour, fills what shows behind those corners. */}
       <View style={styles.navBackfill} pointerEvents="none" />
 
       {/* The Bids header, the same as Activity's: the title row (with the list and map icons), the tabs and the sort chips, on one blue band. */}
-      <Animated.View
-        style={[styles.bidsHeader, { paddingTop: listFold.interpolate({ inputRange: [0, 1], outputRange: [46, 12] }) }]}
-        onLayout={(e) => {
-          // Folding changes the band's height every frame: only an unfolded band is a new size for the sheet.
-          if (foldVal.current > 0.001) return;
-          setHeadH(Math.round(e.nativeEvent.layout.height));
-        }}
-      >
-        <Animated.View style={{ overflow: 'hidden', opacity: listFold.interpolate({ inputRange: [0, 0.6], outputRange: [1, 0], extrapolate: 'clamp' }), height: titleH ? listFold.interpolate({ inputRange: [0, 1], outputRange: [titleH, 0] }) : undefined }}>
-        <View style={styles.bidsTitleRow} onLayout={(e) => setTitleH(Math.round(e.nativeEvent.layout.height))}>
-          <Text style={styles.bidsTitle} numberOfLines={1} accessibilityRole="header">Your Bids</Text>
-          <VehicleChip onBlue />
-          <View style={styles.bidsIcons}>
-            {/* The cards / rows switch does nothing while the map is open (the map shows every bid as a pin), so it is hidden then. */}
-            {!mapOpen && tab === 'received' && (
-              <Pressable onPress={onToggleRows} hitSlop={8} accessibilityRole="button" accessibilityLabel={rowsView ? 'Show the bids as cards' : 'Show all the bids as rows'} style={styles.bidsIconBtn}>
-                <Text style={styles.bidsIconText}>{rowsView ? '▤' : '☰'}</Text>
-              </Pressable>
-            )}
-            {tab === 'received' && <Pressable onPress={() => setMapOpen((v) => !v)} hitSlop={8} accessibilityRole="button" accessibilityLabel={mapOpen ? 'Close the map' : 'Open the map'} style={styles.bidsIconBtn}>
-              {mapOpen ? (
-                <Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth={2.4} strokeLinecap="round">
-                  <Path d="M6 6l12 12M18 6 6 18" />
-                </Svg>
-              ) : (
-                <Svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round">
-                  <Path d="M9 4 3 6.5V20l6-2.5 6 2.5 6-2.5V4l-6 2.5L9 4zM9 4v13.5M15 6.5V20" />
-                </Svg>
+      {!(tab === 'received' && mapOpen) && (
+        <Animated.View
+          style={[styles.bidsHeader, { paddingTop: listFold.interpolate({ inputRange: [0, 1], outputRange: [46, 12] }) }]}
+          onLayout={(e) => {
+            // Folding changes the band's height every frame: only an unfolded band is a new size for the sheet.
+            if (foldVal.current > 0.001) return;
+            setHeadH(Math.round(e.nativeEvent.layout.height));
+          }}
+        >
+          <Animated.View style={{ overflow: 'hidden', opacity: listFold.interpolate({ inputRange: [0, 0.6], outputRange: [1, 0], extrapolate: 'clamp' }), height: titleH ? listFold.interpolate({ inputRange: [0, 1], outputRange: [titleH, 0] }) : undefined }}>
+          <View style={styles.bidsTitleRow} onLayout={(e) => setTitleH(Math.round(e.nativeEvent.layout.height))}>
+            <Text style={styles.bidsTitle} numberOfLines={1} accessibilityRole="header">Your Bids</Text>
+            <VehicleChip onBlue />
+            <View style={styles.bidsIcons}>
+              {/* The cards / rows switch does nothing while the map is open (the map shows every bid as a pin), so it is hidden then. */}
+              {!mapOpen && tab === 'received' && (
+                <Pressable onPress={onToggleRows} hitSlop={8} accessibilityRole="button" accessibilityLabel={rowsView ? 'Show the bids as cards' : 'Show all the bids as rows'} style={styles.bidsIconBtn}>
+                  <Text style={styles.bidsIconText}>{rowsView ? '▤' : '☰'}</Text>
+                </Pressable>
               )}
-            </Pressable>}
+              {tab === 'received' && <Pressable onPress={() => setMapOpen((v) => !v)} hitSlop={8} accessibilityRole="button" accessibilityLabel={mapOpen ? 'Close the map' : 'Open the map'} style={styles.bidsIconBtn}>
+                {mapOpen ? (
+                  <Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth={2.4} strokeLinecap="round">
+                    <Path d="M6 6l12 12M18 6 6 18" />
+                  </Svg>
+                ) : (
+                  <Svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round">
+                    <Path d="M9 4 3 6.5V20l6-2.5 6 2.5 6-2.5V4l-6 2.5L9 4zM9 4v13.5M15 6.5V20" />
+                  </Svg>
+                )}
+              </Pressable>}
+            </View>
           </View>
-        </View>
+          </Animated.View>
+          <View style={styles.bidsNav}>
+            {renderTabs()}
+          {tab === 'received' && received.some((j) => j.bids.length > 0) && (
+            <FilterChips
+              items={SORTS.map((x) => ({ id: x.id, label: x.label, tone: 'blue' as const, icon: (on: boolean) => <SortChipIcon id={x.id} on={on} /> }))}
+              plain
+              onBlue
+              scroll
+              radius={10}
+              value={bidSort}
+              onChange={(id) => id && setBidSort(id as typeof bidSort)}
+            />
+          )}
+          </View>
         </Animated.View>
-        <View style={styles.bidsNav}>
-          {renderTabs()}
-        {tab === 'received' && received.some((j) => j.bids.length > 0) && (
-          <FilterChips
-            items={SORTS.map((x) => ({ id: x.id, label: x.label, tone: 'blue' as const, icon: (on: boolean) => <SortChipIcon id={x.id} on={on} /> }))}
-            plain
-            onBlue
-            scroll
-            radius={10}
-            value={bidSort}
-            onChange={(id) => id && setBidSort(id as typeof bidSort)}
-          />
-        )}
-        </View>
-      </Animated.View>
+      )}
 
       {/* The header's blue carries on behind the tabs and ends in round corners (as on Activity), so the tab bar overlaps it. */}
       {tab !== 'received' && <Animated.View pointerEvents="none" style={[styles.floatBand, { opacity: mapP }]} />}
@@ -1302,12 +1349,19 @@ const styles = themedStyles(() => StyleSheet.create({
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10, paddingHorizontal: 32, minHeight: 320 },
   emptyTitle: { fontSize: 16, lineHeight: 24, fontFamily: FONTS.bodyBold, color: Colors.textMain, textAlign: 'center', marginTop: 6 },
   emptyAction: { alignSelf: 'stretch', gap: 8, marginTop: 12 },
-  emptyFree: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.success, textAlign: 'center' },
   emptyLink: { minHeight: 44, justifyContent: 'center', marginTop: 4 },
   emptyLinkText: { fontSize: 14, fontFamily: FONTS.bodySemiBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1e3a8a' },
   emptyText: { maxWidth: 270, fontSize: 13.5, lineHeight: 22, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, textAlign: 'center' },
   body: { paddingHorizontal: 4, paddingTop: 4, gap: 18, paddingBottom: 24, backgroundColor: pageBg() },
   fullMap: { ...StyleSheet.absoluteFill },
+  mapTop: { position: 'absolute', top: 12, left: 0, right: 0, zIndex: 6, elevation: 6, gap: 10 },
+  mapTopRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16 },
+  mapRound: { width: 46, height: 46, borderRadius: 23, backgroundColor: Colors.bgCard, justifyContent: 'center', alignItems: 'center', shadowColor: '#1e3a8a', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.22, shadowRadius: 14, elevation: 6 },
+  mapPill: { flex: 1, height: 46, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, paddingLeft: 18, paddingRight: 8, borderRadius: 23, backgroundColor: Colors.bgCard, shadowColor: '#1e3a8a', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.22, shadowRadius: 14, elevation: 6 },
+  mapPillTitle: { flexShrink: 1, fontSize: 15, fontFamily: FONTS.titleBold, color: Colors.textMain },
+  mapPillCount: { height: 30, justifyContent: 'center', paddingHorizontal: 12, borderRadius: 15, backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#dbeafe' },
+  mapPillCountText: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1e3a8a' },
+  mapChips: { paddingHorizontal: 10 },
   mapFullLayer: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 2, elevation: 2 },
   // Fixed height, stuck to the bottom of the tab: it does not move when the tab grows upward as the band folds away.
   mapAnchored: { position: 'absolute', left: 0, right: 0, bottom: 0 },
