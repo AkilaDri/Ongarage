@@ -24,7 +24,7 @@ import { OfferTiles } from '../components/home/OfferTiles';
 import { offerFitsVehicle } from '../utils/vehicleOffers';
 import { useVehicles } from '../context/VehiclesContext';
 import { GarageGridSection } from '../components/home/GarageGrid';
-import { useUsedGarages } from '../components/GarageHistory';
+import { useUsedGarages, useLastUsedAt } from '../components/GarageHistory';
 import { GarageListSheet } from '../components/home/GarageListSheet';
 import { useUserLocation } from '../context/LocationContext';
 import { useNotice } from '../context/NoticeContext';
@@ -82,7 +82,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onSOSPress, onPostJob, o
   const nearest = [...garages].sort((a, b) => a.distance - b.distance);
   // Garages the owner has finished a job with before, and the nearby list with its sort chips.
   const isUsed = useUsedGarages();
-  const usedGarages = garages.filter((g) => isUsed(g));
+  const lastUsedAt = useLastUsedAt();
+  const usedGarages = garages.filter((g) => isUsed(g)).sort((a, b) => lastUsedAt(b) - lastUsedAt(a));
   const [nearbySort, setNearbySort] = useState<'near' | 'rating'>('near');
   const nearbyList = nearbySort === 'near' ? nearest : [...garages].sort((a, b) => b.rating - a.rating);
   const protectedGarages = garages.filter((g) => g.level === 'premier');

@@ -52,7 +52,6 @@ import { TowFlow, type TowStatus } from './screens/tow/TowFlow';
 import { HomeSearch } from './components/home/HomeSearch';
 import { HomeTop } from './components/home/HomeTop';
 import { GarageReviewsSheet } from './components/GarageReviewsSheet';
-import { MartHeader } from './components/mart/MartHeader';
 import { ChatHeaderButton } from './components/ChatHeaderButton';
 import { OnGarageLogo } from './components/home/OnGarageLogo';
 import { AppPageHeader } from './components/AppPageHeader';
@@ -471,7 +470,7 @@ function AppShell() {
       <StatusBar style={isDark ? "light" : "dark"} />
       <SafeAreaView style={[styles.container, styles.containerFull, (activeTab === 'activity' || activeTab === 'mart' || activeTab === 'bids') && { backgroundColor: pageHeaderBlue().from }]} edges={['top']}>
         {/* Every other tab starts with its title; it folds away with the page scroll like the old header did. */}
-        {activeTab !== 'home' && activeTab !== 'activity' && activeTab !== 'bids' && !!TAB_TITLES[activeTab] && (
+        {activeTab !== 'home' && activeTab !== 'activity' && activeTab !== 'bids' && !(activeTab === 'mart' && martSegment === 'shops') && !!TAB_TITLES[activeTab] && (
           <Animated.View style={{ height: martHeaderCollapse.interpolate({ inputRange: [0, 1], outputRange: [PAGE_TITLE_H, 0] }), overflow: 'hidden', backgroundColor: pageHeaderBlue().from, marginBottom: -2 }}>
             <Animated.View style={{ opacity: 1 }}>
             {(() => {
@@ -505,7 +504,8 @@ function AppShell() {
           style={[
             styles.sheet,
             
-            activeTab === 'home' && styles.sheetHome,
+            // OnMart's Shops page carries its own header, as Home does.
+            (activeTab === 'home' || (activeTab === 'mart' && martSegment === 'shops')) && styles.sheetHome,
             // On Home the sheet's top corners straighten once the page has scrolled up to the top of the screen.
             
             { opacity: Animated.multiply(pageAnim.interpolate({ inputRange: [0, 1], outputRange: [0.25, 1] }), dimAnim), transform: [{ translateX: pageAnim.interpolate({ inputRange: [0, 1], outputRange: [40, 0] }) }] },
@@ -587,6 +587,7 @@ function AppShell() {
           ) : activeTab === 'mart' ? (
             <MartScreen
               activeVehicle={selectedVehicle}
+              onVehicleChange={setSelectedVehicle}
               segment={martSegment}
               onSegmentChange={setMartSegment}
               searchSeed={martSeed}

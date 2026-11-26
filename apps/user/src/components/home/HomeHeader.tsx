@@ -57,7 +57,7 @@ const Glow: React.FC<{ size: number; color: string; opacity: number; style: obje
   </Svg>
 );
 
-export const HomeHeader: React.FC<{ vehicleId?: string; onSelectVehicle?: (id: string) => void }> = ({ vehicleId, onSelectVehicle }) => {
+export const HomeHeader: React.FC<{ vehicleId?: string; onSelectVehicle?: (id: string) => void; /** Another brand's logo (OnMart uses this header). */ logo?: React.ReactNode }> = ({ vehicleId, onSelectVehicle, logo }) => {
   const { fullName } = useProfile();
   const { findVehicle } = useVehicles();
   const vehicle = vehicleId ? findVehicle(vehicleId) : undefined;
@@ -72,7 +72,7 @@ export const HomeHeader: React.FC<{ vehicleId?: string; onSelectVehicle?: (id: s
           <Text style={hh.cityPin}>📍</Text>
           <Text style={hh.cityText}>{MOCK_USER.city}</Text>
         </View>
-        <OnGarageLogo width={104} height={34} />
+        {logo ?? <OnGarageLogo width={104} height={34} />}
       </View>
       <Text style={hh.hi} numberOfLines={1}>
         Hi {fullName},

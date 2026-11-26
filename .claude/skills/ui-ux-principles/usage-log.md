@@ -13,6 +13,26 @@ Entry format:
 
 ## Entries
 
+## 2026-11-27 · Owner OnMart rows · Home's garage rules for shops
+- Principles used: C3 (saved and bought-from rows), C1 and C4 (the heart now saves), UX 05 (ads after organic rows, still labelled), C2 and UX 24 (one nearby row with three choices), UPD 099 (own shops first), C5 (same rules as Home).
+- Core missing: none.
+- Outcome: user approved all four decisions. Not yet checked on a phone; not type checked.
+
+## 2026-11-27 · Owner OnMart Shops, step 3 · Home's banner and rows, a bar that stays
+- Principles used: C5 (Home's banner, row titles, card text sizes), UX 24 (four shop rows instead of six), UX 05 (paid banners and rows still marked), C6 and UPD 069 (ask stays in reach), C7 (shop card text 12px and up).
+- Core missing: none.
+- Outcome: user said go. Not yet checked on a phone; not type checked.
+
+## 2026-11-27 · Owner OnMart Shops, step 2 · Quick Parts tiles, filters with the shop list
+- Principles used: C5 (Home's Quick Booking measurements), C3 and UPD 140 (picture with a name, no two tiles share a picture), C2 and UX 50 (sorting and distance only at the shop list and map), Typography 60 (short one-line tile names).
+- Core missing: none.
+- Outcome: user said go. Not yet checked on a phone; not type checked.
+
+## 2026-11-27 · Owner OnMart Shops, step 1 · Home's header, action card and search
+- Principles used: C5 and UPD 035 (Home's header, card styles and order), C3 (vehicle shown and changeable), C6 and UPD 168 (ask for a part first), UPD 099 (parts the garage waits for before shopping), UPD 030 (red kept for SOS), UX 50 (map behind its button).
+- Core missing: none.
+- Outcome: user approved all four decisions. Not yet checked on a phone; not type checked.
+
 ## 2026-11-27 · Owner running job · a waiting approval follows the toggle
 - Principles used: UPD 113 mapping and C4 (the card answers the toggle at once), C2 (no approval asked of someone standing at the garage), C10 (switching approves nothing; in-person items are checked on the bill).
 - Core missing: none.

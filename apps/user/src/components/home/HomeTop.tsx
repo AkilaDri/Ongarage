@@ -58,7 +58,8 @@ export const HomeTop: React.FC<{ onSOS: () => void; onPost: () => void; search: 
   </View>
 );
 
-const hs = StyleSheet.create({
+/** Shared with OnMart's top (components/mart/MartTop), so the two pages stay the same shape. */
+export const homeTopStyles = StyleSheet.create({
   // The cards start 56px above the header's bottom edge, so the white card overlaps the blue band.
   below: { paddingHorizontal: 16, marginTop: -56 },
   // One white card holds the two actions, which are separate cards inside it with a small gap between them.
@@ -93,3 +94,5 @@ const hs = StyleSheet.create({
   sinhala: { fontFamily: 'NotoSansSinhala_500Medium' },
   btnSub: { fontSize: 13.5, lineHeight: 18, marginTop: 6, fontFamily: FONTS.bodyRegular, color: '#6b7280' },
 });
+
+const hs = homeTopStyles;

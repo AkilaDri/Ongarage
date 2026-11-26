@@ -17,7 +17,7 @@ A working checklist of every feature in the four apps: whether its **design is o
 | Direct-booking details | ⬜ | 🟠 | Still the old design. |
 | Home (header, vehicle chip, greeting) | ✅ | 🟢 | Header refined 2026-11-15. |
 | Home (services grid, job chips, banners, offer tiles, garage rows, saved garages row) | 🟡 | 🔴 | EV and fuel tiles hidden from Quick Booking. Offers, banners and sponsored rows are fixed lists. Job chips ignore the vehicle type. |
-| OnMart tab (shops, my requests, open wall, orders) | ⬜ | 🟠 | Rules have unit tests; shops are simulated; banners and deals are fixtures. |
+| OnMart tab (shops, my requests, open wall, orders) | 🟡 | 🟠 | Shops landing rebuilt in Home's layout 2026-11-27 (header, action card, search, Quick Parts, banner, four shop rows, bar that stays; map behind its button), not checked on a phone. Requests, On Feed and Orders not reviewed. Shops are simulated; banners and deals are fixtures. |
 | Account tab (vehicles card, rows, theme, language, help, about) | 🟡 | 🟢 | Vehicles card, remove, handover and OnChat position done; rows and sheets not reviewed. |
 
 ### Booking and request flows

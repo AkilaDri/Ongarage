@@ -1,3 +1,4 @@
+import { toggleSavedShop, useSavedShops } from '../../utils/savedShops';
 import { EmptyState } from '@ongarage/shared';
 import { elevation1, outline } from '../../utils/material';
 import React from 'react';
@@ -29,7 +30,6 @@ export const ShopSheet: React.FC<{ shop: ShopListing | null; onClose: () => void
   const tab: Tab = 'menu';
   const [partQuery, setPartQuery] = React.useState('');
   const [category, setCategory] = React.useState('');
-  const [saved, setSaved] = React.useState(false);
   const [showInfo, setShowInfo] = React.useState(false);
   const [showStock, setShowStock] = React.useState(false);
   // What the owner has picked from this shop, to ask about in one request: stock line -> how many.
@@ -39,15 +39,16 @@ export const ShopSheet: React.FC<{ shop: ShopListing | null; onClose: () => void
     if (shop) setShown(shop);
   }, [shop]);
   const shopId = shop?.id;
+  const savedIds = useSavedShops().ids;
   React.useEffect(() => {
     setPartQuery('');
     setCategory('');
-    setSaved(false);
     setShowInfo(false);
     setShowStock(false);
     setPicked({});
   }, [shopId]);
   if (!shown) return null;
+  const saved = savedIds.includes(shown.id);
   const s = shown;
 
   const stock = (MART_STOCK[s.id] ?? []).filter((l) => l.qty > 0);
@@ -99,7 +100,7 @@ export const ShopSheet: React.FC<{ shop: ShopListing | null; onClose: () => void
           <Text style={styles.roundBtnText}>✕</Text>
         </Pressable>
         {main && (
-          <Pressable style={[styles.roundBtn, { right: 14 }]} onPress={() => setSaved((v) => !v)} hitSlop={8} accessibilityLabel="Save shop">
+          <Pressable style={[styles.roundBtn, { right: 14 }]} onPress={() => toggleSavedShop(s.id)} hitSlop={8} accessibilityLabel="Save shop" accessibilityState={{ checked: saved }}>
             <Text style={[styles.roundBtnText, saved && { color: '#ff5a6e' }]}>{saved ? '♥' : '♡'}</Text>
           </Pressable>
         )}

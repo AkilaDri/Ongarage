@@ -17,12 +17,15 @@ export const ShopCard: React.FC<{
   availability?: ShopAvailability;
   onPress?: () => void;
   onCall?: () => void;
+  /** With `onSave`, a heart shows beside the call button; `saved` fills it. */
+  saved?: boolean;
+  onSave?: () => void;
   /** Extra line under the card (e.g. a "recommended by" badge). */
   footer?: React.ReactNode;
   selected?: boolean;
   /** The Google Material look: 12px corners, a thin outline, light elevation (opt-in, the other apps keep the soft card). */
   material?: boolean;
-}> = ({ shop, availability, onPress, onCall, footer, selected, material }) => {
+}> = ({ shop, availability, onPress, onCall, footer, selected, material, saved, onSave }) => {
   const badges = shopBadges(shop);
   const a = availability;
   return (
@@ -46,6 +49,11 @@ export const ShopCard: React.FC<{
             {shop.district} · ⏱ මිනි. {shop.stats.avgResponseMin} · සේවාව {shopServiceScore(shop.stats).toFixed(1)}
           </Text>
         </View>
+        {!!onSave && (
+          <Pressable style={styles.callBtn} onPress={onSave} accessibilityLabel={`${saved ? 'Unsave' : 'Save'} ${shop.name}`} accessibilityState={{ checked: !!saved }} hitSlop={6}>
+            <Text style={[styles.callIcon, { color: saved ? '#e5283c' : Colors.textMuted }]}>{saved ? '♥' : '♡'}</Text>
+          </Pressable>
+        )}
         {!!onCall && (
           <Pressable style={styles.callBtn} onPress={onCall} accessibilityLabel={`Call ${shop.name}`} hitSlop={6}>
             <Text style={styles.callIcon}>📞</Text>

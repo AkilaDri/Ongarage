@@ -77,6 +77,16 @@ export const useUsedGarages = () => {
   }, [workshops]);
 };
 
+/** When a garage last finished a job for the owner (0 if never): the used-garages row lists the latest first. */
+export const useLastUsedAt = () => {
+  const { workshops } = useWorkshops();
+  return useMemo(() => {
+    const closed = Object.values(workshops).filter((w) => w.progress.stage === 'closed');
+    return (g: GarageRef) =>
+      Math.max(0, ...closed.filter((w) => (g.id && w.garageId === g.id) || w.garageName === g.name).map((w) => w.progress.closedAt ?? w.scheduledAt));
+  }, [workshops]);
+};
+
 /** The owner's record with one garage: each job it finished for them, with the date, the vehicle, what it cost, the warranty and their rating. */
 export const GarageHistorySheet: React.FC<{ visible: boolean; onClose: () => void; garage: GarageRef }> = ({ visible, onClose, garage }) => {
   const { done, running, cancelled, level } = useGarageHistory(garage);

@@ -5,11 +5,12 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Colors, FONTS, Gradient, themedStyles, type MartBanner } from '@ongarage/shared';
 
 const GAP = 10;
+const BLUE_STOPS = [{ offset: '0', color: '#1e3a8a' }, { offset: '1', color: '#1e3a8a' }];
 
-/** Large paid banners from shops that page sideways, the next one peeking in; every one is labelled as an ad. */
+/** Paid banners from shops that page sideways (dots show the others); every one is labelled as an ad. */
 export const MartBannerCarousel: React.FC<{ banners: MartBanner[]; onOpen: (b: MartBanner) => void }> = ({ banners, onOpen }) => {
   const [width, setWidth] = useState(0);
-  const cardW = Math.max(0, width - 28);
+  const cardW = width;
   const [page, setPage] = useState(0);
   const scroller = useRef<ScrollView>(null);
   const touchedAt = useRef(0);
@@ -39,25 +40,28 @@ export const MartBannerCarousel: React.FC<{ banners: MartBanner[]; onOpen: (b: M
           showsHorizontalScrollIndicator={false}
           snapToInterval={cardW + GAP}
           decelerationRate="fast"
-          contentContainerStyle={{ gap: GAP, paddingRight: 28 }}
+          contentContainerStyle={{ gap: GAP }}
           onScroll={(e) => setPage(Math.round(e.nativeEvent.contentOffset.x / (cardW + GAP)))}
           scrollEventThrottle={32}
         >
           {banners.map((b) => (
             <Pressable key={b.id} onPress={() => onOpen(b)} accessibilityLabel={`Promo ${b.title}`}>
+              {/* The shape of Home's offer banner: one blue card, a yellow tag, the offer, and a white button beside it. */}
               <View style={[styles.banner, { width: cardW }]}>
-                <Gradient stops={b.stops} />
+                <Gradient stops={BLUE_STOPS} />
                 <Text style={styles.emoji}>{b.emoji}</Text>
-                <View style={styles.adPill}>
-                  <Text style={styles.adText}>දැන්වීම</Text>
-                </View>
-                <View style={styles.copy}>
-                  <Text style={styles.title} numberOfLines={2}>
-                    {b.title}
-                  </Text>
-                  <Text style={styles.subtitle} numberOfLines={1}>
-                    {b.subtitle}
-                  </Text>
+                <View style={styles.line}>
+                  <View style={styles.copy}>
+                    <View style={styles.adPill}>
+                      <Text style={styles.adText}>දැන්වීම</Text>
+                    </View>
+                    <Text style={styles.title} numberOfLines={2}>
+                      {b.title}
+                    </Text>
+                    <Text style={styles.subtitle} numberOfLines={2}>
+                      {b.subtitle}
+                    </Text>
+                  </View>
                   <View style={styles.cta}>
                     <Text style={styles.ctaText}>{b.cta} ›</Text>
                   </View>
@@ -80,15 +84,16 @@ export const MartBannerCarousel: React.FC<{ banners: MartBanner[]; onOpen: (b: M
 const styles = themedStyles(() =>
   StyleSheet.create({
     wrap: { gap: 8 },
-    banner: { height: 136, borderRadius: 12, overflow: 'hidden', justifyContent: 'flex-end' },
-    emoji: { position: 'absolute', right: 14, top: 18, fontSize: 64, opacity: 0.95 },
-    adPill: { position: 'absolute', top: 10, left: 10, paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6, backgroundColor: 'rgba(255, 255, 255, 0.85)' },
-    adText: { fontSize: 9.5, fontWeight: '800', color: '#0f172a' },
-    copy: { padding: 14, gap: 2, paddingRight: 90 },
-    title: { fontSize: 16, fontFamily: FONTS.titleBold, color: '#fff' },
-    subtitle: { fontSize: 10.5, fontFamily: FONTS.bodyMedium, color: 'rgba(255, 255, 255, 0.92)' },
-    cta: { alignSelf: 'flex-start', marginTop: 6, paddingHorizontal: 12, height: 28, justifyContent: 'center', borderRadius: 14, backgroundColor: '#f59e0b' },
-    ctaText: { fontSize: 11, fontFamily: FONTS.bodyBold, color: '#fff' },
+    banner: { minHeight: 150, borderRadius: 20, padding: 20, overflow: 'hidden', justifyContent: 'center', backgroundColor: '#1e3a8a' },
+    emoji: { position: 'absolute', right: -8, bottom: -18, fontSize: 104, opacity: 0.12 },
+    line: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
+    copy: { flex: 1 },
+    adPill: { alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 3, borderRadius: 8, backgroundColor: '#facc15' },
+    adText: { fontSize: 12, fontWeight: '800', color: '#111827' },
+    title: { marginTop: 8, fontSize: 20, lineHeight: 27, fontFamily: FONTS.bodyBold, color: '#ffffff' },
+    subtitle: { marginTop: 4, fontSize: 13.5, lineHeight: 19, fontFamily: FONTS.bodyRegular, color: '#dbeafe' },
+    cta: { flexShrink: 0, maxWidth: '40%', paddingHorizontal: 14, paddingVertical: 11, borderRadius: 14, backgroundColor: '#ffffff' },
+    ctaText: { fontSize: 13.5, lineHeight: 19, fontFamily: FONTS.bodyBold, color: '#1e3a8a', textAlign: 'center' },
     dots: { flexDirection: 'row', justifyContent: 'center', gap: 5 },
     dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: Colors.subtleBorder },
     dotOn: { width: 16, backgroundColor: Colors.primary },
