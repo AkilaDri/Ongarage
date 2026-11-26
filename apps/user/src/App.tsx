@@ -340,6 +340,10 @@ function AppShell() {
   const [bookingJobId, setBookingJobId] = useState<string | null>(null);
   // The hamburger in the Bids sheet header: every received bid as one row.
   const [bidsRows, setBidsRows] = useState(false);
+  // The rows view is a passing way of looking: leaving the Bids tab puts it back to cards.
+  useEffect(() => {
+    if (activeTab !== 'bids') setBidsRows(false);
+  }, [activeTab]);
   // The Received sheet is open to the top: the same top header bar then drops its heading and carries Free Quote, the cards / rows switch and the close mark.
   const [bidsUp, setBidsUp] = useState(false);
   const bidsMinimize = useRef<(() => void) | null>(null);
