@@ -1,7 +1,8 @@
+import { FlowButton } from '../FlowButton';
 import React, { useEffect, useState } from 'react';
 import { pickPhotos } from '@ongarage/shared';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { ActionButton, Colors, FONTS, getAi, PhotoStrip, SUGGEST_MIN_CONFIDENCE, themedStyles, type ComplaintTriage, type DisputeTopic } from '@ongarage/shared';
+import { Colors, FONTS, getAi, PhotoStrip, SUGGEST_MIN_CONFIDENCE, themedStyles, type ComplaintTriage, type DisputeTopic } from '@ongarage/shared';
 import { useWorkshops, type OwnerWorkshop } from '../../context/WorkshopContext';
 import { Sheet } from '../Sheet';
 
@@ -66,7 +67,7 @@ export const ProblemSheet: React.FC<{ workshop: OwnerWorkshop | null; onClose: (
       subtitle={workshop ? `${workshop.garageName} · ඔවුන් මුලින්ම නැවත පරීක්ෂා කර හදයි` : undefined}
       onClose={onClose}
       footer={
-        <ActionButton
+        <FlowButton
           label="ගරාජයට යවන්න"
           icon="📨"
           variant="primary"
@@ -127,16 +128,16 @@ const styles = themedStyles(() =>
       borderWidth: 1,
       borderColor: Colors.borderColor,
       color: Colors.textMain,
-      fontSize: 12.5,
+      fontSize: 13,
       fontFamily: FONTS.bodyRegular,
       textAlignVertical: 'top',
     },
-    ai: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
-    label: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, letterSpacing: 0.4 },
+    ai: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
+    label: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, letterSpacing: 0.4 },
     chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
     chip: { paddingHorizontal: 11, paddingVertical: 7, borderRadius: 12, borderWidth: 1, borderColor: Colors.borderColor, backgroundColor: Colors.bgCard },
     chipOn: { borderColor: 'rgba(56, 189, 248, 0.6)', backgroundColor: 'rgba(56, 189, 248, 0.12)' },
-    chipText: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
-    hint: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 16 },
+    chipText: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
+    hint: { fontSize: 13, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 20 },
   })
 );

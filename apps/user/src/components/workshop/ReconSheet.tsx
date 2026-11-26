@@ -1,6 +1,7 @@
+import { FlowButton } from '../FlowButton';
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { ActionButton, Colors, FONTS, themedStyles } from '@ongarage/shared';
+import { Colors, FONTS, themedStyles } from '@ongarage/shared';
 import { useWorkshops, type OwnerWorkshop } from '../../context/WorkshopContext';
 import { money } from '../../utils/format';
 import { Sheet } from '../Sheet';
@@ -34,10 +35,10 @@ export const ReconSheet: React.FC<{ workshop: OwnerWorkshop | null; reconId?: st
       footer={
         <View style={styles.row}>
           <View style={styles.flex1}>
-            <ActionButton label="Genuine බලා සිටින්න" variant="ghost" compact onPress={() => decide(false)} />
+            <FlowButton label="Genuine බලා සිටින්න" variant="ghost" onPress={() => decide(false)} />
           </View>
           <View style={styles.flex1}>
-            <ActionButton label="Recon අනුමතයි" icon="✓" variant="success" compact onPress={() => decide(true)} />
+            <FlowButton label="Recon අනුමතයි" icon="✓" variant="success" onPress={() => decide(true)} />
           </View>
         </View>
       }
@@ -71,14 +72,14 @@ const styles = themedStyles(() =>
   StyleSheet.create({
     flex1: { flex: 1 },
     row: { flexDirection: 'row', gap: 8 },
-    text: { fontSize: 12, fontFamily: FONTS.bodyRegular, color: Colors.textSoft, lineHeight: 19 },
+    text: { fontSize: 13, fontFamily: FONTS.bodyRegular, color: Colors.textSoft, lineHeight: 19 },
     box: { padding: 12, borderRadius: 14, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.borderColor, gap: 10 },
     part: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
     compare: { flexDirection: 'row', gap: 8 },
     col: { flex: 1, padding: 10, borderRadius: 12, backgroundColor: Colors.subtleFill, gap: 2 },
     colRecon: { borderWidth: 1, borderColor: 'rgba(16, 185, 129, 0.45)' },
-    label: { fontSize: 10.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
+    label: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted },
     price: { fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textMain },
-    sub: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 16 },
+    sub: { fontSize: 13, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 20 },
   })
 );

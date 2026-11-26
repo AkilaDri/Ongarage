@@ -1,0 +1,40 @@
+import { linesOwnerBuys, pendingExtra, pendingRecon } from '@ongarage/shared';
+import type { OwnerWorkshop } from '../context/WorkshopContext';
+
+/**
+ * What a running repair needs from the owner right now, or null when it is waiting on someone else. One answer for the card's "your reply" pill, its action box
+ * and the progress line, so they can never disagree. The order is the order things can be answered: a cancellation first, then confirming the handover (nothing
+ * else can be answered before it), then what the stage asks, then parts the owner has to buy.
+ */
+export const ownerNeed = (w?: OwnerWorkshop): string | null => {
+  if (!w) return null;
+  const p = w.progress;
+  if (p.cancelled || p.stage === 'closed' || p.stage === 'declined') return null;
+  if (p.cancelRequest) return p.cancelRequest.status === 'quoted' ? 'වන්දිය ගැන තීරණය කරන්න' : null;
+  if (p.receivedAt && !w.receiptConfirmed) return 'වාහනය භාර දුන් බව තහවුරු කරන්න';
+  if (p.stage === 'awaitingApproval') return 'පරීක්ෂා වාර්තාව අනුමත කරන්න';
+  if (p.stage === 'repairing' && pendingRecon(p)) return 'Recon අවසරය දෙන්න';
+  if (p.stage === 'repairing' && pendingExtra(p)) return 'අමතර වැඩ අනුමත කරන්න';
+  if (p.stage === 'readyForHandover') return 'වාහනය භාරගන්න';
+  if (linesOwnerBuys(p).some((l) => !w.partsBought?.[l.id])) return 'කොටස් OnMart හි මිලදී ගන්න';
+  return null;
+};
+
+/** The progress line while nothing is asked of the owner: what is happening, and whom they are waiting for. */
+export const waitingText = (w: OwnerWorkshop): string | undefined => {
+  const p = w.progress;
+  if (p.cancelRequest) return 'අවලංගු ඉල්ලීමට ගරාජයේ පිළිතුර බලාපොරොත්තුවෙන්';
+  switch (p.stage) {
+    case 'booked':
+      return 'වෙන් කළ වේලාව බලාපොරොත්තුවෙන්';
+    case 'received':
+    case 'diagnosing':
+      return 'ගරාජය වාහනය පරීක්ෂා කරමින්';
+    case 'repairing':
+      return 'ගරාජය අලුත්වැඩියා කරමින්';
+    case 'disputed':
+      return 'ඔබ වාර්තා කළ ගැටලුවට පිළිතුරු බලාපොරොත්තුවෙන්';
+    default:
+      return undefined;
+  }
+};

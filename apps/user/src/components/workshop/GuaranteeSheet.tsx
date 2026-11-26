@@ -1,7 +1,8 @@
+import { FlowButton } from '../FlowButton';
 import React, { useEffect, useState } from 'react';
 import { pickPhotos } from '@ongarage/shared';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
-import { ActionButton, claimBlockers, claimSplit, Colors, eligibilityOf, FONTS, GUARANTEE, PhotoStrip, themedStyles } from '@ongarage/shared';
+import { claimBlockers, claimSplit, Colors, eligibilityOf, FONTS, GUARANTEE, PhotoStrip, themedStyles } from '@ongarage/shared';
 import { useWorkshops, type OwnerWorkshop } from '../../context/WorkshopContext';
 import { money } from '../../utils/format';
 import { Sheet } from '../Sheet';
@@ -48,7 +49,7 @@ export const GuaranteeSheet: React.FC<{ workshop: OwnerWorkshop | null; onClose:
       subtitle={`${w.garageName} · ${w.receiptNo ?? ''}`}
       onClose={onClose}
       footer={
-        <ActionButton
+        <FlowButton
           label={blockers.length ? 'මෙම රැකියාවට ඉල්ලිය නොහැක' : 'ඉල්ලීම යවන්න'}
           icon="🛡️"
           variant="primary"
@@ -115,7 +116,7 @@ const Row: React.FC<{ label: string; value: string; strong?: boolean }> = ({ lab
 const styles = themedStyles(() =>
   StyleSheet.create({
     box: { padding: 12, borderRadius: 14, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.borderColor, gap: 6 },
-    check: { fontSize: 12, fontFamily: FONTS.bodySemiBold },
+    check: { fontSize: 13, fontFamily: FONTS.bodySemiBold },
     area: {
       minHeight: 76,
       padding: 12,
@@ -124,7 +125,7 @@ const styles = themedStyles(() =>
       borderWidth: 1,
       borderColor: Colors.borderColor,
       color: Colors.textMain,
-      fontSize: 12.5,
+      fontSize: 13,
       fontFamily: FONTS.bodyRegular,
       textAlignVertical: 'top',
     },
@@ -140,9 +141,9 @@ const styles = themedStyles(() =>
       fontFamily: FONTS.bodyMedium,
     },
     row: { flexDirection: 'row', justifyContent: 'space-between', gap: 8 },
-    rowLabel: { flex: 1, fontSize: 11.5, fontFamily: FONTS.bodyRegular, color: Colors.textSoft },
-    rowValue: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
+    rowLabel: { flex: 1, fontSize: 13, fontFamily: FONTS.bodyRegular, color: Colors.textSoft },
+    rowValue: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
     strong: { fontFamily: FONTS.bodyBold, color: Colors.textMain },
-    sub: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 16 },
+    sub: { fontSize: 13, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 20 },
   })
 );

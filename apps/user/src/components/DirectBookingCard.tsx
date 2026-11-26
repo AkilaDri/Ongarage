@@ -10,6 +10,7 @@ import { useBookings } from '../context/BookingsContext';
 import { useVehicles } from '../context/VehiclesContext';
 import { useWorkshops } from '../context/WorkshopContext';
 import { WorkshopTracker } from './workshop/WorkshopTracker';
+import { ownerNeed } from '../utils/ownerNeed';
 import { RatingSheet } from './workshop/RatingSheet';
 import { CategoryPhoto } from './home/CategoryPhoto';
 import { VehicleBlock } from './VehicleBlock';
@@ -59,6 +60,8 @@ export const DirectBookingCard: React.FC<{ booking: DirectBooking; onBookAgain: 
         garage={{ id: b.garage.id, name: b.garage.name }}
         meta={`${formatDate(b.scheduledAt ?? b.preferredAt)} · ${formatTime(b.scheduledAt ?? b.preferredAt)}`}
         kind="direct"
+        // The owner's turn: a time the garage proposed, or something a running job asks for.
+        attention={!cancelledJob && (b.status === 'proposed' || (!finishedJob && !!ownerNeed(w)))}
       />
       <PostBody bleed={8} price={priceText} swap={runningJob} vehicle={v} kind="direct" subject={`${cat.name}${b.service ? ` · ${b.service}` : ''}`} onPress={onOpen}>
         {doneOk && (

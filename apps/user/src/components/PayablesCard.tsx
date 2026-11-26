@@ -2,6 +2,7 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { categoryInfo, Colors, FONTS, getThemeMode, paymentDue, themedStyles } from '@ongarage/shared';
 import { useWorkshops } from '../context/WorkshopContext';
+import { hideLatePayments } from '../context/PayStanding';
 import { money } from '../utils/format';
 import { elevation1, outline } from '../utils/material';
 import { PaymentStatus } from './workshop/PaymentStatus';
@@ -11,6 +12,8 @@ export const PayablesCard: React.FC = () => {
   const { workshops } = useWorkshops();
   const owed = Object.values(workshops)
     .filter((w) => (w.progress.payment?.balance ?? 0) > 0 && !w.progress.cancelled)
+    // Overdue balances are left off on the dev server (context/PayStanding.ts); ones not yet due still show.
+    .filter((w) => !(hideLatePayments && paymentDue(w.progress.payment) === 'overdue'))
     .sort((a, b) => (a.progress.payment!.promisedAt ?? 0) - (b.progress.payment!.promisedAt ?? 0));
   if (!owed.length) return null;
   const total = owed.reduce((s, w) => s + w.progress.payment!.balance, 0);

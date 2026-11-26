@@ -96,16 +96,16 @@ const styles = themedStyles(() =>
   StyleSheet.create({
     paper: { padding: 16, borderRadius: 16, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.borderColor, gap: 5 },
     garage: { fontSize: 15, fontFamily: FONTS.titleBold, color: Colors.textMain },
-    sub: { fontSize: 11, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 17 },
+    sub: { fontSize: 13, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 20 },
     rule: { height: 1, backgroundColor: Colors.borderColor, marginVertical: 6 },
-    section: { fontSize: 11.5, fontFamily: FONTS.bodyBold, color: Colors.textMain, marginTop: 4 },
+    section: { fontSize: 13, fontFamily: FONTS.bodyBold, color: Colors.textMain, marginTop: 4 },
     row: { flexDirection: 'row', justifyContent: 'space-between', gap: 10 },
-    rowLabel: { flex: 1, fontSize: 11.5, fontFamily: FONTS.bodyRegular, color: Colors.textSoft },
-    rowValue: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
+    rowLabel: { flex: 1, fontSize: 13, fontFamily: FONTS.bodyRegular, color: Colors.textSoft },
+    rowValue: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
     strong: { fontFamily: FONTS.bodyBold, color: Colors.textMain },
     totalRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     totalLabel: { fontSize: 13, fontFamily: FONTS.bodyBold, color: Colors.textMain },
     total: { fontSize: 18, fontFamily: FONTS.titleBold, color: Colors.success },
-    ok: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.successText },
+    ok: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.successText },
   })
 );

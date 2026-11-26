@@ -1,6 +1,7 @@
+import { FlowButton } from '../FlowButton';
 import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { ActionButton, Colors, FONTS, OWNER_CANCEL_REASONS, themedStyles } from '@ongarage/shared';
+import { Colors, FONTS, OWNER_CANCEL_REASONS, themedStyles } from '@ongarage/shared';
 import { useWorkshops, type OwnerWorkshop } from '../../context/WorkshopContext';
 import { Sheet } from '../Sheet';
 
@@ -48,10 +49,10 @@ export const CancelJobSheet: React.FC<{
       footer={
         <View style={styles.row}>
           <View style={styles.flex1}>
-            <ActionButton label="අවලංගු නොකරන්න" variant="ghost" compact onPress={onClose} />
+            <FlowButton label="අවලංගු නොකරන්න" variant="ghost" onPress={onClose} />
           </View>
           <View style={styles.flex1}>
-            <ActionButton label={editing ? 'වෙනස්කම් සුරකින්න' : 'ඉල්ලීම ගරාජයට යවන්න'} icon={editing ? '✓' : '📨'} variant="primary" compact disabled={!reason} onPress={submit} />
+            <FlowButton label={editing ? 'වෙනස්කම් සුරකින්න' : 'ඉල්ලීම ගරාජයට යවන්න'} icon={editing ? '✓' : '📨'} variant="primary" disabled={!reason} onPress={submit} />
           </View>
         </View>
       }
@@ -91,13 +92,13 @@ const styles = themedStyles(() =>
     flex1: { flex: 1 },
     row: { flexDirection: 'row', gap: 8 },
     infoBox: { gap: 4, padding: 12, borderRadius: 12, backgroundColor: 'rgba(245, 158, 11, 0.12)', borderWidth: 1, borderColor: 'rgba(245, 158, 11, 0.45)' },
-    infoTitle: { fontSize: 12.5, fontFamily: FONTS.bodyBold, color: Colors.textMain },
-    infoText: { fontSize: 12, fontFamily: FONTS.bodyRegular, color: Colors.textMain, lineHeight: 18 },
+    infoTitle: { fontSize: 13, fontFamily: FONTS.bodyBold, color: Colors.textMain },
+    infoText: { fontSize: 13, fontFamily: FONTS.bodyRegular, color: Colors.textMain, lineHeight: 20 },
     label: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.textMain, marginTop: 6 },
     chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
     chip: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 18, borderWidth: 1, borderColor: Colors.borderColor, backgroundColor: Colors.bgCard },
     chipOn: { borderColor: Colors.primary, backgroundColor: 'rgba(56, 189, 248, 0.14)' },
-    chipText: { fontSize: 12, fontFamily: FONTS.bodyMedium, color: Colors.textMuted },
+    chipText: { fontSize: 13, fontFamily: FONTS.bodyMedium, color: Colors.textMuted },
     chipTextOn: { color: Colors.primary, fontFamily: FONTS.bodyBold },
     note: { minHeight: 64, padding: 12, borderRadius: 12, borderWidth: 1, borderColor: Colors.borderColor, backgroundColor: Colors.bgCard, color: Colors.textMain, fontSize: 13, fontFamily: FONTS.bodyRegular, textAlignVertical: 'top' },
   })

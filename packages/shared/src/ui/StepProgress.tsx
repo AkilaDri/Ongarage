@@ -32,7 +32,7 @@ const RunningSeg: React.FC<{ style: object }> = ({ style }) => {
  * steppers. `current` is the index of the active step; `alert` paints it amber (e.g.
  * waiting for the owner, or a dispute).
  */
-export const StepProgress: React.FC<{ steps: string[]; current: number; alert?: boolean; compact?: boolean }> = ({ steps, current, alert, compact }) => {
+export const StepProgress: React.FC<{ steps: string[]; current: number; alert?: boolean; compact?: boolean; /** A larger line under the bar (Sinhala at 13px). */ readable?: boolean }> = ({ steps, current, alert, compact, readable }) => {
   const i = Math.max(0, Math.min(current, steps.length - 1));
   return (
     <View style={styles.wrap}>
@@ -42,7 +42,7 @@ export const StepProgress: React.FC<{ steps: string[]; current: number; alert?: 
         ))}
       </View>
       {!compact && (
-        <Text style={styles.label}>
+        <Text style={[styles.label, readable && styles.labelReadable]}>
           පියවර {i + 1}/{steps.length} · <Text style={[styles.labelStrong, alert && { color: Colors.warning }]}>{steps[i]}</Text>
         </Text>
       )}
@@ -61,6 +61,7 @@ const styles = themedStyles(() =>
     runningClip: { overflow: 'hidden' },
     light: { position: 'absolute', top: 0, bottom: 0, left: 0, borderRadius: 4, backgroundColor: 'rgba(255, 255, 255, 0.65)' },
     label: { fontSize: 10.5, fontFamily: FONTS.bodyMedium, color: Colors.textMuted },
+    labelReadable: { fontSize: 13, lineHeight: 20 },
     labelStrong: { fontFamily: FONTS.bodyBold, color: Colors.textMain },
   })
 );

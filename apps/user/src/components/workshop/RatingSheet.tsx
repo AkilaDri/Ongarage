@@ -1,6 +1,7 @@
+import { FlowButton } from '../FlowButton';
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { ActionButton, Colors, FONTS, getAi, getThemeMode, RATING_DIMENSIONS, SUGGEST_MIN_CONFIDENCE, themedStyles, type DimensionRating, type RatingDimension } from '@ongarage/shared';
+import { Colors, FONTS, getAi, getThemeMode, RATING_DIMENSIONS, SUGGEST_MIN_CONFIDENCE, themedStyles, type DimensionRating, type RatingDimension } from '@ongarage/shared';
 import { overallFrom, useWorkshops, type OwnerWorkshop } from '../../context/WorkshopContext';
 import { outline } from '../../utils/material';
 import { Sheet } from '../Sheet';
@@ -80,7 +81,7 @@ export const RatingSheet: React.FC<{ workshop: OwnerWorkshop | null; onClose: ()
       title="ශ්‍රේණිගත කරන්න"
       subtitle="ඔබගේ කේතයෙන් අවසන් කළ රැකියාවක් පමණක් ශ්‍රේණිගත කළ හැක"
       onClose={onClose}
-      footer={<ActionButton label={complete ? `යවන්න · ★${overallFrom(dims)}` : 'තරු තෝරන්න'} icon="⭐" variant="primary" disabled={!complete} onPress={submit} />}
+      footer={<FlowButton label={complete ? `යවන්න · ★${overallFrom(dims)}` : 'තරු තෝරන්න'} icon="⭐" variant="primary" disabled={!complete} onPress={submit} />}
     >
       <View style={styles.hero}>
         <View style={styles.avatarRing}>
@@ -177,7 +178,7 @@ const styles = themedStyles(() =>
     avatar: { width: 76, height: 76, borderRadius: 38, backgroundColor: Colors.subtleFill, justifyContent: 'center', alignItems: 'center' },
     avatarEmoji: { fontSize: 36 },
     name: { fontSize: 20, lineHeight: 28, fontFamily: FONTS.titleBold, color: Colors.textMain, textAlign: 'center' },
-    sub: { fontSize: 12.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: -2 },
+    sub: { fontSize: 13, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: -2 },
     question: { marginTop: 10, fontSize: 16, fontFamily: FONTS.titleBold, color: Colors.textMain },
     starsRow: { flexDirection: 'row', gap: 8 },
     star: { fontSize: 46, color: Colors.subtleBorder },
@@ -190,13 +191,13 @@ const styles = themedStyles(() =>
     tagTextOn: { color: dark() ? '#8db1ff' : '#1e3a8a' },
     soft: { padding: 14, borderRadius: 14, backgroundColor: dark() ? 'rgba(255, 255, 255, 0.06)' : '#f1f4f9', gap: 10 },
     dimRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
-    dimLabel: { flex: 1, fontSize: 12.5, fontFamily: FONTS.bodyMedium, color: Colors.textMain },
+    dimLabel: { flex: 1, fontSize: 13, fontFamily: FONTS.bodyMedium, color: Colors.textMain },
     smallStars: { flexDirection: 'row', gap: 4 },
     smallStar: { fontSize: 24, color: Colors.subtleBorder },
     input: { minHeight: 70, padding: 14, borderRadius: 14, backgroundColor: dark() ? 'rgba(255, 255, 255, 0.06)' : '#f1f4f9', color: Colors.textMain, fontSize: 13, fontFamily: FONTS.bodyRegular, textAlignVertical: 'top' },
-    warn: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.warning, lineHeight: 17 },
+    warn: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.warning, lineHeight: 20 },
     moreRow: { alignSelf: 'center', paddingVertical: 4 },
-    moreText: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
-    note: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 16, textAlign: 'center' },
+    moreText: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
+    note: { fontSize: 13, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 20, textAlign: 'center' },
   })
 );

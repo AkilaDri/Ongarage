@@ -1,8 +1,9 @@
+import { FlowButton } from '../FlowButton';
 import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { ActionButton, Colors, dayText, FONTS, getThemeMode, MAX_PROMISE_DAYS, paymentDue, promiseAt, PROMISE_PRESETS, themedStyles } from '@ongarage/shared';
+import { Colors, dayText, FONTS, getThemeMode, MAX_PROMISE_DAYS, paymentDue, promiseAt, PROMISE_PRESETS, themedStyles } from '@ongarage/shared';
 import { useWorkshops, type OwnerWorkshop } from '../../context/WorkshopContext';
-import { money } from '../../utils/format';
+import { formatDate, money } from '../../utils/format';
 import { Sheet } from '../Sheet';
 
 /** "I do not agree with the garage's payment record": the owner says why (the garage reads it). */
@@ -25,7 +26,7 @@ const DisputeSheet: React.FC<{ workshop: OwnerWorkshop | null; onClose: () => vo
       subtitle={`${w.garageName} · බිල ${money(pay.total)}`}
       onClose={onClose}
       footer={
-        <ActionButton
+        <FlowButton
           label="ගරාජයට දැනුම් දෙන්න"
           icon="⚠️"
           variant="primary"
@@ -42,6 +43,14 @@ const DisputeSheet: React.FC<{ workshop: OwnerWorkshop | null; onClose: () => vo
     </Sheet>
   );
 };
+
+/** "I paid": names the amount, and says the garage still has to confirm it. */
+const ClaimButton: React.FC<{ amount: number; onPress: () => void }> = ({ amount, onPress }) => (
+  <View style={styles.claim}>
+    <FlowButton label={`${money(amount)} ගෙව්වා කියා දන්වන්න`} icon="🧾" variant="primary" onPress={onPress} />
+    <Text style={styles.claimHint}>ගරාජය එය තහවුරු කරයි.</Text>
+  </View>
+);
 
 /**
  * What was paid for a closed job, as the garage recorded it: paid in full, or a balance the owner promised to pay by a date, which the owner confirms or disputes,
@@ -61,7 +70,7 @@ export const PaymentStatus: React.FC<{ workshop: OwnerWorkshop; /** The short fo
 
   const due = paymentDue(pay);
   if (compact) {
-    const tag = due === 'overdue' ? { text: 'ප්‍රමාදයි', color: Colors.errorText } : due === 'today' ? { text: 'අද', color: Colors.warning } : { text: dayText(pay.promisedAt ?? pay.recordedAt), color: Colors.textMuted };
+    const tag = due === 'overdue' ? { text: 'ප්‍රමාදයි', color: Colors.errorText } : due === 'today' ? { text: 'අද', color: Colors.warning } : { text: formatDate(pay.promisedAt ?? pay.recordedAt), color: Colors.textMuted };
     return (
       <View style={[styles.box, due === 'overdue' && styles.late]} accessibilityLabel="Payment balance">
         <View style={styles.compactHead}>
@@ -72,14 +81,14 @@ export const PaymentStatus: React.FC<{ workshop: OwnerWorkshop; /** The short fo
         {pay.confirm === 'pending' ? (
           <View style={styles.row}>
             <View style={styles.flex1}>
-              <ActionButton label="එකඟයි" icon="✓" variant="success" compact onPress={() => confirmPayment(w.id, true)} />
+              <FlowButton label="එකඟයි" icon="✓" variant="success" onPress={() => confirmPayment(w.id, true)} />
             </View>
             <View style={styles.flex1}>
-              <ActionButton label="එකඟ නොවේ" icon="⚠️" variant="ghost" compact onPress={() => setDisputing(true)} />
+              <FlowButton label="එකඟ නොවේ" icon="⚠️" variant="ghost" onPress={() => setDisputing(true)} />
             </View>
           </View>
         ) : pay.confirm === 'disputed' ? (
-          <Text style={[styles.text, { color: Colors.errorText }]}>⚠️ ඔබ එකඟ නොවේ</Text>
+          <Text style={[styles.text, { color: Colors.warning }]}>⚠️ ඔබ එකඟ නොවේ</Text>
         ) : (
           <>
             {!!pay.missedAt && (
@@ -99,10 +108,10 @@ export const PaymentStatus: React.FC<{ workshop: OwnerWorkshop; /** The short fo
                   <View style={styles.ownBox} accessibilityLabel="Custom payment day">
                     <View style={styles.stepper}>
                       <Pressable style={styles.stepBtn} onPress={() => setOwnDays((d) => Math.max(1, d - 1))} accessibilityLabel="Earlier day"><Text style={styles.stepText}>−</Text></Pressable>
-                      <Text style={styles.stepValue}>{dayText(promiseAt(ownDays))}</Text>
+                      <Text style={styles.stepValue}>{formatDate(promiseAt(ownDays))}</Text>
                       <Pressable style={styles.stepBtn} onPress={() => setOwnDays((d) => Math.min(MAX_PROMISE_DAYS, d + 1))} accessibilityLabel="Later day"><Text style={styles.stepText}>＋</Text></Pressable>
                     </View>
-                    <ActionButton label="මෙම දිනට ගෙවන්නම්" icon="📅" variant="primary" compact onPress={() => reschedulePayment(w.id, promiseAt(ownDays))} />
+                    <FlowButton label={`${formatDate(promiseAt(ownDays))} ට ගෙවන්නම්`} icon="📅" variant="primary" onPress={() => reschedulePayment(w.id, promiseAt(ownDays))} />
                   </View>
                 )}
               </>
@@ -110,7 +119,7 @@ export const PaymentStatus: React.FC<{ workshop: OwnerWorkshop; /** The short fo
             {pay.claim?.status === 'pending' ? (
               <Text style={styles.text}>🧾 ගෙවූ බව දැනුම් දුන්නා — {w.garageName} තහවුරු කරයි.</Text>
             ) : (
-              <ActionButton label="මම ගෙව්වා" icon="🧾" variant="primary" compact onPress={() => claimPayment(w.id)} />
+              <ClaimButton amount={pay.balance} onPress={() => claimPayment(w.id)} />
             )}
           </>
         )}
@@ -122,7 +131,7 @@ export const PaymentStatus: React.FC<{ workshop: OwnerWorkshop; /** The short fo
     <View style={[styles.box, due === 'overdue' && styles.late]} accessibilityLabel="Payment balance">
       <Text style={styles.title}>💰 ඉතිරි {money(pay.balance)} ගෙවිය යුතුයි</Text>
       <Text style={styles.text}>
-        බිල {money(pay.total)} · ඔබ ගෙවූ {money(pay.received)} · {dayText(pay.promisedAt ?? pay.recordedAt)} දිනට ගෙවන බවට පොරොන්දුයි
+        බිල {money(pay.total)} · ඔබ ගෙවූ {money(pay.received)} · {formatDate(pay.promisedAt ?? pay.recordedAt)} දිනට ගෙවන බවට පොරොන්දුයි
         {pay.note ? ` · “${pay.note}”` : ''}
       </Text>
       {due === 'today' && <Text style={[styles.text, { color: Colors.warning, fontFamily: FONTS.bodyBold }]}>⏰ අද ගෙවිය යුතු දිනයයි — {w.garageName} ට ගෙවන්න.</Text>}
@@ -131,14 +140,14 @@ export const PaymentStatus: React.FC<{ workshop: OwnerWorkshop; /** The short fo
       {pay.confirm === 'pending' ? (
         <View style={styles.row}>
           <View style={styles.flex1}>
-            <ActionButton label="එකඟයි" icon="✓" variant="success" compact onPress={() => confirmPayment(w.id, true)} />
+            <FlowButton label="එකඟයි" icon="✓" variant="success" onPress={() => confirmPayment(w.id, true)} />
           </View>
           <View style={styles.flex1}>
-            <ActionButton label="එකඟ නොවේ" icon="⚠️" variant="ghost" compact onPress={() => setDisputing(true)} />
+            <FlowButton label="එකඟ නොවේ" icon="⚠️" variant="ghost" onPress={() => setDisputing(true)} />
           </View>
         </View>
       ) : pay.confirm === 'disputed' ? (
-        <Text style={[styles.text, { color: Colors.errorText }]}>⚠️ ඔබ එකඟ නොවන බව ගරාජයට දැනුම් දුන්නා{pay.disputeNote ? `: “${pay.disputeNote}”` : ''}</Text>
+        <Text style={[styles.text, { color: Colors.warning }]}>⚠️ ඔබ එකඟ නොවන බව ගරාජයට දැනුම් දුන්නා{pay.disputeNote ? `: “${pay.disputeNote}”` : ''}</Text>
       ) : (
         <>
           <Text style={[styles.text, { color: Colors.successText }]}>✓ ඔබ තහවුරු කළා{due === 'upcoming' ? ' — එදින ගෙවීමට අමතක නොකරන්න.' : ''}</Text>
@@ -161,8 +170,8 @@ export const PaymentStatus: React.FC<{ workshop: OwnerWorkshop; /** The short fo
             <Text style={styles.text}>🧾 ඔබ LKR {pay.claim.amount.toLocaleString('en-US')} ගෙවූ බව දැනුම් දුන්නා — {w.garageName} තහවුරු කරන තුරු.</Text>
           ) : (
             <>
-              {pay.claim?.status === 'denied' && <Text style={[styles.text, { color: Colors.errorText }]}>✖ {w.garageName} කියන්නේ ගෙවීම ලැබී නැති බවයි.</Text>}
-              <ActionButton label="මම ගෙව්වා" icon="🧾" variant="primary" compact onPress={() => claimPayment(w.id)} />
+              {pay.claim?.status === 'denied' && <Text style={[styles.text, { color: Colors.warning }]}>✖ {w.garageName} කියන්නේ ගෙවීම ලැබී නැති බවයි.</Text>}
+              <ClaimButton amount={pay.balance} onPress={() => claimPayment(w.id)} />
             </>
           )}
         </>
@@ -176,22 +185,24 @@ const styles = themedStyles(() =>
   StyleSheet.create({
     flex1: { flex: 1 },
     row: { flexDirection: 'row', gap: 8 },
+    claim: { gap: 4 },
+    claimHint: { fontSize: 13, lineHeight: 20, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, textAlign: 'center' },
     box: { gap: 6, padding: 12, borderRadius: 12, backgroundColor: getThemeMode() === 'dark' ? 'rgba(245, 158, 11, 0.1)' : '#fef7e0', borderWidth: 1, borderColor: 'rgba(245, 158, 11, 0.45)' },
     late: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(239, 68, 68, 0.1)' : '#fce8e6', borderColor: 'rgba(239, 68, 68, 0.45)' },
     missed: { gap: 6, padding: 10, borderRadius: 10, backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.1)' : '#eff6ff' },
     chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
     chip: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 16, borderWidth: 1, borderColor: Colors.borderColor, backgroundColor: Colors.bgCard },
-    chipText: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
+    chipText: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
     chipOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#bfdbfe' },
     ownBox: { gap: 8 },
     stepper: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
     stepBtn: { width: 36, height: 36, borderRadius: 18, borderWidth: 1, borderColor: Colors.borderColor, backgroundColor: Colors.bgCard, alignItems: 'center', justifyContent: 'center' },
     stepText: { fontSize: 18, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
-    stepValue: { flex: 1, textAlign: 'center', fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
+    stepValue: { flex: 1, textAlign: 'center', fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
     title: { fontSize: 13, fontFamily: FONTS.bodyBold, color: Colors.textMain },
     compactHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-    tag: { fontSize: 12, fontFamily: FONTS.bodyBold },
-    text: { fontSize: 12, fontFamily: FONTS.bodyRegular, color: Colors.textMain, lineHeight: 18 },
+    tag: { fontSize: 13, fontFamily: FONTS.bodyBold },
+    text: { fontSize: 13, fontFamily: FONTS.bodyRegular, color: Colors.textMain, lineHeight: 20 },
     input: { minHeight: 70, padding: 12, borderRadius: 12, borderWidth: 1, borderColor: Colors.borderColor, backgroundColor: Colors.bgCard, color: Colors.textMain, fontSize: 13, fontFamily: FONTS.bodyRegular, textAlignVertical: 'top' },
   })
 );

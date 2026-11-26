@@ -22,7 +22,9 @@ export const PostHead: React.FC<{
   bleed?: number;
   /** The OnChat button for this job: shown in the top right corner in place of the three dots. */
   chat?: React.ReactNode;
-}> = ({ photo, name, garage, meta, kind, chat, bleed = 0 }) => (
+  /** The job is waiting for the owner: an amber "your reply" pill stands in the corner in place of the kind tag. */
+  attention?: boolean;
+}> = ({ photo, name, garage, meta, kind, chat, bleed = 0, attention }) => (
   <View style={[styles.head, !!bleed && { marginHorizontal: -bleed }]}>
     {photo}
     <View style={styles.flex1}>
@@ -37,7 +39,13 @@ export const PostHead: React.FC<{
       </Text>
     </View>
     <View style={styles.priceCol}>
-      {!!kind && <KindTag kind={kind} />}
+      {attention ? (
+        <View style={styles.turnPill} accessibilityLabel="Your reply needed">
+          <Text style={styles.turnPillText}>ඔබේ පිළිතුර අවශ්‍යයි</Text>
+        </View>
+      ) : (
+        !!kind && <KindTag kind={kind} />
+      )}
       {chat}
     </View>
   </View>
@@ -132,6 +140,9 @@ const styles = themedStyles(() =>
     nameRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
     name: { fontSize: 12, fontFamily: FONTS.bodyBold, color: Colors.textMain },
     meta: { fontSize: 11, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 1 },
+    // The Bids tab's amber chip.
+    turnPill: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, backgroundColor: 'rgba(245, 158, 11, 0.16)' },
+    turnPillText: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: '#b45309' },
     priceCol: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     dotsBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 6, paddingLeft: 6 },
     dot: { width: 5, height: 5, borderRadius: 3, backgroundColor: Colors.textMuted },

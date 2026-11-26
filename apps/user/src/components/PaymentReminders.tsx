@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { dayText, paymentDue } from '@ongarage/shared';
 import { useNotice } from '../context/NoticeContext';
 import { useWorkshops } from '../context/WorkshopContext';
+import { hideLatePayments } from '../context/PayStanding';
 
 const MORNING = 9;
 
@@ -22,6 +23,7 @@ export const PaymentReminders: React.FC = () => {
         const pay = w.progress.payment;
         const due = paymentDue(pay);
         if (!pay || (due !== 'today' && due !== 'overdue') || pay.confirm === 'disputed' || w.progress.cancelled) continue;
+        if (hideLatePayments && due === 'overdue') continue;
         if (now.getHours() < MORNING && due === 'today') continue;
         const key = `${w.id}:${day}`;
         if (told.current.has(key)) continue;

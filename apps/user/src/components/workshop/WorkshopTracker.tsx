@@ -1,8 +1,10 @@
+import { FlowButton } from '../FlowButton';
 import React, { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import {
-  ActionButton,
+  
   linesOwnerBuys,
+  paymentDue,
   canRequestCancel,
   Colors,
   FONTS,
@@ -18,7 +20,9 @@ import {
   type WorkshopStage,
   getThemeMode,
 } from '@ongarage/shared';
-import { useWorkshops } from '../../context/WorkshopContext';import { formatDate, money } from '../../utils/format';
+import { useWorkshops } from '../../context/WorkshopContext';
+import { ownerNeed, waitingText } from '../../utils/ownerNeed';
+import { formatDate, formatTime, money } from '../../utils/format';
 import { ApprovalSheet } from './ApprovalSheet';
 import { HandoverSheet } from './HandoverSheet';
 import { ProblemSheet, TOPIC_LABEL } from './ProblemSheet';
@@ -64,7 +68,7 @@ export const WorkshopTracker: React.FC<{ id: string; detailed?: boolean }> = ({ 
   const w = workshops[id];
   if (!w) return null;
   const p = w.progress;
-  const alert = p.stage === 'awaitingApproval' || p.stage === 'readyForHandover' || (p.stage === 'repairing' && (!!pendingExtra(p) || !!pendingRecon(p)));
+  const need = ownerNeed(w);
   const d = p.dispute;
   const inWarranty = p.stage === 'closed' && !!p.warrantyUntil && p.warrantyUntil > Date.now();
   const claim = p.warrantyClaim;
@@ -84,18 +88,37 @@ export const WorkshopTracker: React.FC<{ id: string; detailed?: boolean }> = ({ 
   const action = () => {
     if (receiptPending) return null;
     switch (p.stage) {
-      case 'awaitingApproval':
-        return <ActionButton label="වාර්තාව බලා අනුමත කරන්න" icon="🔍" variant="primary" compact onPress={() => setSheet('approve')} />;
+      case 'awaitingApproval': {
+        // The same figures the approval sheet opens with (every line ticked), so the price is known before opening it. Parts the owner buys are paid to the shop.
+        const asked = p.diagnosis ? w.agreedPrice + p.diagnosis.lines.filter((l) => l.source !== 'owner').reduce((s, l) => s + l.price, 0) : null;
+        return (
+          <>
+            {asked !== null && (
+              <View style={styles.askFacts}>
+                <Text style={styles.askLine}>සියල්ල අනුමත කළහොත් නව එකතුව <Text style={styles.askMoney}>{money(asked)}</Text></Text>
+                {!!p.diagnosis?.finishBy && <Text style={styles.askSub}>අවසන් කිරීමට {formatDate(p.diagnosis.finishBy)} · {formatTime(p.diagnosis.finishBy)} පමණ</Text>}
+              </View>
+            )}
+            <FlowButton label="වාර්තාව බලා අනුමත කරන්න" icon="🔍" variant="primary" onPress={() => setSheet('approve')} />
+          </>
+        );
+      }
       case 'repairing':
         if (reconAsk)
-          return <ActionButton label={`Recon අවසරය ඉල්ලයි · ${reconAsk.partNames.join(', ')}`} icon="📲" variant="primary" compact onPress={() => setSheet('recon')} />;
+          return <FlowButton label={`Recon අවසරය ඉල්ලයි · ${reconAsk.partNames.join(', ')}`} icon="📲" variant="primary" onPress={() => setSheet('recon')} />;
         return extraAsk ? (
-          <ActionButton label={`අමතර වැඩ බලා අනුමත කරන්න · ${money(extraAsk.lines.reduce((s, l) => s + l.price, 0))}`} icon="➕" variant="primary" compact onPress={() => setSheet('extra')} />
+          <>
+            <View style={styles.askFacts}>
+              <Text style={styles.askLine}>සියල්ල අනුමත කළහොත් නව එකතුව <Text style={styles.askMoney}>{money(workshopBill(w.agreedPrice, p).total + extraAsk.lines.filter((l) => l.source !== 'owner').reduce((s, l) => s + l.price, 0))}</Text></Text>
+              <Text style={styles.askSub}>ඔබ පිළිතුරු දෙන තුරු ගරාජය දැනටමත් අනුමත කළ වැඩ දිගටම කරයි.</Text>
+            </View>
+            <FlowButton label={`අමතර වැඩ බලා අනුමත කරන්න · ${money(extraAsk.lines.reduce((s, l) => s + l.price, 0))}`} icon="➕" variant="primary" onPress={() => setSheet('extra')} />
+          </>
         ) : null;
       case 'readyForHandover':
         return (
           <>
-            <ActionButton label="භාරගන්න · කේතය පෙන්වන්න" icon="🔑" variant="success" compact onPress={() => setSheet('handover')} />
+            <FlowButton label="භාරගන්න · කේතය පෙන්වන්න" icon="🔑" variant="success" onPress={() => setSheet('handover')} />
             {d?.status === 'rework' && (
               <Pressable onPress={() => escalate(id)} hitSlop={6} accessibilityLabel="Escalate to OnGarage">
                 <Text style={styles.link}>තවමත් හරි නැත්නම් · OnGarage වෙත යොමු කරන්න ›</Text>
@@ -114,15 +137,27 @@ export const WorkshopTracker: React.FC<{ id: string; detailed?: boolean }> = ({ 
             </Pressable>
           </>
         );
-      case 'closed':
+      case 'closed': {
+        // One next step at a time: pay what must be paid now, then rate. The card stays short; the full record (review, the garage's rating of the owner, the
+        // Guarantee claim, a finished payment) is in the details view.
+        const pay = p.payment;
+        const owes = !!pay && pay.balance > 0;
+        // Paying comes before rating only while it needs the owner now: a garage's record to agree to or dispute, or a balance due today or late. A later promised
+        // day does not block rating, and neither does a record already disputed (it waits on the garage).
+        const due = paymentDue(pay);
+        const payNow = owes && (pay!.confirm === 'pending' || due === 'today' || due === 'overdue');
+        const cr = p.customerRating;
+        const replyDue = !!cr && !cr.reply && !cr.dispute && cr.stars < 4;
         return (
           <>
+            {(owes || detailed) && <PaymentStatus workshop={w} />}
+            {!review && !payNow && <FlowButton label="ශ්‍රේණිගත කරන්න" icon="⭐" variant="primary" a11y="Rate this job" onPress={() => setSheet('rate')} />}
             {claim ? (
               <Text style={styles.note}>{claim.status === 'accepted' ? '✅ ගරාජය වගකීම පිළිගත්තා — නොමිලේ හදයි.' : claim.status === 'open' ? '⏳ වගකීම් ඉල්ලීම ගරාජයට යවා ඇත.' : '⚖️ වගකීම් ඉල්ලීම OnGarage සලකා බලයි.'}</Text>
             ) : (
-              inWarranty && <ActionButton label="වගකීම් ඉල්ලීමක්" icon="🛡️" variant="ghost" compact onPress={() => setSheet('warranty')} />
+              inWarranty && <FlowButton label="වගකීම් ඉල්ලීමක්" icon="🛡️" variant="ghost" onPress={() => setSheet('warranty')} />
             )}
-            {review ? (
+            {detailed && review && (
               <View style={styles.reviewBox}>
                 <Text style={styles.sub}>
                   ⭐ ඔබ ★{review.rating} දුන්නා{review.technician ? ` · ${review.technician.name} ★${review.technician.rating}` : ''}
@@ -134,10 +169,9 @@ export const WorkshopTracker: React.FC<{ id: string; detailed?: boolean }> = ({ 
                   </Text>
                 )}
               </View>
-            ) : null}
-            <PaymentStatus workshop={w} />
-            <CustomerRatingView workshop={w} />
-            {gc && (
+            )}
+            {(detailed || replyDue) && <CustomerRatingView workshop={w} />}
+            {detailed && gc && (
               <View style={styles.reviewBox}>
                 <Text style={styles.sub}>
                   🛡️ Guarantee ඉල්ලීම ({money(gc.amount)}): {GC_TEXT[gc.status]}
@@ -150,23 +184,18 @@ export const WorkshopTracker: React.FC<{ id: string; detailed?: boolean }> = ({ 
                 )}
               </View>
             )}
-            <View style={styles.links}>
-              <Pressable onPress={() => setSheet('receipt')} hitSlop={6} accessibilityLabel="Open receipt">
-                <Text style={styles.link}>🧾 රිසිට්පත</Text>
+            {/* The quiet foot of the card: the cover at the left, the receipt at the right. */}
+            <View style={styles.foot}>
+              <Text style={[styles.footWarranty, warrantyOver && { color: Colors.textMuted }]}>
+                {p.warrantyUntil ? `🛡️ ${formatDate(p.warrantyUntil)}${warrantyOver ? ' දී අවසන්' : ' දක්වා'}` : ''}
+              </Text>
+              <Pressable style={styles.footLink} onPress={() => setSheet('receipt')} hitSlop={6} accessibilityRole="button" accessibilityLabel="Open receipt">
+                <Text style={styles.link}>🧾 රිසිට්පත ›</Text>
               </Pressable>
-              {p.protected && !gc && inWarranty && (
-                <Pressable onPress={() => setSheet('guarantee')} hitSlop={6} accessibilityLabel="Guarantee claim">
-                  <Text style={styles.link}>🛡️ Guarantee ඉල්ලීමක්</Text>
-                </Pressable>
-              )}
-              {!review && (
-                <Pressable onPress={() => setSheet('rate')} hitSlop={6} accessibilityLabel="Rate this job">
-                  <Text style={styles.link}>⭐ ශ්‍රේණිගත කරන්න</Text>
-                </Pressable>
-              )}
             </View>
           </>
         );
+      }
       case 'declined':
         return <Text style={styles.note}>පරීක්ෂා ගාස්තුව {money(INSPECTION_FEE)} පමණක් ගෙවිය යුතුයි.</Text>;
       default:
@@ -199,45 +228,65 @@ export const WorkshopTracker: React.FC<{ id: string; detailed?: boolean }> = ({ 
 
   return (
     <View style={styles.wrap}>
-      {p.stage !== 'closed' && <StepProgress steps={OWNER_STEP_LABELS} current={workshopStepIndex(p.stage)} alert={alert || p.stage === 'disputed'} />}
+      {/* The owner's turn: one soft blue box, above the progress, holding exactly what is asked of them now. Nothing is shown while the job waits on others. */}
+      {!!need && (
+        <View style={styles.turn} accessibilityLabel="Your turn">
+        {/* The garage says it received the vehicle: the same question as in the job's chat, short, so it can be answered from the card. */}
+        {receiptPending && !p.cancelRequest && (
+          <View style={styles.receiptBox} accessibilityLabel="Confirm vehicle handed over">
+            <Text style={styles.receiptText}>🚗 {w.garageName} ඔබගේ වාහනය ලැබුණා කියා දන්වා ඇත — නිවැරදිද?</Text>
+            <View style={styles.receiptBtns}>
+              <View style={styles.flex1}>
+                <FlowButton
+                  label="එසේ නොවේ"
+                  variant="ghost"
+                  a11y="Not handed over"
+                  onPress={() => {
+                    confirmReceived(id, false);
+                    say(id, '⚠️ අයිතිකරු වාහනය භාර දුන් බව තහවුරු නොකරයි — ගරාජය පරීක්ෂා කළ යුතුයි.');
+                  }}
+                />
+              </View>
+              <View style={styles.flex1}>
+                <FlowButton
+                  label="තහවුරුයි"
+                  icon="✓"
+                  variant="success"
+                  a11y="Confirm handed over"
+                  onPress={() => {
+                    confirmReceived(id, true);
+                    say(id, '✅ අයිතිකරු වාහනය භාර දුන් බව තහවුරු කළා.');
+                  }}
+                />
+              </View>
+            </View>
+          </View>
+        )}
+          {!receiptPending && !p.cancelRequest && action()}
+          {p.cancelRequest?.status === 'quoted' && (
+            <FlowButton label={`වන්දිය ${money(p.cancelRequest.compensation ?? 0)} · තීරණය කරන්න`} variant="primary" onPress={() => setSheet('decide')} />
+          )}
+          {!receiptPending && !p.cancelRequest && (
+            <>
+              {linesOwnerBuys(p).filter((l) => !w.partsBought?.[l.id]).length > 0 && (
+                <Pressable style={styles.mustBuy} onPress={() => openBasket(id)} accessibilityLabel="Buy the parts in OnMart">
+                  <Text style={styles.mustBuyHead}>⚠️ ඔබ OnMart හි මිලදී ගත යුතුය - {linesOwnerBuys(p).filter((l) => !w.partsBought?.[l.id]).map((l) => l.name).join(', ')}</Text>
+                  <Text style={styles.mustBuyText}>නැත්නම් අලුත්වැඩියාව ප්‍රමාද වේ · 🛍️ OnMart හි මිලදී ගන්න ›</Text>
+                </Pressable>
+              )}
+            </>
+          )}
+        </View>
+      )}
+      {/* The line under the bar says what is needed or awaited now, not just the step's name. */}
+      {p.stage !== 'closed' && (
+        <StepProgress steps={OWNER_STEP_LABELS.map((l, i) => (i === workshopStepIndex(p.stage) ? need ?? waitingText(w) ?? l : l))} current={workshopStepIndex(p.stage)} alert={!!need || p.stage === 'disputed'} readable />
+      )}
       {p.protected && (
         <View style={styles.protectedPill} accessibilityLabel="Protected job">
           <Text style={styles.protectedText}>🛡️ ආරක්ෂිත රැකියාව · OnGarage Guarantee</Text>
         </View>
       )}
-      {/* The garage says it received the vehicle: the same question as in the job's chat, short, so it can be answered from the card. */}
-      {receiptPending && !p.cancelRequest && (
-        <View style={styles.receiptBox} accessibilityLabel="Confirm vehicle handed over">
-          <Text style={styles.receiptText} numberOfLines={2}>🚗 {w.garageName} ඔබගේ වාහනය ලැබුණා කියා දන්වා ඇත — නිවැරදිද?</Text>
-          <View style={styles.receiptBtns}>
-            <Pressable
-              style={[styles.receiptBtn, styles.receiptYes]}
-              onPress={() => {
-                confirmReceived(id, true);
-                say(id, '✅ අයිතිකරු වාහනය භාර දුන් බව තහවුරු කළා.');
-              }}
-              accessibilityLabel="Confirm handed over"
-            >
-              <Text style={styles.receiptYesText}>✓ තහවුරුයි</Text>
-            </Pressable>
-            <Pressable
-              style={[styles.receiptBtn, styles.receiptNo]}
-              onPress={() => {
-                confirmReceived(id, false);
-                say(id, '⚠️ අයිතිකරු වාහනය භාර දුන් බව තහවුරු නොකරයි — ගරාජය පරීක්ෂා කළ යුතුයි.');
-              }}
-              accessibilityLabel="Not handed over"
-            >
-              <Text style={styles.receiptNoText}>✖ එසේ නොවේ</Text>
-            </Pressable>
-          </View>
-        </View>
-      )}
-      <View style={styles.rowBetween}>
-        {p.stage === 'closed' && p.warrantyUntil && (
-          <Text style={[styles.warranty, warrantyOver && { color: Colors.textMuted }]}>🛡️ {formatDate(p.warrantyUntil)}{warrantyOver ? ' දී අවසන්' : ' දක්වා'}</Text>
-        )}
-      </View>
       {p.stage === 'repairing' && d?.status === 'rework' && <Text style={styles.note}>🔧 ඔබ වාර්තා කළ ගැටලුව නැවත හදමින්: “{d.text}”</Text>}
       {p.stage === 'disputed' && d && (
         <Text style={styles.sub}>
@@ -257,30 +306,16 @@ export const WorkshopTracker: React.FC<{ id: string; detailed?: boolean }> = ({ 
           <Text style={styles.sub}>
             🛑 {p.cancelRequest.status === 'quoted' ? `ගරාජය වන්දිය ${money(p.cancelRequest.compensation ?? 0)} ලෙස දැනුම් දුන්නා` : 'අවලංගු කිරීමේ ඉල්ලීම — ගරාජයේ පිළිතුර බලාපොරොත්තුවෙන්'}
           </Text>
-          <Pressable onPress={() => setSheet('decide')} hitSlop={6} accessibilityLabel="Cancellation request details">
-            <Text style={styles.link}>{p.cancelRequest.status === 'quoted' ? 'තීරණය කරන්න ›' : 'බලන්න / ඉවත් කරන්න ›'}</Text>
-          </Pressable>
+          {p.cancelRequest.status !== 'quoted' && (
+            <Pressable onPress={() => setSheet('decide')} hitSlop={6} accessibilityLabel="Cancellation request details">
+              <Text style={styles.link}>බලන්න / ඉවත් කරන්න ›</Text>
+            </Pressable>
+          )}
         </View>
       ) : (
         <>
-          {action()}
-          {!!action() && <View style={styles.sep} />}
-          {linesOwnerBuys(p).filter((l) => !w.partsBought?.[l.id]).length > 0 && (
-            <Pressable style={styles.mustBuy} onPress={() => openBasket(id)} accessibilityLabel="Buy the parts in OnMart">
-              <Text style={styles.mustBuyHead}>⚠️ ඔබ OnMart හි මිලදී ගත යුතුය - {linesOwnerBuys(p).filter((l) => !w.partsBought?.[l.id]).map((l) => l.name).join(', ')}</Text>
-              <Text style={styles.mustBuyText}>නැත්නම් අලුත්වැඩියාව ප්‍රමාද වේ · 🛍️ OnMart හි මිලදී ගන්න ›</Text>
-            </Pressable>
-          )}
-          {canAskToFit(w) && (
-            <Pressable onPress={() => setSheet('fit')} hitSlop={6} accessibilityLabel="Ask the garage to fit a new part">
-              <Text style={styles.link}>🔩 අලුත් කොටසක් සවි කරන්න ගරාජයට දන්වන්න</Text>
-            </Pressable>
-          )}
-          {canRequestCancel(p) && (
-            <Pressable onPress={() => setSheet('cancel')} hitSlop={6} accessibilityLabel="Cancel this job">
-              <Text style={[styles.link, { color: Colors.errorText }]}>✖ රැකියාව අවලංගු කරන්න</Text>
-            </Pressable>
-          )}
+          {!need && action()}
+          {!need && !!action() && <View style={styles.sep} />}
         </>
       )}
 
@@ -346,6 +381,30 @@ export const WorkshopTracker: React.FC<{ id: string; detailed?: boolean }> = ({ 
         </>
       )}
 
+      {/* Rare or costly actions live in the details view only, as quiet links; cancelling is last and in red, away from the buttons that are used often. */}
+      {detailed && (canAskToFit(w) && !p.cancelRequest || canRequestCancel(p) && !p.cancelRequest || (p.protected && !gc && inWarranty)) && (
+        <View style={styles.rare} accessibilityLabel="More actions">
+          {p.protected && !gc && inWarranty && (
+            <Pressable style={styles.rareRow} onPress={() => setSheet('guarantee')} accessibilityRole="button" accessibilityLabel="Guarantee claim">
+              <Text style={styles.rareText}>🛡️ Guarantee ඉල්ලීමක්</Text>
+              <Text style={styles.rareChevron}>›</Text>
+            </Pressable>
+          )}
+          {canAskToFit(w) && !p.cancelRequest && (
+            <Pressable style={styles.rareRow} onPress={() => setSheet('fit')} accessibilityRole="button" accessibilityLabel="Ask the garage to fit a new part">
+              <Text style={styles.rareText}>🔩 අලුත් කොටසක් සවි කරන්න ගරාජයට දන්වන්න</Text>
+              <Text style={styles.rareChevron}>›</Text>
+            </Pressable>
+          )}
+          {canRequestCancel(p) && !p.cancelRequest && (
+            <Pressable style={styles.rareRow} onPress={() => setSheet('cancel')} accessibilityRole="button" accessibilityLabel="Cancel this job">
+              <Text style={[styles.rareText, { color: Colors.errorText }]}>✖ රැකියාව අවලංගු කරන්න</Text>
+              <Text style={[styles.rareChevron, { color: Colors.errorText }]}>›</Text>
+            </Pressable>
+          )}
+        </View>
+      )}
+
       <FitPartSheet id={id} visible={sheet === 'fit'} onClose={close} />
       <CancelJobSheet workshop={sheet === 'cancel' ? w : null} onClose={close} />
       <CancelRequestSheet workshop={sheet === 'decide' ? w : null} onClose={close} />
@@ -370,35 +429,43 @@ export const WorkshopTracker: React.FC<{ id: string; detailed?: boolean }> = ({ 
 
 const styles = themedStyles(() =>
   StyleSheet.create({
-    receiptBox: { padding: 10, borderRadius: 12, gap: 8, backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.12)' : '#eff6ff' },
-    receiptText: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textMain, lineHeight: 18 },
+    turn: { gap: 10, padding: 12, borderRadius: 18, backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.12)' : '#eff6ff' },
+    receiptBox: { gap: 10 },
+    askFacts: { gap: 2 },
+    foot: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, paddingTop: 4, borderTopWidth: 1, borderTopColor: getThemeMode() === 'dark' ? Colors.borderColor : '#eef2f8' },
+    footWarranty: { flexShrink: 1, fontSize: 13, lineHeight: 20, fontFamily: FONTS.bodySemiBold, color: Colors.successText },
+    footLink: { minHeight: 44, justifyContent: 'center' },
+    rare: { marginTop: 8, borderTopWidth: 1, borderTopColor: getThemeMode() === 'dark' ? Colors.borderColor : '#eef2f8' },
+    rareRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, minHeight: 44, paddingVertical: 6 },
+    rareText: { flex: 1, fontSize: 13.5, lineHeight: 20, fontFamily: FONTS.bodySemiBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1e3a8a' },
+    rareChevron: { fontSize: 18, color: Colors.textMuted },
+    askLine: { fontSize: 13.5, lineHeight: 21, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
+    askMoney: { fontFamily: FONTS.titleBold, color: Colors.success },
+    askSub: { fontSize: 13, lineHeight: 20, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
+    receiptText: { fontSize: 13.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain, lineHeight: 21 },
     receiptBtns: { flexDirection: 'row', gap: 8 },
-    receiptBtn: { flex: 1, alignItems: 'center', paddingVertical: 7, borderRadius: 10 },
-    receiptYes: { backgroundColor: '#16a34a' },
-    receiptNo: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(239, 68, 68, 0.18)' : '#fde8e8' },
-    receiptYesText: { fontSize: 12, fontFamily: FONTS.bodyBold, color: '#ffffff' },
-    receiptNoText: { fontSize: 12, fontFamily: FONTS.bodyBold, color: Colors.errorText },
     sep: { height: 1, backgroundColor: getThemeMode() === 'dark' ? Colors.borderColor : '#dadce0' },
-    wrap: { gap: 8 },
+    wrap: { gap: 12 },
+    flex1: { flex: 1 },
     rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
-    stage: { flex: 1, fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
-    warranty: { fontSize: 10.5, fontFamily: FONTS.bodySemiBold, color: Colors.successText },
-    note: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.warning, lineHeight: 17 },
+    stage: { flex: 1, fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
+    warranty: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.successText },
+    note: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.warning, lineHeight: 20 },
     links: { flexDirection: 'row', gap: 16, flexWrap: 'wrap' },
     protectedPill: { alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, backgroundColor: 'rgba(245, 158, 11, 0.14)', borderWidth: 1, borderColor: 'rgba(245, 158, 11, 0.45)' },
-    protectedText: { fontSize: 10.5, fontFamily: FONTS.bodyBold, color: Colors.warning },
+    protectedText: { fontSize: 13, fontFamily: FONTS.bodyBold, color: Colors.warning },
     reviewBox: { padding: 10, borderRadius: 12, backgroundColor: Colors.subtleFill, gap: 3 },
     replyLabel: { fontFamily: FONTS.bodySemiBold, color: Colors.primary },
     mustBuy: { gap: 2, padding: 10, borderRadius: 10, borderWidth: 1.5, borderColor: getThemeMode() === 'dark' ? 'rgba(253, 214, 99, 0.5)' : '#f9ab00', backgroundColor: getThemeMode() === 'dark' ? 'rgba(253, 214, 99, 0.1)' : '#fef7e0' },
-    mustBuyHead: { fontSize: 12.5, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#fdd663' : '#b06000', lineHeight: 18 },
-    mustBuyText: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1e3a8a' },
-    link: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
-    label: { fontSize: 10.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, letterSpacing: 0.4 },
-    sub: { flexShrink: 1, fontSize: 11, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 17 },
+    mustBuyHead: { fontSize: 13, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#fdd663' : '#b06000', lineHeight: 20 },
+    mustBuyText: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1e3a8a' },
+    link: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
+    label: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, letterSpacing: 0.4 },
+    sub: { flexShrink: 1, fontSize: 13, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 20 },
     struck: { textDecorationLine: 'line-through', opacity: 0.7 },
     box: { padding: 12, borderRadius: 14, backgroundColor: Colors.subtleFill, gap: 5 },
-    boxTitle: { flexShrink: 1, fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textMain, lineHeight: 18 },
-    value: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
+    boxTitle: { flexShrink: 1, fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textMain, lineHeight: 20 },
+    value: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
     total: { fontSize: 14, fontFamily: FONTS.titleBold, color: Colors.success },
   })
 );

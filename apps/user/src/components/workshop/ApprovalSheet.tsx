@@ -1,6 +1,7 @@
+import { FlowButton } from '../FlowButton';
 import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { ActionButton, Colors, FONTS, INSPECTION_FEE, PhotoStrip, themedStyles, VoiceNotePlayer, workshopBill } from '@ongarage/shared';
+import { Colors, FONTS, INSPECTION_FEE, PhotoStrip, themedStyles, VoiceNotePlayer, workshopBill } from '@ongarage/shared';
 import { useWorkshops, type OwnerWorkshop } from '../../context/WorkshopContext';
 import { formatTime, money } from '../../utils/format';
 import { Sheet } from '../Sheet';
@@ -58,13 +59,12 @@ export const ApprovalSheet: React.FC<{
             <Text style={styles.warn}>රැකියාව නවත්වන්නද? පරීක්ෂා ගාස්තුව {money(INSPECTION_FEE)} පමණක් ගෙවා වාහනය ආපසු ගන්න.</Text>
             <View style={styles.row}>
               <View style={styles.flex1}>
-                <ActionButton label="නැත" variant="ghost" compact onPress={() => setConfirmStop(false)} />
+                <FlowButton label="නැත" variant="ghost" onPress={() => setConfirmStop(false)} />
               </View>
               <View style={styles.flex1}>
-                <ActionButton
+                <FlowButton
                   label="ඔව්, නවත්වන්න"
-                  variant="sos"
-                  compact
+                  variant="danger"
                   onPress={() => {
                     declineDiagnosis(w.id);
                     onClose();
@@ -77,10 +77,9 @@ export const ApprovalSheet: React.FC<{
           <View style={styles.row}>
             <View style={styles.flex1}>
               {x || change ? (
-                <ActionButton
-                  label="කිසිවක් එපා"
+                <FlowButton
+                  label={x ? 'අමතර වැඩ එපා' : 'කිසිවක් එපා'}
                   variant="ghost"
-                  compact
                   onPress={() => {
                     if (x) (change ? changeExtraDecision : decideExtra)(w.id, x.id, []);
                     else changeDiagnosisDecision(w.id, []);
@@ -88,15 +87,14 @@ export const ApprovalSheet: React.FC<{
                   }}
                 />
               ) : (
-                <ActionButton label="නවත්වන්න" variant="ghost" compact onPress={() => setConfirmStop(true)} />
+                <FlowButton label="රැකියාව නවත්වන්න" variant="ghost" onPress={() => setConfirmStop(true)} />
               )}
             </View>
             <View style={styles.flex2}>
-              <ActionButton
+              <FlowButton
                 label={`${change ? 'වෙනස්කම් සුරකින්න' : 'අනුමත කරන්න'} · ${money(total)}`}
                 icon="✓"
                 variant="success"
-                compact
                 onPress={() => {
                   if (change) {
                     if (x) changeExtraDecision(w.id, x.id, picked);
@@ -111,6 +109,8 @@ export const ApprovalSheet: React.FC<{
         )
       }
     >
+      {/* While extra work waits, the garage goes on with what is already approved. */}
+      {!!x && !change && <Text style={styles.sub}>ඔබ පිළිතුරු දෙන තුරු ගරාජය දැනටමත් අනුමත කළ වැඩ දිගටම කරයි.</Text>}
       <View style={styles.box}>
         <Text style={styles.label}>ගරාජය සොයාගත් දේ</Text>
         <Text style={styles.text}>{d.findings}</Text>
@@ -163,22 +163,22 @@ const styles = themedStyles(() =>
     flex2: { flex: 2 },
     row: { flexDirection: 'row', gap: 8 },
     footer: { gap: 8 },
-    warn: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: Colors.warning, lineHeight: 18 },
+    warn: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.warning, lineHeight: 20 },
     box: { padding: 12, borderRadius: 14, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.borderColor, gap: 6 },
-    label: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, letterSpacing: 0.4 },
-    text: { fontSize: 12, fontFamily: FONTS.bodyRegular, color: Colors.textSoft, lineHeight: 19 },
-    sub: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 16 },
+    label: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, letterSpacing: 0.4 },
+    text: { fontSize: 13, fontFamily: FONTS.bodyRegular, color: Colors.textSoft, lineHeight: 19 },
+    sub: { fontSize: 13, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 20 },
     line: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: 14, borderWidth: 1, borderColor: Colors.borderColor, backgroundColor: Colors.bgCard },
     lineOn: { borderColor: 'rgba(16, 185, 129, 0.5)', backgroundColor: 'rgba(16, 185, 129, 0.06)' },
     check: { width: 24, height: 24, borderRadius: 8, borderWidth: 1.5, borderColor: Colors.subtleBorder, justifyContent: 'center', alignItems: 'center' },
     checkOn: { backgroundColor: Colors.success, borderColor: Colors.success },
     checkMark: { fontSize: 13, fontWeight: '900', color: '#fff' },
-    lineName: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
-    price: { fontSize: 12.5, fontFamily: FONTS.titleBold, color: Colors.textMain },
+    lineName: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
+    price: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.textMain },
     priceOff: { color: Colors.textMuted, textDecorationLine: 'line-through' },
     sumRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-    sumValue: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
-    sumStrong: { fontSize: 12.5, fontFamily: FONTS.bodyBold, color: Colors.textMain },
+    sumValue: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
+    sumStrong: { fontSize: 13, fontFamily: FONTS.bodyBold, color: Colors.textMain },
     totalValue: { fontSize: 15, fontFamily: FONTS.titleBold, color: Colors.success },
   })
 );

@@ -1,6 +1,7 @@
+import { FlowButton } from '../FlowButton';
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { ActionButton, CloseCode, Colors, FONTS, LATE_VIA_LABEL, PhotoStrip, themedStyles } from '@ongarage/shared';
+import { CloseCode, Colors, FONTS, LATE_VIA_LABEL, PhotoStrip, themedStyles } from '@ongarage/shared';
 import { useWorkshops, type OwnerWorkshop } from '../../context/WorkshopContext';
 import { formatDate, money } from '../../utils/format';
 import { Sheet } from '../Sheet';
@@ -49,23 +50,22 @@ export const HandoverSheet: React.FC<{ workshop: OwnerWorkshop | null; onClose: 
         closed ? (
           <View style={styles.row}>
             <View style={styles.flex1}>
-              <ActionButton label="පසුව" variant="ghost" compact onPress={dismiss} />
+              <FlowButton label="පසුව" variant="ghost" onPress={dismiss} />
             </View>
             <View style={styles.flex2}>
-              <ActionButton label="ශ්‍රේණිගත කරන්න" icon="⭐" variant="success" compact onPress={() => (onRate ? onRate() : dismiss())} />
+              <FlowButton label="ශ්‍රේණිගත කරන්න" icon="⭐" variant="success" onPress={() => (onRate ? onRate() : dismiss())} />
             </View>
           </View>
         ) : codeShown ? undefined : (
           <View style={styles.row}>
             <View style={styles.flex1}>
-              <ActionButton label="ගැටලුවක් ඇත" icon="⚠️" variant="ghost" compact onPress={onProblem} />
+              <FlowButton label="ගැටලුවක් ඇත" icon="⚠️" variant="ghost" onPress={onProblem} />
             </View>
             <View style={styles.flex2}>
-              <ActionButton
+              <FlowButton
                 label={w.progress.billSharedAt ? 'හරි — කේතය පෙන්වන්න' : '⏳ ගරාජය බිල්පත එවන තුරු'}
                 icon="🔳"
                 variant="success"
-                compact
                 disabled={!w.progress.billSharedAt}
                 onPress={() => {
                   setCodeShown(true);
@@ -90,6 +90,22 @@ export const HandoverSheet: React.FC<{ workshop: OwnerWorkshop | null; onClose: 
         <CloseCode code={w.progress.closeCode} title="මෙම කේතය ගරාජයට පෙන්වන්න" caption="ඔවුන් QR එක ස්කෑන් කරයි, නැත්නම් ඉලක්කම් 6 කියන්න. වාහනය පරීක්ෂා කිරීමට පෙර පෙන්වන්න එපා." />
       ) : (
         <>
+          {/* Anything added at handover that the owner never approved comes first: it decides whether to show the code at all. */}
+          {!!h.lateLines?.length && (
+            <View style={styles.box}>
+              <Text style={styles.note}>🧾 ගරාජය භාරදීමේදී එකතු කළ දේ (ඇප් එකෙන් අනුමැතිය නොගත්): මේවා ඔබ එකඟ වුණා නම් පමණක් කේතය පෙන්වන්න.</Text>
+              {h.lateLines.map((l) => (
+                <View key={l.id}>
+                  <Row label={(l.kind === 'part' ? '🔩 ' : '🔧 ') + l.name} value={money(l.price)} />
+                  <Text style={styles.note}>
+                    {LATE_VIA_LABEL[l.via]}
+                    {l.receipt?.length ? ' · රිසිට් පත ඇමුණුම්' : ''}
+                  </Text>
+                  {!!l.receipt?.length && <PhotoStrip photos={l.receipt} height={56} />}
+                </View>
+              ))}
+            </View>
+          )}
           <Text style={styles.label}>පෙර / පසු</Text>
           <PhotoStrip photos={[...(h.beforePhotos ?? []), ...(h.afterPhotos ?? [])]} height={84} />
           <View style={styles.box}>
@@ -106,21 +122,6 @@ export const HandoverSheet: React.FC<{ workshop: OwnerWorkshop | null; onClose: 
               </Text>
             ))}
           </View>
-          {!!h.lateLines?.length && (
-            <View style={styles.box}>
-              <Text style={styles.note}>🧾 ගරාජය භාරදීමේදී එකතු කළ දේ (ඇප් එකෙන් අනුමැතිය නොගත්): මේවා ඔබ එකඟ වුණා නම් පමණක් කේතය පෙන්වන්න.</Text>
-              {h.lateLines.map((l) => (
-                <View key={l.id}>
-                  <Row label={(l.kind === 'part' ? '🔩 ' : '🔧 ') + l.name} value={money(l.price)} />
-                  <Text style={styles.note}>
-                    {LATE_VIA_LABEL[l.via]}
-                    {l.receipt?.length ? ' · රිසිට් පත ඇමුණුම්' : ''}
-                  </Text>
-                  {!!l.receipt?.length && <PhotoStrip photos={l.receipt} height={56} />}
-                </View>
-              ))}
-            </View>
-          )}
           <View style={styles.box}>
             <Row label="🔧 වැඩ ගාස්තුව" value={money(h.bill.labour)} />
             <Row label="🔩 කොටස් (වෙනම බිල්පත)" value={money(h.bill.parts)} />
@@ -147,12 +148,12 @@ const styles = themedStyles(() =>
     flex2: { flex: 2 },
     row: { flexDirection: 'row', gap: 8 },
     box: { padding: 12, borderRadius: 14, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.borderColor, gap: 5 },
-    label: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, letterSpacing: 0.4 },
-    text: { fontSize: 12, fontFamily: FONTS.bodyRegular, color: Colors.textSoft, lineHeight: 19 },
-    note: { fontSize: 11.5, fontFamily: FONTS.bodySemiBold, color: Colors.successText, lineHeight: 18 },
+    label: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, letterSpacing: 0.4 },
+    text: { fontSize: 13, fontFamily: FONTS.bodyRegular, color: Colors.textSoft, lineHeight: 19 },
+    note: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.successText, lineHeight: 20 },
     sumRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-    sumValue: { fontSize: 12, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
-    sumStrong: { fontSize: 12.5, fontFamily: FONTS.bodyBold, color: Colors.textMain },
+    sumValue: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
+    sumStrong: { fontSize: 13, fontFamily: FONTS.bodyBold, color: Colors.textMain },
     total: { fontSize: 15, fontFamily: FONTS.titleBold, color: Colors.success },
     done: { padding: 14, borderRadius: 16, backgroundColor: 'rgba(16, 185, 129, 0.08)', borderWidth: 1, borderColor: 'rgba(16, 185, 129, 0.4)', gap: 8 },
     doneTitle: { fontSize: 13, fontFamily: FONTS.titleBold, color: Colors.textMain },

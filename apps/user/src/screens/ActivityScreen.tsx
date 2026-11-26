@@ -37,6 +37,7 @@ import { PayablesCard } from '../components/PayablesCard';
 import { JobPartsToBuy } from '../components/mart/JobPartsToBuy';
 import { RecordDetailView, type RecordTarget } from '../components/RecordDetailView';
 import { WorkshopTracker } from '../components/workshop/WorkshopTracker';
+import { ownerNeed } from '../utils/ownerNeed';
 import { RatingSheet } from '../components/workshop/RatingSheet';
 import { useWorkshops, type OwnerWorkshop } from '../context/WorkshopContext';
 import { money } from '../utils/format';
@@ -53,7 +54,7 @@ const kindItems = (counts: number[]) => [
 ];
 
 /** The OnMart chip that ends each row of kinds. */
-const withMart = (items: ReturnType<typeof kindItems>) => [...items, { id: 'mart' as const, label: 'OnMart', tone: 'green' as const, icon: (on: boolean) => <OnMartIcon size={18} color={on ? '#facc15' : '#ffffff'} /> }];
+const withMart = (items: ReturnType<typeof kindItems>) => [...items, { id: 'mart' as const, label: 'OnMart', tone: 'green' as const, icon: (on: boolean) => <OnMartIcon size={16} color={on ? '#facc15' : '#ffffff'} /> }];
 
 const RatingLine: React.FC<{ rating?: number; onRate?: () => void }> = ({ rating, onRate }) =>
   rating ? (
@@ -80,7 +81,7 @@ const formatDate = (d: Date) => `${d.getFullYear()} ${MONTHS[d.getMonth()]} ${d.
 const SubChipIcon: React.FC<{ id: string; on: boolean }> = ({ id, on }) => {
   const Ico = id === 'bids' ? ReceiptLineIcon : id === 'direct' ? ScheduleLineIcon : SosLineIcon;
   // White on the blue band; the open chip is a white pill, so its icon takes the chip's own colour.
-  return <Ico active size={18} color={on ? '#facc15' : '#ffffff'} />;
+  return <Ico active size={16} color={on ? '#facc15' : '#ffffff'} />;
 };
 
 export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b: DirectBooking) => void; onOpenMart?: () => void; onOpenCalendar?: () => void; onHeaderProgress?: (progress: number) => void; /** Opens the booking sheet (pick a time with the garage) for an accepted quote. */ onPickTime?: (jobId: string) => void }> = ({ onOpenBids, onBookAgain, onOpenMart, onOpenCalendar, onHeaderProgress, onPickTime }) => {
@@ -148,12 +149,17 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
   const show = (k: typeof kind) => kind === k;
   // Inside "ongoing": which kind of running work to look at.
   const [currentKind, setCurrentKind] = useState<'bids' | 'direct' | 'sos'>('bids');
+  // True when a notice or a button asked for a particular chip: that wins over the automatic pick.
+  const askedKind = useRef(false);
   const showCurrent = (k: typeof currentKind) => currentKind === k;
   // After a booking is sent, Activity opens on Ongoing → Booking (whether this screen was already open or is only just opening).
   useEffect(() => {
     const apply = (f: ActivityFocus) => {
       setKind(f.kind);
-      if (f.current) setCurrentKind(f.current);
+      if (f.current) {
+        askedKind.current = true;
+        setCurrentKind(f.current);
+      }
     };
     const waiting = takeActivityFocus();
     if (waiting) apply(waiting);
@@ -185,6 +191,15 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
     .map((j) => ({ job: j, bid: j.bids.find((b) => b.id === j.acceptedBidId)! }))
     .filter((x) => x.bid);
   const ongoing = accepted.filter((x) => !finished(x.job.id) && !cancelled(x.job.id));
+  // Opening Activity lands on the first chip that has ongoing work in it (not always the first chip, which may be empty), unless a particular one was asked for.
+  useEffect(() => {
+    if (askedKind.current) return;
+    const counts = [ongoing.length, liveBookings.length, 0];
+    const first = (['bids', 'direct', 'sos'] as const).find((_, k) => counts[k] > 0);
+    if (first) setCurrentKind(first);
+    // Only on opening: after that the chip stays where the owner puts it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const doneJobs = accepted.filter((x) => finished(x.job.id) && !cancelled(x.job.id));
   const cancelledJobs = accepted.filter((x) => cancelled(x.job.id));
 
@@ -200,6 +215,7 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
           garage={{ id: bid.garageId, name: bid.garageName }}
           meta={`වෙන් කළේ ${formatDate(new Date(job.booking?.confirmedAt ?? bid.submittedAt))}`}
           kind="bid"
+          attention={!!ownerNeed(workshops[job.id])}
         />
         <PostBody
           price={money(bid.price)}
@@ -314,7 +330,7 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
       >
         {/* Pinned: the three summary tiles stay at the top while the lists scroll beneath */}
         {/* Folded away, the pinned strip has no padding left, so no white or blue strip stays behind. */}
-        <Animated.View style={[styles.statsPinned, { paddingTop: edge.interpolate({ inputRange: [0, 0.5, 1], outputRange: [2, 20, 0] }), paddingBottom: edge.interpolate({ inputRange: [0, 1], outputRange: [4, 0] }) }]} onLayout={(e) => {
+        <Animated.View style={[styles.statsPinned, { paddingTop: edge.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0, 20, 0] }), paddingBottom: 0 }]} onLayout={(e) => {
           pinnedH.current = Math.round(e.nativeEvent.layout.height);
         }}>
         {/* The header's blue carries on behind the tab bar and the filter chips, ending straight under the chips. */}
@@ -332,8 +348,8 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
           <View style={styles.bandTitleRow} onLayout={(e) => setTitleH(Math.round(e.nativeEvent.layout.height))}>
             <Text style={styles.bandTitle} numberOfLines={1} accessibilityRole="header">Activity</Text>
             <VehicleChip onBlue />
-            <Pressable onPress={onOpenCalendar} hitSlop={8} accessibilityRole="button" accessibilityLabel="Open calendar">
-              <CalendarGridIcon size={28} color="#ffffff" />
+            <Pressable style={styles.bandIcon} onPress={onOpenCalendar} hitSlop={8} accessibilityRole="button" accessibilityLabel="Open calendar">
+              <CalendarGridIcon size={24} color="#ffffff" />
             </Pressable>
           </View>
           </Animated.View>
@@ -342,9 +358,9 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
               pills
               radius={12}
               items={[
-                { id: 'current' as const, label: 'පවතින', icon: 'clock' as const, count: ongoing.length + liveBookings.length },
-                { id: 'done' as const, label: 'සම්පූර්ණ', icon: 'check-circle' as const },
-                { id: 'ended' as const, label: 'අවලංගු', icon: 'x' as const },
+                { id: 'current' as const, label: 'පවතින', count: ongoing.length + liveBookings.length },
+                { id: 'done' as const, label: 'සම්පූර්ණ' },
+                { id: 'ended' as const, label: 'අවලංගු' },
               ]}
               value={tab}
               onChange={(k) => {
@@ -363,8 +379,6 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
               plain
               onBlue
               radius={10}
-              borderWidth={1}
-              selectedBorderWidth={1}
               items={
                 tab === 'current' ? withMart(kindItems([ongoing.length, liveBookings.length, 0]))
                   : tab === 'done' ? withMart(kindItems([doneJobs.length, doneBookings.length, sosRecords.length]))
@@ -548,10 +562,12 @@ const styles = themedStyles(() => StyleSheet.create({
   body: { paddingHorizontal: 12, paddingTop: 0, gap: 12, paddingBottom: 100 },
   // Opaque and full width (the negative margin cancels the body padding), so the lists scroll underneath it.
   bandHead: { paddingTop: 46, paddingHorizontal: 10, paddingBottom: 6, backgroundColor: pageHeaderBlue().from },
-  bandTitleRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 6, gap: 8, paddingBottom: 14 },
+  bandTitleRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 6, gap: 8, paddingBottom: 14, minHeight: 44 },
+  bandIcon: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
   bandTitle: { flex: 1, fontSize: 19, lineHeight: 24, fontFamily: FONTS.titleBold, color: '#ffffff' },
   bandNav: { marginBottom: 10 },
-  statsPinned: { marginHorizontal: -12, paddingHorizontal: 12, paddingTop: 2, paddingBottom: 4, backgroundColor: pageBg() },
+  // Stretched over the list's own side padding, with none of its own: the band's padding alone sets the side spacing, as on Bids.
+  statsPinned: { marginHorizontal: -12, backgroundColor: pageBg() },
   pinnedBand: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: pageHeaderBlue().from },
   // The short OnChat icon inside the filter card, on its right side.
   pinnedChat: { position: 'absolute', right: 8, bottom: -12 },

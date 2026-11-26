@@ -1,6 +1,7 @@
+import { FlowButton } from './FlowButton';
 import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { ActionButton, canRequestFit, Colors, FITTING_SUPPLY, FONTS, getThemeMode, themedStyles, type PartsFitting, type WorkshopProgress } from '@ongarage/shared';
+import { canRequestFit, Colors, FITTING_SUPPLY, FONTS, getThemeMode, themedStyles, type PartsFitting, type WorkshopProgress } from '@ongarage/shared';
 import { useWorkshops } from '../context/WorkshopContext';
 import { useNotice } from '../context/NoticeContext';
 import { Sheet } from './Sheet';
@@ -42,7 +43,7 @@ export const FitPartSheet: React.FC<{ id: string; visible: boolean; onClose: () 
       title="අලුත් කොටසක් සවි කරන්න"
       subtitle={`${w.garageName} ට දැනුම් දෙන්න`}
       onClose={onClose}
-      footer={<ActionButton label="ගරාජයට දැනුම් දෙන්න" icon="📨" variant="primary" disabled={!part.trim()} onPress={send} />}
+      footer={<FlowButton label="ගරාජයට දැනුම් දෙන්න" icon="📨" variant="primary" disabled={!part.trim()} onPress={send} />}
     >
       <Text style={styles.heading}>සවි කළ යුතු කොටස</Text>
       <TextInput style={styles.input} placeholder="උදා: ඉදිරිපස බ්‍රේක් පෑඩ් සෙට් එක" placeholderTextColor={Colors.textMuted} value={part} onChangeText={setPart} accessibilityLabel="Part to fit" />
@@ -89,7 +90,7 @@ const styles = themedStyles(() =>
     chips: { gap: 8 },
     choice: { padding: 12, borderRadius: 12, borderWidth: 1, borderColor: Colors.borderColor, backgroundColor: Colors.bgCard },
     choiceOn: { borderColor: Colors.primary, backgroundColor: 'rgba(56, 189, 248, 0.14)' },
-    choiceText: { fontSize: 12.5, fontFamily: FONTS.bodyMedium, color: Colors.textMuted, lineHeight: 18 },
+    choiceText: { fontSize: 13, fontFamily: FONTS.bodyMedium, color: Colors.textMuted, lineHeight: 20 },
     choiceTextOn: { color: Colors.primary, fontFamily: FONTS.bodyBold },
   })
 );

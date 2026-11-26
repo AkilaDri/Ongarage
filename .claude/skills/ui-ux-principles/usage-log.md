@@ -13,6 +13,46 @@ Entry format:
 
 ## Entries
 
+## 2026-11-26 · Owner running job, step 6 · payment and cancellation wording
+- Principles used: C10 (the claim names the amount and says the garage confirms), C4 (chosen date on its button; work shown as paused), UPD 029 (red only for lateness), UPD 074 (safe choice first, cancel with a fee second in soft red).
+- Core missing: none.
+- Outcome: approved; the six steps are done. Warranty claim to be revisited. Not yet checked on a phone.
+
+## 2026-11-26 · Owner finished job card, step 5 · one next step
+- Principles used: C2 and UPD 099 (pay, then rate; history only in details), C8 and UPD 087 (the garage's rating on the card only when a low one is unanswered), C5 (quiet foot row).
+- Core missing: none.
+- Outcome: approved. Not yet checked on a phone.
+
+## 2026-11-26 · Owner running job, step 4 · one button style and readable text
+- Principles used: C5 (FlowButton on the card and pop-ups), C7 (13px minimum, long labels wrap), UPD 029 (soft red only for a risky confirm).
+- Core missing: none.
+- Outcome: approved. Warranty pop-up left for later. Not yet checked on a phone.
+
+## 2026-11-26 · Owner running job, step 3 · rare actions in the details view
+- Principles used: C2 and UX 50 (rare actions off the card), C9 and UPD 069 (cancel away from confirm buttons, last and red), C7 (44px rows).
+- Core missing: none.
+- Outcome: approved. Not yet checked on a phone.
+
+## 2026-11-26 · Owner running job, step 2 · collect and approval pop-ups
+- Principles used: UPD 099 (unapproved handover items first), UPD 113 and UX 06 (buttons named in full), C10 (new total and finish time before opening; extra work's effect on current work stated).
+- Core missing: none.
+- Outcome: approved. Not yet checked on a phone.
+
+## 2026-11-26 · Owner running job card, step 1 · the owner's turn
+- Principles used: C4 and UPD 116 (one source, ownerNeed, drives the pill, the action box and the progress line), UPD 099 and C6 (the action sits above the progress bar), UPD 087 (nothing shown while waiting on others), C5 (Bids amber chip).
+- Core missing: none.
+- Outcome: user approved step 1 of 6. Buttons, text sizes, rare actions and pop-ups are later steps. Not yet checked on a phone.
+
+## 2026-11-26 · Owner Bids and Activity headers · made the same
+- Principles used: C5 and UPD 035 (one header on both), UPD 006 alignment (rows at the same height, wrapper padding removed), C13, C7 (32px icon boxes with extra hit area). Bids was the model.
+- Core missing: none.
+- Outcome: built; not yet measured in a browser.
+
+## 2026-11-26 · Owner Bids map · floating header like the SOS map
+- Principles used: C5 (SOS map's round button and pill; the Bids sort chips and colours), C2 and UPD 067 (the blue band steps aside so the map fills the page; a title and bid count instead of a search box), C1 (the chips now do something on the map: the first pin of the chosen order is picked out), framing round the owner and all pins.
+- Core missing: none.
+- Outcome: built as asked. Not yet checked on a phone.
+
 ## 2026-11-26 · Owner booking, tracking step · the rule box stays put
 - Principles used: UPD 035 consistency of position and C5 (what does not change with the choice does not move), UPD 152 (the explanation stays next to the choice it explains). Space is reserved for the longer text instead of a fixed height.
 - Core missing: none.

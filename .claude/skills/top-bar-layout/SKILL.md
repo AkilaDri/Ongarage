@@ -7,6 +7,14 @@ description: Use when building or changing a top header bar, a top nav bar (pill
 
 These values were measured in the browser (Activity and Bids, 390px wide, DPR 1) and agreed with the user. Use them as the standard for every page that has a blue top band with a nav pill and a filter chip row. The shared components (`SegmentTabs` pills, `FilterChips` on the blue band, `PageHeader`) are used by all four apps, so a change to them changes all four.
 
+## 0. Current values for the owner's Activity and Bids (2026-11-26; these override sections 1–4 for those two pages)
+
+Both pages now build the band the same way. Keep them identical:
+- Band: padding top 46 (12 folded), sides 10, bottom 6; no extra padding on any wrapper around it (a 2px / 4px wrapper padding on Activity had pushed its rows down).
+- Title row: min height 44, padding sides 6, gap 8, bottom 14; title 19/24 bold white; `VehicleChip onBlue`; icons in 32×32 boxes at 24px (hamburger glyph 22/24), 10 apart.
+- Tabs: `SegmentTabs pills radius={12}`, label and count only, **no icons**; the nav block has `marginBottom: 10`.
+- Chips: `FilterChips plain onBlue radius={10}` with the shared `TOP_BAR.filter` sizes (36 high, 1.5 white edge, 2.5 amber when chosen; no per-page overrides); 16px icons. Activity's four chips share the width; Bids' sort chips scroll.
+
 ## 1. Top header bar (the blue band with the heading)
 
 - Band height: **68px** (`BIDS_TITLE_H`) for pages that show the nav and filter bar under the heading (Activity, Bids). Other pages keep `PAGE_TITLE_H` = 84px. Source: `apps/user/src/constants/layout.ts`.

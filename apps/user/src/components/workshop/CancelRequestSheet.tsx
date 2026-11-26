@@ -1,6 +1,7 @@
+import { FlowButton } from '../FlowButton';
 import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { ActionButton, Colors, FONTS, themedStyles } from '@ongarage/shared';
+import { Colors, FONTS, themedStyles } from '@ongarage/shared';
 import { useWorkshops, type OwnerWorkshop } from '../../context/WorkshopContext';
 import { money } from '../../utils/format';
 import { Sheet } from '../Sheet';
@@ -35,31 +36,33 @@ export const CancelRequestSheet: React.FC<{ workshop: OwnerWorkshop | null; onCl
       onClose={onClose}
       footer={
         <View style={styles.col}>
+          {/* The safe choice stands first; agreeing to the fee and cancelling is below it, in the risky button's soft red. */}
+          <FlowButton
+            label="ඉල්ලීම ඉවත් කර වැඩ දිගටම කරගෙන යන්න"
+            icon="↩️"
+            variant="primary"
+            onPress={() => {
+              withdrawCancel(w.id);
+              onClose();
+            }}
+          />
           {quoted && (
-            <ActionButton
+            <FlowButton
               label={`${money(req.compensation ?? 0)} වන්දියට එකඟයි — රැකියාව අවලංගු කරන්න`}
-              icon="✓"
-              variant="success"
-              compact
+              variant="danger"
               onPress={() => {
                 confirmCancel(w.id, { rating: stars || undefined });
                 onClose();
               }}
             />
           )}
-          <ActionButton
-            label="ඉල්ලීම ඉවත් කර වැඩ දිගටම කරගෙන යන්න"
-            icon="↩️"
-            variant="ghost"
-            compact
-            onPress={() => {
-              withdrawCancel(w.id);
-              onClose();
-            }}
-          />
         </View>
       }
     >
+      {/* While the request is open the garage does nothing more on the job. */}
+      <View style={styles.paused} accessibilityLabel="Work is paused">
+        <Text style={styles.pausedText}>⏸ වැඩ නවතා ඇත</Text>
+      </View>
       <View style={styles.box}>
         <Text style={styles.label}>ඔබගේ ඉල්ලීම</Text>
         <Text style={styles.text}>
@@ -95,14 +98,16 @@ export const CancelRequestSheet: React.FC<{ workshop: OwnerWorkshop | null; onCl
 
 const styles = themedStyles(() =>
   StyleSheet.create({
+    paused: { alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, backgroundColor: 'rgba(245, 158, 11, 0.16)' },
+    pausedText: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: '#b45309' },
     col: { gap: 8 },
     box: { gap: 4, padding: 12, borderRadius: 12, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.borderColor },
     quote: { borderColor: 'rgba(16, 185, 129, 0.5)' },
-    label: { fontSize: 12.5, fontFamily: FONTS.bodyBold, color: Colors.textMain },
-    text: { fontSize: 12.5, fontFamily: FONTS.bodyRegular, color: Colors.textMain, lineHeight: 19 },
+    label: { fontSize: 13, fontFamily: FONTS.bodyBold, color: Colors.textMain },
+    text: { fontSize: 13, fontFamily: FONTS.bodyRegular, color: Colors.textMain, lineHeight: 19 },
     amount: { fontSize: 24, fontFamily: FONTS.titleBold, color: Colors.successText },
-    hint: { fontSize: 11, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 16 },
-    waiting: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: Colors.warning, lineHeight: 19 },
+    hint: { fontSize: 13, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 20 },
+    waiting: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.warning, lineHeight: 19 },
     stars: { flexDirection: 'row', gap: 6 },
     star: { fontSize: 30, color: Colors.textMuted },
     starOn: { color: '#f59e0b' },

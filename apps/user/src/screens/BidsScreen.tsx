@@ -834,7 +834,7 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
                     <Path d="M6 6l12 12M18 6 6 18" />
                   </Svg>
                 ) : (
-                  <Svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round">
+                  <Svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round">
                     <Path d="M9 4 3 6.5V20l6-2.5 6 2.5 6-2.5V4l-6 2.5L9 4zM9 4v13.5M15 6.5V20" />
                   </Svg>
                 )}
@@ -1322,11 +1322,11 @@ const styles = themedStyles(() => StyleSheet.create({
   bidRowAcceptLowest: { backgroundColor: '#188038' },
   bidRowAcceptText: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: '#ffffff' },
   bidsHeader: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 40, paddingTop: 46, paddingHorizontal: 10, paddingBottom: 6, backgroundColor: pageHeaderBlue().from },
-  bidsTitleRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 6, gap: 8, paddingBottom: 14, minHeight: 42 },
+  bidsTitleRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 6, gap: 8, paddingBottom: 14, minHeight: 44 },
   bidsTitle: { flex: 1, fontSize: 19, lineHeight: 24, fontFamily: FONTS.titleBold, color: '#ffffff' },
-  bidsIcons: { flexDirection: 'row', alignItems: 'center', gap: 18 },
-  bidsIconBtn: { alignItems: 'center', justifyContent: 'center' },
-  bidsIconText: { fontSize: 20, color: '#ffffff' },
+  bidsIcons: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  bidsIconBtn: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
+  bidsIconText: { fontSize: 22, lineHeight: 24, color: '#ffffff' },
   bidsNav: { marginBottom: 10 },
   sortRow: { gap: 8, paddingLeft: 12, paddingRight: 16 },
   // The sort chips sit on the header's blue: blue chips with a yellow edge; the open one is a deeper blue with a thicker edge.

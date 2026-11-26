@@ -1,6 +1,7 @@
+import { FlowButton } from '../FlowButton';
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
-import { ActionButton, Colors, FONTS, getThemeMode, RATING_EXPIRY_MONTHS, tagLabel, themedStyles } from '@ongarage/shared';
+import { Colors, FONTS, getThemeMode, RATING_EXPIRY_MONTHS, tagLabel, themedStyles } from '@ongarage/shared';
 import { useWorkshops, type OwnerWorkshop } from '../../context/WorkshopContext';
 import { Sheet } from '../Sheet';
 
@@ -26,7 +27,7 @@ const AnswerSheet: React.FC<{ workshop: OwnerWorkshop | null; mode: Mode; onClos
       subtitle={w.garageName}
       onClose={onClose}
       footer={
-        <ActionButton
+        <FlowButton
           label={dispute ? 'ගැටලුව ඉදිරිපත් කරන්න' : 'පිළිතුර යවන්න'}
           icon={dispute ? '⚠️' : '💬'}
           variant="primary"
@@ -74,11 +75,11 @@ export const CustomerRatingView: React.FC<{ workshop: OwnerWorkshop }> = ({ work
         <View style={styles.row}>
           {!r.reply && (
             <View style={styles.flex1}>
-              <ActionButton label="පිළිතුරු දෙන්න" icon="💬" variant="ghost" compact onPress={() => setMode('reply')} />
+              <FlowButton label="පිළිතුරු දෙන්න" icon="💬" variant="ghost" onPress={() => setMode('reply')} />
             </View>
           )}
           <View style={styles.flex1}>
-            <ActionButton label="ගැටලුවක්" icon="⚠️" variant="ghost" compact onPress={() => setMode('dispute')} />
+            <FlowButton label="ගැටලුවක්" icon="⚠️" variant="ghost" onPress={() => setMode('dispute')} />
           </View>
         </View>
       )}
@@ -99,12 +100,12 @@ const styles = themedStyles(() =>
     starsLow: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(245, 158, 11, 0.16)' : '#fef7e0' },
     starsText: { fontSize: 13, fontFamily: FONTS.titleBold },
     title: { fontSize: 13, fontFamily: FONTS.bodyBold, color: Colors.textMain },
-    tags: { fontSize: 11.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 2 },
-    quote: { fontSize: 12, fontFamily: FONTS.bodyRegular, color: Colors.textMain, lineHeight: 17, fontStyle: 'italic' },
-    reply: { fontSize: 11.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 17 },
-    warn: { fontSize: 11.5, fontFamily: FONTS.bodyBold, color: Colors.warning },
-    fine: { fontSize: 10.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 15 },
-    hint: { fontSize: 11.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 17 },
+    tags: { fontSize: 13, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, marginTop: 2 },
+    quote: { fontSize: 13, fontFamily: FONTS.bodyRegular, color: Colors.textMain, lineHeight: 20, fontStyle: 'italic' },
+    reply: { fontSize: 13, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 20 },
+    warn: { fontSize: 13, fontFamily: FONTS.bodyBold, color: Colors.warning },
+    fine: { fontSize: 13, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 20 },
+    hint: { fontSize: 13, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 20 },
     input: { minHeight: 80, padding: 12, borderRadius: 12, borderWidth: 1, borderColor: Colors.borderColor, backgroundColor: Colors.bgCard, color: Colors.textMain, fontSize: 13, fontFamily: FONTS.bodyRegular, textAlignVertical: 'top' },
   })
 );
