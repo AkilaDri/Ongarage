@@ -1043,6 +1043,8 @@ export const WorkshopProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     [patchJob]
   );
 
+  const demoRejected = useRef(false);
+
   const handInPart = useCallback(
     (id: string, lineId: string) => {
       const w = live.current[id];
@@ -1055,11 +1057,16 @@ export const WorkshopProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         if (!cur || cur.partChecks?.[lineId]?.at !== at) return;
         const line = linesOwnerBuys(cur.progress).find((l) => l.id === lineId);
         const got = cur.partsBought?.[lineId]?.partType;
-        const wrong = !!line?.partType && line.partType !== 'GarageChoice' && !!got && got !== line.partType;
-        patchJob(id, { partChecks: { ...cur.partChecks, [lineId]: { state: wrong ? 'wrong' : 'right', at, reason: wrong ? `ඉල්ලුවේ ${line!.partType} · ලැබුණේ ${got}` : undefined } } });
+        const otherKind = !!line?.partType && line.partType !== 'GarageChoice' && !!got && got !== line.partType;
+        // DEMONSTRATION ONLY: the first Brake disc handed in is turned down, so the return and ask-again steps can be tried. A real garage decides this.
+        const demoReject = line?.name === 'Brake disc' && !demoRejected.current;
+        if (demoReject) demoRejected.current = true;
+        const wrong = otherKind || demoReject;
+        const reason = otherKind ? `ඉල්ලුවේ ${line!.partType} · ලැබුණේ ${got}` : demoReject ? 'ප්‍රමාණය ගැළපෙන්නේ නැත (නිරූපණයකි)' : undefined;
+        patchJob(id, { partChecks: { ...cur.partChecks, [lineId]: { state: wrong ? 'wrong' : 'right', at, reason } } });
         notify(
           wrong
-            ? { icon: '⚠️', title: `${cur.garageName}: වැරදි කොටසක්`, body: `${line!.name} · ඉල්ලුවේ ${line!.partType}, ලැබුණේ ${got}`, tone: 'danger' }
+            ? { icon: '⚠️', title: `${cur.garageName}: වැරදි කොටසක්`, body: `${line!.name} · ${reason}`, tone: 'danger' }
             : { icon: '✅', title: `${cur.garageName}: නිවැරදි කොටස ලැබුණා`, body: line?.name ?? '', tone: 'success' }
         );
         if (!wrong) repairThenHandover(id);

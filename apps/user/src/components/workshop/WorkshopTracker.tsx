@@ -69,7 +69,7 @@ const OWNER_STEP_LABELS = WORKSHOP_STEP_LABELS.map((l) => l.replace('අයි�
 
 const STAY_OPTIONS = [
   { stays: true, label: '🪑 රැඳී සිටිමි', about: 'අලුත් වැඩ ගැන එතනම කතා\u00a0කර\u00a0ගන්න.', a11y: 'I am at the garage' },
-  { stays: false, label: '🚶 තබා ගොස් ඇත', about: 'අතරමැදි පියවර app එකෙන් බලා\u00a0අනුමත\u00a0කරන්න.', a11y: 'I am leaving the garage' },
+  { stays: false, label: '🚶 තබා ගොස්\u00a0ඇත', about: 'අතරමැදි පියවර app එකෙන් බලා\u00a0අනුමත\u00a0කරන්න.', a11y: 'I am leaving the garage' },
 ];
 
 export const WorkshopTracker: React.FC<{ id: string; detailed?: boolean }> = ({ id, detailed }) => {

@@ -87,7 +87,7 @@ export const JobPartsToBuy: React.FC<{ onBuy?: (item: JobPartItem) => void; onOp
               {(() => {
                 const s = statusOf(i);
                 if (!s) return null;
-                if (s.state === 'toAsk') return !!onBuy && <ActionButton label="මිල ඉල්ලන්න" icon="🛍️" variant="primary" compact onPress={() => onBuy(i)} />;
+                if (s.state === 'toAsk') return !!onBuy && <ActionButton label="මිල ඉල්ලන්න" icon="🛍️" variant="primary" compact onPress={() => openBasket(i.workshopId)} />;
                 return (
                   <>
                     <Text style={styles.shop}>{partStatusText(s)}</Text>

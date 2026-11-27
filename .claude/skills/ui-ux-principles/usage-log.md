@@ -13,6 +13,16 @@ Entry format:
 
 ## Entries
 
+## 2026-11-27 · Owner part request and quote request, step 1 · one shape for both
+- Principles used: C5 and UPD 035 (same header, cards, chips and footer), C3 (vehicle changeable, categories and common parts shown), C11 (four named steps), UX 89 (usual answers preselected), C2 (delivery left to the offer).
+- Core missing: none.
+- Outcome: user approved all five; it replaces the short pop-up. Checked in the browser, not on a phone; not type checked.
+
+## 2026-11-27 · Owner part request, step 4 · short form
+- Principles used: C2 and UX 35 (only what is needed first), C3 (a photo stands for an unknown name), UX 89 (usual answers prefilled in one line), UX 50 (details hidden behind a clear control), C4 (disabled button says what is missing).
+- Core missing: none.
+- Outcome: user approved. Checked in the browser at 390 wide; not on a phone.
+
 ## 2026-11-27 · Owner job parts, step 3 · buy without leaving the job
 - Principles used: UX 49 (whole purchase over the job card), UPD 099 and C10 (offer order, total before reserving), UX 05 (referral disclosed beside the offer), C4 and C6 (one footer action per state), C14 (waiting, wrong and done states), UPD 074 (wrong part has a way back).
 - Core missing: none.

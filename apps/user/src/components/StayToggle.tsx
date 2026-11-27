@@ -17,7 +17,7 @@ export const StayToggle: React.FC<{ value: boolean | null; options: StayOption[]
           const on = value === o.stays;
           return (
             <Pressable key={o.a11y} style={[styles.pill, on && styles.pillOn]} onPress={() => !on && onChange(o.stays)} accessibilityRole="radio" accessibilityState={{ selected: on }} accessibilityLabel={o.a11y}>
-              <Text style={[styles.text, on && styles.textOn]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
+              <Text style={[styles.text, on && styles.textOn]} numberOfLines={2}>
                 {o.label}
               </Text>
             </Pressable>

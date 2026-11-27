@@ -24,6 +24,8 @@ import { MediaAttachments } from '../components/MediaAttachments';
 import { SPARE_PARTS } from '../constants/labels';
 import { CategoryPhoto } from '../components/home/CategoryPhoto';
 import { AppMap } from '../components/map/AppMap';
+import { FlowHeader } from '../components/FlowHeader';
+import { FlowStepCard } from '../components/FlowStepCard';
 
 type Question = { id: string; question: string; options: string[] };
 type Profile = {
@@ -153,7 +155,6 @@ const MixedText: React.FC<{ text: string; style: any }> = ({ text, style }) => {
   );
 };
 
-/** One numbered step of the form: a rounded card with a step badge that turns into a tick once the step is filled in. */
 const TAB_LABEL: Record<string, string> = { service: 'සේවාව සහ වාහනය', details: 'විස්තර', parts: 'කොටස්', timer: 'කාලය' };
 
 // An icon on a soft disc, as in the SOS and towing confirmation rows.
@@ -170,30 +171,6 @@ const ReviewRow: React.FC<{ label: string; value: string }> = ({ label, value })
   </View>
 );
 
-const StepCard: React.FC<{ step: number; title: string; done: boolean; hint?: string; optional?: boolean; requiredNote?: string; children: React.ReactNode }> = ({ step, title, done, hint, optional, requiredNote, children }) => (
-  <View style={styles.stepCard}>
-    <View style={styles.stepHead}>
-      {/* The number is not needed: the progress bar shows the order, and a finished step shows a tick. */}
-      {done && (
-        <View style={[styles.stepBadge, styles.stepBadgeDone]}>
-          <Text style={[styles.stepBadgeText, styles.stepBadgeTextDone]}>✓</Text>
-        </View>
-      )}
-      <View style={styles.flex1}>
-        <View style={styles.stepTitleRow}>
-          <Text style={[styles.stepTitle, styles.flex1]}>{title}</Text>
-          {!optional && !done && (
-            <View style={styles.requiredPill} accessibilityLabel="Required">
-              <Text style={styles.requiredText}>{requiredNote ?? '* අත්‍යවශ්‍යයි'}</Text>
-            </View>
-          )}
-        </View>
-        {!!hint && <Text style={styles.cardSub}>{hint}</Text>}
-      </View>
-    </View>
-    {children}
-  </View>
-);
 
 type BuddyMode ='idle' | 'input' | 'analyzing' | 'questions' | 'result';
 
@@ -585,26 +562,14 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, defaultVehi
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      <View style={styles.header}>
-        <View style={styles.topRow}>
-          <Pressable style={styles.topRoundBtn} onPress={onClose} accessibilityLabel="Close">
-            <Text style={styles.topRoundText}>✕</Text>
-          </Pressable>
-          <View style={styles.topPill}>
-            <View style={styles.topPillIcon}>
-              <Text style={styles.topPillEmoji}>🔨</Text>
-            </View>
-            <View style={styles.flex1}>
-              <Text style={styles.topPillTitle} numberOfLines={1}>{draft?.replacesJobId ? 'Ongarage රැකියාව නැවත පළ කරන්න' : 'Ongarage රැකියාව'}</Text>
-              <View style={styles.topPillRow}>
-                <Text style={styles.topPillCount}>{`${tabIndex + 1}/${ORDER.length}`}</Text>
-                <Text style={styles.topPillSub} numberOfLines={1}>{TAB_LABEL[tab]}</Text>
-              </View>
-            </View>
-          </View>
-          <View style={styles.topSlot} />
-        </View>
-      </View>
+      <FlowHeader
+        title={draft?.replacesJobId ? 'Ongarage රැකියාව නැවත පළ කරන්න' : 'Ongarage රැකියාව'}
+        icon="🔨"
+        steps={ORDER.map((id) => TAB_LABEL[id])}
+        step={tabIndex}
+        onBack={tabIndex > 0 ? () => setTab(ORDER[tabIndex - 1]) : undefined}
+        onClose={onClose}
+      />
 
       <View style={styles.postSheet}>
         <View style={styles.progressWrap}>
@@ -635,7 +600,7 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, defaultVehi
         </View>
         {renderBuddy()}
 
-        <StepCard step={1} title={`සේවා අංශය · ${SERVICE_CATEGORIES.length}`} done={categoryId !== null} requiredNote="පහළින් තෝරන්න">
+        <FlowStepCard step={1} title={`සේවා අංශය · ${SERVICE_CATEGORIES.length}`} done={categoryId !== null} requiredNote="පහළින් තෝරන්න">
           {/* The same tiles as the Home screen's categories. */}
           {/* Only what can be bid for: not fuel stations, not towing (those are found and booked, see the service mode). */}
           {catsExpanded && (
@@ -680,13 +645,13 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, defaultVehi
               </View>
             </>
           )}
-        </StepCard>
+        </FlowStepCard>
 
           </>
         )}
         {tab === 'details' && (
           <>
-        <StepCard step={2} title="ගැටලුව විස්තර කරන්න" done={problemTold(description, voiceNotes)}>
+        <FlowStepCard step={2} title="ගැටලුව විස්තර කරන්න" done={problemTold(description, voiceNotes)}>
           <TextInput
             style={[styles.textArea, { height: descriptionH }]}
             multiline
@@ -714,13 +679,13 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, defaultVehi
           )}
           <Text style={styles.eyebrow}>හෝ ඡායාරූප / හඬ සටහනක් එක් කරන්න</Text>
           <MediaAttachments photos={photos} voiceNotes={voiceNotes} onPhotos={setPhotos} onVoiceNotes={setVoiceNotes} />
-        </StepCard>
+        </FlowStepCard>
 
           </>
         )}
         {tab === 'parts' && (
           <>
-        <StepCard step={3} title="කැමති අමතර කොටස් වර්ගය" done={sparePart !== null} hint="එක් වර්ගයක් තෝරන්න">
+        <FlowStepCard step={3} title="කැමති අමතර කොටස් වර්ගය" done={sparePart !== null} hint="එක් වර්ගයක් තෝරන්න">
           <View style={styles.choiceGrid}>
             {SPARE_PARTS.map((p) => {
               const active = sparePart === p.id;
@@ -735,10 +700,10 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, defaultVehi
           <Text style={styles.partHelp}>
             {sparePart ? SPARE_PARTS.find((p) => p.id === sparePart)?.help : 'කොටසේ වර්ගය අනුව මිලත්, වගකීමත් වෙනස් වේ.'}
           </Text>
-        </StepCard>
+        </FlowStepCard>
 
         {/* The place the vehicle is repaired at: where it is, and the map to see it. */}
-        <StepCard step={4} title="සේවා ස්ථානය" done optional>
+        <FlowStepCard step={4} title="සේවා ස්ථානය" done optional>
           <View>
             {renderMap(styles.map, 14)}
             <Pressable style={StyleSheet.absoluteFill} onPress={() => setShowMap(true)} accessibilityLabel="Open map" />
@@ -749,9 +714,9 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, defaultVehi
           <Text style={styles.hint} numberOfLines={2}>
             📍 {user.address} · ආසන්නයේ ගරාජ {MOCK_GARAGES.length}ක්
           </Text>
-        </StepCard>
+        </FlowStepCard>
 
-        <StepCard step={5} title="පැමිණෙන ආකාරය" done optional>
+        <FlowStepCard step={5} title="පැමිණෙන ආකාරය" done optional>
           <View style={[styles.toggleRow, doorstep && styles.toggleRowOn]}>
             <GlassIcon emoji="🚛" small />
             <View style={styles.flex1}>
@@ -760,13 +725,13 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, defaultVehi
             </View>
             <Switch value={doorstep} onValueChange={setDoorstep} trackColor={{ false: Colors.subtleBorder, true: '#1a73e8' }} accessibilityLabel="Collect from my home" />
           </View>
-        </StepCard>
+        </FlowStepCard>
 
           </>
         )}
         {tab === 'timer' && (
           <>
-        <StepCard step={5} title="⏱️ ලංසු කාලය" done={biddingHours !== null}>
+        <FlowStepCard step={5} title="⏱️ ලංසු කාලය" done={biddingHours !== null}>
           {/* The chosen time leads, large, above the quick picks and the slider. Before a choice it is a muted prompt, not a value. */}
           <View style={styles.timerHead}>
             <Text style={styles.cardSub}>ලංසු ලැබෙන කාලය</Text>
@@ -786,7 +751,7 @@ export const PostJobScreen: React.FC<PostJobScreenProps> = ({ draft, defaultVehi
           </View>
           {/* What the time means: garages bid inside it, and bids stop when it ends. */}
           <Text style={styles.timerNote}>ගරාජ මෙම කාලය තුළ ලංසු යවයි; කාලය අවසන් වූ පසු ලංසු පිළිගන්නේ නැත.</Text>
-        </StepCard>
+        </FlowStepCard>
 
         {/* The whole job at a glance before it is posted: the owner checks it once. */}
         <FlowSummary

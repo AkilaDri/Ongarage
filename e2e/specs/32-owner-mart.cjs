@@ -36,7 +36,11 @@ module.exports = spec('Owner · OnMart search, reserve and buy', 'user', async (
   t.check('availability shows on the shops that publish stock', (await t.has('✓ තොගයේ ඇත')) && (await t.has('Brake pads (front)')));
   await t.clickText('සියලු වෙළඳසැල්වලින් අසන්න');
   t.check('the request form carries the part and the vehicle', (await t.has('කොටසක් ඉල්ලන්න')) && (await t.has('Premio')));
-  await t.clickText('ඉල්ලීම යවන්න');
+  // The request is four steps: part and vehicle, details, kind and place, time.
+  await t.clickText('ඊළඟ ›');
+  await t.clickText('ඊළඟ ›');
+  await t.clickText('ඊළඟ ›');
+  await t.clickText('ඉල්ලීම වෙළඳසැල් වෙත යවන්න');
   await t.wait(11000);
   t.check('offers arrive with a price tag and a fitment note', (await t.has('Galle Auto Parts')) && (await t.has('වෙළඳපොළ මිල')) && (await t.has('වෙන් කර ගන්න')));
 
@@ -92,7 +96,11 @@ module.exports = spec('Owner · OnMart search, reserve and buy', 'user', async (
   await t.clickLabel('What part do you need?');
   await t.wait(800);
   await t.type('Part name', 'Wagon R wiper motor');
-  await t.clickText('ඉල්ලීම යවන්න');
+  // The request is four steps: part and vehicle, details, kind and place, time.
+  await t.clickText('ඊළඟ ›');
+  await t.clickText('ඊළඟ ›');
+  await t.clickText('ඊළඟ ›');
+  await t.clickText('ඉල්ලීම වෙළඳසැල් වෙත යවන්න');
   await t.wait(1500);
   await t.clickText('මගේ පෝස්ට් (');
   await t.wait(500);

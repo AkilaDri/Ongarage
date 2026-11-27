@@ -17,7 +17,8 @@ const Tile: React.FC<{ g: PartGroup; cell: number; onPress: () => void }> = ({ g
     <View style={[st.card, { width: cell, height: cell }]}>
       {TILE_PHOTO[g.id] ? <CategoryPhoto categoryId={TILE_PHOTO[g.id]} size={Math.round(cell * 0.72)} /> : <Text style={{ fontSize: Math.round(cell * 0.42) }}>{g.emoji}</Text>}
     </View>
-    <Text style={st.label} numberOfLines={1}>
+    {/* The name may use the gap beside the tile, so a longer one is not cut short on a narrow phone. */}
+    <Text style={[st.label, { width: cell + 10 }]} numberOfLines={1}>
       {TILE_LABEL[g.id] ?? g.name}
     </Text>
   </Pressable>

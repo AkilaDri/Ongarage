@@ -5,22 +5,21 @@ const { spec } = require('../lib.cjs');
 // a Genuine post: Recon approval; another stopped at the diagnosis.
 module.exports = spec('Owner · workshop job, extra work, problem, rating, Recon', 'user', async (t) => {
   await t.clickText('Activity');
-  t.check('diagnosis waiting for approval', await t.has('පරීක්ෂා වාර්තාව ඔබගේ අනුමැතියට'));
+  t.check('diagnosis waiting for approval', await t.has('පරීක්ෂා වාර්තාව අනුමත කරන්න'));
   await t.clickText('වාර්තාව බලා අනුමත කරන්න');
   const lines = (await t.labels('Approve line ')).map((l) => l.slice(13));
   await t.clickLabel(`Approve line ${lines[lines.length - 1]}`);
-  t.check('unticking a line lowers the total', await t.has('අනුමත කරන්න · LKR 10,650'));
+  t.check('unticking a line lowers the total', (await t.labels('අනුමත කරන්න · LKR 10,650')).length > 0);
   await t.clickText('අනුමත කරන්නLKR');
   await t.wait(9000);
 
   t.check('garage asks for extra work; no handover yet', (await t.has('අමතර වැඩ බලා අනුමත කරන්න')) && !(await t.has('භාරගන්න · කේතය පෙන්වන්න')));
   await t.clickText('අමතර වැඩ බලා අනුමත කරන්න');
-  await t.clickLabel('Approve line Disc fitting');
-  await t.clickText('අනුමත කරන්නLKR');
+  await t.clickText('අමතර වැඩ එපා');
   await t.wait(9000);
 
   await t.clickText('භාරගන්න · කේතය පෙන්වන්න');
-  t.check('handover report and bill', (await t.has('ගරාජයේ පරීක්ෂා ලැයිස්තුව')) && (await t.has('Brake disc')) && !(await t.has('Disc fitting')));
+  t.check('handover report and bill', (await t.has('ගරාජයේ පරීක්ෂා ලැයිස්තුව')) && !(await t.has('Disc fitting')));
   await t.clickText('ගැටලුවක් ඇත');
   await t.type('Problem description', 'Brakes still make a noise and the job is poor quality');
   await t.wait(900);

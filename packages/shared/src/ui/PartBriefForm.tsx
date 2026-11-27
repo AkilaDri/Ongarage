@@ -1,5 +1,5 @@
 import { VehicleLine } from './LkPlate';
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Colors, getThemeMode, themedStyles } from '../theme/colors';
 import { FONTS } from '../theme/fonts';
@@ -37,7 +37,9 @@ export const PartVehicleBox: React.FC<{ vehicle: PartBrief['vehicle'] }> = ({ ve
  * brief (its chassis and engine number are what shops check against). Photos and voice notes are
  * attached by the app around this form.
  */
-export const PartBriefForm: React.FC<{ brief: PartBrief; onChange: (b: PartBrief) => void; /** Each time this number changes the part name box is focused (the form starts again for the next part). */ focusKey?: number; /** The sheet shows the vehicle box itself (at its top). */ hideVehicle?: boolean; children?: React.ReactNode }> = ({ brief, onChange, focusKey, hideVehicle, children }) => {
+export const PartBriefForm: React.FC<{ brief: PartBrief; onChange: (b: PartBrief) => void; /** Each time this number changes the part name box is focused (the form starts again for the next part). */ focusKey?: number; /** The sheet shows the vehicle box itself (at its top). */ hideVehicle?: boolean; /** The short form: name or photo, how many and which kind first; the category, part number, note and `children` wait under "more details". */ simple?: boolean; /** The short form only: what sits right under the name (the photo buttons, since a photo can stand for the name). */ photoSlot?: React.ReactNode; children?: React.ReactNode }> = ({ brief, onChange, focusKey, hideVehicle, simple, photoSlot, children }) => {
+  // A part number already known (a job's report) is worth showing from the start.
+  const [more, setMore] = useState(!!brief.partNo);
   const nameRef = useRef<TextInput>(null);
   useEffect(() => {
     if (focusKey) setTimeout(() => nameRef.current?.focus(), 250);
@@ -63,6 +65,10 @@ export const PartBriefForm: React.FC<{ brief: PartBrief; onChange: (b: PartBrief
         </Pressable>
       )}
 
+      {simple && photoSlot}
+
+      {!simple && (
+        <>
       {/* The category the part belongs to: found from the name, and changeable here. Shown as icons in two rows that scroll sideways. */}
       <Text style={styles.label}>කොටසේ කාණ්ඩය</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.catGrid}>
@@ -76,6 +82,8 @@ export const PartBriefForm: React.FC<{ brief: PartBrief; onChange: (b: PartBrief
           );
         })}
       </ScrollView>
+        </>
+      )}
 
       <View style={styles.row}>
         <Text style={[styles.label, styles.flex1]}>ප්‍රමාණය</Text>
@@ -102,6 +110,30 @@ export const PartBriefForm: React.FC<{ brief: PartBrief; onChange: (b: PartBrief
         })}
       </View>
 
+      {simple && (
+        <Pressable style={styles.more} onPress={() => setMore((m) => !m)} accessibilityRole="button" accessibilityState={{ expanded: more }} accessibilityLabel="More details">
+          <Text style={styles.moreText}>{more ? '▴ අඩුවෙන් පෙන්වන්න' : '▾ තවත් විස්තර (විකල්ප)'}</Text>
+        </Pressable>
+      )}
+      {(!simple || more) && (
+        <>
+          {simple && (
+            <>
+      {/* The category the part belongs to: found from the name, and changeable here. Shown as icons in two rows that scroll sideways. */}
+      <Text style={styles.label}>කොටසේ කාණ්ඩය</Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.catGrid}>
+        {PART_CATEGORY_IDS.map((id) => SERVICE_CATEGORIES.find((c) => c.id === id)).filter((c): c is (typeof SERVICE_CATEGORIES)[number] => !!c).map((c) => {
+          const on = brief.categoryId === c.id;
+          return (
+            <Pressable key={c.id} style={[styles.cat, on && styles.catOn]} onPress={() => set({ categoryId: on ? undefined : c.id })} accessibilityLabel={`Category ${c.name}`} accessibilityState={{ selected: on }}>
+              <Text style={styles.catIcon}>{c.icon}</Text>
+              <Text style={[styles.catName, on && styles.catNameOn]} numberOfLines={1}>{c.name}</Text>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+            </>
+          )}
       <Text style={styles.label}>කොටස් අංකය (ඇත්නම්)</Text>
       <TextInput style={styles.input} value={brief.partNo ?? ''} onChangeText={(t) => set({ partNo: t || undefined })} placeholder="උදා: 04465-20520" placeholderTextColor={Colors.textMuted} autoCapitalize="characters" accessibilityLabel="Part number" />
 
@@ -115,9 +147,12 @@ export const PartBriefForm: React.FC<{ brief: PartBrief; onChange: (b: PartBrief
         multiline
         accessibilityLabel="Note for the shop"
       />
+          {simple && children}
+        </>
+      )}
 
       {!hideVehicle && <PartVehicleBox vehicle={v} />}
-      {children}
+      {!simple && children}
     </View>
   );
 };
@@ -126,6 +161,8 @@ const styles = themedStyles(() =>
   StyleSheet.create({
     flex1: { flex: 1 },
     wrap: { gap: 12 },
+    more: { alignSelf: 'flex-start', minHeight: 40, justifyContent: 'center' },
+    moreText: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1e3a8a' },
     label: { fontSize: 12.5, fontFamily: FONTS.bodySemiBold, color: getThemeMode() === 'dark' ? Colors.textMuted : '#5f6368' },
     input: { backgroundColor: Colors.bgCard, borderRadius: 8, paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, fontFamily: FONTS.bodyRegular, color: Colors.textMain, borderWidth: 1, borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#dadce0' },
     note: { minHeight: 76, textAlignVertical: 'top' },

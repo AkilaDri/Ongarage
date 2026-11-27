@@ -9,7 +9,8 @@ module.exports = spec('Owner · parts basket, compare and reserve together', 'us
   await t.wait(500);
   await t.clickLabel('OnMart mine');
   t.check('the requests are one basket group', await t.has('කොටස් 3 ක ඉල්ලීම'));
-  await t.wait(14000);
+  // A shop takes about 40 s to find a part.
+  await t.wait(45000);
   t.check('the compare ranks shops by how much of the basket they have', (await t.has('වෙළඳසැල් අනුව')) && (await t.has('හැම කොටසකටම අඩුම මිල')));
   t.check('a shop can be reserved for all its parts at once', (await t.labels('Reserve ')).length > 0);
   await t.shot('owner-basket');
