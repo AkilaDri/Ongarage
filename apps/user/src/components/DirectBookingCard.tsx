@@ -10,7 +10,7 @@ import { useBookings } from '../context/BookingsContext';
 import { useVehicles } from '../context/VehiclesContext';
 import { useWorkshops } from '../context/WorkshopContext';
 import { WorkshopTracker } from './workshop/WorkshopTracker';
-import { ownerNeed } from '../utils/ownerNeed';
+import { useOwnerNeed } from '../utils/jobParts';
 import { RatingSheet } from './workshop/RatingSheet';
 import { CategoryPhoto } from './home/CategoryPhoto';
 import { VehicleBlock } from './VehicleBlock';
@@ -25,6 +25,7 @@ export const DirectBookingCard: React.FC<{ booking: DirectBooking; onBookAgain: 
   const { acceptProposal, declineProposal, cancelBooking } = useBookings();
   const { findVehicle } = useVehicles();
   const { workshops } = useWorkshops();
+  const needOf = useOwnerNeed();
   const user = useUserLocation();
   const [now, setNow] = useState(Date.now());
   const [rating, setRating] = useState(false);
@@ -61,7 +62,7 @@ export const DirectBookingCard: React.FC<{ booking: DirectBooking; onBookAgain: 
         meta={`${formatDate(b.scheduledAt ?? b.preferredAt)} · ${formatTime(b.scheduledAt ?? b.preferredAt)}`}
         // The owner's turn: a time the garage proposed, or something a running job asks for.
         attentionBleed={8}
-        attention={!cancelledJob && (b.status === 'proposed' || (!finishedJob && !!ownerNeed(w)))}
+        attention={!cancelledJob && (b.status === 'proposed' || (!finishedJob && !!needOf(w)))}
       />
       <PostBody bleed={8} price={priceText} swap={runningJob} vehicle={v} kind="direct" subject={`${cat.name}${b.service ? ` · ${b.service}` : ''}`} onPress={onOpen} status={w?.progress.workStartedAt && !doneOk ? <WorkTimer startedAt={w.progress.workStartedAt} endedAt={w.progress.handover?.readyAt} /> : undefined}>
         {doneOk && (

@@ -27,7 +27,7 @@ setAppPalette({ light: { bgBody: '#f8fafc', sheetBg: '#f8fafc', bgCard: '#ffffff
 import { VehiclesProvider, useVehicles } from './context/VehiclesContext';
 import { HandoverProvider } from './context/HandoverContext';
 import { OwnerMartNav, OwnerNav } from './components/OwnerNav';
-import { setMartOpener, setShopOpener } from './utils/martBridge';
+import { setMartOpener, setSegmentOpener, setShopOpener } from './utils/martBridge';
 import { setFittingOpener } from './utils/fittingBridge';
 import { LocationProvider } from './context/LocationContext';
 import { LanguageProvider } from './context/LanguageContext';
@@ -367,6 +367,10 @@ function AppShell() {
       setTimeout(() => setMartSeed(part), 0);
       setActiveTab('mart');
     });
+    setSegmentOpener((segment) => {
+      setMartSegment(segment);
+      setActiveTab('mart');
+    });
     setShopOpener((shopId, ask) => {
       setMartShopReq({ id: shopId, at: Date.now(), ask });
       setMartSegment('shops');
@@ -375,6 +379,7 @@ function AppShell() {
     return () => {
       setMartOpener(null);
       setShopOpener(null);
+      setSegmentOpener(null);
     };
   }, []);
   // A part bought in OnMart can start a "fit this part" job: the post-a-job form opens with the part filled in.

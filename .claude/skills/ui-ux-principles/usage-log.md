@@ -13,6 +13,16 @@ Entry format:
 
 ## Entries
 
+## 2026-11-27 · Owner job parts, step 3 · buy without leaving the job
+- Principles used: UX 49 (whole purchase over the job card), UPD 099 and C10 (offer order, total before reserving), UX 05 (referral disclosed beside the offer), C4 and C6 (one footer action per state), C14 (waiting, wrong and done states), UPD 074 (wrong part has a way back).
+- Core missing: none.
+- Outcome: user approved all four. Not yet checked on a phone; not type checked.
+
+## 2026-11-27 · Owner job parts, steps 1 and 2 · one status per part, a task not an approval
+- Principles used: C4 and UPD 035 (one status and one next action everywhere), C3 (details prefilled), C8 and UX 33 (one reminder), C10 (not billed until confirmed), UPD 074 forgiveness (disagree with undo, no duplicate requests), UX 49 (job link kept on every route).
+- Core missing: none.
+- Outcome: user said yes to all three. Not yet checked on a phone; not type checked.
+
 ## 2026-11-27 · Owner OnMart rows · Home's garage rules for shops
 - Principles used: C3 (saved and bought-from rows), C1 and C4 (the heart now saves), UX 05 (ads after organic rows, still labelled), C2 and UX 24 (one nearby row with three choices), UPD 099 (own shops first), C5 (same rules as Home).
 - Core missing: none.

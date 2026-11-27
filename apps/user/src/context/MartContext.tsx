@@ -119,7 +119,7 @@ export type MartPurchase = {
   brief: PartBrief;
   stage: PurchaseStage;
   createdAt: number;
-  delivery?: { courier?: string; fee: number; rider: { name: string; phone: string }; etaAt: number };
+  delivery?: { courier?: string; fee: number; rider: { name: string; phone: string }; etaAt: number; /** Delivered to this garage, where the owner is waiting, instead of to the owner's own place. */ toGarage?: string };
   /** Set when bought: the shop's warranty on the part. */
   warrantyUntil?: number;
   rating?: { stars: number; text?: string; at: number };
@@ -157,7 +157,7 @@ type MartState = {
   /** Add to or change the description, photos and voice notes of one's own request while it is open (the shops see the change). */
   editEnquiry: (enquiryId: string, change: { note?: string; photos?: string[]; voiceNotes?: VoiceNote[] }) => void;
   /** Reserve an offer: the shop holds the part for the owner, who gets a purchase code. */
-  reserve: (offerId: string, fulfilment: 'pickup' | 'delivery', group?: ReserveGroup) => void;
+  reserve: (offerId: string, fulfilment: 'pickup' | 'delivery', group?: ReserveGroup, toGarage?: string) => void;
   /** Reserve several parts of a basket at one shop in one go: one purchase code for all of them, each part still inspected and paid on its own. */
   reserveMany: (offerIds: string[], fulfilment: 'pickup' | 'delivery') => void;
   /** The cart: the shop picked for each part (one shop per part), to be confirmed within the hour. */
@@ -260,7 +260,7 @@ export const MartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const { notify } = useNotice();
   const { fullName } = useProfile();
   const { coords } = useUserLocation();
-  const { markPartBought } = useWorkshops();
+  const { markPartBought, unmarkPartBought } = useWorkshops();
   const [enquiries, setEnquiries] = useState<MartEnquiry[]>([]);
   const enquirySeq = useRef(0);
   const [offers, setOffers] = useState<ShopOffer[]>([]);
@@ -305,11 +305,16 @@ export const MartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const older = inRing.filter((s) => !s.catalogue?.length && wallVisibleTo(s, brief)).slice(0, Math.max(0, BROADCAST_LIMIT - covered.length));
         return [...covered, ...older];
       };
+      // The shops a garage recommended for a job part are always asked, however far they are or however many others fit.
+      const recommended = () => {
+        const near = reach();
+        return [...near, ...all.filter((s) => e.jobRef?.recommendedShopIds.includes(s.id) && !asked.has(s.id) && !near.some((n) => n.id === s.id))];
+      };
       const targets =
         mode === 'shops'
           ? me.onlyShopIds
             ? all.filter((s) => me.onlyShopIds!.includes(s.id) && !asked.has(s.id))
-            : reach()
+            : recommended()
           : all.filter((s) => !asked.has(s.id) && wallVisibleTo(s, brief));
       const ids = targets.map((s) => s.id);
       patch(e.id, (m) => ({ ...m, askedShopIds: [...new Set([...m.askedShopIds, ...ids])], searching: true }));
@@ -386,6 +391,13 @@ export const MartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const createEnquiry = useCallback(
     (input: NewEnquiry) => {
+      // One live request for each part of a job: asking again opens the one already there.
+      const ref = input.jobRef;
+      const existing = ref && live.current.enquiries.find((x) => x.enquiry.jobRef?.bookingId === ref.bookingId && x.enquiry.jobRef.lineId === ref.lineId && x.enquiry.status !== 'cancelled' && x.enquiry.status !== 'expired');
+      if (existing) {
+        notify({ icon: '📨', title: 'මෙම කොටස දැනටමත් ඉල්ලා ඇත', body: 'පිළිතුරු “මගේ ඉල්ලීම්” හි ඇත.', tone: 'primary' });
+        return existing.enquiry.id;
+      }
       const now = Date.now();
       // Two requests can be created in the same millisecond (a double tap), so the clock alone is not a unique id.
       const seq = ++enquirySeq.current;
@@ -518,7 +530,7 @@ export const MartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   );
 
   const reserve = useCallback(
-    (offerId: string, fulfilment: 'pickup' | 'delivery', group?: ReserveGroup) => {
+    (offerId: string, fulfilment: 'pickup' | 'delivery', group?: ReserveGroup, toGarage?: string) => {
       const { offers: os, enquiries: es, purchases: ps } = live.current;
       const offer = os.find((o) => o.id === offerId);
       const me = offer && es.find((m) => m.enquiry.id === offer.enquiryId);
@@ -546,14 +558,14 @@ export const MartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         stage: 'reserved',
         createdAt: now,
         delivery: del
-          ? { courier: del.courier, fee: del.fee, rider: del.courier ? { name: 'සමන් කුමාර', phone: '0771230099' } : { name: `${offer.shop.name} රියදුරා`, phone: offer.shop.phone }, etaAt: 0 }
+          ? { toGarage, courier: del.courier, fee: del.fee, rider: del.courier ? { name: 'සමන් කුමාර', phone: '0771230099' } : { name: `${offer.shop.name} රියදුරා`, phone: offer.shop.phone }, etaAt: 0 }
           : undefined,
       };
       const id = mp.purchase.id;
       setPurchases((prev) => [mp, ...prev]);
       setStatus(offer.enquiryId, 'reserved');
-      shopSays(offer.enquiryId, offer.shop.id, del ? '🔒 කොටස වෙන් කළා — ගෙදරටම එවමි.' : `🔒 කොටස වෙන් කළා — පැය ${offer.holdHours} ක් කවුන්ටරයේ තබා ගන්නමි. සූදානම් වූ විට දන්වමි; ඔබගේ කේතය පෙන්වන්න.`);
-      if (!group) notify({ icon: '🔒', title: `${offer.shop.name} ඔබට කොටස වෙන් කළා`, body: del ? 'කොටස ගෙදරටම එවයි.' : `පැය ${offer.holdHours} ක් කවුන්ටරයේ තබා ගනී — කේතය පෙන්වන්න.`, tone: 'success' });
+      shopSays(offer.enquiryId, offer.shop.id, del ? `🔒 කොටස වෙන් කළා — ${toGarage ? `${toGarage} වෙත` : 'ගෙදරටම'} එවමි.` : `🔒 කොටස වෙන් කළා — පැය ${offer.holdHours} ක් කවුන්ටරයේ තබා ගන්නමි. සූදානම් වූ විට දන්වමි; ඔබගේ කේතය පෙන්වන්න.`);
+      if (!group) notify({ icon: '🔒', title: `${offer.shop.name} ඔබට කොටස වෙන් කළා`, body: del ? `කොටස ${toGarage ? `${toGarage} වෙත` : 'ගෙදරටම'} එවයි.` : `පැය ${offer.holdHours} ක් කවුන්ටරයේ තබා ගනී — කේතය පෙන්වන්න.`, tone: 'success' });
 
       if (del) {
         later(() => {
@@ -672,7 +684,7 @@ export const MartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!ok) return;
       setStatus(cur.purchase.enquiryId, 'bought');
       // A part a garage asked the owner to buy: the garage is told the shop verified the purchase.
-      if (cur.purchase.jobRef) markPartBought(cur.purchase.jobRef.bookingId, cur.purchase.jobRef.lineId, { shopName: cur.offer.shop.name, amount: cur.offer.total });
+      if (cur.purchase.jobRef) markPartBought(cur.purchase.jobRef.bookingId, cur.purchase.jobRef.lineId, { shopName: cur.offer.shop.name, amount: cur.offer.total, partType: cur.offer.partType });
       notify({ icon: '✅', title: 'කොටස මිලදී ගත්තා', body: `${cur.offer.shop.name} · ${cur.brief.name} · LKR ${cur.offer.total.toLocaleString()}`, tone: 'success' });
     },
     [markPartBought, moveStage, notify, setStatus]
@@ -707,9 +719,15 @@ export const MartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const cur = live.current.purchases.find((p) => p.purchase.id === purchaseId);
       if (!cur || cur.stage !== 'bought' || (cur.purchase.returnBy ?? 0) < Date.now()) return;
       moveStage(purchaseId, ['bought'], 'returned', (p) => ({ purchase: { ...p.purchase, status: 'returned' }, returnReason: reason }));
+      // A returned job part is needed again: the job forgets the purchase, and that request closes so a new one can be made.
+      const ref = cur.purchase.jobRef;
+      if (ref) {
+        unmarkPartBought(ref.bookingId, ref.lineId);
+        if (cur.purchase.enquiryId) setStatus(cur.purchase.enquiryId, 'cancelled');
+      }
       notify({ icon: '↩️', title: 'ආපසු දීම වෙළඳසැලට දැනුම් දුන්නා', body: `${cur.offer.shop.name} කොටස පරීක්ෂා කර මුදල ආපසු දෙයි.`, tone: 'primary' });
     },
-    [moveStage, notify]
+    [moveStage, notify, setStatus, unmarkPartBought]
   );
 
   const rate = useCallback(

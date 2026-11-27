@@ -2,6 +2,7 @@ import { flyTo } from '../utils/fly';
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import {
   agreedInPerson,
+  linesOwnerBuys,
   approvedLines,
   type CustomerTag,
   claimBlockers,
@@ -46,6 +47,7 @@ import {
   type PartType,
   type ReconRequest,
   type ExtraWorkRequest,
+  type OwnerDecision,
   type WorkshopProgress,
 } from '@ongarage/shared';
 import { useNotice } from './NoticeContext';
@@ -61,6 +63,17 @@ const DIAGNOSE_MS = 40000;
 const INSPECTION_UPDATE_MS = 15000;
 // How long the face-to-face talk takes when something was already waiting for an answer as the owner came to stay: long enough to switch back and see the request return.
 const IN_PERSON_MS = 20000;
+// How long the simulated garage takes to answer "I didn't agree" to a part, and to confirm a part the owner added.
+const PART_DISPUTE_REPLY_MS = 15000;
+const ADDED_PART_CONFIRM_MS = 20000;
+// How long the simulated garage takes to check a part the owner hands in.
+const PART_CHECK_MS = 10000;
+
+/** The one reminder that the owner has a part to get (their own task, so it is said even to an owner at the garage). */
+const partTask = (lines: DiagnosisLine[]) => {
+  const mine = lines.filter((l) => l.kind === 'part' && l.source === 'owner');
+  return mine.length ? { icon: '🔩', title: 'ඔබ කොටසක් ගෙන ආ යුතුයි', body: mine.map((l) => `${l.name} ×${l.qty}`).join(', '), tone: 'primary' as const } : null;
+};
 const REPAIR_MS = 8000;
 const SCAN_MS = 5000;
 const REWORK_MS = 4000;
@@ -148,8 +161,14 @@ export type OwnerWorkshop = {
   receiptNo?: string;
   /** The owner's review, and later the garage's public reply. */
   review?: GarageReview;
+  /** Parts the owner says they never agreed to (by line id): on hold, not asked for or bought, until the garage answers. */
+  partDisputes?: Record<string, { at: number }>;
+  /** Parts the owner added because the technician asked in person and had not recorded them yet: not agreed work and not charged until the garage confirms. */
+  addedParts?: { id: string; name: string; qty: number; photos?: string[]; at: number }[];
   /** Parts the garage asked the owner to buy (OnMart), by line id, once a shop verified the purchase. */
-  partsBought?: Record<string, { shopName: string; amount: number; at: number }>;
+  partsBought?: Record<string, { shopName: string; amount: number; at: number; partType?: PartType }>;
+  /** After buying: the owner hands the part to the garage, which says it is the right one or why not. Only a right part counts as done. */
+  partChecks?: Record<string, { state: 'checking' | 'right' | 'wrong'; reason?: string; at: number }>;
   /** The offer the job was booked with and what it took off the garage's estimate (agreedPrice is already the lower price). */
   offer?: { title: string; icon: string; amount: number };
 };
@@ -166,6 +185,10 @@ export type RatingInput = { dimensions: DimensionRating; technician?: number; te
 
 type WorkshopState = {
   workshops: Record<string, OwnerWorkshop>;
+  /** "I didn't agree to this part" (and taking that back, before the garage answers). */
+  disputePart: (id: string, lineId: string, disputed: boolean) => void;
+  /** "The technician asked me for a part": the garage is asked to confirm it. Returns the part's id. */
+  addPart: (id: string, input: { name: string; qty: number; photos?: string[] }) => void;
   /** The owner left the garage, or came back to stay: it changes only what happens from now on. */
   setStays: (id: string, stays: boolean) => void;
   /** A booking was confirmed / a bid accepted: the job follows the workshop steps. */
@@ -222,7 +245,11 @@ type WorkshopState = {
   escalate: (id: string) => void;
   claimWarranty: (id: string, text: string, photos?: string[]) => void;
   /** A part the garage asked the owner to buy was bought at a shop (the shop verified the purchase code). */
-  markPartBought: (id: string, lineId: string, info: { shopName: string; amount: number }) => void;
+  markPartBought: (id: string, lineId: string, info: { shopName: string; amount: number; partType?: PartType }) => void;
+  /** The part went back to the shop: the job needs it again. */
+  unmarkPartBought: (id: string, lineId: string) => void;
+  /** The owner gave a bought part to the garage, to be checked. */
+  handInPart: (id: string, lineId: string) => void;
 };
 
 const WorkshopContext = createContext<WorkshopState | null>(null);
@@ -617,7 +644,7 @@ export const WorkshopProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const agreeExtraHere = useCallback(
     (id: string, x: ExtraWorkRequest) => {
       patch(id, { extras: [{ ...x, decision: agreedInPerson(x.lines, Date.now()) }] });
-      notify({ icon: '🤝', title: 'ගරාජයේදී එකඟ වූ අමතර වැඩ සටහන් කළා', body: 'කේතය දීමට පෙර බිල්පතේ ඒවා පරීක්ෂා කරන්න.', tone: 'primary' });
+      notify(partTask(x.lines) ?? { icon: '🤝', title: 'ගරාජයේදී එකඟ වූ අමතර වැඩ සටහන් කළා', body: 'කේතය දීමට පෙර බිල්පතේ ඒවා පරීක්ෂා කරන්න.', tone: 'primary' });
       carryOnRef.current(id);
     },
     [notify, patch]
@@ -662,7 +689,9 @@ export const WorkshopProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           return;
         }
         // Parts the owner buys themselves (OnMart): the garage waits for the shop-verified purchase.
-        if (ownerPartsPending(w.progress, Object.keys(w.partsBought ?? {})).length) return;
+        if (ownerPartsPending(w.progress, Object.keys(w.partChecks ?? {}).filter((l) => w.partChecks![l].state === 'right')).length) return;
+        // A part the owner added is still waiting for the garage's yes or no: the bill is not made yet.
+        if (w.addedParts?.length) return;
         const lines = approvedLines(w.progress);
         patch(id, {
           stage: 'readyForHandover',
@@ -738,6 +767,65 @@ export const WorkshopProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }, IN_PERSON_MS);
     },
     [later, notify, patch, repairThenHandover]
+  );
+
+  const disputePart = useCallback(
+    (id: string, lineId: string, disputed: boolean) => {
+      const w = live.current[id];
+      if (!w || w.partsBought?.[lineId]) return;
+      const rest = { ...(w.partDisputes ?? {}) };
+      if (!disputed) {
+        delete rest[lineId];
+        patchJob(id, { partDisputes: rest });
+        return;
+      }
+      const at = Date.now();
+      patchJob(id, { partDisputes: { ...rest, [lineId]: { at } } });
+      notify({ icon: '✋', title: 'ගරාජයට දැනුම් දුන්නා', body: 'ඔවුන් පිළිතුරු දෙන තුරු මෙම කොටස නවතා ඇත. කිසිවක් මිලදී ගැනීම හෝ අය කිරීම නැත.', tone: 'primary' });
+      // Simulated garage: it takes the part off the job, with the fitting charged for it (extra work whose only part this was goes whole).
+      later(() => {
+        const cur = live.current[id];
+        if (!cur || cur.partDisputes?.[lineId]?.at !== at) return;
+        const without = (d: OwnerDecision | undefined, drop: string[]) =>
+          d ? { ...d, approvedLineIds: d.approvedLineIds.filter((l) => !drop.includes(l)), declinedLineIds: [...new Set([...d.declinedLineIds, ...drop])] } : d;
+        const extras = cur.progress.extras?.map((x) => {
+          if (!x.lines.some((l) => l.id === lineId)) return x;
+          const onlyPart = x.lines.filter((l) => l.kind === 'part').length === 1;
+          return { ...x, decision: without(x.decision, onlyPart ? x.lines.map((l) => l.id) : [lineId]) };
+        });
+        const decision = cur.progress.diagnosis?.lines.some((l) => l.id === lineId) ? without(cur.progress.decision, [lineId]) : cur.progress.decision;
+        const left = { ...(cur.partDisputes ?? {}) };
+        delete left[lineId];
+        patch(id, { extras, decision });
+        patchJob(id, { partDisputes: left });
+        notify({ icon: '✅', title: `${cur.garageName}: කොටස ඉවත් කළා`, body: 'එම කොටස සහ එය සවි කිරීමේ ගාස්තුව බිල්පතෙන් ඉවත් කළා.', tone: 'success' });
+        repairThenHandover(id);
+      }, PART_DISPUTE_REPLY_MS);
+    },
+    [later, notify, patch, patchJob, repairThenHandover]
+  );
+
+  const addPart = useCallback(
+    (id: string, input: { name: string; qty: number; photos?: string[] }) => {
+      const w = live.current[id];
+      if (!w || w.progress.cancelled || w.progress.cancelRequest) return;
+      const partId = `ap-${id}-${Date.now()}`;
+      patchJob(id, { addedParts: [...(w.addedParts ?? []), { id: partId, name: input.name, qty: input.qty, photos: input.photos, at: Date.now() }] });
+      notify({ icon: '✍️', title: 'ගරාජයට තහවුරු කිරීමට යැව්වා', body: `${input.name} ×${input.qty}`, tone: 'primary' });
+      // Simulated garage: it confirms the part, which then counts as agreed in person.
+      later(() => {
+        const cur = live.current[id];
+        const part = cur?.addedParts?.find((a) => a.id === partId);
+        if (!cur || !part || cur.progress.cancelled || cur.progress.stage === 'closed' || cur.progress.stage === 'declined') return;
+        const type = cur.partType ?? 'OEM';
+        const line: DiagnosisLine = { id: part.id, kind: 'part', name: part.name, qty: part.qty, partType: type, source: 'owner', photos: part.photos, price: partMarketPrice(part.name, type) * part.qty };
+        patch(id, { extras: [...(cur.progress.extras ?? []), { id: `ax-${part.id}`, reason: 'ඔබ දැනුම් දුන් කොටස ගරාජය තහවුරු කළා', lines: [line], sentAt: Date.now(), decision: agreedInPerson([line], Date.now()) }] });
+        patchJob(id, { addedParts: cur.addedParts!.filter((a) => a.id !== partId) });
+        notify({ icon: '✅', title: `${cur.garageName}: කොටස තහවුරු කළා`, body: `${part.name} ×${part.qty}`, tone: 'success' });
+        repairThenHandover(id);
+      }, ADDED_PART_CONFIRM_MS);
+    },
+    [later, notify, patch, patchJob, repairThenHandover]
   );
 
   const setStays = useCallback(
@@ -932,14 +1020,52 @@ export const WorkshopProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   );
 
   const markPartBought = useCallback(
-    (id: string, lineId: string, info: { shopName: string; amount: number }) => {
+    (id: string, lineId: string, info: { shopName: string; amount: number; partType?: PartType }) => {
       const w = live.current[id];
       if (!w) return;
       patchJob(id, { partsBought: { ...(w.partsBought ?? {}), [lineId]: { ...info, at: Date.now() } } });
-      notify({ icon: '✅', title: 'ගරාජයට දැනුම් දුන්නා', body: `${info.shopName} වෙතින් කොටස මිලදී ගත් බව ${w.garageName} හට පෙනේ — එය පරීක්ෂා කර සවි කරයි.`, tone: 'success' });
+      notify({ icon: '✅', title: 'කොටස මිලදී ගත්තා', body: `දැන් එය ${w.garageName} වෙත භාර දෙන්න — ඔවුන් එය නිවැරදිදැයි පරීක්ෂා කරයි.`, tone: 'success' });
       repairThenHandover(id);
     },
     [notify, patchJob, repairThenHandover]
+  );
+
+  const unmarkPartBought = useCallback(
+    (id: string, lineId: string) => {
+      const w = live.current[id];
+      if (!w) return;
+      const bought = { ...(w.partsBought ?? {}) };
+      const checks = { ...(w.partChecks ?? {}) };
+      delete bought[lineId];
+      delete checks[lineId];
+      patchJob(id, { partsBought: bought, partChecks: checks });
+    },
+    [patchJob]
+  );
+
+  const handInPart = useCallback(
+    (id: string, lineId: string) => {
+      const w = live.current[id];
+      if (!w?.partsBought?.[lineId] || w.partChecks?.[lineId]) return;
+      const at = Date.now();
+      patchJob(id, { partChecks: { ...(w.partChecks ?? {}), [lineId]: { state: 'checking', at } } });
+      // Simulated garage: the part is wrong only when its kind is not the one the job asked for.
+      later(() => {
+        const cur = live.current[id];
+        if (!cur || cur.partChecks?.[lineId]?.at !== at) return;
+        const line = linesOwnerBuys(cur.progress).find((l) => l.id === lineId);
+        const got = cur.partsBought?.[lineId]?.partType;
+        const wrong = !!line?.partType && line.partType !== 'GarageChoice' && !!got && got !== line.partType;
+        patchJob(id, { partChecks: { ...cur.partChecks, [lineId]: { state: wrong ? 'wrong' : 'right', at, reason: wrong ? `ඉල්ලුවේ ${line!.partType} · ලැබුණේ ${got}` : undefined } } });
+        notify(
+          wrong
+            ? { icon: '⚠️', title: `${cur.garageName}: වැරදි කොටසක්`, body: `${line!.name} · ඉල්ලුවේ ${line!.partType}, ලැබුණේ ${got}`, tone: 'danger' }
+            : { icon: '✅', title: `${cur.garageName}: නිවැරදි කොටස ලැබුණා`, body: line?.name ?? '', tone: 'success' }
+        );
+        if (!wrong) repairThenHandover(id);
+      }, PART_CHECK_MS);
+    },
+    [later, notify, patchJob, repairThenHandover]
   );
 
   const decideExtra = useCallback(
@@ -1149,7 +1275,7 @@ export const WorkshopProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   );
 
   return (
-    <WorkshopContext.Provider value={{ workshops, setStays, openBill, startWorkshop, approveDiagnosis, decideExtra, decideRecon, claimGuarantee, rateJob, declineDiagnosis, changeDiagnosisDecision, changeExtraDecision, changeReconDecision, confirmPayment, claimPayment, reschedulePayment, replyToCustomerRating, disputeCustomerRating, requestFit, requestCancel, editCancelRequest, withdrawCancel, confirmCancel, showCloseCode, acknowledgeClosed, confirmReceived, disputeReceipt, escalateReceipt, cancelDisputedReceipt, reportProblem, escalate, claimWarranty, markPartBought }}>
+    <WorkshopContext.Provider value={{ workshops, disputePart, addPart, setStays, openBill, startWorkshop, approveDiagnosis, decideExtra, decideRecon, claimGuarantee, rateJob, declineDiagnosis, changeDiagnosisDecision, changeExtraDecision, changeReconDecision, confirmPayment, claimPayment, reschedulePayment, replyToCustomerRating, disputeCustomerRating, requestFit, requestCancel, editCancelRequest, withdrawCancel, confirmCancel, showCloseCode, acknowledgeClosed, confirmReceived, disputeReceipt, escalateReceipt, cancelDisputedReceipt, reportProblem, escalate, claimWarranty, markPartBought, unmarkPartBought, handInPart }}>
       {children}
     </WorkshopContext.Provider>
   );

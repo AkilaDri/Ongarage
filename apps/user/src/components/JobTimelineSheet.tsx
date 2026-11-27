@@ -7,7 +7,7 @@ import { useWorkshops } from '../context/WorkshopContext';
 import { formatDate, formatTime, money } from '../utils/format';
 
 const stamp = (t?: number) => (t ? `${formatDate(t)} · ${formatTime(t)}` : '');
-const VIA = { app: 'ඔබගේ යෙදුමෙන්', phone: 'දුරකථනයෙන් ගරාජයට දැන්වූවා', deferred: 'පසුවට තබා ගත්තා' } as const;
+const VIA = { app: 'ඔබගේ යෙදුමෙන්', phone: 'දුරකථනයෙන් ගරාජයට දැන්වූවා', deferred: 'පසුවට තබා ගත්තා', inPerson: 'ගරාජයේදී එකඟ වූ' } as const;
 const CLAIM = { open: 'විවෘතයි', accepted: 'පිළිගත්තා', rejected: 'ප්‍රතික්ෂේප විය', escalated: 'OnGarage වෙත' } as const;
 
 /** Who ordered / bought a part line: the garage (from its stock or from a shop) or the customer (OnMart). */

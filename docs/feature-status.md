@@ -60,6 +60,7 @@ A working checklist of every feature in the four apps: whether its **design is o
 | Job tracker, diagnosis approval, extra work, recon, handover with owner's code, receipt | ✅ | 🟠 | Refined 2026-11-26 in six steps (your turn, pop-ups, rare actions, buttons and text, finished card, payment and cancel). Receipt sheet content not redesigned. Not yet checked on a phone. |
 | Rating, review reply, problem report, OnGarage Guarantee claim | 🟡 | 🟠 | Buttons and text updated; layouts not reviewed in detail. |
 | Warranty claim | ⬜ | 🟠 | To be revisited with the user. |
+| Parts the owner buys for a job (task card, one status, pop-up from offers to the garage's check, delivery to the garage) | ✅ | 🟠 | Built 2026-11-27, not checked on a phone. Garage replies and checks are simulated; delivery for an owner who has left and cannot pay is not designed. |
 | Payments and reminders (balance, promised day, standing) | 🟡 | 🟠 | Payment box buttons, wording and colours done 2026-11-26; late warnings hidden on the dev server; no push. |
 | Chat (OnChat) with garages and shops | ⬜ | 🟠 | Replies simulated. |
 

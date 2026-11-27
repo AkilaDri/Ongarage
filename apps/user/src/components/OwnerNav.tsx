@@ -4,6 +4,7 @@ import { isHandedOver, useBids } from '../context/BidsContext';
 import { useBookings } from '../context/BookingsContext';
 import { useMart } from '../context/MartContext';
 import { useWorkshops } from '../context/WorkshopContext';
+import { partNeedOf, useJobPartStatuses } from '../utils/jobParts';
 import { MART_TABS, USER_TABS, type MartNavId, type TabId } from '../constants/tabs';
 
 /** What waits for the owner, as the red counts on the bottom bars. */
@@ -12,6 +13,7 @@ const useOwnerCounts = () => {
   const { bookings } = useBookings();
   const { workshops } = useWorkshops();
   const { attention } = useMart();
+  const partStatuses = useJobPartStatuses();
   // Jobs in Bids that need the owner: a winner to pick, a time to pick, or a garage's other time to answer (not one that is only waiting for the garage).
   const bids = jobs.filter((j) => j.bids.length > 0 && !isHandedOver(j) && (!j.acceptedBidId || j.booking?.status !== 'requested')).length;
   // A garage's proposed time, a diagnosis or extra work to approve, a Recon question, or a vehicle ready to collect.
@@ -19,6 +21,8 @@ const useOwnerCounts = () => {
     bookings.filter((b) => b.status === 'proposed').length +
     Object.values(workshops).filter((w) => {
       const p = w.progress;
+      // A part to ask for, or prices to compare, is the owner's turn too (stays or leaves).
+      if (!p.cancelled && partNeedOf(partStatuses(w))) return true;
       return !p.cancelled && (p.stage === 'readyForHandover' || (!p.stays && (p.stage === 'awaitingApproval' || (p.stage === 'repairing' && (!!pendingExtra(p) || !!pendingRecon(p))))));
     }).length;
   // OnMart: what is news and not seen yet (a shop has the part, a reply to a wall post, a shop writing back, an order ready / sent / arrived).

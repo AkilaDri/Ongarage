@@ -1,4 +1,4 @@
-import { linesOwnerBuys, pendingExtra, pendingRecon } from '@ongarage/shared';
+import { pendingExtra, pendingRecon } from '@ongarage/shared';
 import type { OwnerWorkshop } from '../context/WorkshopContext';
 
 /**
@@ -6,7 +6,7 @@ import type { OwnerWorkshop } from '../context/WorkshopContext';
  * and the progress line, so they can never disagree. The order is the order things can be answered: a cancellation first, then confirming the handover (nothing
  * else can be answered before it), then what the stage asks, then parts the owner has to buy.
  */
-export const ownerNeed = (w?: OwnerWorkshop): string | null => {
+export const ownerNeed = (w?: OwnerWorkshop, /** What a part to be bought asks of the owner now (utils/jobParts works it out from OnMart). */ partNeed?: string | null): string | null => {
   if (!w) return null;
   const p = w.progress;
   if (p.cancelled || p.stage === 'closed' || p.stage === 'declined') return null;
@@ -19,8 +19,8 @@ export const ownerNeed = (w?: OwnerWorkshop): string | null => {
   if (!p.stays && p.stage === 'repairing' && pendingRecon(p)) return 'Recon අවසරය දෙන්න';
   if (!p.stays && p.stage === 'repairing' && pendingExtra(p)) return 'අමතර වැඩ අනුමත කරන්න';
   if (p.stage === 'readyForHandover') return 'වාහනය භාරගන්න';
-  // Someone at the garage is told about parts to buy by the technician: no nudge.
-  if (!p.stays && linesOwnerBuys(p).some((l) => !w.partsBought?.[l.id])) return 'කොටස් OnMart හි මිලදී ගන්න';
+  // A part to get is a task even for an owner at the garage: the repair waits for them.
+  if (partNeed) return partNeed;
   return null;
 };
 

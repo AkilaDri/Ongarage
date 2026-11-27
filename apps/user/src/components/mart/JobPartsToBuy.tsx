@@ -1,9 +1,12 @@
 import { elevation1, outline } from '../../utils/material';
-import React from 'react';
+import React, { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { ActionButton, availabilityAt, Colors, FONTS, linesOwnerBuys, martShop, money, themedStyles, softEdge, softFill, softShadow, type DiagnosisLine } from '@ongarage/shared';
 import { useWorkshops } from '../../context/WorkshopContext';
 import { useChat } from '../../context/ChatContext';
+import { useJobPartStatuses } from '../../utils/jobParts';
+import { partStatusText } from '../workshop/partStatusText';
+import { PartBuySheet } from '../workshop/PartBuySheet';
 
 export type JobPartItem = {
   workshopId: string;
@@ -28,10 +31,16 @@ export const useJobPartsToBuy = (): JobPartItem[] => {
 export const JobPartsToBuy: React.FC<{ onBuy?: (item: JobPartItem) => void; onOpenMart?: () => void; compact?: boolean }> = ({ onBuy, onOpenMart, compact }) => {
   const items = useJobPartsToBuy();
   const { openBasket } = useChat();
+  const { workshops } = useWorkshops();
+  const statusesOf = useJobPartStatuses();
+  const statusOf = (i: JobPartItem) => statusesOf(workshops[i.workshopId]).find((s) => s.line.id === i.line.id);
+  // The part whose pop-up is open: the same one as on the job card.
+  const [openPart, setOpenPart] = useState<{ workshopId: string; lineId: string } | null>(null);
   if (items.length === 0) return null;
-  const todo = items.filter((i) => !i.bought);
+  const todo = items.filter((i) => !i.bought && statusOf(i)?.state !== 'held');
+  const toAsk = todo.filter((i) => statusOf(i)?.state === 'toAsk');
   // A job with several parts still to buy: one button asks them all of OnMart together.
-  const jobsWithMany = [...new Set(todo.map((i) => i.workshopId))].filter((wid) => todo.filter((i) => i.workshopId === wid).length > 1);
+  const jobsWithMany = [...new Set(toAsk.map((i) => i.workshopId))].filter((wid) => toAsk.filter((i) => i.workshopId === wid).length > 1);
 
   if (compact) {
     if (todo.length === 0) return null;
@@ -47,7 +56,7 @@ export const JobPartsToBuy: React.FC<{ onBuy?: (item: JobPartItem) => void; onOp
       <Text style={styles.title}>⚠️ ඔබ OnMart හි මිලදී ගත යුතුය{todo.length ? ` - ${todo.map((i) => i.line.name).join(', ')}` : ''}</Text>
       <Text style={styles.sub}>ගරාජය මෙම කොටස් ඔබම මිලදී ගන්න කියා ඇත — නැත්නම් අලුත්වැඩියාව ප්‍රමාද වේ. ඔවුන් නිර්දේශ කළ වෙළඳසැල් පහත තියෙනවා.</Text>
       {!!onBuy && jobsWithMany.map((wid) => (
-        <ActionButton key={wid} label={`${todo.find((i) => i.workshopId === wid)!.garageName} · කොටස් ${todo.filter((i) => i.workshopId === wid).length} ම මිලදී ගන්න`} icon="🛍️" variant="primary" compact onPress={() => openBasket(wid)} />
+        <ActionButton key={wid} label={`${toAsk.find((i) => i.workshopId === wid)!.garageName} · කොටස් ${toAsk.filter((i) => i.workshopId === wid).length} ම මිල ඉල්ලන්න`} icon="🛍️" variant="primary" compact onPress={() => openBasket(wid)} />
       ))}
       {items.map((i) => (
         <View key={`${i.workshopId}:${i.line.id}`} style={styles.item}>
@@ -58,7 +67,7 @@ export const JobPartsToBuy: React.FC<{ onBuy?: (item: JobPartItem) => void; onOp
             <Text style={styles.sub}>{i.garageName}</Text>
           </View>
           {!!i.line.partNo && <Text style={styles.sub}>කොටස් අංකය: {i.line.partNo}</Text>}
-          {i.bought ? (
+          {statusOf(i)?.state === 'done' && i.bought ? (
             <Text style={styles.done}>
               ✓ {i.bought.shopName} වෙතින් මිලදී ගත්තා · {money(i.bought.amount)}
             </Text>
@@ -75,11 +84,22 @@ export const JobPartsToBuy: React.FC<{ onBuy?: (item: JobPartItem) => void; onOp
                   </Text>
                 );
               })}
-              {!!onBuy && <ActionButton label="OnMart හි මිලදී ගන්න" icon="🛍️" variant="primary" compact onPress={() => onBuy(i)} />}
+              {(() => {
+                const s = statusOf(i);
+                if (!s) return null;
+                if (s.state === 'toAsk') return !!onBuy && <ActionButton label="මිල ඉල්ලන්න" icon="🛍️" variant="primary" compact onPress={() => onBuy(i)} />;
+                return (
+                  <>
+                    <Text style={styles.shop}>{partStatusText(s)}</Text>
+                    {s.state !== 'held' && <ActionButton label="විස්තර සහ ඊළඟ පියවර" variant="ghost" compact onPress={() => setOpenPart({ workshopId: i.workshopId, lineId: i.line.id })} />}
+                  </>
+                );
+              })()}
             </>
           )}
         </View>
       ))}
+      <PartBuySheet workshop={openPart ? workshops[openPart.workshopId] : null} lineId={openPart?.lineId ?? null} onClose={() => setOpenPart(null)} />
     </View>
   );
 };

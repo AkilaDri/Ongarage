@@ -37,7 +37,7 @@ import { PayablesCard } from '../components/PayablesCard';
 import { JobPartsToBuy } from '../components/mart/JobPartsToBuy';
 import { RecordDetailView, type RecordTarget } from '../components/RecordDetailView';
 import { WorkshopTracker } from '../components/workshop/WorkshopTracker';
-import { ownerNeed } from '../utils/ownerNeed';
+import { useOwnerNeed } from '../utils/jobParts';
 import { RatingSheet } from '../components/workshop/RatingSheet';
 import { useWorkshops, type OwnerWorkshop } from '../context/WorkshopContext';
 import { money } from '../utils/format';
@@ -88,6 +88,7 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
   const { jobs } = useBids();
   const { bookings } = useBookings();
   const { workshops } = useWorkshops();
+  const needOf = useOwnerNeed();
   const { records: sosRecords } = useSOSRecords();
   const { purchases } = useMart();
   // A workshop job the owner stopped, or saw close, moves down to the completed list.
@@ -224,7 +225,7 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
           name={bid.garageName}
           garage={{ id: bid.garageId, name: bid.garageName }}
           meta={`වෙන් කළේ ${formatDate(new Date(job.booking?.confirmedAt ?? bid.submittedAt))}`}
-          attention={!!ownerNeed(workshops[job.id])}
+          attention={!!needOf(workshops[job.id])}
         />
         <PostBody
           price={money(bid.price)}

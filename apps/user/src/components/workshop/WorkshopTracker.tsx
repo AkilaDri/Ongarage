@@ -1,10 +1,11 @@
 import { FlowButton } from '../FlowButton';
 import { StayToggle } from '../StayToggle';
+import { AddJobPart, JobPartTask } from './JobPartTask';
+import { useOwnerNeed } from '../../utils/jobParts';
 import React, { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import {
   
-  linesOwnerBuys,
   paymentDue,
   canRequestCancel,
   Colors,
@@ -24,7 +25,7 @@ import {
   getThemeMode,
 } from '@ongarage/shared';
 import { useWorkshops } from '../../context/WorkshopContext';
-import { ownerNeed, waitingText } from '../../utils/ownerNeed';
+import { waitingText } from '../../utils/ownerNeed';
 import { formatDate, formatTime, money } from '../../utils/format';
 import { ReceiptDisputeBox, ReceiptReasonSheet } from './ReceiptDispute';
 import { InspectionBox } from './InspectionBox';
@@ -77,10 +78,11 @@ export const WorkshopTracker: React.FC<{ id: string; detailed?: boolean }> = ({ 
   const [sheet, setSheet] = useState<SheetId>(null);
   // "No, they do not have it" opens a short question first.
   const [askReason, setAskReason] = useState(false);
+  const needOf = useOwnerNeed();
   const w = workshops[id];
   if (!w) return null;
   const p = w.progress;
-  const need = ownerNeed(w);
+  const need = needOf(w);
   const disputed = !!w.receiptDispute;
   const d = p.dispute;
   const inWarranty = p.stage === 'closed' && !!p.warrantyUntil && p.warrantyUntil > Date.now();
@@ -104,7 +106,6 @@ export const WorkshopTracker: React.FC<{ id: string; detailed?: boolean }> = ({ 
   const step = disputed ? 0 : receiptPending ? stepOf('received') : stepOf(p.stage);
   const stepLabels = p.stays ? STAYING_STEPS.map((s) => s.label) : OWNER_STEP_LABELS;
   const canSwitchStay = !p.cancelled && !disputed && ['booked', 'received', 'diagnosing', 'awaitingApproval', 'repairing'].includes(p.stage);
-  const toBuy = linesOwnerBuys(p).filter((l) => !w.partsBought?.[l.id]);
   const switchStay = () => {
     setStays(id, !p.stays);
     say(id, p.stays ? '🚶 අයිතිකරු ගරාජයෙන් යනවා. මෙතැන් සිට අනුමැතිය app එකෙන් ඉල්ලන්න.' : '🪑 අයිතිකරු ගරාජයේ සිටී. මෙතැන් සිට අලුත් වැඩ එතනම කතා කර ගන්න.');
@@ -276,26 +277,13 @@ export const WorkshopTracker: React.FC<{ id: string; detailed?: boolean }> = ({ 
           {p.cancelRequest?.status === 'quoted' && (
             <FlowButton label="තීරණය කරන්න" detail={`වන්දිය ${money(p.cancelRequest.compensation ?? 0)}`} variant="primary" onPress={() => setSheet('decide')} />
           )}
-          {!receiptPending && !p.cancelRequest && (
-            <>
-              {!p.stays && toBuy.length > 0 && (
-                <Pressable style={styles.mustBuy} onPress={() => openBasket(id)} accessibilityLabel="Buy the parts in OnMart">
-                  <Text style={styles.mustBuyHead}>⚠️ ඔබ OnMart හි මිලදී ගත යුතුය - {linesOwnerBuys(p).filter((l) => !w.partsBought?.[l.id]).map((l) => l.name).join(', ')}</Text>
-                  <Text style={styles.mustBuyText}>නැත්නම් අලුත්වැඩියාව ප්‍රමාද වේ · 🛍️ OnMart හි මිලදී ගන්න ›</Text>
-                </Pressable>
-              )}
-            </>
-          )}
         </View>
       )}
       {/* Between the confirmed handover and the report: when to expect it and what is happening. */}
       {!disputed && !receiptPending && !p.cancelRequest && !p.stays && (p.stage === 'received' || p.stage === 'diagnosing') && <InspectionBox workshop={w} detailed={detailed} />}
-      {/* At the garage, parts to buy are the technician's to tell: only a quiet way into OnMart, with the job attached. */}
-      {p.stays && toBuy.length > 0 && !p.cancelRequest && (
-        <Pressable onPress={() => openBasket(id)} hitSlop={8} accessibilityLabel="Find the job's parts in OnMart">
-          <Text style={styles.link}>🛍️ OnMart හි කොටස් සොයන්න ›</Text>
-        </Pressable>
-      )}
+      {/* Parts the owner has to get, whether they stay or leave: a task of its own, under their other turn. */}
+      {!disputed && !receiptPending && !p.cancelRequest && <JobPartTask workshop={w} />}
+      {!disputed && !p.cancelRequest && p.stays && ['received', 'diagnosing', 'repairing'].includes(p.stage) && !!p.receivedAt && <AddJobPart workshop={w} />}
       {/* Plans change: a two-way toggle that names both answers, with a line saying what the chosen one means. One tap, and it counts only from now on. */}
       {canSwitchStay && !p.cancelRequest && (
         <StayToggle value={!!p.stays} options={STAY_OPTIONS} onChange={switchStay} />
@@ -479,9 +467,6 @@ const styles = themedStyles(() =>
     protectedText: { fontSize: 13, fontFamily: FONTS.bodyBold, color: Colors.warning },
     reviewBox: { padding: 10, borderRadius: 12, backgroundColor: Colors.subtleFill, gap: 3 },
     replyLabel: { fontFamily: FONTS.bodySemiBold, color: Colors.primary },
-    mustBuy: { gap: 2, padding: 10, borderRadius: 10, borderWidth: 1.5, borderColor: getThemeMode() === 'dark' ? 'rgba(253, 214, 99, 0.5)' : '#f9ab00', backgroundColor: getThemeMode() === 'dark' ? 'rgba(253, 214, 99, 0.1)' : '#fef7e0' },
-    mustBuyHead: { fontSize: 13, fontFamily: FONTS.bodyBold, color: getThemeMode() === 'dark' ? '#fdd663' : '#b06000', lineHeight: 20 },
-    mustBuyText: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1e3a8a' },
     link: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.primary },
     label: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textMuted, letterSpacing: 0.4 },
     sub: { flexShrink: 1, fontSize: 13, fontFamily: FONTS.bodyRegular, color: Colors.textMuted, lineHeight: 20 },

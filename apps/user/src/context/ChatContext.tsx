@@ -1,5 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { openMartFor, openShopFor } from '../utils/martBridge';
+import { openMartFor, openMartSegment, openShopFor } from '../utils/martBridge';
+import { jobPartLines } from '../utils/jobParts';
 import { openBookingFor } from '../utils/bookingBridge';
 import { InquirySheet, type InquiryInput } from '../components/InquirySheet';
 import { BasketSheet } from '../components/mart/BasketSheet';
@@ -71,7 +72,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode; /** The Home ta
   const { records } = useSOSRecords();
   const { findVehicle } = useVehicles();
   const { workshops } = useWorkshops();
-  const { offers, threads: martThreads } = useMart();
+  const { offers, threads: martThreads, enquiries: martEnquiries } = useMart();
   const [target, setTarget] = useState<ChatTarget | null>(null);
   // When the owner last looked at the chat that is opening: what came after is shown as "new".
   const [newSince, setNewSince] = useState<number | undefined>(undefined);
@@ -216,10 +217,17 @@ export const ChatProvider: React.FC<{ children: React.ReactNode; /** The Home ta
       const job = target?.id;
       setTarget(null);
       // "Part +N": several parts to buy, so the whole basket opens.
-      if (/\s\+\d+$/.test(part) && job) setBasketFor(job);
-      else openMartFor(part);
+      // A part this job needs the owner to buy keeps its link to the job: ask for it, or open the request already made. Only other parts are a plain search.
+      const w = job ? workshops[job] : undefined;
+      const name = part.replace(/\s\+\d+$/, '');
+      const mine = w ? jobPartLines(w).filter((l) => !w.partsBought?.[l.id]) : [];
+      if (job && (/\s\+\d+$/.test(part) || mine.some((l) => l.name === name))) {
+        const asked = new Set(martEnquiries.filter((m) => m.enquiry.jobRef?.bookingId === job && m.enquiry.status !== 'cancelled' && m.enquiry.status !== 'expired').map((m) => m.enquiry.jobRef!.lineId));
+        if (mine.some((l) => !asked.has(l.id) && !w?.partDisputes?.[l.id])) setBasketFor(job);
+        else openMartSegment('mine');
+      } else openMartFor(part);
     },
-    [target?.id]
+    [target?.id, workshops, martEnquiries]
   );
 
   // The inquiry goes into the chat with the garage as a message; the garage answers there.
@@ -351,7 +359,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode; /** The Home ta
         }}
         martMustBuy={(m) => {
           const p = target ? workshops[target.id]?.progress : undefined;
-          if (!p || p.stays || m.from === 'owner') return false;
+          if (!p || m.from === 'owner') return false;
           const lines = m.report?.kind === 'diagnosis' ? p.diagnosis?.lines : m.report?.kind === 'extra' ? p.extras?.find((x) => x.id === m.report!.id)?.lines : undefined;
           return (lines ?? []).some((l) => l.kind === 'part' && l.source === 'owner');
         }}

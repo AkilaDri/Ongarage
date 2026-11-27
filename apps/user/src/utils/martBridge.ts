@@ -11,6 +11,15 @@ export const setMartOpener = (fn: Opener | null) => {
 
 export const openMartFor = (part: string) => opener?.(part);
 
+/** From a job: OnMart opens on the owner's requests (to compare prices) or orders (for the pickup code). */
+let segmentOpener: ((segment: 'mine' | 'orders') => void) | null = null;
+
+export const setSegmentOpener = (fn: ((segment: 'mine' | 'orders') => void) | null) => {
+  segmentOpener = fn;
+};
+
+export const openMartSegment = (segment: 'mine' | 'orders') => segmentOpener?.(segment);
+
 /** The same for a parts shop tagged in a chat: OnMart opens on that shop. */
 let shopOpener: ((shopId: string, ask?: boolean) => void) | null = null;
 

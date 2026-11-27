@@ -1,11 +1,12 @@
 import { EmptyState } from '@ongarage/shared';
 import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { ActionButton, Colors, FONTS, getThemeMode, linesOwnerBuys, MAX_BASKET_PARTS, themedStyles, type DiagnosisLine, type MartAudience } from '@ongarage/shared';
+import { ActionButton, Colors, FONTS, getThemeMode, MAX_BASKET_PARTS, themedStyles, type DiagnosisLine, type MartAudience } from '@ongarage/shared';
 import { useMart } from '../../context/MartContext';
 import { useVehicles } from '../../context/VehiclesContext';
 import { useWorkshops } from '../../context/WorkshopContext';
 import { Sheet } from '../Sheet';
+import { jobPartLines } from '../../utils/jobParts';
 
 const AUDIENCES: { id: MartAudience; label: string }[] = [
   { id: 'shops', label: 'ළඟ වෙළඳසැල්' },
@@ -18,8 +19,8 @@ export const useBasketParts = (workshopId?: string): DiagnosisLine[] => {
   const { enquiries } = useMart();
   const w = workshopId ? workshops[workshopId] : undefined;
   if (!w || w.progress.cancelled || w.progress.cancelRequest) return [];
-  const asked = new Set(enquiries.filter((m) => m.enquiry.status !== 'cancelled').map((m) => m.enquiry.jobRef?.lineId));
-  return linesOwnerBuys(w.progress).filter((l) => !w.partsBought?.[l.id] && !asked.has(l.id));
+  const asked = new Set(enquiries.filter((m) => m.enquiry.status !== 'cancelled' && m.enquiry.status !== 'expired' && m.enquiry.jobRef?.bookingId === w.id).map((m) => m.enquiry.jobRef?.lineId));
+  return jobPartLines(w).filter((l) => !w.partsBought?.[l.id] && !w.partDisputes?.[l.id] && !asked.has(l.id));
 };
 
 /**

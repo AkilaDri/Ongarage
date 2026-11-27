@@ -125,7 +125,7 @@ export const OrdersList: React.FC<{ compact?: boolean }> = ({ compact }) => {
           <Text style={styles.sub}>
             {o.partType} · ×{o.qty} · {o.total ? money(o.total) : 'මිල කවුන්ටරයේදී'}
           </Text>
-          <Text style={styles.sub}>ඇණවුම් කළේ {ago(now - p.createdAt)} · {del ? 'බෙදාහැරීම' : 'කවුන්ටරයෙන් ගැනීම'}</Text>
+          <Text style={styles.sub}>ඇණවුම් කළේ {ago(now - p.createdAt)} · {del ? (p.delivery?.toGarage ? `${p.delivery.toGarage} වෙත බෙදාහැරීම` : 'බෙදාහැරීම') : 'කවුන්ටරයෙන් ගැනීම'}</Text>
           <TxnTag kind="ORD" source={p.purchase.id} />
         </View>
         {!failed && (
