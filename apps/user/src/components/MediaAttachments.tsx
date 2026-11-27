@@ -19,9 +19,7 @@ export const MediaAttachments: React.FC<{
   onVoiceNotes: (v: VoiceNote[]) => void;
   /** The one-line note under the buttons (on by default; a form that explains it elsewhere turns it off). */
   hint?: boolean;
-  /** One of the two buttons only, for a form that keeps them apart. */
-  only?: 'photo' | 'voice';
-}> = ({ photos, voiceNotes, onPhotos, onVoiceNotes, hint = true, only }) => {
+}> = ({ photos, voiceNotes, onPhotos, onVoiceNotes, hint = true }) => {
   const [recording, setRecording] = useState(false);
   const [open, setOpen] = useState<number | null>(null);
   const [seconds, setSeconds] = useState(0);
@@ -53,7 +51,7 @@ export const MediaAttachments: React.FC<{
     <View style={styles.wrap}>
       {/* Two equal buttons, the same as the flows' footers: a photo or a voice note (either one is enough to describe the problem). */}
       <View style={styles.btnRow}>
-        {only !== 'voice' && <View style={styles.flex1}>
+        <View style={styles.flex1}>
           <FlowButton
             label="ඡායාරූපයක්"
             icon="📷"
@@ -61,20 +59,20 @@ export const MediaAttachments: React.FC<{
             disabled={photos.length >= MAX_PHOTOS}
             onPress={() => void pickPhotos(MAX_PHOTOS - photos.length).then((ph) => ph.length && onPhotos([...photos, ...ph]))}
           />
-        </View>}
-        {only !== 'photo' && <View style={styles.flex1}>
+        </View>
+        <View style={styles.flex1}>
           <FlowButton
             label={recording ? `⏹ 0:${String(seconds).padStart(2, '0')} / 0:${MAX_VOICE_SEC}` : 'හඬ සටහනක්'}
             icon={recording ? undefined : '🎙️'}
             variant={recording ? 'record' : 'primary'}
             onPress={() => (recording ? stop(seconds) : start())}
           />
-        </View>}
+        </View>
       </View>
       {hint && <Text style={styles.hint}>{`ඡායාරූප විකල්පයි · හඬ සටහන තත්පර ${MAX_VOICE_SEC} දක්වා`}</Text>}
 
       {/* Each photo carries its own ✕ (remove that one), and tapping the photo opens it larger. */}
-      {only !== 'voice' && photos.length > 0 && (
+      {photos.length > 0 && (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.thumbs}>
           {photos.map((uri, i) => (
             <View key={uri + i} style={styles.thumbWrap}>
@@ -94,7 +92,7 @@ export const MediaAttachments: React.FC<{
         </Pressable>
       </Modal>
 
-      {only !== 'photo' && voiceNotes.map((n, i) => (
+      {voiceNotes.map((n, i) => (
         <View key={n.id} style={styles.voiceRow}>
           <View style={styles.flex1}>
             <VoiceNotePlayer note={n} index={i} />

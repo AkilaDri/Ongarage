@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { canonicalPartName, Colors, FONTS, getAi, getThemeMode, GoogleMap, shopsNear, MAX_BASKET_PARTS, partCategory, PART_CATEGORY, SEARCH_RINGS, SERVICE_CATEGORIES, SUGGEST_MIN_CONFIDENCE, themedStyles, type JobPartsRef, type MartAudience, type PartBrief, type PartType, type SearchRing } from '@ongarage/shared';
+import { canonicalPartName, Colors, FONTS, getAi, getThemeMode, GoogleMap, shopsNear, shopsInRing, MAX_BASKET_PARTS, partCategory, PART_CATEGORY, SEARCH_RINGS, SERVICE_CATEGORIES, SUGGEST_MIN_CONFIDENCE, themedStyles, type JobPartsRef, type MartAudience, type PartBrief, type PartType, type SearchRing } from '@ongarage/shared';
 import { useVehicles } from '../../context/VehiclesContext';
 import { useMart } from '../../context/MartContext';
 import { useUserLocation } from '../../context/LocationContext';
@@ -8,8 +8,10 @@ import { BookingShell } from '../BookingShell';
 import { FlowButton } from '../FlowButton';
 import { FlowField } from '../FlowField';
 import { FlowStepCard } from '../FlowStepCard';
+import { FlowSummary } from '../FlowSummary';
 import { FlowVehicleCard } from '../FlowVehicleCard';
 import { MediaAttachments } from '../MediaAttachments';
+import { PartBuddy } from './PartBuddy';
 import { CategoryStrip, shortCategoryName } from '../home/CategoryStrip';
 import { Toast } from '../Toast';
 
@@ -34,7 +36,7 @@ const commonParts = (categoryId: string) => Object.keys(PART_CATEGORY).filter((n
 
 const STEPS = ['part', 'details', 'kind', 'time'] as const;
 type Step = (typeof STEPS)[number];
-const STEP_NAMES: Record<Step, string> = { part: 'කොටස සහ වාහනය', details: 'විස්තර', kind: 'වර්ගය සහ ස්ථානය', time: 'කාලය' };
+const STEP_NAMES: Record<Step, string> = { part: 'කොටස සහ වාහනය', details: 'විස්තර', kind: 'වර්ගය සහ ස්ථානය', time: 'කාලය සහ සාරාංශය' };
 
 /**
  * Ask OnMart shops for a part, in the shape of the Ongarage quote request: which vehicle and kind of part, its details, the kind wanted and from where,
@@ -64,7 +66,8 @@ export const EnquirySheet: React.FC<{ visible: boolean; vehicleId: string; prefi
     if (!visible) return;
     const id = prefill?.vehicleId ?? vehicleId;
     const name = prefill?.name ? canonicalPartName(prefill.name) ?? prefill.name : '';
-    setStep('part');
+    // A part already named (a search, a deal) has answered step 1, so it opens at the details; back still leads to step 1.
+    setStep(name ? 'details' : 'part');
     setCarId(id);
     setBrief({ id: 'draft', name, qty: prefill?.qty ?? 1, partNo: prefill?.partNo, partType: prefill?.partType ?? 'GarageChoice', categoryId: name ? partCategory(name) : undefined, vehicle: vehicleOf(id) });
     setParts([]);
@@ -156,6 +159,8 @@ export const EnquirySheet: React.FC<{ visible: boolean; vehicleId: string; prefi
       {step === 'part' && (
         <>
           <FlowVehicleCard vehicleId={carId} onChange={changeVehicle} />
+          {/* In the quote request's order: vehicle, OnBuddy, then the tiles. Only a tap on a suggestion fills anything in. */}
+          <PartBuddy categories={PART_CATEGORY_IDS} onUse={(x) => set({ categoryId: x.categoryId, name: x.name ?? '' })} />
           <FlowStepCard step={1} title={`කොටස් කාණ්ඩය · ${PART_CATEGORY_IDS.length}`} done={!!brief.categoryId} requiredNote="පහළින් තෝරන්න">
             <CategoryStrip
               layout="grid"
@@ -164,6 +169,7 @@ export const EnquirySheet: React.FC<{ visible: boolean; vehicleId: string; prefi
               selectedId={brief.categoryId ?? null}
               onSelect={(c) => set({ categoryId: c.id, name: brief.categoryId === c.id ? brief.name : '' })}
             />
+            {!!brief.name && !(category && commonParts(category.id).includes(brief.name)) && <Text style={styles.strong}>✓ තෝරාගත් කොටස: {brief.name}</Text>}
             {!!category && commonParts(category.id).length > 0 && (
               <>
                 <Text style={styles.eyebrow}>{`${shortCategoryName(category.id) ?? category.name} හි බහුලව ඉල්ලන කොටස් (විකල්ප තේරීමකි):`}</Text>
@@ -255,7 +261,7 @@ export const EnquirySheet: React.FC<{ visible: boolean; vehicleId: string; prefi
             <GoogleMap
               style={styles.map}
               center={user.coords}
-              zoom={14}
+              zoom={13}
               renderOverlay={(project) => {
                 const me = project(user.coords);
                 return (
@@ -273,7 +279,11 @@ export const EnquirySheet: React.FC<{ visible: boolean; vehicleId: string; prefi
                 );
               }}
             />
-            <Text style={styles.help} numberOfLines={2}>📍 {user.address}</Text>
+            {/* The number is the fact that matters (pins close together can hide each other): it follows the distance chosen below. */}
+            <Text style={styles.help} numberOfLines={2}>
+              📍 {user.address}
+              {!direct && audience !== 'wall' ? ` · පරාසයේ වෙළඳසැල් ${shopsInRing(shopsNear(user.coords), ring).length}ක්` : ''}
+            </Text>
             {!direct && audience !== 'wall' && (
               <>
                 <Text style={styles.eyebrow}>වෙළඳසැල් සෙවුම් පරාසය</Text>
@@ -321,6 +331,22 @@ export const EnquirySheet: React.FC<{ visible: boolean; vehicleId: string; prefi
               })
             )}
           </FlowStepCard>
+          {/* The whole request at a glance before it is sent, as before a quote request. The progress bar leads back to change anything. */}
+          <FlowSummary
+            title="ඔබේ ඉල්ලීම"
+            rows={[
+              { label: total > 1 ? `කොටස් ${total}` : 'කොටස', value: [...parts, ...(filled ? [named(brief)] : [])].map((p) => `${p.name}${p.qty > 1 ? ` ×${p.qty}` : ''}`).join(', ') || '—' },
+              { label: 'වාහනය', value: `${brief.vehicle.name} · ${brief.vehicle.plate}` },
+              { label: 'කොටස් වර්ගය', value: kind?.label ?? '—', half: true },
+              { label: 'ඉල්ලීම් කාලය', value: `දින ${days}`, half: true },
+              {
+                label: 'ලැබෙන්නේ',
+                value: direct
+                  ? prefill?.shopName ?? 'තෝරාගත් වෙළඳසැල'
+                  : `${AUDIENCES.find((a) => a.id === audience)!.title}${audience !== 'wall' ? ` · ${SEARCH_RINGS.find((r) => r.ring === ring)!.label}` : ''}`,
+              },
+            ]}
+          />
           {!!error && <Text style={styles.error}>{error}</Text>}
         </>
       )}
@@ -349,7 +375,7 @@ const styles = themedStyles(() =>
     choice: { width: '48.5%', flexGrow: 1, minHeight: 44, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 8, borderRadius: 8, borderWidth: 1, borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#e5e7eb', backgroundColor: Colors.bgCard },
     choiceOn: { borderColor: '#1d4ed8', backgroundColor: '#1d4ed8' },
     choiceText: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textSoft },
-    map: { height: 96, borderRadius: 12, overflow: 'hidden' },
+    map: { height: 140, borderRadius: 12, overflow: 'hidden' },
     pin: { position: 'absolute', width: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center', backgroundColor: '#ffffff' },
     pinText: { fontSize: 12 },
     me: { position: 'absolute', width: 16, height: 16, borderRadius: 8, backgroundColor: '#1a73e8', borderWidth: 3, borderColor: '#ffffff' },

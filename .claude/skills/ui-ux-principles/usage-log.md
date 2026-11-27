@@ -13,6 +13,16 @@ Entry format:
 
 ## Entries
 
+## 2026-11-27 · Owner part request, step 3 · OnBuddy for parts
+- Principles used: C5 (the quote request's helper, same place), C3 (names to recognise instead of recall), UX 05 and C10 (suggestion only, fit not promised), C14 (waiting and unclear states).
+- Core missing: none.
+- Outcome: user said start step 3. Checked in the browser; not on a phone; not type checked.
+
+## 2026-11-27 · Owner part request, step 2 · summary and starting at the right step
+- Principles used: C10 (everything shown before sending), C5 (the quote request's summary card), UX 89 and UX 49 (a named part skips the step it answers), UPD 148 (unused short form removed).
+- Core missing: none.
+- Outcome: user said start step 2. Checked in the browser; not on a phone; not type checked.
+
 ## 2026-11-27 · Owner part request and quote request, step 1 · one shape for both
 - Principles used: C5 and UPD 035 (same header, cards, chips and footer), C3 (vehicle changeable, categories and common parts shown), C11 (four named steps), UX 89 (usual answers preselected), C2 (delivery left to the offer).
 - Core missing: none.

@@ -35,11 +35,10 @@ module.exports = spec('Owner · OnMart search, reserve and buy', 'user', async (
   await t.type('Search parts', 'brake pad');
   t.check('availability shows on the shops that publish stock', (await t.has('✓ තොගයේ ඇත')) && (await t.has('Brake pads (front)')));
   await t.clickText('සියලු වෙළඳසැල්වලින් අසන්න');
-  t.check('the request form carries the part and the vehicle', (await t.has('කොටසක් ඉල්ලන්න')) && (await t.has('Premio')));
-  // The request is four steps: part and vehicle, details, kind and place, time.
+  t.check('a named part opens the request at its details', (await t.has('OnMart ඉල්ලීම')) && (await t.has('කොටස විස්තර කරන්න')));
   await t.clickText('ඊළඟ ›');
   await t.clickText('ඊළඟ ›');
-  await t.clickText('ඊළඟ ›');
+  t.check('the summary carries the part and the vehicle before sending', (await t.has('ඔබේ ඉල්ලීම')) && (await t.has('Brake pads')) && (await t.has('Premio')));
   await t.clickText('ඉල්ලීම වෙළඳසැල් වෙත යවන්න');
   await t.wait(11000);
   t.check('offers arrive with a price tag and a fitment note', (await t.has('Galle Auto Parts')) && (await t.has('වෙළඳපොළ මිල')) && (await t.has('වෙන් කර ගන්න')));
@@ -95,9 +94,9 @@ module.exports = spec('Owner · OnMart search, reserve and buy', 'user', async (
   // Post a part of your own, find it under "my posts", then delete it
   await t.clickLabel('What part do you need?');
   await t.wait(800);
-  await t.type('Part name', 'Wagon R wiper motor');
-  // The request is four steps: part and vehicle, details, kind and place, time.
+  // Nothing is known yet, so it starts at step 1 (part and vehicle).
   await t.clickText('ඊළඟ ›');
+  await t.type('Part name', 'Wagon R wiper motor');
   await t.clickText('ඊළඟ ›');
   await t.clickText('ඊළඟ ›');
   await t.clickText('ඉල්ලීම වෙළඳසැල් වෙත යවන්න');
