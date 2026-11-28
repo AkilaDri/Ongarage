@@ -356,7 +356,7 @@ export const BidsScreen: React.FC<BidsScreenProps> = ({ tab, onTabChange, rowsVi
             {vehicle ? vehicle.name : ''}
             {media ? `${vehicle ? '  ·  ' : ''}${media}` : ''}
           </Text>
-          {vehicle && <LkPlate plate={vehicle.registrationNo || vehicle.plate} stacked={vehicle.type === 'Motorbike'} small />}
+          {vehicle && <LkPlate plate={vehicle.registrationNo || vehicle.plate} small />}
         </View>
         {badge}
       </Pressable>
@@ -1176,7 +1176,7 @@ const BidSum: React.FC<{ work: number; travel: number; total: number }> = ({ wor
   );
 };
 
-const SortChipIcon: React.FC<{ id: BidSort; on: boolean }> = ({ id, on }) => {
+export const SortChipIcon: React.FC<{ id: BidSort; on: boolean }> = ({ id, on }) => {
   const c = on ? '#facc15' : '#ffffff';
   return (
     <Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">

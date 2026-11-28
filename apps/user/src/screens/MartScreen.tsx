@@ -7,7 +7,7 @@ import { formatDate } from '../utils/format';
 import { Sheet } from '../components/Sheet';
 import { elevation1, outline, pageBg } from '../utils/material';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Linking, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
+import { Linking, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type NativeScrollEvent, type NativeSyntheticEvent, Animated } from 'react-native';
 import {
   ActionButton,
   availabilityAt,
@@ -27,7 +27,7 @@ import {
   martOffers,
   martShopInfo,
   organicRows,
-  PART_GROUPS,
+  partCategoriesFor,
   nextRing,
   onWall,
   PinnedEdge,
@@ -55,7 +55,7 @@ import {
   type JobPartsRef,
   type MartTarget,
   type PartBrief,
-  type PartGroup,
+  type PartCategoryOption,
   type ServiceKit,
   type ShopListing,
   type ShopOffer,
@@ -65,9 +65,13 @@ import { useVehicles } from '../context/VehiclesContext';
 import { useMart, type MartEnquiry } from '../context/MartContext';
 import { EnquiryCard } from '../components/mart/EnquiryCard';
 import { RequestCard } from '../components/mart/RequestCard';
+import { flyTo } from '../utils/fly';
+import { RequestsHeader } from '../components/mart/RequestsHeader';
+import { SingleRequestCard, type OfferSort } from '../components/mart/SingleRequestCard';
+import { SortChipIcon } from './BidsScreen';
 import { EditPostSheet } from '../components/mart/EditPostSheet';
 import { FeedRecordSheet } from '../components/mart/FeedRecordSheet';
-import { groupByBatch, splitRequests } from '@ongarage/shared';
+import { FilterChips, groupByBatch, requestTabOf, type RequestTab } from '@ongarage/shared';
 import { OnMartAsk } from '@ongarage/shared';
 import { EnquirySheet, type EnquiryPrefill } from '../components/mart/EnquirySheet';
 import { ShopSheet } from '../components/mart/ShopSheet';
@@ -110,14 +114,15 @@ const NEARBY_CHOICES: { id: NearbySort; label: string }[] = [
   { id: 'response', label: 'ඉක්මන් පිළිතුරු' },
 ];
 const NEARBY_MAX = 4;
+const OFFER_SORTS: { id: OfferSort; label: string }[] = [
+  { id: 'price', label: 'Lowest price' },
+  { id: 'rating', label: 'Top rated' },
+  { id: 'near', label: 'Nearest' },
+  { id: 'fast', label: 'Fastest ready' },
+];
 
 /** The example parts the search field offers in turn, as Home's search does with services. */
 const SEARCH_EXAMPLES = ['Brake pad', 'Battery', 'Oil filter', 'Headlight'];
-
-const MAP_GROUPS: PartGroup[] = [
-  ...PART_GROUPS,
-  { id: 'hybrid', name: 'හයිබ්‍රිඩ්', emoji: '🔋', serviceCategoryId: '3', query: 'battery' },
-];
 
 type MartScreenProps = {
   activeVehicle: string;
@@ -134,7 +139,19 @@ type MartScreenProps = {
 
 export const MartScreen: React.FC<MartScreenProps> = ({ activeVehicle, segment, onVehicleChange, onSegmentChange, onHeaderVisibilityChange, searchSeed, openShopRequest }) => {
   const { coords } = useUserLocation();
-  const [reqTab, setReqTab] = useState<'current' | 'successful' | 'closed'>('current');
+  const [reqTab, setReqTab] = useState<RequestTab>('received');
+  // The Requests header folds with its list, as on Bids: 0 whole, 1 only the tabs. The list keeps room for the whole band, so folding never moves it.
+  const reqFold = useRef(new Animated.Value(0)).current;
+  const reqFoldAt = useRef(0);
+  const [reqTitleH, setReqTitleH] = useState(0);
+  const [reqBandH, setReqBandH] = useState(156);
+  const [listH, setListH] = useState(0);
+  const reqFoldBy = (reqTitleH || 58) + 34;
+  // The request whose window is open: it stays on this tab until the window closes, even if its place has changed meanwhile.
+  const [heldRequest, setHeldRequest] = useState<string | null>(null);
+  const [offerSort, setOfferSort] = useState<OfferSort>('price');
+  const reqSettle = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (reqSettle.current) clearTimeout(reqSettle.current); }, []);
   // Adding to one's own wall post (description, photos).
   const [editingPost, setEditingPost] = useState<MartEnquiry | null>(null);
   const { enquiries, offersFor, widen, askMore, askShops, postToWall, cancelEnquiry, purchaseFor, purchases } = useMart();
@@ -144,7 +161,7 @@ export const MartScreen: React.FC<MartScreenProps> = ({ activeVehicle, segment, 
   const [query, setQuery] = useState(searchSeed ?? '');
   const [wallCategory, setWallCategory] = useState('');
   const [partType, setPartType] = useState<PartType>('GarageChoice');
-  const [category, setCategory] = useState<PartGroup | null>(null);
+  const [category, setCategory] = useState<PartCategoryOption | null>(null);
   const [shop, setShop] = useState<ShopListing | null>(null);
   const [stockWindowOpen, setStockWindowOpen] = useState(false);
   const [composer, setComposer] = useState<{ open: boolean; prefill?: EnquiryPrefill }>({ open: false });
@@ -193,7 +210,7 @@ export const MartScreen: React.FC<MartScreenProps> = ({ activeVehicle, segment, 
   const pinnedHeight = useRef(0);
   // The chat icon sits under the pinned bar only while this screen is shown (Shops has no pinned bar).
   useEffect(() => {
-    chatDockOffset.setValue(segment === 'shops' ? 0 : Math.round(pinnedHeight.current));
+    chatDockOffset.setValue(segment === 'shops' || segment === 'mine' ? 0 : Math.round(pinnedHeight.current));
     return () => chatDockOffset.setValue(0);
   }, [segment]);
   const previousScrollY = useRef(0);
@@ -206,6 +223,14 @@ export const MartScreen: React.FC<MartScreenProps> = ({ activeVehicle, segment, 
   const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     scrollProps.onScroll(e);
     const y = e.nativeEvent.contentOffset.y;
+    if (segment === 'mine') {
+      const fold = Math.min(1, Math.max(0, y / reqFoldBy));
+      reqFoldAt.current = fold;
+      reqFold.setValue(fold);
+      // A scroll that rests part way is carried to the nearer end: the header is never left half folded.
+      if (reqSettle.current) clearTimeout(reqSettle.current);
+      if (fold > 0.001 && fold < 0.999) reqSettle.current = setTimeout(() => scrollRef.current?.scrollTo({ y: fold < 0.5 ? 0 : reqFoldBy, animated: true }), 160);
+    }
     const gone = actionsBottom.current > 0 && y > belowY.current + actionsBottom.current;
     if (gone !== stuck) setStuck(gone);
     if (y > previousScrollY.current + 8 && y > 12) onHeaderVisibilityChange(false);
@@ -226,7 +251,26 @@ export const MartScreen: React.FC<MartScreenProps> = ({ activeVehicle, segment, 
     scrollRef.current?.scrollTo({ y: 0, animated: false });
     onHeaderVisibilityChange(true);
     setStuck(false);
-  }, [onHeaderVisibilityChange, segment]);
+    if (reqSettle.current) clearTimeout(reqSettle.current);
+    reqFoldAt.current = 0;
+    reqFold.setValue(0);
+  }, [onHeaderVisibilityChange, segment, reqFold]);
+
+  // Each request (a single part or a basket) and where it shows. One whose parts are all reserved or bought has left for Orders.
+  const requests = groupByBatch(enquiries).map((g) => {
+    const key = g.batchId ?? g.items[0].enquiry.id;
+    return { ...g, key, tab: key === heldRequest ? reqTab : requestTabOf(g.items, g.items.flatMap((m) => offersFor(m.enquiry.id)), now) };
+  });
+  const reqCounts: Record<RequestTab, number> = { received: 0, pending: 0, expired: 0 };
+  for (const r of requests) if (r.tab !== 'orders') reqCounts[r.tab] += 1;
+  // When that happens while the owner is looking at Requests, they are taken to Orders, where the code and the way to the shop are.
+  const gone = requests.filter((r) => r.tab === 'orders').map((r) => r.key).join(',');
+  const goneBefore = useRef(gone);
+  useEffect(() => {
+    const before = goneBefore.current.split(',');
+    goneBefore.current = gone;
+    if (segment === 'mine' && gone.split(',').some((k) => k && !before.includes(k))) onSegmentChange('orders');
+  }, [gone, segment, onSegmentChange]);
 
   useEffect(() => {
     if (searchSeed) setQuery(searchSeed);
@@ -316,9 +360,10 @@ export const MartScreen: React.FC<MartScreenProps> = ({ activeVehicle, segment, 
     setQuery('');
     setCategory(null);
   };
-  const openGroup = (g: PartGroup) => {
-    setCategory(g);
-    setQuery(g.query);
+  // A category opens a search for its most asked part.
+  const openGroup = (c: PartCategoryOption) => {
+    setCategory(c);
+    setQuery(c.parts[0]);
     toTop();
   };
   const openDeal = (d: DealView) => open({ name: d.deal.partName, partType: d.deal.partType, onlyShopIds: [d.shop.id], shopName: d.shop.name, audience: 'shops' });
@@ -380,7 +425,35 @@ export const MartScreen: React.FC<MartScreenProps> = ({ activeVehicle, segment, 
 
   return (
     <View style={[styles.flex1, segment === 'shops' && styles.shopPage]}>
-      {segment !== 'shops' && (
+      {segment === 'mine' && (
+        <View
+          style={styles.reqBand}
+          onLayout={(e) => {
+            // Only the whole band is the room the list leaves for it.
+            if (reqFoldAt.current < 0.001) setReqBandH(Math.round(e.nativeEvent.layout.height));
+          }}
+        >
+          <RequestsHeader
+            fold={reqFold}
+            titleH={reqTitleH}
+            onTitleHeight={(h) => reqFoldAt.current < 0.001 && setReqTitleH(h)}
+            tab={reqTab}
+            counts={reqCounts}
+            onTabChange={(t) => {
+              setReqTab(t);
+              toTop();
+              reqFoldAt.current = 0;
+              reqFold.setValue(0);
+            }}
+          >
+            {/* As on Bids: the sort chips show where there are offers to put in order (single parts for now). */}
+            {reqTab === 'received' && requests.some((r) => r.tab === 'received' && r.items.length === 1) && (
+              <FilterChips items={OFFER_SORTS.map((x) => ({ id: x.id, label: x.label, tone: 'blue' as const, icon: (on: boolean) => <SortChipIcon id={x.id} on={on} /> }))} plain onBlue scroll radius={10} value={offerSort} onChange={(id) => id && setOfferSort(id)} />
+            )}
+          </RequestsHeader>
+        </View>
+      )}
+      {segment !== 'shops' && segment !== 'mine' && (
         <View
           style={styles.pinned}
           onLayout={(e) => {
@@ -392,7 +465,7 @@ export const MartScreen: React.FC<MartScreenProps> = ({ activeVehicle, segment, 
           {segment === 'wall' && <WallFilters category={wallCategory} onChange={setWallCategory} />}
         </View>
       )}
-      <ScrollView ref={scrollRef} style={[styles.flex1, (segment === 'wall' || segment === 'mine') && styles.wallBackdrop]} {...scrollProps} onScroll={onScroll} contentContainerStyle={segment === 'shops' ? styles.sheetBody : styles.body} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+      <ScrollView ref={scrollRef} style={[styles.flex1, (segment === 'wall' || segment === 'mine') && styles.wallBackdrop]} {...scrollProps} onScroll={onScroll} onLayout={(e) => setListH(Math.round(e.nativeEvent.layout.height))} contentContainerStyle={segment === 'shops' ? styles.sheetBody : segment === 'mine' ? [styles.body, { paddingTop: reqBandH + 12 }, listH > 0 && { minHeight: listH + reqFoldBy }] : styles.body} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         {segment === 'orders' && <JobPartsToBuy onBuy={buyForJob} />}
 
         {segment === 'shops' && (
@@ -430,7 +503,7 @@ export const MartScreen: React.FC<MartScreenProps> = ({ activeVehicle, segment, 
                   <Text style={styles.mapButtonText}>📍 මැප්</Text>
                 </Pressable>
               </View>
-              {!searching && <PartTiles groups={MAP_GROUPS} onSelect={openGroup} />}
+              {!searching && <PartTiles categories={partCategoriesFor(car.type, car.fuelType)} vehicleType={car.type} onSelect={openGroup} />}
             </View>
           </View>
         )}
@@ -554,41 +627,41 @@ export const MartScreen: React.FC<MartScreenProps> = ({ activeVehicle, segment, 
         )}
 
         {segment === 'mine' &&
-          (enquiries.length === 0 ? (
-            <>
-              <EmptyState icon="📨" title="ඉල්ලීම් නැත" text="කොටසක් සොයා “අසන්න” ඔබන්න. වෙළඳසැල් පිළිතුරු දෙන විට ඒවා මිල අනුව මෙහි පෙන්වයි." />
-              <ActionButton label="කොටසක් ඉල්ලන්න" icon="＋" variant="primary" onPress={() => open()} />
-            </>
-          ) : (
-            (() => {
-              const sec = splitRequests(groupByBatch(enquiries));
-              const render = (gs: typeof sec.current) => gs.map((g) => <RequestCard key={g.batchId ?? g.items[0].enquiry.id} items={g.items} renderFull={card} />);
-              const count = (gs: typeof sec.current) => gs.reduce((t, g) => t + g.items.length, 0);
-              const tabs: { id: 'current' | 'successful' | 'closed'; label: string }[] = [
-                { id: 'current', label: '📨 පවතින' },
-                { id: 'successful', label: '✅ සාර්ථක' },
-                { id: 'closed', label: '🚫 අවලංගු' },
-              ];
-              const empty = { current: 'දැනට පවතින ඉල්ලීම් නැත.', successful: 'මිලදී ගත් ඉල්ලීම් නැත.', closed: 'අවලංගු කළ ඉල්ලීම් නැත.' };
-              return (
-                <>
-                  <View style={styles.reqTabs}>
-                    {tabs.map((t) => (
-                      <Pressable key={t.id} style={[styles.reqTab, reqTab === t.id && styles.chipOn]} onPress={() => setReqTab(t.id)} accessibilityLabel={`Requests ${t.id}`} accessibilityState={{ selected: reqTab === t.id }}>
-                        <Text style={[styles.chipText, reqTab === t.id && styles.chipTextOn]} numberOfLines={1}>{reqTab === t.id ? '✓ ' : ''}{t.label}</Text>
-                        {count(sec[t.id]) > 0 && (
-                          <View style={styles.reqCount}>
-                            <Text style={styles.reqCountText}>{count(sec[t.id])}</Text>
-                          </View>
-                        )}
-                      </Pressable>
-                    ))}
-                  </View>
-                  {sec[reqTab].length === 0 ? <EmptyState icon={reqTab === 'successful' ? '🛍️' : reqTab === 'closed' ? '✕' : '📨'} title="ඉල්ලීම් නැත" text={empty[reqTab]} /> : render(sec[reqTab])}
-                </>
+          (() => {
+            const shown = requests.filter((r) => r.tab === reqTab);
+            const onWindow = (key: string) => (open: boolean) => setHeldRequest((held) => (open ? key : held === key ? null : held));
+            if (shown.length)
+              return shown.map((r) =>
+                r.items.length === 1 ? (
+                  <SingleRequestCard key={r.key} me={r.items[0]} now={now} sort={offerSort} onOpenShop={openShop} onChat={(offer) => setThread({ enquiryId: r.items[0].enquiry.id, shop: offer.shop })} onWindow={onWindow(r.key)} onEdit={open} onResent={(wallOnly) => {
+                    setHeldRequest(null);
+                    setReqTab('pending');
+                    toTop();
+                    flyTo(wallOnly ? 'partPosted' : 'partAsked');
+                  }} />
+                ) : (
+                  <RequestCard key={r.key} items={r.items} renderFull={card} onWindow={onWindow(r.key)} />
+                )
               );
-            })()
-          ))}
+            // As on Bids: an empty tab points to where the owner's requests are, or offers to ask for a part.
+            const elsewhere = (['received', 'pending'] as const).find((t) => t !== reqTab && reqCounts[t] > 0);
+            const empty = {
+              received: { icon: '📥', title: 'තවම පිළිතුරු ලැබී නැත', text: elsewhere ? 'වෙළඳසැල් පිළිතුරු දෙන තෙක් ඔබේ ඉල්ලීම Pending හි ඇත.' : 'කොටසක් ඉල්ලන්න. එය ඇති වෙළඳසැල් මෙහි පෙන්වයි.' },
+              pending: { icon: '⏱️', title: 'රැඳී සිටින ඉල්ලීම් නැත', text: elsewhere ? 'පිළිතුරු ලැබුණු ඉල්ලීම් Received හි ඇත.' : 'කොටසක් ඉල්ලන්න. පිළිතුරු එනතෙක් එය මෙහි පෙන්වයි.' },
+              expired: { icon: '✅', title: 'කල් ඉකුත් වූ ඉල්ලීම් නැත', text: 'කල් ඉකුත් වූ හෝ අවලංගු කළ ඉල්ලීම් මෙහි පෙන්වයි.' },
+            }[reqTab];
+            return (
+              <>
+                <EmptyState icon={empty.icon} title={empty.title} text={empty.text} />
+                {reqTab !== 'expired' &&
+                  (elsewhere ? (
+                    <ActionButton label={`${elsewhere === 'received' ? 'Received' : 'Pending'} බලන්න ›`} variant="ghost" onPress={() => setReqTab(elsewhere)} />
+                  ) : (
+                    <ActionButton label="කොටසක් ඉල්ලන්න" icon="＋" variant="primary" onPress={() => open()} />
+                  ))}
+              </>
+            );
+          })()}
 
         {segment === 'wall' && (
           <>
@@ -729,13 +802,17 @@ export const MartScreen: React.FC<MartScreenProps> = ({ activeVehicle, segment, 
       <ReserveSheet offer={reserving?.offer ?? null} brief={reserving?.brief ?? null} jobRef={reserving?.jobRef} onClose={() => setReserving(null)} onReserved={() => setSegment('orders')} />
       <ThreadSheet target={thread} onClose={() => setThread(null)} />
       <FeedRecordSheet />
-      <KitSheet kit={kit} vehicleId={activeVehicle} onClose={() => setKit(null)} onSent={() => setSegment('mine')} />
+      <KitSheet kit={kit} vehicleId={activeVehicle} onClose={() => setKit(null)} onSent={() => { setReqTab('pending'); setSegment('mine'); }} />
       <EnquirySheet
         visible={composer.open}
         vehicleId={activeVehicle}
         prefill={composer.prefill}
         onClose={() => setComposer((c) => ({ ...c, open: false }))}
-        onSent={(_id, audience) => setSegment(audience === 'wall' ? 'wall' : 'mine')}
+        onSent={(_id, audience) => {
+          // A new request has no answer yet: Requests opens on Pending, as Bids does after a job is posted.
+          setReqTab('pending');
+          setSegment(audience === 'wall' ? 'wall' : 'mine');
+        }}
       />
     </View>
   );
@@ -762,6 +839,7 @@ const styles = themedStyles(() =>
     mapRings: { position: 'absolute', left: 12, right: 12, bottom: 28, flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8 },
     // Day theme: the wall sits on a light grey so each white post stands apart from the page (dark theme keeps its own surfaces).
     wallBackdrop: getThemeMode() === 'dark' ? {} : { backgroundColor: pageBg() },
+    reqBand: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 40 },
     pinned: { zIndex: 5, paddingTop: 12, paddingBottom: 10, gap: 10, backgroundColor: pageBg() },
     searchRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 6 },
     search: { flex: 1, minWidth: 0, height: 52, paddingHorizontal: 16, paddingRight: 42, borderRadius: 12, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline(), color: Colors.textMain, fontSize: 14, fontFamily: FONTS.bodyRegular, ...elevation1() },
@@ -784,11 +862,7 @@ const styles = themedStyles(() =>
     chipOn: { backgroundColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.16)' : '#eff6ff', borderColor: getThemeMode() === 'dark' ? 'rgba(141, 177, 255, 0.3)' : '#bfdbfe' },
     chipText: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textSoft },
     chipTextOn: { color: getThemeMode() === 'dark' ? '#8db1ff' : '#1e3a8a' },
-    reqTabs: { flexDirection: 'row', gap: 8, marginTop: 10 },
     // Google Material filter chips: 8dp corners, outlined, the selected one tonal blue with a check.
-    reqTab: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, height: 36, paddingHorizontal: 8, borderRadius: 8, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: outline() },
-    reqCount: { position: 'absolute', top: -9, right: 8, minWidth: 16, height: 16, paddingHorizontal: 4, borderRadius: 6, alignItems: 'center', justifyContent: 'center', backgroundColor: '#1e3a8a', borderWidth: 2, borderColor: pageBg() },
-    reqCountText: { fontSize: 10.5, fontFamily: FONTS.bodyBold, color: '#ffffff' },
     pastHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 6 },
     pastToggle: { fontSize: 12, color: Colors.textMuted },
     pastEmpty: { fontSize: 12, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },

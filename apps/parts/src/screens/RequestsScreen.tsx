@@ -1,7 +1,7 @@
 import { SegmentTabs, VehicleLine } from '@ongarage/shared';
 import React, { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { ActionButton, categoryInfo, Colors, EmptyState, FONTS, GlassIcon, Icon, SwipeCard, themedStyles, vehicleIcon, type IconName, softEdge, softShadow, NAVY, softFill, getThemeMode, PinnedEdge, usePinnedEdge, ReferralBadge, InfoChip, CountdownPill } from '@ongarage/shared';
+import { ActionButton, categoryInfo, Colors, EmptyState, FONTS, GlassIcon, Icon, SwipeCard, themedStyles, vehicleIcon, type IconName, softEdge, softShadow, NAVY, softFill, getThemeMode, PinnedEdge, usePinnedEdge, ReferralBadge, InfoChip, CountdownPill, partCategoryOfBrief } from '@ongarage/shared';
 import { allowedTypes, buyerLabel, useShop, variantFor } from '../context/ShopContext';
 import { PART_TYPE_LABEL } from '../constants/mockData';
 import { QuoteSheet } from '../components/QuoteSheet';
@@ -190,11 +190,14 @@ export const RequestsScreen: React.FC = () => {
           {e.briefs.map((b) => {
             const have = (['Genuine', 'OEM', 'Recon'] as const).reduce((sum, t) => sum + (variantFor(stock, b.name, t)?.qty ?? 0), 0);
             return (
-              <View key={b.id} style={styles.rowBetween}>
-                <Text style={[styles.title, styles.flex1]} numberOfLines={1}>
-                  {b.name} ×{b.qty} · {b.partType === 'GarageChoice' ? 'ඕනෑම' : b.partType}
-                </Text>
-                <Text style={[styles.sub, { color: have >= b.qty ? Colors.successText : Colors.warning }]}>{have >= b.qty ? `තොගයේ ${have}` : have ? `ඇත්තේ ${have}` : 'තොගයේ නැත'}</Text>
+              <View key={b.id}>
+                <View style={styles.rowBetween}>
+                  <Text style={[styles.title, styles.flex1]} numberOfLines={1}>
+                    {b.name} ×{b.qty} · {b.partType === 'GarageChoice' ? 'ඕනෑම' : b.partType}
+                  </Text>
+                  <Text style={[styles.sub, { color: have >= b.qty ? Colors.successText : Colors.warning }]}>{have >= b.qty ? `තොගයේ ${have}` : have ? `ඇත්තේ ${have}` : 'තොගයේ නැත'}</Text>
+                </View>
+                {!!partCategoryOfBrief(b) && <Text style={styles.sub}>කාණ්ඩය: {partCategoryOfBrief(b)!.si}</Text>}
               </View>
             );
           })}

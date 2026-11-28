@@ -1,7 +1,7 @@
 import { VehicleLine } from '@ongarage/shared';
 import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { ActionButton, CHECK_WINDOWS, Colors, FONTS, REPLY_LABEL, themedStyles, softEdge, softFill, type ShopReplyKind } from '@ongarage/shared';
+import { ActionButton, CHECK_WINDOWS, Colors, FONTS, REPLY_LABEL, themedStyles, softEdge, softFill, partCategoryOfBrief, type ShopReplyKind } from '@ongarage/shared';
 import { buyerLabel, courierFee, defaultEtaMin, useShop, variantFor, type OfferInput } from '../context/ShopContext';
 import { COURIER, listPrice } from '../constants/mockData';
 import { money } from '../utils/format';
@@ -139,6 +139,7 @@ export const OfferSheet: React.FC<{ request: CustomerRequest | null; onClose: ()
                 <Text style={styles.title}>
                   {b.name} ×{b.qty}
                 </Text>
+                {!!partCategoryOfBrief(b) && <Text style={styles.sub}>කාණ්ඩය: {partCategoryOfBrief(b)!.si}</Text>}
                 <Text style={styles.sub}>
                   {b.partType === 'GarageChoice' ? 'ඕනෑම වර්ගයක්' : b.partType}
                   {b.partNo ? ` · ${b.partNo}` : ''}

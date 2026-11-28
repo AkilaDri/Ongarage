@@ -1,4 +1,5 @@
 const { spec } = require('../lib.cjs');
+const { bookToReport } = require('../ownerFlows.cjs');
 
 // Owner: the seeded brake job end to end — approve some lines, extra work, handover,
 // report a problem (AI topic), rework, show the code, rate, warranty claim; then a bid on
@@ -23,7 +24,7 @@ module.exports = spec('Owner · workshop job, extra work, problem, rating, Recon
   await t.clickText('ගැටලුවක් ඇත');
   await t.type('Problem description', 'Brakes still make a noise and the job is poor quality');
   await t.wait(900);
-  t.check('AI suggests the topic', await t.has('✨ යෝජනාව: වැඩේ හරි නැහැ'));
+  t.check('AI suggests the topic', await t.has('යෝජනාව: වැඩේ හරි නැහැ'));
   await t.clickText('ගරාජයට යවන්න');
   await t.wait(4500);
   t.check('garage reworks it', await t.has('නැවත හදමින්'));
@@ -36,15 +37,28 @@ module.exports = spec('Owner · workshop job, extra work, problem, rating, Recon
   await t.wait(5800);
   await t.clickText('ශ්‍රේණිගත කරන්න');
   t.check('technician rated separately', await t.has('LKR න් පෙරේරා'));
+  // The rating opens with one set of stars; the four detailed ones are behind "rate by detail".
+  await t.clickLabel('Rate by detail');
   for (const d of ['quality', 'pricing', 'onTime', 'communication']) await t.clickLabel(`Rate ${d} 5`);
   await t.clickLabel('Rate technician 5');
   await t.clickText('යවන්න · ★');
-  t.check('closed and rated', await t.has('ඔබ ★5 දුන්නා'));
+  // A rated job moves to the completed list; the review is in its record.
+  // The notices (thanks, then the garage's reply) cover the tabs for a while.
+  await t.wait(14000);
+  await t.clickLabel('සම්පූර්ණ');
+  await t.wait(1200);
+  await t.clickLabel('Booking');
+  await t.wait(1200);
+  t.check('closed and rated: the job is in the completed list', (await t.has('Speed Works Garage')) && (await t.has('5.0')));
+  await t.clickLabel('Booking details');
+  await t.wait(1200);
   await t.clickText('වගකීම් ඉල්ලීමක්');
   await t.type('Warranty claim description', 'The brake noise is back again after a week');
   await t.clickText('ගරාජයට යවන්න');
   await t.wait(5500);
   t.check('warranty claim accepted', await t.has('ගරාජය වගකීම පිළිගත්තා'));
+  await t.clickLabel('Close details');
+  await t.wait(900);
 
   // A bid on a Genuine post: Recon asked → approved; the bill drops
   await t.clickText('Bids');
@@ -52,15 +66,19 @@ module.exports = spec('Owner · workshop job, extra work, problem, rating, Recon
   t.check('bids show level badges', (await t.labels('Level ')).length > 0);
   await t.clickText('මෙම ලංසුව පිළිගන්න');
   await t.clickText('පිළිගන්න');
-  await t.clickText('Activity');
-  await t.wait(11000);
+  await t.wait(1200);
+  await bookToReport(t);
   await t.clickText('වාර්තාව බලා අනුමත කරන්න');
   await t.clickText('අනුමත කරන්නLKR');
   await t.wait(3200);
   await t.clickText('Recon අවසරය ඉල්ලයි');
   await t.clickLabel('Approve Recon');
   await t.clickText('Recon අනුමතයි');
-  await t.wait(9000);
+  await t.wait(10000);
+  // The simulated garage finds extra work on every new job; collection waits for the answer.
+  await t.clickText('අමතර වැඩ බලා අනුමත කරන්න');
+  await t.clickText('අමතර වැඩ එපා');
+  await t.wait(10000);
   await t.clickText('භාරගන්න · කේතය පෙන්වන්න');
   t.check('handover notes the Recon saving', await t.has('ඔබගේ අවසරයෙන් Recon යෙදුවා'));
   await t.shot('owner-workshop');

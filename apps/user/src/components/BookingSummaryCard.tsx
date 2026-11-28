@@ -31,7 +31,7 @@ export const BookingSummaryCard: React.FC<{ garage: Garage; categoryId: string; 
       {!!description && <Text style={styles.desc} numberOfLines={2}>{description}</Text>}
       {!!vehicle && (
         <View style={styles.vehicleRow}>
-          <LkPlate plate={vehicle.registrationNo || vehicle.plate} stacked={vehicle.type === 'Motorbike'} small />
+          <LkPlate plate={vehicle.registrationNo || vehicle.plate} small />
           <Text style={styles.vehicleName}>{vehicle.name}</Text>
         </View>
       )}

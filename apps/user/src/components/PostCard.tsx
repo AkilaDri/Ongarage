@@ -63,6 +63,13 @@ export const DoneTag: React.FC = () => (
   </View>
 );
 
+/** The tag of a job the owner stopped at the inspection report: nothing was repaired, so it is not "completed". */
+export const StoppedTag: React.FC = () => (
+  <View style={[styles.doneTag, styles.stoppedTag]}>
+    <Text style={[styles.doneTagText, styles.stoppedTagText]}>✕ නවතා ඇත</Text>
+  </View>
+);
+
 /** The price of a finished job stands beside its rating (the bottom right of the body). */
 export const PriceText: React.FC<{ price: string }> = ({ price }) => <MoneyText style={styles.price}>{price}</MoneyText>;
 
@@ -117,7 +124,7 @@ export const PostBody: React.FC<{
         left={
           !!vehicle && (
             <View style={styles.oneLine}>
-              <LkPlate plate={vehicle.registrationNo || vehicle.plate} stacked={vehicle.type === 'Motorbike'} small fontSize={11.5} />
+              <LkPlate plate={vehicle.registrationNo || vehicle.plate} small fontSize={11.5} />
               <Text style={[styles.vehicle, styles.shrink]} numberOfLines={1}>
                 {vehicle.name}
               </Text>
@@ -153,6 +160,8 @@ const styles = themedStyles(() =>
     price: { fontSize: 14, fontFamily: FONTS.titleBold, color: Colors.textMain },
     priceLabel: { fontSize: 12.5, fontFamily: FONTS.bodyRegular, color: Colors.textMuted },
     rightStack: { alignItems: 'flex-end', gap: 6 },
+    stoppedTag: { backgroundColor: 'rgba(100, 116, 139, 0.14)', borderColor: 'rgba(100, 116, 139, 0.35)' },
+    stoppedTagText: { color: Colors.textMuted },
     doneTag: { paddingHorizontal: 10, height: 24, justifyContent: 'center', borderRadius: 12, backgroundColor: 'rgba(16, 185, 129, 0.16)', borderWidth: 1, borderColor: 'rgba(16, 185, 129, 0.35)' },
     doneTagText: { fontSize: 11, fontFamily: FONTS.bodySemiBold, color: Colors.success },
     tags: { flexDirection: 'row', alignItems: 'center', gap: 8 },

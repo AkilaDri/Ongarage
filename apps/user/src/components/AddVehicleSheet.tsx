@@ -136,7 +136,7 @@ export const AddVehicleSheet: React.FC<AddVehicleSheetProps> = ({ visible, onClo
                   {name.trim() || 'වාහනයේ නම'}
                 </Text>
                 <Text style={styles.sub}>{typeInfo.label}</Text>
-                <LkPlate plate={cleanPlate || 'XXX-0000'} stacked={type === 'Motorbike'} small />
+                <LkPlate plate={cleanPlate || 'XXX-0000'} small />
               </View>
             </View>
 

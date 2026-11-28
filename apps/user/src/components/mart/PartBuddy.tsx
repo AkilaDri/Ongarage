@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Colors, FONTS, getAi, getThemeMode, partCategory, SUGGEST_MIN_CONFIDENCE, themedStyles } from '@ongarage/shared';
+import { Colors, FONTS, getAi, getThemeMode, SUGGEST_MIN_CONFIDENCE, themedStyles, type PartCategoryOption } from '@ongarage/shared';
 import { FlowButton } from '../FlowButton';
 import { FlowField } from '../FlowField';
-import { shortCategoryName } from '../home/CategoryStrip';
 
-export type PartSuggestion = { categoryId?: string; name?: string };
+export type PartSuggestion = { category?: PartCategoryOption; name?: string };
+
+/** The part category that stands for each service category the shared AI rules answer with. */
+const FROM_SERVICE: Record<string, string[]> = { '1': ['engine'], '2': ['electrical'], '3': ['hybrid', 'ev'], '4': ['cooling'], '6': ['tyres'], '7': ['brakes'], '8': ['body'], '11': ['battery', 'electrical'], '14': ['oils'] };
 
 const MAX_SUGGESTIONS = 4;
 
@@ -28,7 +30,7 @@ const padPositions = (names: string[], text: string): string[] => {
  * its category), or only a category. It never fills anything in by itself, does not look at photos, does not promise a fit, and says so when the words
  * are not clear enough. The words go through the shared AI layer (rules for now).
  */
-export const PartBuddy: React.FC<{ /** The categories a part can be asked in. */ categories: string[]; onUse: (s: PartSuggestion) => void }> = ({ categories, onUse }) => {
+export const PartBuddy: React.FC<{ /** The vehicle's part categories. */ categories: PartCategoryOption[]; onUse: (s: PartSuggestion) => void }> = ({ categories, onUse }) => {
   const [open, setOpen] = useState(false);
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
@@ -39,10 +41,13 @@ export const PartBuddy: React.FC<{ /** The categories a part can be asked in. */
     if (text.trim().length < 3 || busy) return;
     setBusy(true);
     const r = await getAi().classifyJob(text);
-    const parts = padPositions(r.value.partsMentioned, text).slice(0, MAX_SUGGESTIONS).map((name) => ({ name, categoryId: partCategory(name) }));
-    const category = r.value.categoryId;
+    const parts = padPositions(r.value.partsMentioned, text)
+      .slice(0, MAX_SUGGESTIONS)
+      .map((name) => ({ name, category: categories.find((c) => c.parts.includes(name)) }));
+    const wanted = FROM_SERVICE[r.value.categoryId ?? ''] ?? [];
+    const category = categories.find((c) => wanted.includes(c.id));
     // A category alone is offered only when the AI is sure enough of it.
-    setFound(parts.length ? parts : category && categories.includes(category) && r.confidence >= SUGGEST_MIN_CONFIDENCE ? [{ categoryId: category }] : []);
+    setFound(parts.length ? parts : category && r.confidence >= SUGGEST_MIN_CONFIDENCE ? [{ category }] : []);
     setBusy(false);
   };
 
@@ -90,17 +95,17 @@ export const PartBuddy: React.FC<{ /** The categories a part can be asked in. */
               <Text style={styles.head2}>OnBuddy ගේ යෝජනා · එකක් තෝරන්න</Text>
               {found.map((s) => (
                 <Pressable
-                  key={s.name ?? s.categoryId}
+                  key={s.name ?? s.category!.id}
                   style={styles.option}
                   onPress={() => {
                     onUse(s);
                     close();
                   }}
                   accessibilityRole="button"
-                  accessibilityLabel={`Use suggestion ${s.name ?? shortCategoryName(s.categoryId!)}`}
+                  accessibilityLabel={`Use suggestion ${s.name ?? s.category!.si}`}
                 >
-                  <Text style={styles.optionTitle}>{s.name ?? shortCategoryName(s.categoryId!)}</Text>
-                  <Text style={styles.sub}>{s.name ? (s.categoryId ? `${shortCategoryName(s.categoryId)} කාණ්ඩය` : 'කොටසේ නම') : 'කාණ්ඩය පමණයි'}</Text>
+                  <Text style={styles.optionTitle}>{s.name ?? s.category!.si}</Text>
+                  <Text style={styles.sub}>{s.name ? (s.category ? `${s.category.si}\u00a0කාණ්ඩය` : 'කොටසේ නම') : 'කාණ්ඩය පමණයි'}</Text>
                 </Pressable>
               ))}
               <Text style={styles.sub}>මේවා යෝජනා පමණි. වාහනයට ගැළපීම වෙළඳසැල තහවුරු කළ යුතුයි.</Text>

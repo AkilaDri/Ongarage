@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { canonicalPartName, Colors, FONTS, getAi, getThemeMode, GoogleMap, shopsNear, shopsInRing, MAX_BASKET_PARTS, partCategory, PART_CATEGORY, SEARCH_RINGS, SERVICE_CATEGORIES, SUGGEST_MIN_CONFIDENCE, themedStyles, type JobPartsRef, type MartAudience, type PartBrief, type PartType, type SearchRing } from '@ongarage/shared';
+import { canonicalPartName, Colors, FONTS, getAi, getThemeMode, GoogleMap, shopsNear, shopsInRing, MAX_BASKET_PARTS, partCategoriesFor, partCategory, SEARCH_RINGS, SUGGEST_MIN_CONFIDENCE, themedStyles, type JobPartsRef, type MartAudience, type PartBrief, type PartCategoryOption, type PartType, type SearchRing } from '@ongarage/shared';
 import { useVehicles } from '../../context/VehiclesContext';
 import { useMart } from '../../context/MartContext';
 import { useUserLocation } from '../../context/LocationContext';
@@ -11,11 +11,13 @@ import { FlowStepCard } from '../FlowStepCard';
 import { FlowSummary } from '../FlowSummary';
 import { FlowVehicleCard } from '../FlowVehicleCard';
 import { MediaAttachments } from '../MediaAttachments';
+import { SPARE_PARTS } from '../../constants/labels';
 import { PartBuddy } from './PartBuddy';
-import { CategoryStrip, shortCategoryName } from '../home/CategoryStrip';
+import { flyTo } from '../../utils/fly';
+import { PartCategoryGrid } from './PartCategoryGrid';
 import { Toast } from '../Toast';
 
-export type EnquiryPrefill = { name?: string; partType?: PartType; audience?: MartAudience; onlyShopIds?: string[]; shopName?: string; vehicleId?: string; qty?: number; partNo?: string; jobRef?: JobPartsRef };
+export type EnquiryPrefill = { name?: string; partType?: PartType; audience?: MartAudience; onlyShopIds?: string[]; shopName?: string; vehicleId?: string; qty?: number; partNo?: string; jobRef?: JobPartsRef; /** An earlier request being edited: its details fill the form, and sending replaces it. */ brief?: PartBrief; ring?: SearchRing; days?: number; replaces?: string };
 
 const AUDIENCES: { id: MartAudience; title: string; text: string }[] = [
   { id: 'shops', title: 'ළඟ වෙළඳසැල්වලට පමණි', text: 'තෝරාගත් පරාසය ඇතුළත වෙළඳසැල් වෙතට ඉල්ලීම යැවේ.' },
@@ -23,16 +25,13 @@ const AUDIENCES: { id: MartAudience; title: string; text: string }[] = [
   { id: 'both', title: 'දෙකටම', text: 'ළඟ වෙළඳසැල්වලට ද, විවෘත පෝස්ට් එකට ද.' },
 ];
 const DAYS = [1, 3, 7];
-const KINDS: { id: PartType; label: string; help: string }[] = [
-  { id: 'Genuine', label: 'Genuine', help: 'වාහන නිෂ්පාදකයාගේ මුල් කොටස.' },
-  { id: 'OEM', label: 'OEM', help: 'මුල් කොටස් හදන සමාගම් නිෂ්පාදනය කළ අලුත් කොටසක්.' },
-  { id: 'Recon', label: 'Recon', help: 'පරීක්ෂා කර නැවත සකස් කළ, භාවිත කළ මුල් කොටසක්.' },
-  { id: 'GarageChoice', label: 'ඕනෑම වර්ගයක්', help: 'වෙළඳසැල් ළඟ ඇති වර්ග සියල්ලේම මිල එවයි.' },
-];
-/** The categories parts are matched to shops by; fitting is a garage's job, so it is not asked of a shop. */
-const PART_CATEGORY_IDS = ['7', '1', '2', '11', '4', '14', '6', '5', '3'];
-/** The common parts of a category, from the same list that matches parts to shops. */
-const commonParts = (categoryId: string) => Object.keys(PART_CATEGORY).filter((n) => PART_CATEGORY[n] === categoryId);
+/** The job request's part types, in its words. OnMart has no garage to choose, so the fourth asks the shop for any type. */
+const KINDS: { id: PartType; label: string; help: string }[] = SPARE_PARTS.map((k) => (k.id === 'GarageChoice' ? { id: 'GarageChoice' as const, label: 'ඕනෑම වර්ගයක්', help: 'වෙළඳසැල් ළඟ ඇති වර්ග සියල්ලේම මිල එවයි.' } : { ...k, id: k.id as PartType }));
+/** The name a request carries when the owner only sent a photo. */
+const UNKNOWN_PART = 'නම නොදන්නා කොටස';
+
+/** What a chosen category (or none) puts on the request. */
+const categoryFields = (c?: PartCategoryOption) => ({ partCategoryId: c?.id, partGroupId: c?.groupId, categoryId: c?.serviceCategoryId });
 
 const STEPS = ['part', 'details', 'kind', 'time'] as const;
 type Step = (typeof STEPS)[number];
@@ -56,7 +55,17 @@ export const EnquirySheet: React.FC<{ visible: boolean; vehicleId: string; prefi
   const [days, setDays] = useState(3);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [allCategories, setAllCategories] = useState(false);
 
+  const categoriesOf = (id: string) => {
+    const v = findVehicle(id);
+    return partCategoriesFor(v.type, v.fuelType);
+  };
+  /** The category fields for a part's name on a vehicle: the one that lists it, else only the shops' older category. */
+  const fieldsForName = (name: string, vehicle: string) => {
+    const c = categoriesOf(vehicle).find((x) => x.parts.includes(name));
+    return c ? categoryFields(c) : { ...categoryFields(), categoryId: partCategory(name) };
+  };
   const vehicleOf = (id: string): PartBrief['vehicle'] => {
     const v = findVehicle(id);
     return { name: v.name, plate: v.plate, type: v.type, make: v.make, model: v.model, chassisNo: v.chassisNo, engineNo: v.engineNo };
@@ -65,17 +74,23 @@ export const EnquirySheet: React.FC<{ visible: boolean; vehicleId: string; prefi
   useEffect(() => {
     if (!visible) return;
     const id = prefill?.vehicleId ?? vehicleId;
-    const name = prefill?.name ? canonicalPartName(prefill.name) ?? prefill.name : '';
+    const old = prefill?.brief;
+    const name = old ? (old.name === UNKNOWN_PART ? '' : old.name) : prefill?.name ? canonicalPartName(prefill.name) ?? prefill.name : '';
     // A part already named (a search, a deal) has answered step 1, so it opens at the details; back still leads to step 1.
-    setStep(name ? 'details' : 'part');
+    setStep(name || old ? 'details' : 'part');
     setCarId(id);
-    setBrief({ id: 'draft', name, qty: prefill?.qty ?? 1, partNo: prefill?.partNo, partType: prefill?.partType ?? 'GarageChoice', categoryId: name ? partCategory(name) : undefined, vehicle: vehicleOf(id) });
+    setBrief(
+      old
+        ? { ...old, id: 'draft', name, vehicle: vehicleOf(id) }
+        : { id: 'draft', name, qty: prefill?.qty ?? 1, partNo: prefill?.partNo, partType: prefill?.partType ?? 'GarageChoice', ...(name ? fieldsForName(name, id) : {}), vehicle: vehicleOf(id) },
+    );
     setParts([]);
     setAudience(prefill?.audience ?? 'shops');
-    setRing('nearby');
-    setDays(prefill?.audience === 'wall' ? 7 : 3);
+    setRing(prefill?.ring ?? 'nearby');
+    setDays(prefill?.days ?? (prefill?.audience === 'wall' ? 7 : 3));
     setError(null);
     setBusy(false);
+    setAllCategories(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);
 
@@ -83,15 +98,26 @@ export const EnquirySheet: React.FC<{ visible: boolean; vehicleId: string; prefi
   const direct = !!prefill?.onlyShopIds?.length || !!prefill?.jobRef;
   // A photo alone is enough: many owners do not know a part's name.
   const filled = brief.name.trim().length > 0 || !!brief.photos?.length;
-  const named = (b: PartBrief): PartBrief => ({ ...b, name: b.name.trim() || 'නම නොදන්නා කොටස' });
+  const named = (b: PartBrief): PartBrief => ({ ...b, name: b.name.trim() || UNKNOWN_PART });
   const total = parts.length + (filled ? 1 : 0);
   const valid = total > 0;
   const set = (change: Partial<PartBrief>) => setBrief((b) => b && { ...b, ...change });
+  // Another vehicle has its own categories: each part moves to the one that lists it, and a chip the new list lacks is cleared.
+  const moveTo = (b: PartBrief, id: string): PartBrief => {
+    const was = categoriesOf(carId).find((c) => c.id === b.partCategoryId);
+    const next = categoriesOf(id);
+    const listed = next.find((c) => c.parts.includes(b.name)) ?? next.find((c) => c.id === b.partCategoryId);
+    const lostChip = !!was?.parts.includes(b.name) && !next.some((c) => c.parts.includes(b.name));
+    const name = lostChip && !b.photos?.length ? '' : b.name;
+    return { ...b, name, ...(listed ? categoryFields(listed) : { ...categoryFields(), categoryId: partCategory(name) }), vehicle: vehicleOf(id) };
+  };
   const changeVehicle = (id: string) => {
+    if (id === carId) return;
+    setBrief((b) => b && moveTo(b, id));
+    // Parts already added keep their names; only the vehicle and the category move.
+    setParts((p) => p.map((x) => ({ ...moveTo(x, id), name: x.name })));
     setCarId(id);
-    const vehicle = vehicleOf(id);
-    set({ vehicle });
-    setParts((p) => p.map((x) => ({ ...x, vehicle })));
+    setAllCategories(false);
   };
   const addPart = () => {
     if (!filled || parts.length + 1 >= MAX_BASKET_PARTS) return;
@@ -118,23 +144,26 @@ export const EnquirySheet: React.FC<{ visible: boolean; vehicleId: string; prefi
       return;
     }
     const aud = direct ? 'shops' : audience;
-    const one = (b: PartBrief) => {
+    const one = (b: PartBrief, i: number) => {
       const { id: _id, ...rest } = b;
-      return { brief: rest, audience: aud, ring, onlyShopIds: prefill?.onlyShopIds, validDays: days, jobRef: all.length === 1 ? prefill?.jobRef : undefined };
+      return { brief: rest, audience: aud, ring, onlyShopIds: prefill?.onlyShopIds, validDays: days, jobRef: all.length === 1 ? prefill?.jobRef : undefined, replaces: i === 0 ? prefill?.replaces : undefined };
     };
     // Several parts go out together as one request group: each shop answers every part, with its own availability and price.
-    const id = all.length > 1 ? createBatch(all.map(one), `කොටස් ${all.length}`) : createEnquiry(one(all[0]));
+    const id = all.length > 1 ? createBatch(all.map(one), `කොටස් ${all.length}`) : createEnquiry(one(all[0], 0));
     onSent(id, direct ? 'shops' : audience);
+    // As when a job is posted: the request flies to where it now is, OnMart's Requests tab, or On Feed for a wall-only post.
+    flyTo(!direct && audience === 'wall' ? 'partPosted' : 'partAsked');
     onClose();
   };
 
   const canonical = canonicalPartName(brief.name);
-  const category = SERVICE_CATEGORIES.find((c) => c.id === brief.categoryId);
+  const categories = categoriesOf(carId);
+  const category = categories.find((c) => c.id === brief.partCategoryId);
   const kind = KINDS.find((k) => k.id === brief.partType);
 
   const footer =
     step === 'part' ? (
-      <FlowButton label={brief.categoryId || filled ? 'ඊළඟ ›' : 'කාණ්ඩය නොදනිමි · ඊළඟ ›'} onPress={() => setStep('details')} />
+      <FlowButton label={category || filled ? 'ඊළඟ ›' : 'කාණ්ඩය නොදනිමි · ඊළඟ ›'} onPress={() => setStep('details')} />
     ) : step === 'details' ? (
       <FlowButton label={valid ? 'ඊළඟ ›' : 'නමක් හෝ ඡායාරූපයක් දෙන්න'} disabled={!valid} onPress={() => setStep('kind')} />
     ) : step === 'kind' ? (
@@ -160,25 +189,27 @@ export const EnquirySheet: React.FC<{ visible: boolean; vehicleId: string; prefi
         <>
           <FlowVehicleCard vehicleId={carId} onChange={changeVehicle} />
           {/* In the quote request's order: vehicle, OnBuddy, then the tiles. Only a tap on a suggestion fills anything in. */}
-          <PartBuddy categories={PART_CATEGORY_IDS} onUse={(x) => set({ categoryId: x.categoryId, name: x.name ?? '' })} />
-          <FlowStepCard step={1} title={`කොටස් කාණ්ඩය · ${PART_CATEGORY_IDS.length}`} done={!!brief.categoryId} requiredNote="පහළින් තෝරන්න">
-            <CategoryStrip
-              layout="grid"
-              columns={4}
-              include={(id) => PART_CATEGORY_IDS.includes(id)}
-              selectedId={brief.categoryId ?? null}
-              onSelect={(c) => set({ categoryId: c.id, name: brief.categoryId === c.id ? brief.name : '' })}
+          <PartBuddy categories={categories} onUse={(x) => set({ ...(x.category ? categoryFields(x.category) : x.name ? fieldsForName(x.name, carId) : categoryFields()), name: x.name ?? '' })} />
+          <FlowStepCard step={1} title={`කොටස් කාණ්ඩය\u00a0·\u00a0${categories.length}`} done={!!category} requiredNote="පහළින් තෝරන්න">
+            <PartCategoryGrid
+              categories={categories}
+              vehicleType={brief.vehicle.type}
+              selectedId={category?.id}
+              expanded={allCategories}
+              onExpandedChange={setAllCategories}
+              onSelect={(c) => set({ ...categoryFields(c), name: category?.id === c.id ? brief.name : '' })}
             />
-            {!!brief.name && !(category && commonParts(category.id).includes(brief.name)) && <Text style={styles.strong}>✓ තෝරාගත් කොටස: {brief.name}</Text>}
-            {!!category && commonParts(category.id).length > 0 && (
+            {!!brief.name && !category?.parts.includes(brief.name) && <Text style={styles.strong}>✓ තෝරාගත් කොටස: {brief.name}</Text>}
+            {!!category && category.parts.length > 0 && (
               <>
-                <Text style={styles.eyebrow}>{`${shortCategoryName(category.id) ?? category.name} හි බහුලව ඉල්ලන කොටස් (විකල්ප තේරීමකි):`}</Text>
+                <Text style={styles.eyebrow}>{category.si}</Text>
+                <Text style={styles.help}>බහුලව ඉල්ලන කොටස් (විකල්ප තේරීමකි)</Text>
                 <View style={styles.wrap}>
-                  {commonParts(category.id).map((n) => {
+                  {category.parts.map((n) => {
                     const on = brief.name === n;
                     return (
-                      <Pressable key={n} style={[styles.sub, { backgroundColor: on ? category.color : `${category.color}26`, borderColor: on ? category.color : `${category.color}8c` }]} onPress={() => set({ name: on ? '' : n })} accessibilityLabel={`Common part ${n}`} accessibilityState={{ selected: on }}>
-                        <Text style={[styles.subText, on && styles.onText]}>{n}</Text>
+                      <Pressable key={n} style={[styles.quick, on && styles.quickOn]} onPress={() => set({ name: on ? '' : n })} accessibilityLabel={`Common part ${n}`} accessibilityState={{ selected: on }}>
+                        <Text style={[styles.quickText, on && styles.onText]}>{n}</Text>
                       </Pressable>
                     );
                   })}
@@ -210,13 +241,17 @@ export const EnquirySheet: React.FC<{ visible: boolean; vehicleId: string; prefi
             <TextInput
               style={styles.input}
               value={brief.name}
-              onChangeText={(t) => set({ name: t, categoryId: partCategory(canonicalPartName(t) ?? '') ?? brief.categoryId })}
+              onChangeText={(t) => {
+                const known = canonicalPartName(t);
+                // A recognised name moves the part to its category; anything else keeps the one picked.
+                set({ name: t, ...(known && partCategory(known) ? fieldsForName(known, carId) : {}) });
+              }}
               placeholder="කොටසේ නම · උදා: Brake pads"
               placeholderTextColor={Colors.textMuted}
               accessibilityLabel="Part name"
             />
             {!!canonical && canonical !== brief.name && (
-              <Pressable style={styles.remove} onPress={() => set({ name: canonical, categoryId: partCategory(canonical) })} accessibilityLabel={`Use ${canonical}`}>
+              <Pressable style={styles.remove} onPress={() => set({ name: canonical, ...fieldsForName(canonical, carId) })} accessibilityLabel={`Use ${canonical}`}>
                 <Text style={styles.link}>“{canonical}” ලෙස සොයන්න</Text>
               </Pressable>
             )}
@@ -243,12 +278,12 @@ export const EnquirySheet: React.FC<{ visible: boolean; vehicleId: string; prefi
 
       {step === 'kind' && (
         <>
-          <FlowStepCard step={3} title="කැමති කොටස් වර්ගය" done hint={total > 1 ? 'මෙම ඉල්ලීමේ සියලු කොටස් සඳහා' : 'එක් වර්ගයක් තෝරන්න'}>
+          <FlowStepCard step={3} title="කැමති අමතර කොටස් වර්ගය" done hint={total > 1 ? 'මෙම ඉල්ලීමේ සියලු කොටස් සඳහා' : 'එක් වර්ගයක් තෝරන්න'}>
             <View style={styles.wrap}>
               {KINDS.map((k) => {
                 const on = brief.partType === k.id;
                 return (
-                  <Pressable key={k.id} style={[styles.choice, on && styles.choiceOn]} onPress={() => set({ partType: k.id })} accessibilityRole="radio" accessibilityState={{ selected: on }} accessibilityLabel={`Type ${k.label}`}>
+                  <Pressable key={k.id} style={[styles.choice, on && styles.choiceOn]} onPress={() => set({ partType: k.id })} accessibilityRole="radio" accessibilityState={{ selected: on }} accessibilityLabel={`Type ${k.id}`}>
                     <Text style={[styles.choiceText, on && styles.onText]}>{k.label}</Text>
                   </Pressable>
                 );
@@ -365,8 +400,6 @@ const styles = themedStyles(() =>
     help: { fontSize: 13, lineHeight: 20, fontFamily: FONTS.bodyRegular, color: Colors.textSoft },
     link: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: getThemeMode() === 'dark' ? '#8db1ff' : '#1e3a8a' },
     input: { minHeight: 48, paddingHorizontal: 16, borderRadius: 22, borderWidth: 1, borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#e5e7eb', backgroundColor: Colors.bgCard, color: Colors.textMain, fontSize: 14, fontFamily: FONTS.bodyRegular },
-    sub: { minHeight: 36, justifyContent: 'center', paddingHorizontal: 14, borderRadius: 18, borderWidth: 1 },
-    subText: { fontSize: 13, fontFamily: FONTS.bodySemiBold, color: Colors.textMain },
     onText: { color: '#ffffff' },
     remove: { minWidth: 36, minHeight: 36, justifyContent: 'center', alignItems: 'flex-start' },
     qtyBtn: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: getThemeMode() === 'dark' ? Colors.borderColor : '#e5e7eb' },

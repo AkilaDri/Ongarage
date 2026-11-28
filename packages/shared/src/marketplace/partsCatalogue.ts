@@ -71,11 +71,13 @@ export const makeFromName = (name?: string): string | undefined => {
  * What a buyer's brief asks the catalogues: the part kind (found from the name the buyer wrote, or the group of its service
  * category), the vehicle (make, model, chassis code, year) and the part type.
  */
-export const queryFromBrief = (brief: Pick<PartBrief, 'name' | 'partType' | 'categoryId' | 'vehicle'> & { partId?: string }): CatalogueQuery => {
+export const queryFromBrief = (brief: Pick<PartBrief, 'name' | 'partType' | 'categoryId' | 'vehicle' | 'partGroupId'> & { partId?: string }): CatalogueQuery => {
   const v = brief.vehicle;
   const part = brief.partId ?? findParts(brief.name)[0]?.id;
   return {
     partId: part,
+    // A part the catalogues do not know still finds the shops that sell its group.
+    ...(!part && brief.partGroupId ? { groupId: brief.partGroupId } : {}),
     vehicle: v ? { make: v.make ? normaliseMake(v.make) : makeFromName(v.name), model: v.model, code: modelCodeFromChassis(v.chassisNo), year: v.year } : undefined,
     partType: brief.partType,
   };
@@ -111,7 +113,11 @@ const tagTier = (tag: CatalogueVehicleTag, v: CatalogueQuery['vehicle']): Covera
 
 /** Whether an entry is for the part (or the part's group) being looked for. */
 const entryScope = (entry: ShopCatalogueEntry, q: CatalogueQuery): CatalogueMatch['scope'] | null => {
-  if (entry.partId) return q.partId && entry.partId === q.partId ? 'part' : null;
+  if (entry.partId) {
+    // A search for a whole group (no known part) also finds a shop that lists any part in it.
+    if (!q.partId) return q.groupId && partInfo(entry.partId)?.groupId === q.groupId ? 'group' : null;
+    return entry.partId === q.partId ? 'part' : null;
+  }
   const groupId = q.groupId ?? (q.partId ? partInfo(q.partId)?.groupId : undefined);
   return groupId && entry.groupId === groupId ? 'group' : null;
 };

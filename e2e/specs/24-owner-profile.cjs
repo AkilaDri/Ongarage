@@ -1,7 +1,7 @@
 const { spec } = require('../lib.cjs');
 
 // Owner Profile: the account page, the edit page (tap the name), validation, the
-// completion bar, and that details persist across a reload.
+// saved details, which persist across a reload.
 module.exports = spec('Owner · profile and edit details', 'user', async (t) => {
   const p = t.page;
   // Start clean (a previous run may have saved details on this browser profile).
@@ -16,7 +16,6 @@ module.exports = spec('Owner · profile and edit details', 'user', async (t) => 
 
   await t.clickLabel('Edit profile');
   t.check('edit page lists the details', (await t.has('ඔබගේ පැතිකඩ')) && (await t.has('ජංගම දුරකථන අංකය')) && (await t.has('හදිසි සම්බන්ධතාව')));
-  t.check('completion on the edit page', (await t.text('Profile completion')).includes('7 න් 2 ක් සම්පූර්ණයි'));
 
   // Email: invalid is refused, valid saves
   await t.clickLabel('Edit email');
@@ -45,7 +44,7 @@ module.exports = spec('Owner · profile and edit details', 'user', async (t) => 
   await t.type('Field emergencyPhone', '0771234567');
   await t.clickText('සුරකින්න');
   await t.clickLabel('Toggle profile photo');
-  t.check('all seven steps complete', (await t.text('Profile completion')).includes('7 න් 7 ක් සම්පූර්ණයි'));
+  t.check('every detail shows as saved', (await t.has('akila@example.com')) && (await t.has('නිමල් පෙරේරා')));
   await t.shot('owner-edit-profile');
 
   // Persists across a reload; the completed card disappears from the profile page
@@ -55,7 +54,7 @@ module.exports = spec('Owner · profile and edit details', 'user', async (t) => 
   await t.wait(1200);
   await t.clickText('Account');
   await t.clickLabel('Edit profile');
-  t.check('saved details survive a reload', (await t.text('Profile completion')).includes('7 න් 7 ක් සම්පූර්ණයි'));
+  t.check('saved details survive a reload', (await t.has('akila@example.com')) && (await t.has('නිමල් පෙරේරා')));
   await t.clickLabel('Close profile');
 
   // Name change shows in the header

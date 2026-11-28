@@ -6,6 +6,8 @@ const { spec } = require('../lib.cjs');
 module.exports = spec('Owner · bids: swipe a garage, not the job', 'user', async (t) => {
   const p = t.page;
   await t.clickText('Bids');
+  // The sheet and its cards settle before the finger moves.
+  await t.wait(1500);
 
   // A point near the top of the element with this accessibility label.
   const pointIn = (label) =>
@@ -31,16 +33,25 @@ module.exports = spec('Owner · bids: swipe a garage, not the job', 'user', asyn
     return { seen, selected };
   };
   const swipe = await drag(await pointIn('Apex Motors & Hybrid Hub bid details'), -120);
+  await t.wait(900);
   t.check('no text selected while dragging', swipe.selected === '', swipe.selected);
-  t.check('swiping a bid opens that garage, not the job', (await t.has('ඔබගේ රැකියාවට ලංසුව')) && !(await t.has('රැකියා විස්තර')));
-  t.check('bid and garage profile agree', await t.has('★ 4.9 · සමාලෝචන 124'));
-  await t.clickText('ලංසුව පිළිගන්න ·');
+  t.check('swiping a bid opens that garage, not the job', (await t.labels('Accept this bid')).length > 0 && !(await t.has('රැකියා විස්තර')));
+  t.check('bid and garage profile agree', (await t.has('4.9')) && (await t.has('124')));
+  await t.clickLabel('Accept this bid');
   t.check('accepting from the garage asks to confirm', await t.has('ලංසුව පිළිගන්නද?'));
   await t.clickText('අවලංගු');
+  // Declining the confirmation leaves the garage's profile open.
+  await t.escape();
+  await t.wait(900);
 
   // The job's own card does not swipe; its details open from the link.
   await drag(await pointIn('Mechanical details'), 120);
-  t.check('swiping the job card does nothing', !(await t.has('රැකියා විස්තර')));
+  t.check('swiping the job card does not open the job', !(await t.has('රැකියා විස්තර')));
+  // A sideways swipe off a swipe card moves between the main tabs.
+  if ((await t.labels('Mechanical details')).length === 0) {
+    await t.clickText('Bids');
+    await t.wait(1500);
+  }
   await t.clickLabel('Mechanical details');
   t.check('the details link opens the job', await t.has('රැකියා විස්තර'));
   // Regression: the live countdown re-renders this screen every second, and that used to restart the details view's fade-in, so it flashed.
@@ -58,36 +69,17 @@ module.exports = spec('Owner · bids: swipe a garage, not the job', 'user', asyn
   await t.clickLabel('Close details');
 
   await t.clickLabel('TOPCODE Tuning & Service bid details');
-  t.check('tapping a bid opens its garage with reviews and replies', (await t.has('ඔබගේ රැකියාවට ලංසුව')) && (await t.has('TOPCODE Tuning & Service පිළිතුර')));
+  t.check('tapping a bid opens its garage with reviews and replies', (await t.labels('Accept this bid')).length > 0 && (await t.has('ගෙන් පිළිතුර')));
   await t.escape();
 
-  // The map is full screen behind a three-stage sheet: tap the handle to step up, flick down to minimise.
-  const height = () => p.evaluate(() => document.querySelector('[aria-label="Sheet handle"]').parentElement.getBoundingClientRect().height);
-  // An open sheet has no grip (it melts away under the top bar): scroll up at the top of the list to bring it down first.
-  await p.mouse.move(195, 600);
-  await p.mouse.wheel({ deltaY: -400 });
-  await t.wait(900);
-  // Tapping the handle steps through the heights (whatever the sheet starts at).
-  const seen = [await height()];
-  for (let i = 0; i < 2; i++) {
-    await t.clickLabel('Sheet handle');
-    seen.push(await height());
-  }
-  t.check('tapping the handle changes the sheet height', Math.max(...seen) - Math.min(...seen) > 100, seen);
-  if (seen[2] > seen[1] + 100 || seen[2] > 600) await t.clickLabel('Sheet handle');
-  const hb = await (await p.$('[aria-label="Sheet handle"]')).boundingBox();
-  await p.mouse.move(hb.x + hb.width / 2, hb.y + 10);
-  await p.mouse.down();
-  for (let i = 1; i <= 8; i++) {
-    await p.mouse.move(hb.x + hb.width / 2, hb.y + 10 + i * 40);
-    await t.wait(16);
-  }
-  await p.mouse.up();
+  // The page is a list; the map opens from the button in the header. Notices (a service reminder) can cover that corner for a while.
+  await t.wait(14000);
+  await t.clickLabel('Open the map');
+  await t.wait(2000);
+  t.check('the map opens with its own close button and the bid count', (await t.labels('Close the map')).length > 0 && (await t.has('ලංසු')));
+  await t.shot('owner-bids-map');
+  await t.clickLabel('Close the map');
   await t.wait(1200);
-  const peek = await height();
-  t.check('a flick down minimises it to a strip', peek < 160, peek);
-  t.check('the minimised strip shows each received bid as a round photo', (await t.labels('Peek ')).length === 2 && (await t.has('3.7k')));
-  await t.clickLabel('Peek Apex Motors & Hybrid Hub');
-  t.check('tapping a photo opens that garage', await t.has('ඔබගේ රැකියාවට ලංසුව'));
+  t.check('closing the map brings the list back', (await t.labels('Close the map')).length === 0 && (await t.labels('Apex Motors & Hybrid Hub bid details')).length > 0);
   await t.shot('owner-bids');
 });

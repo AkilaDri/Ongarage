@@ -1,6 +1,6 @@
-import { LkPlate } from '@ongarage/shared';
+import { INSPECTION_FEE, LkPlate } from '@ongarage/shared';
 import { VehicleChip } from '../components/VehicleChip';
-import { DoneTag, PostBody, PostHead, PriceText } from '../components/PostCard';
+import { DoneTag, PostBody, PostHead, PriceText, StoppedTag } from '../components/PostCard';
 import { WorkTimer } from '../components/WorkTimer';
 import { onActivityFocus, takeActivityFocus, type ActivityFocus } from '../utils/activityFocus';
 import { elevation1, outline, pageBg } from '../utils/material';
@@ -215,6 +215,8 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
   const cancelledJobs = accepted.filter((x) => cancelled(x.job.id));
 
   const bidCard = (job: (typeof jobs)[number], bid: (typeof jobs)[number]['bids'][number]) => {
+    // Stopped at the report: only the inspection fee is due, nothing carries a warranty and there is no repair to rate.
+    const stopped = workshops[job.id]?.progress.stage === 'declined';
     const cat = SERVICE_CATEGORIES.find((c) => c.id === job.categoryId);
     return (
       <SwipeCard key={job.id} style={[styles.card, !finished(job.id) && styles.cardOngoing, finished(job.id) && !cancelled(job.id) && styles.cardDone, styles.edgeBid]} onOpen={() => setDetail({ kind: 'job', id: job.id })}>
@@ -228,7 +230,7 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
           attention={!!needOf(workshops[job.id])}
         />
         <PostBody
-          price={money(bid.price)}
+          price={money(stopped ? INSPECTION_FEE : bid.price)}
           swap={!finished(job.id)}
           vehicle={findVehicle(job.vehicleId)}
           kind="bid"
@@ -246,7 +248,7 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
           }
         >
           {finished(job.id) && !cancelled(job.id) && (
-            <GridRow left={<RatingLine rating={workshops[job.id]?.review?.rating} onRate={workshops[job.id] ? () => setRating(workshops[job.id]) : undefined} />} right={<DoneTag />} />
+            <GridRow left={stopped ? <Text style={styles.sub}>පරීක්ෂා ගාස්තුව පමණයි</Text> : <RatingLine rating={workshops[job.id]?.review?.rating} onRate={workshops[job.id] ? () => setRating(workshops[job.id]) : undefined} />} right={stopped ? <StoppedTag /> : <DoneTag />} />
           )}
         </PostBody>
         <View style={styles.divider} />
@@ -254,7 +256,7 @@ export const ActivityScreen: React.FC<{ onOpenBids: () => void; onBookAgain: (b:
           <GridRow
             left={
               <Text style={styles.sub} numberOfLines={1}>
-                🛡️ මාස {bid.warrantyMonths} වගකීම
+                {stopped ? 'අලුත්වැඩියාවක් නොකළා' : `🛡️ මාස ${bid.warrantyMonths} වගකීම`}
               </Text>
             }
             right={
@@ -576,7 +578,8 @@ const styles = themedStyles(() => StyleSheet.create({
   selfCenter: { alignSelf: 'center' },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
-  body: { paddingHorizontal: 12, paddingTop: 0, gap: 12, paddingBottom: 100 },
+  // Room under the last card for the floating OnChat button as well as the tab bar: its details link must stay tappable.
+  body: { paddingHorizontal: 12, paddingTop: 0, gap: 12, paddingBottom: 150 },
   // Opaque and full width (the negative margin cancels the body padding), so the lists scroll underneath it.
   bandHead: { paddingTop: 46, paddingHorizontal: 10, paddingBottom: 6, backgroundColor: pageHeaderBlue().from },
   bandTitleRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 6, gap: 8, paddingBottom: 14, minHeight: 44 },

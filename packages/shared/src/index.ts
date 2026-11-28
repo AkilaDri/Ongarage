@@ -15,6 +15,7 @@ export * from './constants/martShops';
 export * from './constants/martFitment';
 export * from './constants/serviceKits';
 export * from './constants/partsTaxonomy';
+export * from './constants/partCategories';
 export * from './constants/martPromos';
 
 export * from './maps/googleMaps';

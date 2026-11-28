@@ -35,6 +35,10 @@ module.exports = spec('Owner · job part, from the task to the garage check', 'u
   t.check('bought, but still to be given to the garage', await t.has('ගරාජයට භාර දුන්නා'));
   await t.clickText('ගරාජයට භාර දුන්නා');
   await t.wait(11500);
-  t.check('the garage accepts the right part', await t.has('ගරාජයට නිවැරදි කොටස ලැබුණා'));
+  // The demo garage turns down the first Brake disc handed in (a demonstration only), so the way back can be tried.
+  t.check('a wrong part is not done: the return steps show', await t.has('වැරදි කොටසක්'));
+  await t.clickText('වෙළඳසැලට ආපසු දෙන්න');
+  await t.wait(1500);
+  t.check('after the return the part can be asked for again', await t.has('මිල ඉල්ලන්න'));
   await t.shot('owner-job-part-done');
 });

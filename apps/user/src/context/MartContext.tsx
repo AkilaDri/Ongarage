@@ -104,6 +104,8 @@ export type NewEnquiry = {
   batchSize?: number;
   /** No toast for this request (a batch tells once). */
   silent?: boolean;
+  /** An earlier request this one is sent in place of (edited, or sent again): it is taken off the list. */
+  replaces?: string;
 };
 
 /**
@@ -300,10 +302,12 @@ export const MartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // The owner can set the exact radius on the map; otherwise the ring (10 km, 50 km, the whole country) decides.
       const inRing = (e.radiusKm ? all.filter((s) => s.distanceKm <= e.radiusKm!) : shopsInRing(all, e.ring)).filter((s) => !asked.has(s.id));
       const reach = () => {
-        if (!q.partId) return inRing;
+        if (!q.partId && !q.groupId) return inRing;
         const covered = broadcastTargets(matchingShops(inRing, q)).map((m) => m.shop);
         const older = inRing.filter((s) => !s.catalogue?.length && wallVisibleTo(s, brief)).slice(0, Math.max(0, BROADCAST_LIMIT - covered.length));
-        return [...covered, ...older];
+        const found = [...covered, ...older];
+        // Nobody lists that group (common for bikes and heavy vehicles so far): ask every shop in the ring.
+        return found.length || q.partId ? found : inRing;
       };
       // The shops a garage recommended for a job part are always asked, however far they are or however many others fit.
       const recommended = () => {
@@ -393,7 +397,7 @@ export const MartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     (input: NewEnquiry) => {
       // One live request for each part of a job: asking again opens the one already there.
       const ref = input.jobRef;
-      const existing = ref && live.current.enquiries.find((x) => x.enquiry.jobRef?.bookingId === ref.bookingId && x.enquiry.jobRef.lineId === ref.lineId && x.enquiry.status !== 'cancelled' && x.enquiry.status !== 'expired');
+      const existing = ref && live.current.enquiries.find((x) => x.enquiry.jobRef?.bookingId === ref.bookingId && x.enquiry.jobRef.lineId === ref.lineId && x.enquiry.id !== input.replaces && x.enquiry.status !== 'cancelled' && x.enquiry.status !== 'expired');
       if (existing) {
         notify({ icon: '📨', title: 'මෙම කොටස දැනටමත් ඉල්ලා ඇත', body: 'පිළිතුරු “මගේ ඉල්ලීම්” හි ඇත.', tone: 'primary' });
         return existing.enquiry.id;
@@ -420,7 +424,8 @@ export const MartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         status: 'open',
       };
       const me: MartEnquiry = { enquiry, onlyShopIds: input.onlyShopIds, askedShopIds: [], searching: true };
-      setEnquiries((prev) => [me, ...prev]);
+      setEnquiries((prev) => [me, ...prev.filter((x) => x.enquiry.id !== input.replaces)]);
+      if (input.replaces) setCart((prev) => prev.filter((l) => l.enquiryId !== input.replaces));
       const asked = reachesShops(input.audience) ? runRound(me, 'shops', []) : [];
       if (onWall(input.audience)) runRound(me, 'wall', asked);
       if (!input.silent) notify({ icon: '📨', title: 'ඉල්ලීම යැව්වා', body: onWall(input.audience) ? 'වෙළඳසැල් සහ විවෘත පෝස්ට් එක වෙත.' : 'ළඟ වෙළඳසැල් වෙත — පිළිතුරු ලැබෙන විට දැනුම් දෙමු.', tone: 'primary' });

@@ -13,6 +13,29 @@ Entry format:
 
 ## Entries
 
+## 2026-11-28 · Owner app OnMart Requests · step 3 of matching Bids (waiting and ended single-part cards)
+- Principles used: UPD 035 and C5 (the Bids waiting and expired cards), C9 (delete asks first and says what happens), C4 (the summary says the new request replaces this one), UX 35 (sending again needs no retyping).
+
+## 2026-11-28 · Owner app OnMart Requests · step 2 of matching Bids (single-part card)
+- Principles used: UPD 099 and C3 (offers on the page, not behind pop-ups), C13 (part first, price largest), C15 (the request's real time left), C2 (a range row replaces the large map; details hold the rest), UPD 091 and 087 (no pulsing or sweeping), C9 (cancel moved into details).
+
+## 2026-11-28 · Owner app OnMart Requests · step 1 of matching Bids (header, tabs, grouping)
+- Principles used: UPD 035 and C5 (Bids header and Received / Pending / Expired), Typography 31 (pill tabs keep their width), C4 and C14 (empty tabs say where the request is), UPD 064 (finished requests open Orders; an open window is never moved from under the owner).
+
+## 2026-11-28 · Owner app OnMart · sending a part request
+- Principles used: UPD 035 and C5 (the job request's flying token), C4 (it shows where the request now is).
+
+## 2026-11-28 · Owner app Quick Parts, parts shop requests · same part categories
+- Principles used: UPD 035 and C5 (one category list in the request, on the OnMart home and in the shop app), C3 (the shop sees the buyer's category by name).
+
+## 2026-11-28 · Owner app · part categories by vehicle type
+- Principles used: UX 24 and C3 (seven categories shown, the rest behind +N), C2 (only the vehicle's own categories), UPD 035 (same grid, tick and chips as the quote request). Tile pictures are placeholders.
+
+## 2026-11-28 · Owner app · three bugs found by the browser tests
+- Principles used: C10 (a stopped job shows only the inspection fee, no warranty or rating), C1 and UPD 069 (details link clear of the OnChat button; Minimize not covered by a faded bar).
+- Core missing: none.
+- Outcome: fixed and checked in the browser; not on a phone; not type checked.
+
 ## 2026-11-27 · Owner part request, step 3 · OnBuddy for parts
 - Principles used: C5 (the quote request's helper, same place), C3 (names to recognise instead of recall), UX 05 and C10 (suggestion only, fit not promised), C14 (waiting and unclear states).
 - Core missing: none.

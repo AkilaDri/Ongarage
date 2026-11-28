@@ -3,11 +3,13 @@ import { Animated, Easing, StyleSheet, Text, View, useWindowDimensions } from 'r
 import { onFly, type FlyKind } from '../utils/fly';
 
 const LOOK: Record<FlyKind, { glyph: string; color: string; tab: number }> = {
-  // the tab's place in the bottom bar: Home, Bids, OnMart, Activity, Account
+  // the tab's place in the bottom bar: Home, Bids, OnMart, Activity, Account (inside OnMart: Shops, Requests, OnGarage, On Feed, Orders)
   posted: { glyph: '📨', color: '#1e3a8a', tab: 1 },
   bidReady: { glyph: '🤝', color: '#16a34a', tab: 1 },
   booked: { glyph: '📅', color: '#1e3a8a', tab: 3 },
   done: { glyph: '✓', color: '#16a34a', tab: 3 },
+  partAsked: { glyph: '📨', color: '#1e3a8a', tab: 1 },
+  partPosted: { glyph: '📨', color: '#1e3a8a', tab: 3 },
 };
 
 /**

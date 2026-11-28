@@ -376,7 +376,7 @@ export const OwnerDetailView: React.FC<{
                   <View style={styles.softBox}>
                     {!!description?.trim() && <Text style={styles.problem}>{description}</Text>}
                     <View style={styles.vehicleRow}>
-                      <LkPlate plate={vehicle.registrationNo || vehicle.plate} stacked={vehicle.type === 'Motorbike'} small />
+                      <LkPlate plate={vehicle.registrationNo || vehicle.plate} small />
                       <Text style={styles.vehicleName}>{vehicle.name}</Text>
                     </View>
                   </View>

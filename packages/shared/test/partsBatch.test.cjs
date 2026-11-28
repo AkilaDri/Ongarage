@@ -130,3 +130,16 @@ test('the simulated shops cover a basket in different ways: all, every other par
   // one part: the first four shops have it
   assert.deepEqual([0, 1, 2, 3].map((r) => b.demoCoverage(r, 0, 1)), [true, true, true, true]);
 });
+
+test('a request shows in Received, Pending or Expired, and leaves for Orders once every part is taken', () => {
+  const m = (id, status, quoteUntil = 100) => ({ enquiry: { id, status, quoteUntil } });
+  const have = [{ enquiryId: 'a', available: true }];
+  assert.equal(b.requestTabOf([m('a', 'open')], [], 10), 'pending');
+  assert.equal(b.requestTabOf([m('a', 'open')], [{ enquiryId: 'a', available: false, reply: 'check' }], 10), 'pending');
+  assert.equal(b.requestTabOf([m('a', 'open')], have, 10), 'received');
+  assert.equal(b.requestTabOf([m('a', 'open')], have, 200), 'expired');
+  assert.equal(b.requestTabOf([m('a', 'cancelled')], have, 10), 'expired');
+  assert.equal(b.requestTabOf([m('a', 'reserved'), m('c', 'open')], [], 10), 'received');
+  assert.equal(b.requestTabOf([m('a', 'reserved'), m('c', 'bought')], [], 10), 'orders');
+  assert.equal(b.requestTabOf([m('a', 'bought'), m('c', 'cancelled')], [], 10), 'orders');
+});

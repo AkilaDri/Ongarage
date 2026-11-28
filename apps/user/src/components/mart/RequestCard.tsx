@@ -148,7 +148,7 @@ const ReachCanvas: React.FC<{ coords: LatLng; status: Record<string, 'good' | 'b
  * in it (green has the part, red has none, amber is looking, grey has not answered, blue are new ones the wider range would ask), and one button that searches that far for the
  * parts nobody has. Past 50 km the message goes to every shop in Sri Lanka.
  */
-const ReachPanel: React.FC<{ coords: LatLng; status: Record<string, 'good' | 'bad' | 'look' | 'wait'>; current: number | 'all'; searchCount: number; onApply: (km: number | 'all') => void }> = ({ coords, status, current, searchCount, onApply }) => {
+export const ReachPanel: React.FC<{ coords: LatLng; status: Record<string, 'good' | 'bad' | 'look' | 'wait'>; current: number | 'all'; searchCount: number; onApply: (km: number | 'all') => void }> = ({ coords, status, current, searchCount, onApply }) => {
   const [km, setKm] = useState<number | 'all'>(current);
   useEffect(() => setKm(current), [current]);
   const shops = useMemo(() => shopsNear(coords), [coords]);
@@ -336,7 +336,7 @@ const hasIt = (o: ShopOffer) => o.available && o.reply !== 'check' && o.reply !=
  * it, ✗ when none does, ⏳ while the shops are still answering. Touching a part opens ONE popup with everything about it: its details, a part nobody has can be posted on the
  * open rare-parts wall from there (with a description of its own), then the full request with the shops that answered (they have it / have none, the price), reserve, ask more, chat.
  */
-export const RequestCard: React.FC<{ items: MartEnquiry[]; renderFull: (m: MartEnquiry) => React.ReactNode }> = ({ items, renderFull }) => {
+export const RequestCard: React.FC<{ items: MartEnquiry[]; renderFull: (m: MartEnquiry) => React.ReactNode; /** Told when one of the card's own windows opens or closes. */ onWindow?: (open: boolean) => void }> = ({ items, renderFull, onWindow }) => {
   const { offers, purchases, postToWall, searchWithin, cart } = useMart();
   const [openId, setOpenId] = useState<string | null>(null);
   // In a request of several parts the part popup opens on the shops that have that part; its details are one tab over.
@@ -360,6 +360,16 @@ export const RequestCard: React.FC<{ items: MartEnquiry[]; renderFull: (m: MartE
   const [popTab, setPopTab] = useState<'compare' | 'cart'>('compare');
   const [desc, setDesc] = useState<Record<string, string>>({});
   const [wallError, setWallError] = useState<string | null>(null);
+
+  // While a window of this card is open (a part, the compare and cart with the shop's chat), the card must stay where it is: moving it would close the window.
+  const windowOpen = compare || !!openId || routeOpen || qrOpen;
+  const tell = useRef(onWindow);
+  tell.current = onWindow;
+  useEffect(() => {
+    if (!windowOpen) return;
+    tell.current?.(true);
+    return () => tell.current?.(false);
+  }, [windowOpen]);
 
   const many = items.length > 1;
   const first = items[0];

@@ -8,7 +8,7 @@ export const VehicleBlock: React.FC<{ vehicle: Vehicle }> = ({ vehicle: v }) => 
   <View style={styles.wrap}>
     <VehicleLabel type={v.type} style={styles.model}>{v.name}
     </VehicleLabel>
-    <LkPlate plate={v.registrationNo || v.plate} stacked={v.type === 'Motorbike'} small />
+    <LkPlate plate={v.registrationNo || v.plate} small />
   </View>
 );
 

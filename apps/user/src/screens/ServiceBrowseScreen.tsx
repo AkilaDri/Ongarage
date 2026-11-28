@@ -366,7 +366,8 @@ export const ServiceBrowseScreen: React.FC<ServiceBrowseScreenProps> = ({ servic
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
         {/* The same top bar as the job form and the search screen: a solid blue band, a round back button on the left, and the search pill. It fades as the sheet rises. */}
-        <Animated.View style={[styles.browseBand, { top: insets.top + 8, opacity: sheetHeight.interpolate({ inputRange: [collapsedHeight, collapsedHeight + 70], outputRange: [1, 0], extrapolate: 'clamp' }) }]}>
+        {/* Once faded out it must not take taps either: the open list's Minimize button lies under it. */}
+        <Animated.View style={[styles.browseBand, { top: insets.top + 8, opacity: sheetHeight.interpolate({ inputRange: [collapsedHeight, collapsedHeight + 70], outputRange: [1, 0], extrapolate: 'clamp' }) }]} pointerEvents={sheet === 'expanded' ? 'none' : 'box-none'}>
           <SearchBand floating value={searchText} onChangeText={setSearchText} onClose={onClose} />
         </Animated.View>
 

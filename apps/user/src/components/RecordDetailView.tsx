@@ -70,7 +70,7 @@ export const RecordDetailView: React.FC<{ target: RecordTarget | null; onClose: 
               <View style={styles.softBox}>
                 <Text style={styles.jobTitle}>{title}</Text>
                 <View style={styles.nameRow}>
-                  <LkPlate plate={w ? vehicle?.registrationNo || vehicle?.plate || '—' : r!.vehiclePlate} stacked={vehicle?.type === 'Motorbike'} small />
+                  <LkPlate plate={w ? vehicle?.registrationNo || vehicle?.plate || '—' : r!.vehiclePlate} small />
                   <Text style={styles.vehicleName}>{w ? vehicle?.name : r!.vehicleName}</Text>
                 </View>
                 <View style={styles.priceRow}>

@@ -190,3 +190,22 @@ export const demoCoverage = (rank: number, index: number, count: number): boolea
       return undefined;
   }
 };
+
+/** Where an owner's request (a single one or a basket) shows: the three Requests tabs, laid out like Bids, or Orders once it has left Requests. */
+export type RequestTab = 'received' | 'pending' | 'expired';
+
+/**
+ * Received: still going, and a shop has a part (or some parts are already reserved or bought). Pending: still going, and nothing to choose yet. Expired: nothing is still
+ * going and nothing was reserved or bought (cancelled, or out of time). Orders: every part that was still wanted has been reserved or bought, so the request is followed there.
+ */
+export const requestTabOf = (
+  items: { enquiry: { id: string; status: string; quoteUntil: number } }[],
+  offers: { enquiryId: string; available: boolean; reply?: string }[],
+  now: number,
+): RequestTab | 'orders' => {
+  const taken = items.some((m) => m.enquiry.status === 'reserved' || m.enquiry.status === 'bought');
+  const live = items.filter((m) => m.enquiry.status === 'open' && m.enquiry.quoteUntil > now);
+  if (!live.length) return taken ? 'orders' : 'expired';
+  const has = live.some((m) => offers.some((o) => o.enquiryId === m.enquiry.id && o.available && o.reply !== 'check' && o.reply !== 'none'));
+  return taken || has ? 'received' : 'pending';
+};

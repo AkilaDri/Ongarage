@@ -1,5 +1,5 @@
-import { GridRow, MoneyText } from '@ongarage/shared';
-import { DoneTag, PostBody, PostHead, PriceText } from './PostCard';
+import { INSPECTION_FEE, GridRow, MoneyText } from '@ongarage/shared';
+import { DoneTag, StoppedTag, PostBody, PostHead, PriceText } from './PostCard';
 import { WorkTimer } from './WorkTimer';
 import { WaitingDots } from './WaitingDots';
 import { elevation1, outline } from '../utils/material';
@@ -44,7 +44,9 @@ export const DirectBookingCard: React.FC<{ booking: DirectBooking; onBookAgain: 
   const started = (workshops[b.id]?.progress.stage ?? 'booked') !== 'booked';
   // A finished job shows just its card: the step-by-step tracker is for running work (the details view has it all).
   const w = workshops[b.id];
-  const priceText = b.estimate ? money(b.estimate - (b.discount ?? 0)) : b.proposal ? money(b.proposal.estimate) : '—';
+  // Stopped at the report: only the inspection fee is due, and there is no repair to rate.
+  const stopped = w?.progress.stage === 'declined';
+  const priceText = stopped ? money(INSPECTION_FEE) : b.estimate ? money(b.estimate - (b.discount ?? 0)) : b.proposal ? money(b.proposal.estimate) : '—';
   const finishedJob = w?.progress.stage === 'declined' || (w?.progress.stage === 'closed' && !!w.acknowledged);
   // A running job (step bar) or a finished one shows its price on a line of its own; the other states keep it on the vehicle line.
   const doneOk = finishedJob && !cancelledJob;
@@ -68,7 +70,9 @@ export const DirectBookingCard: React.FC<{ booking: DirectBooking; onBookAgain: 
         {doneOk && (
           <GridRow
             left={
-              workshops[b.id]?.review?.rating ? (
+              stopped ? (
+                <Text style={styles.sub}>පරීක්ෂා ගාස්තුව පමණයි</Text>
+              ) : workshops[b.id]?.review?.rating ? (
                 <Text style={styles.rating}>
                   {'★'.repeat(Math.round(workshops[b.id]!.review!.rating))}
                   {'☆'.repeat(5 - Math.round(workshops[b.id]!.review!.rating))} {workshops[b.id]!.review!.rating.toFixed(1)}
@@ -79,7 +83,7 @@ export const DirectBookingCard: React.FC<{ booking: DirectBooking; onBookAgain: 
                 </Pressable>
               ) : null
             }
-            right={<DoneTag />}
+            right={stopped ? <StoppedTag /> : <DoneTag />}
           />
         )}
       </PostBody>

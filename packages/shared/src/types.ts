@@ -745,6 +745,10 @@ export type PartBrief = {
   vehicle: PartVehicle;
   /** Service category (SERVICE_CATEGORIES id) the part belongs to, used to match shops. */
   categoryId?: string;
+  /** The part category the buyer picked for this kind of vehicle (see partCategoriesFor). */
+  partCategoryId?: string;
+  /** The parts taxonomy group of that category, used to match shop catalogues when the part's name is not recognised. */
+  partGroupId?: string;
 };
 
 /** Who is asked: the shops near the buyer, the open wall (every shop in the country), or both. */

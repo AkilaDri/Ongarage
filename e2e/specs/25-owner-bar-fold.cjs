@@ -1,7 +1,7 @@
 const { spec } = require('../lib.cjs');
 
 // Owner: the top bar folds away while a page / sheet is scrolled up, and comes back when it is scrolled down again
-// (Activity, Bids, and the service-browse window's search bar).
+// (Activity and Bids). The service-browse window's garage list opens to full and minimises.
 module.exports = spec('Owner · top bars fold away while scrolling', 'user', async (t) => {
   const p = t.page;
   // Height of the folding wrapper around an element: the n-th ancestor with hidden overflow (the title bands are hidden-overflow themselves, so skip them).
@@ -42,18 +42,16 @@ module.exports = spec('Owner · top bars fold away while scrolling', 'user', asy
   // Service browse window: the search bar folds while the sheet is fully open
   await t.clickText('Home');
   await t.wait(800);
-  await t.clickLabel('All services');
+  await t.clickLabel('See all services');
   await t.wait(800);
   await p.evaluate(() => document.querySelector('[aria-label="Service Mechanical"]').scrollIntoView({ block: 'center' }));
   await t.clickLabel('Service Mechanical');
   await t.wait(1800);
-  const searchOpen = await wrapperHeight('[aria-label="Close screen"]', 0);
-  await p.mouse.move(195, 650);
-  await p.mouse.wheel({ deltaY: 300 });
-  await t.wait(1500);
-  const searchFolded = await wrapperHeight('[aria-label="Close screen"]', 0);
-  t.check('Service browse: opening the sheet folds the search bar away', searchOpen > 40 && searchFolded === 0, [searchOpen, searchFolded]);
+  await p.mouse.move(195, 700);
+  await p.mouse.wheel({ deltaY: 900 });
+  await t.wait(1800);
+  t.check('Service browse: the garage list scrolls up to full, with a way to minimise it', (await t.labels('Minimize')).length > 0);
   await t.clickLabel('Minimize');
   await t.wait(1500);
-  t.check('Service browse: minimising brings the search bar back', (await wrapperHeight('[aria-label="Close screen"]', 0)) === searchOpen);
+  t.check('Service browse: minimising lowers the list', (await t.labels('Minimize')).length === 0);
 });

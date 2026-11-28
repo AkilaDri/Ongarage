@@ -15,8 +15,8 @@ const parts = (plate: string) => {
 
 /**
  * A vehicle number plate: a plain outlined plate (no yellow fill) with bold
- * black lettering, the letters and the digits split by a dash. Motorbikes carry the two-line
- * plate: letters above, digits below.
+ * black lettering, the letters and the digits split by a dash. Every vehicle, motorbikes too, shows it on one line;
+ * `stacked` draws letters above digits.
  */
 export const LkPlate: React.FC<{ plate: string; stacked?: boolean; small?: boolean; fontSize?: number }> = ({ plate, stacked, small, fontSize }) => {
   const { letters, digits } = parts(plate);
@@ -72,7 +72,7 @@ export const VehicleLine: React.FC<{
       {v.name}
       {extra ? ' · ' + extra : ''}
     </VehicleLabel>
-    <LkPlate plate={v.registrationNo || v.plate} stacked={v.type === 'Motorbike'} small />
+    <LkPlate plate={v.registrationNo || v.plate} small />
   </View>
 );
 

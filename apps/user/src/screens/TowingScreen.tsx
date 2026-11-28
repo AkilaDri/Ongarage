@@ -792,7 +792,7 @@ export const TowingScreen: React.FC<{ vehicleId?: string; onClose: () => void }>
               return (
                 <Pressable key={v.id} style={[styles.option, on && styles.optionOn]} onPress={() => { setVid(v.id); goTo(1); }} accessibilityLabel={`Tow vehicle ${v.name}`}>
                   <View style={styles.optRow}>
-                    <LkPlate plate={v.registrationNo || v.plate} stacked={v.type === 'Motorbike'} small fontSize={12} />
+                    <LkPlate plate={v.registrationNo || v.plate} small fontSize={12} />
                     <View style={styles.flex1}>
                       <Text style={styles.optionTitle} numberOfLines={1}>{v.name}</Text>
                       {!!details && <Text style={styles.sub} numberOfLines={1}>{details}</Text>}

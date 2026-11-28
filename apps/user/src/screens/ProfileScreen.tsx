@@ -153,7 +153,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ activeVehicle, onV
             </View>
             <View style={styles.flex1}>
               <Text style={styles.vehicleName} numberOfLines={2}>{vehicle.name}</Text>
-              <LkPlate plate={vehicle.registrationNo || vehicle.plate} stacked={vehicle.type === 'Motorbike'} small />
+              <LkPlate plate={vehicle.registrationNo || vehicle.plate} small />
             </View>
           </View>
           {/* How much of this vehicle's details is filled in (changes with the vehicle chosen above) */}

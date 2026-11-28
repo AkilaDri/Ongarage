@@ -475,7 +475,7 @@ function AppShell() {
       <StatusBar style={isDark ? "light" : "dark"} />
       <SafeAreaView style={[styles.container, styles.containerFull, (activeTab === 'activity' || activeTab === 'mart' || activeTab === 'bids') && { backgroundColor: pageHeaderBlue().from }]} edges={['top']}>
         {/* Every other tab starts with its title; it folds away with the page scroll like the old header did. */}
-        {activeTab !== 'home' && activeTab !== 'activity' && activeTab !== 'bids' && !(activeTab === 'mart' && martSegment === 'shops') && !!TAB_TITLES[activeTab] && (
+        {activeTab !== 'home' && activeTab !== 'activity' && activeTab !== 'bids' && !(activeTab === 'mart' && (martSegment === 'shops' || martSegment === 'mine')) && !!TAB_TITLES[activeTab] && (
           <Animated.View style={{ height: martHeaderCollapse.interpolate({ inputRange: [0, 1], outputRange: [PAGE_TITLE_H, 0] }), overflow: 'hidden', backgroundColor: pageHeaderBlue().from, marginBottom: -2 }}>
             <Animated.View style={{ opacity: 1 }}>
             {(() => {

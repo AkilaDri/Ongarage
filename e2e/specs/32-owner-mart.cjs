@@ -13,7 +13,7 @@ module.exports = spec('Owner · OnMart search, reserve and buy', 'user', async (
   t.check('nearby shop map shows the owner and shop locations', (await t.labels('My location')).length > 0 && (await t.labels('Map shop')).length > 0);
   await t.clickLabel('Close map');
   await t.wait(500);
-  t.check('map filters include the major part categories', (await t.labels('Part group engine')).length > 0 && (await t.labels('Part group electrical')).length > 0 && (await t.labels('Part group hybrid')).length > 0 && (await t.labels('Part group suspension')).length > 0);
+  t.check("Quick Parts shows the vehicle's part categories", (await t.labels('Part group engine')).length > 0 && (await t.labels('Part group electrical')).length > 0 && (await t.labels('Part group hybrid')).length > 0 && (await t.labels('Part group suspension')).length > 0);
   await t.clickLabel('Open shop stock');
   t.check('shop stock opens in a separate window', (await t.has('වෙළඳසැල් තොගයේ කොටස්')) && (await t.has('Galle Auto Parts')));
   await t.clickLabel('Close shop stock');
@@ -40,15 +40,30 @@ module.exports = spec('Owner · OnMart search, reserve and buy', 'user', async (
   await t.clickText('ඊළඟ ›');
   t.check('the summary carries the part and the vehicle before sending', (await t.has('ඔබේ ඉල්ලීම')) && (await t.has('Brake pads')) && (await t.has('Premio')));
   await t.clickText('ඉල්ලීම වෙළඳසැල් වෙත යවන්න');
-  await t.wait(11000);
-  t.check('offers arrive with a price tag and a fitment note', (await t.has('Galle Auto Parts')) && (await t.has('වෙළඳපොළ මිල')) && (await t.has('වෙන් කර ගන්න')));
+  // A shop takes about 40 s to find a part. The offers are cards on the request.
+  await t.wait(45000);
+  // Answered, so it has moved from Pending to Received.
+  await t.clickText('Received');
+  await t.wait(900);
+  t.check('offers arrive with a price tag and a fitment note', (await t.has('Galle Auto Parts')) && (await t.has('වෙළඳපොළ මිල')) && (await t.has('ගැළපෙන බව වෙළඳසැල තහවුරු කළා')));
 
-  // Reserve at Galle Auto Parts: pickup, then the purchase code
-  await t.clickInCard('Galle Auto Parts', 'වෙන් කර ගන්න');
-  t.check('the reserve sheet explains payment and returns', (await t.has('යෙදුමෙන් කෙරෙන්නේ නැත')) && (await t.has('දින 7ක් ඇතුළත ආපසු දිය හැක')));
-  await t.clickText('වෙන් කර ගන්න ·');
+  // Reserve at Galle Auto Parts through the cart: confirmed there, collected at the shop with a code
+  await t.clickInCard('Galle Auto Parts', 'Add to cart');
+  await t.wait(1500);
+  await t.clickLabel('Open the cart');
+  await t.wait(900);
+  await t.clickLabel('Confirm the order at Galle Auto Parts');
+  await t.wait(1500);
   t.check('the order lists the purchase code', (await t.labels('Close code')).length > 0);
+  // Back out of the shop's chat, then close the pop-up.
+  await t.clickLabel('Back');
+  await t.wait(900);
+  if ((await t.labels('Close sheet')).length > 0) await t.clickLabel('Close sheet');
   await t.wait(9000);
+  await t.clickLabel('OnMart orders');
+  await t.wait(1200);
+  await t.clickLabel('Order Brake pads (front)');
+  await t.wait(1200);
   t.check('the shop got it ready', await t.has('කවුන්ටරයේ ඇත — කොටස පරීක්ෂා කරන්න'));
 
   // At the counter: inspect, then buy
@@ -58,12 +73,16 @@ module.exports = spec('Owner · OnMart search, reserve and buy', 'user', async (
   await t.clickText('ප්‍රමාණය නිවැරදියි');
   await t.clickText('මිල සහ වගකීම');
   await t.clickText('මිලදී ගන්න ·');
-  t.check('bought: warranty card and invoice', (await t.has('🛡️ වගකීම')) && (await t.has('බිල්පත INV-')));
+  t.check('bought: warranty card and invoice', (await t.has('වගකීම')) && (await t.has('බිල්පත INV-')));
   await t.clickLabel('Rate 5 stars');
   t.check('a verified purchase can be rated', await t.has('ඔබගේ ශ්‍රේණිය'));
   await t.shot('owner-mart-bought');
 
-  // The open wall
+  // The open wall (the order's record is closed first: it lies over the bottom bar)
+  for (let i = 0; i < 3 && (await t.labels('Close sheet')).length > 0; i++) {
+    await t.clickLabel('Close sheet');
+    await t.wait(900);
+  }
   await t.clickLabel('OnMart wall');
   await t.wait(600);
   t.check('the wall is a feed: a "what part do you need?" box and other owners\' posts', (await t.has('ඔබට අවශ්‍ය දුර්ලභ කොටස කුමක්ද?')) && (await t.has('Toyota Aqua headlamp')) && (await t.has('Honda Fit Hybrid IMA battery')));
@@ -71,8 +90,14 @@ module.exports = spec('Owner · OnMart search, reserve and buy', 'user', async (
   t.check('category buttons sit above the feed', (await t.labels('Filter Mechanical')).length > 0 && (await t.labels('Filter Hybrid / EV')).length > 0);
 
   // Like and comment
+  // The like count sits beside the comment count, above the actions of the same post (the last one on the page).
+  const likes = () => t.page.evaluate(() => {
+    const comments = [...document.querySelectorAll('[aria-label="Comments"]')].pop();
+    return Number((comments.parentElement.firstElementChild.innerText.match(/\d+/) || [NaN])[0]);
+  });
+  const before = await likes();
   await t.clickLabel('Like post');
-  t.check('a like is counted', await t.has('👍 4'));
+  t.check('a like is counted', (await likes()) === before + 1, [before, await likes()]);
   await t.clickLabel('Comment on post');
   t.check('comments open with a box to write one', (await t.labels('Write a comment')).length > 0);
 
@@ -81,6 +106,10 @@ module.exports = spec('Owner · OnMart search, reserve and buy', 'user', async (
   t.check('"I have it" opens a private reply to the poster', await t.has('පෝස්ට් කළ අයට පෞද්ගලිකව දැනුම් දෙන්න'));
   await t.clickLabel('Send reply to poster');
   t.check('the poster is told directly', await t.has('සෘජුවම දැනුම් දුන්නා'));
+  // The reply opens a private chat with the poster: back to the feed.
+  await t.wait(1500);
+  if ((await t.labels('Back')).length > 0) await t.clickLabel('Back');
+  await t.wait(900);
 
   // Filter by service category
   await t.page.evaluate(() => { window.scrollTo(0, 0); document.querySelectorAll('*').forEach((e) => { if (e.scrollTop) e.scrollTop = 0; }); });
